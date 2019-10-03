@@ -53,7 +53,7 @@ static test_entry2 s_tests2[] = {
 
 static test_entry s_tests[] = {
     TEST_ENTRY(all_headers_test),
-    TEST_ENTRY(make_cwt_test),
+    TEST_ENTRY(cose_example_test),
     TEST_ENTRY(critical_headers_test),
     TEST_ENTRY(bad_headers_test),
     TEST_ENTRY(openssl_basic_test),

@@ -72,7 +72,7 @@ int_fast32_t bad_headers_test(void);
 
 /* Test that makes a CWT (CBOR Web Token)
  */
-int_fast32_t make_cwt_test(void);
+int_fast32_t cose_example_test(void);
 
 
 /*

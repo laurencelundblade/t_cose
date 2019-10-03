@@ -171,36 +171,25 @@ static inline void add_unprotected_headers(QCBOREncodeContext *cbor_encode_ctx,
 /*
  * Public function. See t_cose_sign1_sign.h
  */
-enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
-                                    int32_t option_flags,
-                                    int32_t cose_alg_id,
-                                    struct t_cose_key signing_key,
-                                    struct q_useful_buf_c key_id,
-                                    QCBOREncodeContext *cbor_encode_ctx)
+enum t_cose_err_t
+t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
+                            QCBOREncodeContext *cbor_encode_ctx)
 {
-    /* approximate stack use on 32-bit machine:
-     * local use: 16
-     * with calls inlined: 240
-     */
-    int32_t              hash_alg_id;
-    enum t_cose_err_t    return_value;
-    struct q_useful_buf  buffer_for_protected_header;
+    enum t_cose_err_t      return_value;
+    struct q_useful_buf    buffer_for_protected_header;
+    struct q_useful_buf_c  key_id;
+    int32_t                hash_alg_id;
 
     /* Check the cose_alg_id now by getting the hash alg as an early
-     error check even though it is not used until later. */
-    hash_alg_id = hash_alg_id_from_sig_alg_id(cose_alg_id);
+     * error check even though it is not used until later.
+     */
+    hash_alg_id = hash_alg_id_from_sig_alg_id(me->cose_algorithm_id);
     if(hash_alg_id == INT32_MAX) {
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
-    /* Remember all the parameters in the context */
-    me->cose_algorithm_id   = cose_alg_id;
-    me->signing_key         = signing_key;
-    me->option_flags        = option_flags;
-    me->cbor_encode_ctx     = cbor_encode_ctx;
-
     /* Add the CBOR tag indicating COSE_Sign1 */
-    if(!(option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
+    if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
         QCBOREncode_AddTag(cbor_encode_ctx, CBOR_TAG_COSE_SIGN1);
     }
 
@@ -211,11 +200,11 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
     /* The protected headers, which are added as a wrapped bstr  */
     buffer_for_protected_header =
         Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->buffer_for_protected_headers);
-    me->protected_headers = make_protected_header(cose_alg_id,
+    me->protected_headers = make_protected_header(me->cose_algorithm_id,
                                                   buffer_for_protected_header);
     if(q_useful_buf_c_is_null(me->protected_headers)) {
         /* The sizing of storage for protected headers is
-          off (should never happen in tested, released code) */
+         off (should never happen in tested, released code) */
         return_value = T_COSE_ERR_MAKING_PROTECTED;
         goto Done;
     }
@@ -224,19 +213,19 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
     /* The Unprotected headers */
     /* Get the key id because it goes into the headers that are about
      to be made. */
-    if(option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
+    if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         key_id = get_short_circuit_kid();
 #else
         return_value = T_COSE_SHORT_CIRCUIT_SIG_DISABLED;
         goto Done;
 #endif
+    } else {
+        key_id = me->kid;
     }
     add_unprotected_headers(cbor_encode_ctx, key_id);
 
-
     QCBOREncode_BstrWrap(cbor_encode_ctx);
-
 
     /* Any failures in CBOR encoding will be caught in finish
      when the CBOR encoding is closed off. No need to track
@@ -252,7 +241,9 @@ Done:
 /*
  * Public function. See t_cose_sign1_sign.h
  */
-enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me)
+enum t_cose_err_t
+t_cose_sign1_output_signature(struct t_cose_sign1_ctx *me,
+                              QCBOREncodeContext *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
      *   32 bytes local use
@@ -276,7 +267,7 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me)
                                      T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
 
-    QCBOREncode_CloseBstrWrap(me->cbor_encode_ctx, &signed_payload);
+    QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &signed_payload);
 
     /* Check there are no CBOR encoding errors before
      * proceeding with hashing and signing. This is
@@ -284,7 +275,7 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me)
      * correctly later, but it does make it a bit easier
      * for the caller to debug problems.
      */
-    cbor_err = QCBOREncode_GetErrorState(me->cbor_encode_ctx);
+    cbor_err = QCBOREncode_GetErrorState(cbor_encode_ctx);
     if(cbor_err == QCBOR_ERR_BUFFER_TOO_SMALL) {
         return_value = T_COSE_ERR_TOO_SMALL;
         goto Done;
@@ -340,10 +331,8 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me)
     }
 
     /* Add signature to CBOR and close out the array */
-    QCBOREncode_AddBytes(me->cbor_encode_ctx, signature);
-    QCBOREncode_CloseArray(me->cbor_encode_ctx);
-
-    
+    QCBOREncode_AddBytes(cbor_encode_ctx, signature);
+    QCBOREncode_CloseArray(cbor_encode_ctx);
 
     /* The layer above this must check for and handle CBOR
      * encoding errors CBOR encoding errors.  Some are
@@ -353,3 +342,49 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me)
 Done:
     return return_value;
 }
+
+
+/*
+ * Public function. See t_cose_sign1_sign.h
+ */
+enum t_cose_err_t
+t_cose_sign1_sign(struct t_cose_sign1_ctx *me,
+                  struct q_useful_buf_c   payload,
+                  struct q_useful_buf     out_buf,
+                  struct q_useful_buf_c  *result)
+{
+    QCBOREncodeContext  encode_context;
+    enum t_cose_err_t   return_value;
+
+    /* -- Initialize CBOR encoder context with output buffer */
+    QCBOREncode_Init(&encode_context, out_buf);
+
+    /* -- Output the headers into the encoder context -- */
+    return_value = t_cose_sign1_output_headers(me, &encode_context);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* -- Output the payload into the encoder context -- */
+    /* Payload may or may not actually be CBOR format here. This function
+     * does the job just fine because it just adds bytes to the
+     * encoded output without anything extra.
+     */
+    QCBOREncode_AddEncoded(&encode_context, payload);
+
+    /* -- Sign and put signature in the encoder context -- */
+    return_value = t_cose_sign1_output_signature(me, &encode_context);
+    if(return_value) {
+        goto Done;
+    }
+
+    /* -- Close off and get the resulting encoded CBOR -- */
+    if(QCBOREncode_Finish(&encode_context, result)) {
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        goto Done;
+    }
+
+Done:
+    return return_value;
+}
+

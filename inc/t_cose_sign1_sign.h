@@ -70,7 +70,7 @@ struct t_cose_sign1_ctx {
     int32_t               cose_algorithm_id;
     struct                t_cose_key signing_key;
     int32_t               option_flags;
-    QCBOREncodeContext   *cbor_encode_ctx;
+    struct q_useful_buf_c kid;
 };
 
 
@@ -162,7 +162,7 @@ struct t_cose_sign1_ctx {
  * the actual signing algorithm is run exactly as it would if a proper
  * signing algorithm was run.
  */
-enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
+enum t_cose_err_t t_cose_sign1_init_old(struct t_cose_sign1_ctx *me,
                                     int32_t option_flags,
                                     int32_t cose_algorithm_id,
                                     struct t_cose_key signing_key,
@@ -188,6 +188,73 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
 enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me);
 
 
+// Must be called
+static void
+t_cose_sign1_init(struct t_cose_sign1_ctx *me,
+                   int32_t option_flags,
+                   int32_t cose_algorithm_id);
+
+// Must be called, unless short-circuit is used
+static void
+t_cose_sign1_set_key(struct t_cose_sign1_ctx *me,
+                     struct t_cose_key        signing_key,
+                     struct q_useful_buf_c    key_id);
+
+//
+void
+t_cose_sign1_set_content_type(struct t_cose_sign1_ctx *me,
+                              uint16_t                 content_type);
+
+enum t_cose_err_t
+t_cose_sign1_sign(struct t_cose_sign1_ctx *me,
+                  struct q_useful_buf_c   payload,
+                  struct q_useful_buf     out_buf,
+                  struct q_useful_buf_c  *result);
+
+enum t_cose_err_t
+t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
+                            QCBOREncodeContext *cbor_encode_ctx);
+
+
+enum t_cose_err_t
+t_cose_sign1_output_signature(struct t_cose_sign1_ctx *me,
+                              QCBOREncodeContext *cbor_encode_ctx);
+
+
+
+
+
+
+
+/*
+ * Public function. See t_cose_sign1_sign.h
+ */
+static inline void
+t_cose_sign1_init(struct t_cose_sign1_ctx *me,
+                   int32_t option_flags,
+                   int32_t cose_algorithm_id)
+{
+    memset(me, 0, sizeof(*me));
+
+    me->cose_algorithm_id = cose_algorithm_id;
+    me->option_flags      = option_flags;
+}
+
+
+/*
+ * Public function. See t_cose_sign1_sign.h
+ */
+static inline void
+t_cose_sign1_set_key(struct t_cose_sign1_ctx *me,
+                     struct t_cose_key signing_key,
+                     struct q_useful_buf_c key_id)
+{
+    me->kid         = key_id;
+    me->signing_key = signing_key;
+}
+
+
+    
 #ifdef __cplusplus
 }
 #endif
