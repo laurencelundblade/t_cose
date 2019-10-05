@@ -52,6 +52,7 @@ static test_entry2 s_tests2[] = {
 #endif
 
 static test_entry s_tests[] = {
+    TEST_ENTRY(content_type_test),
     TEST_ENTRY(all_headers_test),
     TEST_ENTRY(cose_example_test),
     TEST_ENTRY(critical_headers_test),

@@ -86,5 +86,11 @@ int_fast32_t critical_headers_test(void);
  */
 int_fast32_t all_headers_test(void);
 
+/*
+ * Check that setting the content type works
+ */
+int_fast32_t content_type_test(void);
+
+
 
 #endif /* t_cose_test_h */

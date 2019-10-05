@@ -203,11 +203,12 @@ t_cose_sign1_verify(int32_t                 option_flags,
     
     /* -- Compute the TBS bytes -- */
     return_value = create_tbs_hash(parsed_protected_headers.cose_alg_id,
-                                   buffer_for_tbs_hash,
-                                   &tbs_hash,
+
                                    protected_headers,
                                    T_COSE_TBS_BARE_PAYLOAD,
-                                   *payload);
+                                   *payload,
+                                   buffer_for_tbs_hash,
+                                   &tbs_hash);
     if(return_value) {
         goto Done;
     }

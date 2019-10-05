@@ -83,7 +83,8 @@ struct t_cose_key {
     } k;
 };
 
-
+/** An empty or \c NULL \c t_cose_key */
+#define T_COSE_NULL_KEY ((struct t_cose_key){T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}})
 
 
 /* Private value. Intentionally not documented for Doxygen.

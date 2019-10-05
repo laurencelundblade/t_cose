@@ -23,7 +23,6 @@ int_fast32_t short_circuit_self_test()
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           degenerate_key;
     struct q_useful_buf_c       payload;
 
 
@@ -46,11 +45,10 @@ int_fast32_t short_circuit_self_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Run the signature verification */
-    degenerate_key = (struct t_cose_key){T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -78,7 +76,6 @@ int_fast32_t short_circuit_verify_fail_test()
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           degenerate_key;
     struct q_useful_buf_c       payload;
     size_t                      payload_offset;
 
@@ -113,11 +110,10 @@ int_fast32_t short_circuit_verify_fail_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Run the signature verification */
-    degenerate_key = (struct t_cose_key){T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -219,7 +215,6 @@ int_fast32_t short_circuit_make_cwt_test()
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key   degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     struct q_useful_buf_c       payload;
     QCBORError                  cbor_error;
 
@@ -310,7 +305,7 @@ int_fast32_t short_circuit_make_cwt_test()
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -341,7 +336,6 @@ int_fast32_t short_circuit_no_parse_test()
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     struct q_useful_buf_c       payload;
     Q_USEFUL_BUF_MAKE_STACK_UB( expected_payload_buffer, 10);
     struct q_useful_buf_c       expected_payload;
@@ -394,7 +388,7 @@ int_fast32_t short_circuit_no_parse_test()
                                        /* Select no parsing option to test it */
                                        T_COSE_OPT_PARSE_ONLY,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -442,8 +436,6 @@ int cose_example_test()
 {
     // TODO finish this test with comparison to expected
     enum t_cose_err_t           return_value;
-    const struct t_cose_key     degenerate_key =
-                                    {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       output;
     struct t_cose_sign1_ctx     sign_ctx;
@@ -452,7 +444,7 @@ int cose_example_test()
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
                       COSE_ALGORITHM_ES256);
 
-    t_cose_sign1_set_key(&sign_ctx, degenerate_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
+    t_cose_sign1_set_key(&sign_ctx, T_COSE_NULL_KEY, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
     /* Make example C.2.1 from RFC 8152 */
 
@@ -472,7 +464,6 @@ static enum t_cose_err_t run_test_sign_and_verify(int32_t option)
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     struct q_useful_buf_c       payload;
 
     /* --- Start making COSE Sign1 object  --- */
@@ -499,7 +490,7 @@ static enum t_cose_err_t run_test_sign_and_verify(int32_t option)
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -542,8 +533,6 @@ static struct q_useful_buf_c get_short_circuit_kid(void)
 int_fast32_t all_headers_test()
 {
     enum t_cose_err_t           return_value;
-    const struct t_cose_key     degenerate_key =
-                                   {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
     struct q_useful_buf_c       output;
     struct q_useful_buf_c       payload;
@@ -555,7 +544,7 @@ int_fast32_t all_headers_test()
                        COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_key(&sign_ctx,
-                         degenerate_key,
+                         T_COSE_NULL_KEY,
                          Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
     return_value = t_cose_test_token_sign1_sign(&sign_ctx,
@@ -570,7 +559,7 @@ int_fast32_t all_headers_test()
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        output,
                                        /* The returned payload */
@@ -712,5 +701,96 @@ int_fast32_t critical_headers_test()
 
     return 0;
 }
+
+
+int_fast32_t content_type_test()
+{
+    struct t_cose_headers       headers;
+    struct t_cose_sign1_ctx     sign_ctx;
+    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
+    struct q_useful_buf_c       output;
+    struct q_useful_buf_c       payload;
+    enum t_cose_err_t           return_value;
+
+    /* -- integer content type -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
+                      COSE_ALGORITHM_ES256);
+
+    t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                          Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                          signed_cose_buffer,
+                          &output);
+    if(return_value) {
+        return 1;
+    }
+
+    return_value = t_cose_sign1_verify(T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                        T_COSE_NULL_KEY,
+                        output,
+                        &payload,
+                        &headers);
+    if(return_value) {
+        return 2;
+    }
+
+    if(headers.content_type_uint != 42) {
+        return 5;
+    }
+
+
+    /* -- string content type -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
+                      COSE_ALGORITHM_ES256);
+
+    t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &output);
+    if(return_value) {
+        return 1;
+    }
+
+    return_value = t_cose_sign1_verify(T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                                       T_COSE_NULL_KEY,
+                                       output,
+                                       &payload,
+                                       &headers);
+    if(return_value) {
+        return 2;
+    }
+
+    if(q_useful_buf_compare(headers.content_type_tstr,
+                            Q_USEFUL_BUF_FROM_SZ_LITERAL("text/plain"))) {
+        return 6;
+    }
+
+
+    /* -- content type in error -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
+                      COSE_ALGORITHM_ES256);
+
+    t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
+    t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
+
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &output);
+    if(return_value != T_COSE_ERR_DUPLICATE_HEADER) {
+        return 1;
+    }
+
+    return 0;
+
+}
+
 
 

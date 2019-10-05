@@ -327,7 +327,7 @@ t_cose_sign1_test_token_output_headers(struct t_cose_sign1_ctx *me,
 
     /* The protected headers, which are added as a wrapped bstr  */
     buffer_for_protected_header =
-        Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->buffer_for_protected_headers);
+        Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_headers_buffer);
     me->protected_headers = make_protected_header(me->option_flags,
                                                   me->cose_algorithm_id,
                                                   buffer_for_protected_header);
@@ -425,11 +425,12 @@ t_cose_sign1_test_token_output_signature(struct t_cose_sign1_ctx *me,
      * doesn't need to be checked here.
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
-                                   buffer_for_tbs_hash,
-                                   &tbs_hash,
+
                                    me->protected_headers,
                                    T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
-                                   signed_payload);
+                                   signed_payload,
+                                   buffer_for_tbs_hash,
+                                   &tbs_hash);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

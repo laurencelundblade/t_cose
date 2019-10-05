@@ -149,22 +149,55 @@ make_protected_header(int32_t cose_alg_id,
 /**
  * \brief Add the unprotected headers to a CBOR encoding context
  *
+ * \param[in] me               The t_cose signing context.
+ * \param[in] kid              The key ID.
  * \param[in] cbor_encode_ctx  CBOR encoding context to output to
- * \param[in] kid              The key ID to go into the kid header.
  *
  * No error is returned. If an error occurred it will be returned when
  * \c QCBOR_Finish() is called on \c cbor_encode_ctx.
  *
  * The unprotected headers added by this are just the key ID
  */
-static inline void add_unprotected_headers(QCBOREncodeContext *cbor_encode_ctx,
-                                           struct q_useful_buf_c kid)
+static inline enum t_cose_err_t
+add_unprotected_headers(const struct t_cose_sign1_ctx *me,
+                        const struct q_useful_buf_c kid,
+                        QCBOREncodeContext *cbor_encode_ctx)
 {
-    QCBOREncode_OpenMap(cbor_encode_ctx);
-    if(!q_useful_buf_c_is_null_or_empty(kid)) {
-        QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_KID, kid);
+    enum t_cose_err_t return_value;
+
+    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE &&
+       me->content_type_tstr != NULL) {
+        /* Both the string and int content types are not allowed */
+        return_value = T_COSE_ERR_DUPLICATE_HEADER;
+        goto Done;
     }
+
+    QCBOREncode_OpenMap(cbor_encode_ctx);
+
+    if(!q_useful_buf_c_is_null_or_empty(kid)) {
+        QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
+                                   COSE_HEADER_PARAM_KID,
+                                   kid);
+    }
+
+    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
+        QCBOREncode_AddUInt64ToMapN(cbor_encode_ctx,
+                                    COSE_HEADER_PARAM_CONTENT_TYPE,
+                                    me->content_type_uint);
+    }
+
+    if(me->content_type_tstr != NULL) {
+        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx,
+                                      COSE_HEADER_PARAM_CONTENT_TYPE,
+                                      me->content_type_tstr);
+    }
+
     QCBOREncode_CloseMap(cbor_encode_ctx);
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
 }
 
 
@@ -199,7 +232,7 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
 
     /* The protected headers, which are added as a wrapped bstr  */
     buffer_for_protected_header =
-        Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->buffer_for_protected_headers);
+        Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_headers_buffer);
     me->protected_headers = make_protected_header(me->cose_algorithm_id,
                                                   buffer_for_protected_header);
     if(q_useful_buf_c_is_null(me->protected_headers)) {
@@ -223,15 +256,18 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
     } else {
         key_id = me->kid;
     }
-    add_unprotected_headers(cbor_encode_ctx, key_id);
+
+    return_value = add_unprotected_headers(me, key_id, cbor_encode_ctx);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     QCBOREncode_BstrWrap(cbor_encode_ctx);
 
     /* Any failures in CBOR encoding will be caught in finish
-     when the CBOR encoding is closed off. No need to track
-     here as the CBOR encoder tracks it internally. */
-
-    return_value = T_COSE_SUCCESS;
+     * when the CBOR encoding is closed off. No need to track
+     * here as the CBOR encoder tracks it internally.
+     */
 
 Done:
     return return_value;
@@ -269,7 +305,7 @@ t_cose_sign1_output_signature(struct t_cose_sign1_ctx *me,
 
     QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &signed_payload);
 
-    /* Check there are no CBOR encoding errors before
+    /* Check that there are no CBOR encoding errors before
      * proceeding with hashing and signing. This is
      * not actually necessary as the errors will be caught
      * correctly later, but it does make it a bit easier
@@ -291,24 +327,25 @@ t_cose_sign1_output_signature(struct t_cose_sign1_ctx *me,
      * doesn't need to be checked here.
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
-                                   buffer_for_tbs_hash,
-                                   &tbs_hash,
+
                                    me->protected_headers,
                                    T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
-                                   signed_payload);
+                                   signed_payload,
+                                   buffer_for_tbs_hash,
+                                   &tbs_hash);
     if(return_value) {
         goto Done;
     }
 
-    /* Compute the signature using public key crypto. The key selector
+    /* Compute the signature using public key crypto. The key
      * and algorithm ID are passed in to know how and what to sign
-     * with. The hash of the TBS bytes are what is signed. A buffer in
+     * with. The hash of the TBS bytes is what is signed. A buffer in
      * which to place the signature is passed in and the signature is
      * returned.
      *
      * Short-circuit signing is invoked if requested. It does no
      * public key operation and requires no key. It is just a test
-     * mode that always works.
+     * mode that works even if no public key algorithm is integrated.
      */
     if(!(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG)) {
         /* Normal, non-short-circuit signing */
@@ -319,6 +356,7 @@ t_cose_sign1_output_signature(struct t_cose_sign1_ctx *me,
                                                   &signature);
     } else {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+        /* Short-circuit signing */
         return_value = short_circuit_sign(me->cose_algorithm_id,
                                           tbs_hash,
                                           buffer_for_signature,
@@ -349,14 +387,14 @@ Done:
  */
 enum t_cose_err_t
 t_cose_sign1_sign(struct t_cose_sign1_ctx *me,
-                  struct q_useful_buf_c   payload,
-                  struct q_useful_buf     out_buf,
-                  struct q_useful_buf_c  *result)
+                  struct q_useful_buf_c    payload,
+                  struct q_useful_buf      out_buf,
+                  struct q_useful_buf_c   *result)
 {
     QCBOREncodeContext  encode_context;
     enum t_cose_err_t   return_value;
 
-    /* -- Initialize CBOR encoder context with output buffer */
+    /* -- Initialize CBOR encoder context with output buffer -- */
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the headers into the encoder context -- */

@@ -117,14 +117,6 @@ struct t_cose_make_test_token {
  * \brief  Initialize to start creating a \c COSE_Sign1.
  *
  * \param[in] me                 The t_cose signing context.
- * \param[in] option_flags       Select different signing options.
- * \param[in] cose_algorithm_id  The algorithm to sign with. The IDs are
- *                               defined in [COSE (RFC 8152)]
- *                               (https://tools.ietf.org/html/rfc8152) or
- *                               in the [IANA COSE Registry]
- *                           (https://www.iana.org/assignments/cose/cose.xhtml).
- * \param[in] signing_key        Which signing key to use.
- * \param[in] key_id             COSE kid header or \ref NULL_Q_USEFUL_BUF_C.
  * \param[in] cbor_encode_ctx    The CBOR encoder context to output to.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
