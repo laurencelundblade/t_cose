@@ -572,7 +572,7 @@ int_fast32_t all_headers_test()
         return 2;
     }
 
-    if(headers.cose_alg_id != COSE_ALGORITHM_ES256) {
+    if(headers.cose_algorithm_id != COSE_ALGORITHM_ES256) {
         return 3;
     }
 
@@ -705,6 +705,8 @@ int_fast32_t critical_headers_test()
 
 int_fast32_t content_type_test()
 {
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+
     struct t_cose_headers       headers;
     struct t_cose_sign1_ctx     sign_ctx;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
@@ -787,7 +789,7 @@ int_fast32_t content_type_test()
     if(return_value != T_COSE_ERR_DUPLICATE_HEADER) {
         return 1;
     }
-
+#endif
     return 0;
 
 }

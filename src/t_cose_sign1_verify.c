@@ -202,7 +202,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
     
     /* -- Compute the TBS bytes -- */
-    return_value = create_tbs_hash(parsed_protected_headers.cose_alg_id,
+    return_value = create_tbs_hash(parsed_protected_headers.cose_algorithm_id,
 
                                    protected_headers,
                                    T_COSE_TBS_BARE_PAYLOAD,
@@ -232,7 +232,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
     /* -- Verify the signature (if it wasn't short-circuit) -- */
     return_value =
-       t_cose_crypto_pub_key_verify(parsed_protected_headers.cose_alg_id,
+       t_cose_crypto_pub_key_verify(parsed_protected_headers.cose_algorithm_id,
                                     verification_key,
                                     unprotected_headers.kid,
                                     tbs_hash,

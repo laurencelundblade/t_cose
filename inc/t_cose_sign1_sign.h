@@ -20,6 +20,8 @@
 extern "C" {
 #endif
 
+    // TODO: kid or key_id
+    // TODO: remove mention of token
 
 /**
  * \file t_cose_sign1_sign.h
@@ -71,8 +73,10 @@ struct t_cose_sign1_ctx {
     struct t_cose_key     signing_key;
     int32_t               option_flags;
     struct q_useful_buf_c kid;
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
+#endif
 };
 
 
@@ -87,15 +91,15 @@ struct t_cose_sign1_ctx {
  * It has no value for security at all. Data signed this way MUST
  * NOT be trusted as anyone can sign like this.
  *
- * In this mode, the signature is the hash of that would normally be
+ * In this mode, the signature is the hash of that which would normally be
  * signed by the public key algorithm. To make the signature the
- * correct size for the particular algorithm instances of the hash are
+ * correct size for the particular algorithm, instances of the hash are
  * concatenated to pad it out.
  *
  * This mode is very useful for testing because all the code except
  * the actual signing algorithm is run exactly as it would if a proper
  * signing algorithm was run. This can be used for end-end system testing all
- * the way to a server or relying party.
+ * the way to a server or relying party, not just for testing device code.
  */
 #define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x00000001
 
@@ -108,7 +112,7 @@ struct t_cose_sign1_ctx {
  *
  * Or said another way, per the COSE RFC, this code produces a
  * \c COSE_Sign1_Tagged by default and a \c COSE_Sign1 when this flag is set.
- * The only difference between these to is the CBOR tag.
+ * The only difference between these two is the CBOR tag.
  */
 #define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
 
@@ -141,8 +145,8 @@ struct t_cose_sign1_ctx {
  */
 static void
 t_cose_sign1_init(struct t_cose_sign1_ctx *context,
-                   int32_t option_flags,
-                   int32_t cose_algorithm_id);
+                   int32_t                 option_flags,
+                   int32_t                 cose_algorithm_id);
 
 
 /**
@@ -282,10 +286,9 @@ t_cose_sign1_sign(struct t_cose_sign1_ctx *context,
  * the encoder context, then call t_cose_sign1_output_signature().
  * Finally call QCBOREncode_FinishGetSize() to get the length.
  */
-
 enum t_cose_err_t
 t_cose_sign1_output_headers(struct t_cose_sign1_ctx *context,
-                            QCBOREncodeContext *cbor_encode_ctx);
+                            QCBOREncodeContext      *cbor_encode_ctx);
 
 
 /**
@@ -296,7 +299,7 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *context,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * Call this to complete creation of a signed token started with
+ * Call this to complete creation of a signed \c COSE_Sign1 started with
  * t_cose_sign1_output_headers().
  *
  * This is when the cryptographic signature algorithm is run.
@@ -306,7 +309,7 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *context,
  */
 enum t_cose_err_t
 t_cose_sign1_output_signature(struct t_cose_sign1_ctx *context,
-                              QCBOREncodeContext *cbor_encode_ctx);
+                              QCBOREncodeContext      *cbor_encode_ctx);
 
 
 
@@ -316,19 +319,16 @@ t_cose_sign1_output_signature(struct t_cose_sign1_ctx *context,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
-
-// TODO: resolve duplicate definition of this
-#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
-
 static inline void
 t_cose_sign1_init(struct t_cose_sign1_ctx *me,
                    int32_t option_flags,
                    int32_t cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     /* Only member for which 0 is not the empty state */
     me->content_type_uint = T_COSE_EMPTY_UINT_CONTENT_TYPE;
-
+#endif
 
     me->cose_algorithm_id = cose_algorithm_id;
     me->option_flags      = option_flags;
@@ -345,6 +345,7 @@ t_cose_sign1_set_key(struct t_cose_sign1_ctx *me,
 }
 
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
 static inline void
 t_cose_sign1_set_content_type_uint(struct t_cose_sign1_ctx *me,
                                    uint16_t                 content_type)
@@ -359,7 +360,8 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *me,
 {
     me->content_type_tstr = content_type;
 }
-    
+#endif
+
 #ifdef __cplusplus
 }
 #endif

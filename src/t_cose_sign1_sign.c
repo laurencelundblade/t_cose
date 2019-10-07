@@ -98,7 +98,7 @@ Done:
 /**
  * \brief  Makes the protected headers for COSE.
  *
- * \param[in] cose_alg_id  The COSE algorithm ID to put in the headers.
+ * \param[in] cose_algorithm_id  The COSE algorithm ID to put in the headers.
  *
  * \param[in] buffer_for_header  Pointer and length into which
  *                               the resulting encoded protected
@@ -116,12 +116,13 @@ Done:
  * small. See also definition of \ref T_COSE_SIGN1_MAX_PROT_HEADER
  */
 static inline struct q_useful_buf_c
-make_protected_header(int32_t cose_alg_id,
+make_protected_header(int32_t             cose_algorithm_id,
                       struct q_useful_buf buffer_for_header)
 {
     /* approximate stack use on 32-bit machine:
-     * local use: 170
-     * with calls: 210
+     *   CBOR encode context 148
+     *   local use: 20
+     *   total: 168
      */
     struct q_useful_buf_c protected_headers;
     QCBORError            qcbor_result;
@@ -132,7 +133,7 @@ make_protected_header(int32_t cose_alg_id,
     QCBOREncode_OpenMap(&cbor_encode_ctx);
     QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
                                COSE_HEADER_PARAM_ALG,
-                               cose_alg_id);
+                               cose_algorithm_id);
     QCBOREncode_CloseMap(&cbor_encode_ctx);
     qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &protected_headers);
 
@@ -160,18 +161,9 @@ make_protected_header(int32_t cose_alg_id,
  */
 static inline enum t_cose_err_t
 add_unprotected_headers(const struct t_cose_sign1_ctx *me,
-                        const struct q_useful_buf_c kid,
-                        QCBOREncodeContext *cbor_encode_ctx)
+                        const struct q_useful_buf_c   kid,
+                        QCBOREncodeContext           *cbor_encode_ctx)
 {
-    enum t_cose_err_t return_value;
-
-    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE &&
-       me->content_type_tstr != NULL) {
-        /* Both the string and int content types are not allowed */
-        return_value = T_COSE_ERR_DUPLICATE_HEADER;
-        goto Done;
-    }
-
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
     if(!q_useful_buf_c_is_null_or_empty(kid)) {
@@ -179,6 +171,14 @@ add_unprotected_headers(const struct t_cose_sign1_ctx *me,
                                    COSE_HEADER_PARAM_KID,
                                    kid);
     }
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE &&
+       me->content_type_tstr != NULL) {
+        /* Both the string and int content types are not allowed */
+        return T_COSE_ERR_DUPLICATE_HEADER;
+    }
+
 
     if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
         QCBOREncode_AddUInt64ToMapN(cbor_encode_ctx,
@@ -191,13 +191,13 @@ add_unprotected_headers(const struct t_cose_sign1_ctx *me,
                                       COSE_HEADER_PARAM_CONTENT_TYPE,
                                       me->content_type_tstr);
     }
+#else
+    (void)me; /* avoid unused parameter warning */
+#endif
 
     QCBOREncode_CloseMap(cbor_encode_ctx);
 
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
+    return T_COSE_SUCCESS;
 }
 
 
@@ -208,6 +208,11 @@ enum t_cose_err_t
 t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
                             QCBOREncodeContext *cbor_encode_ctx)
 {
+    /* approximate stack use on 32-bit machine:
+     *    48 bytes local use
+     *   168 call to make_protected
+     *   216 total
+     */
     enum t_cose_err_t      return_value;
     struct q_useful_buf    buffer_for_protected_header;
     struct q_useful_buf_c  key_id;
@@ -283,10 +288,10 @@ t_cose_sign1_output_signature(struct t_cose_sign1_ctx *me,
 {
     /* approximate stack use on 32-bit machine:
      *   32 bytes local use
-     *   220 to 434 for calls dependin on hash implementation
+     *   220 to 434 for calls depending on hash implementation
      *   32 to 64 bytes depending on hash alg (SHA256, 384 or 512)
      *   64 to 260 depending on EC alg
-     *   348 to 778 depending on hash and EC alg
+     *   348 to 778 total depending on hash and EC alg
      *   Also add stack use by EC and hash functions
      */
     enum t_cose_err_t            return_value;
