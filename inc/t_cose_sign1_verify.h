@@ -126,11 +126,38 @@ struct t_cose_headers {
 #define T_COSE_OPT_PARSE_ONLY  0x00000008
 
 
+
+
+struct t_cose_sign1_verify_ctx {
+    /* Private data structure */
+    struct t_cose_key     verification_key;
+    int32_t               option_flags;
+};
+
+
+/**
+ * \brief Initialize for \c COSE_Sign1 message verification.
+ *
+ * \param[in] option_flags      Options controlling the verification.
+ */
+static void
+t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
+                         int32_t                         option_flags);
+
+
+/**
+ * \brief Set key for \c COSE_Sign1 message verification.
+ *
+ * \param[in] verification_key  The verification key to use. May be empty.
+ */
+static void
+t_cose_sign1_verify_set_key(struct t_cose_sign1_verify_ctx *context,
+                            struct t_cose_key               verification_key);
+
+
 /**
  * \brief Verify a COSE_Sign1
  *
- * \param[in] option_flags      Options controlling the verification.
- * \param[in] verification_key  The verification key to use. May be empty.
  * \param[in] sign1             Pointer and length of CBOR encoded \c COSE_Sign1
  *                              that is to be verified.
  * \param[out] payload          Pointer and length of the payload.
@@ -188,11 +215,34 @@ struct t_cose_headers {
  * will be returned if they are in the input \c COSE_Sign1 messages. For
  * example, if the payload is an indefinite length byte string.
  */
-enum t_cose_err_t t_cose_sign1_verify(int32_t                option_flags,
-                                      struct t_cose_key      verification_key,
-                                      struct q_useful_buf_c  sign1,
-                                      struct q_useful_buf_c *payload,
-                                      struct t_cose_headers *headers);
+enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,                                                                        struct q_useful_buf_c           sign1,
+                                      struct q_useful_buf_c          *payload,
+                                      struct t_cose_headers          *headers);
 
 
+
+
+
+
+
+
+
+/* ------------------------------------------------------------------------
+ * Inline implementations of public functions defined above.
+ */
+static inline void
+t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
+                         int32_t                option_flags)
+{
+    me->option_flags = option_flags;
+    me->verification_key = T_COSE_NULL_KEY;
+}
+
+
+static inline void
+t_cose_sign1_verify_set_key(struct t_cose_sign1_verify_ctx *me,
+                            struct t_cose_key               verification_key)
+{
+    me->verification_key = verification_key;
+}
 #endif /* __T_COSE_SIGN1_VERIFY_H__ */

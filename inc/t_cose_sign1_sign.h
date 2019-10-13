@@ -63,6 +63,7 @@ extern "C" {
  * should allocate it and pass it to the functions here.  This is
  * about 100 bytes so it fits easily on the stack.
  */
+    // TODO: rename this to indicating it is for signing, not verification; also all related functions.
 struct t_cose_sign1_ctx {
     /* Private data structure */
     uint8_t               protected_headers_buffer[T_COSE_SIGN1_MAX_PROT_HEADER];
