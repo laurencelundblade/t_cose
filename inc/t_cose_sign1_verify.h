@@ -23,10 +23,10 @@ extern "C" {
 /**
  * \file t_cose_sign1_verify.h
  *
- * \brief Verify a COSE_Sign1
+ * \brief Verify a COSE_Sign1 Message
  *
  * This verifies a \c COSE_Sign1 in compliance with [COSE (RFC 8152)]
- * (https://tools.ietf.org/html/rfc8152). A \c COSE_Sign1 is a CBOR
+ * (https://tools.ietf.org/html/rfc8152). A \c COSE_Sign1 message is a CBOR
  * encoded binary blob that contains headers, a payload and a
  * signature. Usually the signature is made with an EC signing
  * algorithm like ECDSA.
@@ -75,18 +75,19 @@ struct t_cose_headers {
     uint32_t              content_type_uint;
 };
 
+
 /**
  * Indicates no COSE algorithm ID or an unset COSE algorithm ID.
  */
 #define T_COSE_UNSET_ALGORITHM_ID 0
 
 
-
+    
 
 /**
- Pass this as \c option_flags to allow verification of
- short-circuit signatures. This should only be used as
- a test mode as short-circuit signatures are not secure.
+ * Pass this as \c option_flags to allow verification of
+ * short-circuit signatures. This should only be used as
+ * a test mode as short-circuit signatures are not secure.
  */
 #define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x00000001
 
@@ -127,7 +128,10 @@ struct t_cose_headers {
 
 
 
-
+/**
+ * Context for signature verification
+ * Just 16 bytes.
+ */
 struct t_cose_sign1_verify_ctx {
     /* Private data structure */
     struct t_cose_key     verification_key;
@@ -139,6 +143,8 @@ struct t_cose_sign1_verify_ctx {
  * \brief Initialize for \c COSE_Sign1 message verification.
  *
  * \param[in] option_flags      Options controlling the verification.
+ *
+ * This must be called before using the context.
  */
 static void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
@@ -148,7 +154,26 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
 /**
  * \brief Set key for \c COSE_Sign1 message verification.
  *
- * \param[in] verification_key  The verification key to use. May be empty.
+ * \param[in] verification_key  The verification key to use.
+ *
+ * The source of the verification key depends on the how the how the
+ * underlying cryptographic layer works. Simpler layers have no key
+ * store or database in which case the verification key must be passed in
+ * the \c verification_key parameter.
+ * The OpenSSL cryptographic layer is simple like this.
+ *
+ * Usually the kid (key ID) header parameter identifies the verification
+ * key needed to verify the signature. With a simple cryptographic adaption
+ * layer, the caller wishing to use the key ID should call t_cose_sign1_verify()
+ * first with the \ref T_COSE_OPT_PARSE_ONLY option. The kid will be returned in \c headers.
+ * The caller must then find the key on their own. Then call this
+ * to set the key. Last call t_cose_sign1_verify(),
+ * again without the \ref T_COSE_OPT_PARSE_ONLY option.
+ *
+ * When the cryptographic adaptation layer supports key lookup,
+ * then calling this is not necessary. Also, if the key is
+ * somehow know without examining the \c COSE_Sign1, calling this
+ * is not necessary.
  */
 static void
 t_cose_sign1_verify_set_key(struct t_cose_sign1_verify_ctx *context,
@@ -164,25 +189,6 @@ t_cose_sign1_verify_set_key(struct t_cose_sign1_verify_ctx *context,
  * \param[out] headers          Place to return parsed headers. Maybe be NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * The source of the verification key depends on the how the how the
- * underlying cryptographic layer works. Simpler layers have no key
- * store or database in which case the verification key must be passed in
- * the \c verification_key parameter.
- * The OpenSSL cryptographic layer works like this.
- *
- * Usually the kid (key ID) header parameter identifies the verification
- * key needed to verify the signature. With a simple cryptographic adaption
- * layer, the caller wishing to use the key ID should call this function
- * twice, the first time with the \ref T_COSE_OPT_PARSE_ONLY option set
- * and with \c header non-NULL. The kid will be returned in \c headers.
- * The caller must then find the key on their own, then call this
- * again without the \ref T_COSE_OPT_PARSE_ONLY option.
- *
- * When the cryptographic adaptation layer supports key lookup,
- * then calling this twice is not necessary. Also, if the key is
- * somehow know without examining the \c COSE_Sign1, calling this
- * twice is not necessary.
  *
  * Verification involves the following steps.
  *
@@ -218,11 +224,6 @@ t_cose_sign1_verify_set_key(struct t_cose_sign1_verify_ctx *context,
 enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,                                                                        struct q_useful_buf_c           sign1,
                                       struct q_useful_buf_c          *payload,
                                       struct t_cose_headers          *headers);
-
-
-
-
-
 
 
 
