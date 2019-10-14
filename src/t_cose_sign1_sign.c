@@ -205,7 +205,7 @@ add_unprotected_headers(const struct t_cose_sign1_ctx *me,
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
+t_cose_sign1_encode_headers(struct t_cose_sign1_ctx *me,
                             QCBOREncodeContext *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
@@ -284,7 +284,7 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_output_signature(struct t_cose_sign1_ctx *me,
+t_cose_sign1_encode_signature(struct t_cose_sign1_ctx *me,
                               QCBOREncodeContext *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
@@ -404,7 +404,7 @@ t_cose_sign1_sign(struct t_cose_sign1_ctx *me,
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the headers into the encoder context -- */
-    return_value = t_cose_sign1_output_headers(me, &encode_context);
+    return_value = t_cose_sign1_encode_headers(me, &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -417,7 +417,7 @@ t_cose_sign1_sign(struct t_cose_sign1_ctx *me,
     QCBOREncode_AddEncoded(&encode_context, payload);
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_output_signature(me, &encode_context);
+    return_value = t_cose_sign1_encode_signature(me, &encode_context);
     if(return_value) {
         goto Done;
     }

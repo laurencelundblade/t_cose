@@ -82,7 +82,7 @@ struct t_cose_headers {
 #define T_COSE_UNSET_ALGORITHM_ID 0
 
 
-    
+
 
 /**
  * Pass this as \c option_flags to allow verification of
@@ -130,7 +130,7 @@ struct t_cose_headers {
 
 /**
  * Context for signature verification
- * Just 16 bytes.
+ * About 20 bytes.
  */
 struct t_cose_sign1_verify_ctx {
     /* Private data structure */
@@ -176,7 +176,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
  * is not necessary.
  */
 static void
-t_cose_sign1_verify_set_key(struct t_cose_sign1_verify_ctx *context,
+t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
                             struct t_cose_key               verification_key);
 
 
@@ -241,7 +241,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
 
 
 static inline void
-t_cose_sign1_verify_set_key(struct t_cose_sign1_verify_ctx *me,
+t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
                             struct t_cose_key               verification_key)
 {
     me->verification_key = verification_key;
