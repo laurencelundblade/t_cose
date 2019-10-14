@@ -64,7 +64,7 @@ extern "C" {
  * about 100 bytes so it fits easily on the stack.
  */
     // TODO: rename this to indicating it is for signing, not verification; also all related functions.
-struct t_cose_sign1_ctx {
+struct t_cose_sign1_sign_ctx {
     /* Private data structure */
     uint8_t               protected_headers_buffer[T_COSE_SIGN1_MAX_PROT_HEADER];
     struct q_useful_buf_c protected_headers;
@@ -143,9 +143,9 @@ struct t_cose_sign1_ctx {
  * is called.
  */
 static void
-t_cose_sign1_sign_init(struct t_cose_sign1_ctx *context,
-                   int32_t                 option_flags,
-                   int32_t                 cose_algorithm_id);
+t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
+                       int32_t                       option_flags,
+                       int32_t                       cose_algorithm_id);
 
 
 /**
@@ -163,9 +163,9 @@ t_cose_sign1_sign_init(struct t_cose_sign1_ctx *context,
  * \c signing_key is never used.
  */
 static void
-t_cose_sign1_set_signing_key(struct t_cose_sign1_ctx *context,
-                     struct t_cose_key        signing_key,
-                     struct q_useful_buf_c    kid);
+t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
+                             struct t_cose_key             signing_key,
+                             struct q_useful_buf_c         kid);
 
 
 /**
@@ -182,8 +182,8 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_ctx *context,
  *
  */
 static inline void
-t_cose_sign1_set_content_type_uint(struct t_cose_sign1_ctx *context,
-                                   uint16_t                 content_type);
+t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
+                                   uint16_t                      content_type);
 
 /**
  * \brief Set the payload content type using MIME content types.
@@ -199,8 +199,8 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_ctx *context,
  * is called.
  */
 static inline void
-t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *context,
-                                   const char *             content_type);
+t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
+                                   const char                   *content_type);
 
 
 /**
@@ -243,10 +243,10 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *context,
  * the two copies of the payload.
  */
 enum t_cose_err_t
-t_cose_sign1_sign(struct t_cose_sign1_ctx *context,
-                  struct q_useful_buf_c   payload,
-                  struct q_useful_buf     out_buf,
-                  struct q_useful_buf_c  *result);
+t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
+                  struct q_useful_buf_c         payload,
+                  struct q_useful_buf           out_buf,
+                  struct q_useful_buf_c        *result);
 
 
 /**
@@ -286,8 +286,8 @@ t_cose_sign1_sign(struct t_cose_sign1_ctx *context,
  * Finally call QCBOREncode_FinishGetSize() to get the length.
  */
 enum t_cose_err_t
-t_cose_sign1_encode_headers(struct t_cose_sign1_ctx *context,
-                            QCBOREncodeContext      *cbor_encode_ctx);
+t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *context,
+                            QCBOREncodeContext           *cbor_encode_ctx);
 
 
 /**
@@ -307,8 +307,8 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_ctx *context,
  * cbor_encode_ctx by calling \c QCBOREncode_Finish().
  */
 enum t_cose_err_t
-t_cose_sign1_encode_signature(struct t_cose_sign1_ctx *context,
-                              QCBOREncodeContext      *cbor_encode_ctx);
+t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *context,
+                              QCBOREncodeContext           *cbor_encode_ctx);
 
 
 
@@ -319,9 +319,9 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_ctx *context,
  * Inline implementations of public functions defined above.
  */
 static inline void
-t_cose_sign1_sign_init(struct t_cose_sign1_ctx *me,
-                   int32_t option_flags,
-                   int32_t cose_algorithm_id)
+t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
+                       int32_t                       option_flags,
+                       int32_t                       cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
@@ -335,9 +335,9 @@ t_cose_sign1_sign_init(struct t_cose_sign1_ctx *me,
 
 
 static inline void
-t_cose_sign1_set_signing_key(struct t_cose_sign1_ctx *me,
-                     struct t_cose_key signing_key,
-                     struct q_useful_buf_c kid)
+t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
+                             struct t_cose_key             signing_key,
+                             struct q_useful_buf_c         kid)
 {
     me->kid         = kid;
     me->signing_key = signing_key;
@@ -346,16 +346,16 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_ctx *me,
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 static inline void
-t_cose_sign1_set_content_type_uint(struct t_cose_sign1_ctx *me,
-                                   uint16_t                 content_type)
+t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *me,
+                                   uint16_t                     content_type)
 {
     me->content_type_uint = content_type;
 }
 
 
 static inline void
-t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *me,
-                                   const char *             content_type)
+t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
+                                   const char                   *content_type)
 {
     me->content_type_tstr = content_type;
 }

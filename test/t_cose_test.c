@@ -18,7 +18,7 @@
 
 int_fast32_t short_circuit_self_test()
 {
-    struct t_cose_sign1_ctx         sign_ctx;
+    struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
 
     enum t_cose_err_t           return_value;
@@ -75,7 +75,7 @@ int_fast32_t short_circuit_self_test()
 
 int_fast32_t short_circuit_verify_fail_test()
 {
-    struct t_cose_sign1_ctx         sign_ctx;
+    struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     enum t_cose_err_t               return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
@@ -138,7 +138,7 @@ int_fast32_t short_circuit_verify_fail_test()
 
 int_fast32_t short_circuit_signing_error_conditions_test()
 {
-    struct t_cose_sign1_ctx      sign_ctx;
+    struct t_cose_sign1_sign_ctx sign_ctx;
     QCBOREncodeContext           cbor_encode;
     enum t_cose_err_t            return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
@@ -217,7 +217,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
 int_fast32_t short_circuit_make_cwt_test()
 {
-    struct t_cose_sign1_ctx         sign_ctx;
+    struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
     enum t_cose_err_t               return_value;
@@ -340,7 +340,7 @@ int_fast32_t short_circuit_make_cwt_test()
 
 int_fast32_t short_circuit_no_parse_test()
 {
-    struct t_cose_sign1_ctx         sign_ctx;
+    struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
     enum t_cose_err_t               return_value;
@@ -392,8 +392,7 @@ int_fast32_t short_circuit_no_parse_test()
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
-    // TODO: get rid of ALLOW_SHORT_?
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_PARSE_ONLY);
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_PARSE_ONLY);
 
     /* No key necessary with short circuit */
 
@@ -445,10 +444,10 @@ int_fast32_t short_circuit_no_parse_test()
 int cose_example_test()
 {
     // TODO finish this test with comparison to expected
-    enum t_cose_err_t           return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
-    struct q_useful_buf_c       output;
-    struct t_cose_sign1_ctx     sign_ctx;
+    enum t_cose_err_t             return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB(   signed_cose_buffer, 200);
+    struct q_useful_buf_c         output;
+    struct t_cose_sign1_sign_ctx  sign_ctx;
 
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
@@ -469,7 +468,7 @@ int cose_example_test()
 
 static enum t_cose_err_t run_test_sign_and_verify(int32_t option)
 {
-    struct t_cose_sign1_ctx         sign_ctx;
+    struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
     enum t_cose_err_t               return_value;
@@ -550,7 +549,7 @@ int_fast32_t all_headers_test()
     struct q_useful_buf_c           output;
     struct q_useful_buf_c           payload;
     struct t_cose_headers           headers;
-    struct t_cose_sign1_ctx         sign_ctx;
+    struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
 
 
@@ -743,7 +742,7 @@ int_fast32_t content_type_test()
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 
     struct t_cose_headers           headers;
-    struct t_cose_sign1_ctx         sign_ctx;
+    struct t_cose_sign1_sign_ctx    sign_ctx;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           output;
     struct q_useful_buf_c           payload;

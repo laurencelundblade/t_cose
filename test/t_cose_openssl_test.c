@@ -198,7 +198,7 @@ static void free_ecdsa_key_pair(struct t_cose_key ossl_key)
 
 int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
 {
-    struct t_cose_sign1_ctx        sign_ctx;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
     enum t_cose_err_t              return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
@@ -281,7 +281,7 @@ int_fast32_t openssl_basic_test()
 
 int_fast32_t openssl_sig_fail_test()
 {
-    struct t_cose_sign1_ctx        sign_ctx;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
     enum t_cose_err_t              return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
@@ -353,14 +353,14 @@ int_fast32_t openssl_sig_fail_test()
 
 int_fast32_t openssl_make_cwt_test()
 {
-    struct t_cose_sign1_ctx     sign_ctx;
-    QCBOREncodeContext          cbor_encode;
-    enum t_cose_err_t           return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
-    struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           ossl_key;
-    struct q_useful_buf_c       payload;
-    QCBORError                  cbor_error;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    QCBOREncodeContext             cbor_encode;
+    enum t_cose_err_t              return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
+    struct q_useful_buf_c          signed_cose;
+    struct t_cose_key              ossl_key;
+    struct q_useful_buf_c          payload;
+    QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
 
 
