@@ -278,8 +278,7 @@ static inline void add_unprotected_headers(int32_t              test_mess_option
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
     if(test_mess_options & T_COSE_TEST_NOT_WELL_FORMED_1) {
-        QCBOREncode_AddEncoded(cbor_encode_ctx,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxx"));
+        QCBOREncode_AddEncoded(cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxx"));
     }
 
     /* Put in a byte string (not a text string) for the header label */
@@ -289,9 +288,7 @@ static inline void add_unprotected_headers(int32_t              test_mess_option
     }
 
     if(test_mess_options & T_COSE_TEST_BAD_CRIT_HEADER) {
-        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx,
-                                      COSE_HEADER_PARAM_CRIT,
-                                      "hi");
+        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CRIT, "hi");
     }
 
     if(test_mess_options & T_COSE_TEST_EXTRA_HEADER) {
@@ -308,8 +305,7 @@ static inline void add_unprotected_headers(int32_t              test_mess_option
         QCBOREncode_OpenMap(cbor_encode_ctx);
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 66, "hi");
         /* '=' is 0x3d a reserved initial byte and thus not-well-formed */
-        QCBOREncode_AddEncoded(cbor_encode_ctx,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("="));
+        QCBOREncode_AddEncoded(cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("="));
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 67, "bye");
 
         QCBOREncode_CloseMap(cbor_encode_ctx);

@@ -270,12 +270,9 @@ int_fast32_t sign_verify_make_cwt_test()
         0x63, 0x6f, 0x6d, 0x04, 0x1a, 0x56, 0x12, 0xae, 0xb0, 0x05, 0x1a, 0x56,
         0x10, 0xd9, 0xf0, 0x06, 0x1a, 0x56, 0x10, 0xd9, 0xf0, 0x07, 0x42, 0x0b,
         0x71};
-    expected_rfc8392_first_part = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(
-                                                      rfc8392_first_part_bytes);
-    actual_rfc8392_first_part = q_useful_buf_head(signed_cose,
-                                              sizeof(rfc8392_first_part_bytes));
-    if(q_useful_buf_compare(actual_rfc8392_first_part,
-                            expected_rfc8392_first_part)) {
+    expected_rfc8392_first_part = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_first_part_bytes);
+    actual_rfc8392_first_part = q_useful_buf_head(signed_cose, sizeof(rfc8392_first_part_bytes));
+    if(q_useful_buf_compare(actual_rfc8392_first_part, expected_rfc8392_first_part)) {
         return -1;
     }
 
@@ -306,8 +303,7 @@ int_fast32_t sign_verify_make_cwt_test()
 
 
     /* compare payload output to the one expected */
-    expected_payload = q_useful_buf_tail(expected_rfc8392_first_part,
-                                         kid_encoded_len + 8);
+    expected_payload = q_useful_buf_tail(expected_rfc8392_first_part, kid_encoded_len + 8);
     if(q_useful_buf_compare(payload, expected_payload)) {
         return 5000;
     }
@@ -337,8 +333,7 @@ static int size_test(int32_t               cose_algorithm_id,
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
-    return_value = t_cose_crypto_sig_size(cose_algorithm_id,
-                                          key_pair, &sig_size);
+    return_value = t_cose_crypto_sig_size(cose_algorithm_id, key_pair, &sig_size);
 
     /* ---- First calculate the size ----- */
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};

@@ -447,8 +447,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                     return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                     goto Done;
                 }
-                if(returned_headers->cose_algorithm_id !=
-                   COSE_ALGORITHM_RESERVED) {
+                if(returned_headers->cose_algorithm_id != COSE_ALGORITHM_RESERVED) {
                     return_value = T_COSE_ERR_DUPLICATE_HEADER;
                     goto Done;
                 }
@@ -484,8 +483,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                     return_value = T_COSE_ERR_HEADER_CBOR;
                     goto Done;
                 }
-                if(!q_useful_buf_c_is_null_or_empty(
-                                                returned_headers->partial_iv)) {
+                if(!q_useful_buf_c_is_null_or_empty(returned_headers->partial_iv)) {
                     return_value = T_COSE_ERR_DUPLICATE_HEADER;
                     goto Done;
                 }
@@ -520,8 +518,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
             case COSE_HEADER_PARAM_CONTENT_TYPE:
                 if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
-                    if(!q_useful_buf_c_is_null_or_empty(
-                                         returned_headers->content_type_tstr)) {
+                    if(!q_useful_buf_c_is_null_or_empty(returned_headers->content_type_tstr)) {
                         return_value = T_COSE_ERR_DUPLICATE_HEADER;
                         goto Done;
                     }
@@ -531,8 +528,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                         return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                         goto Done;
                     }
-                    if(returned_headers->content_type_uint !=
-                       T_COSE_EMPTY_UINT_CONTENT_TYPE) {
+                    if(returned_headers->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
                         return_value = T_COSE_ERR_DUPLICATE_HEADER;
                         goto Done;
                     }
