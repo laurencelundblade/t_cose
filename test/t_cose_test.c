@@ -103,7 +103,7 @@ int_fast32_t short_circuit_verify_fail_test()
     /* --- Start Tamper with payload  --- */
     /* Find the offset of the payload in COSE_Sign1 */
     payload_offset = q_useful_buf_find_bytes(signed_cose,
-                                             Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
     if(payload_offset == SIZE_MAX) {
         return 6000;
     }
@@ -249,7 +249,8 @@ int_fast32_t short_circuit_make_cwt_test()
     QCBOREncode_AddInt64ToMapN(&cbor_encode, 5, 1443944944);
     QCBOREncode_AddInt64ToMapN(&cbor_encode, 6, 1443944944);
     const uint8_t xx[] = {0x0b, 0x71};
-    QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
+    QCBOREncode_AddBytesToMapN(&cbor_encode, 7,
+                               Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
     QCBOREncode_CloseMap(&cbor_encode);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
@@ -453,14 +454,16 @@ int cose_example_test()
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
                       T_COSE_ALGORITHM_ES256);
 
-    t_cose_sign1_set_signing_key(&sign_ctx, T_COSE_NULL_KEY, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
+    t_cose_sign1_set_signing_key(&sign_ctx,
+                                 T_COSE_NULL_KEY,
+                                 Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
     /* Make example C.2.1 from RFC 8152 */
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
-                               signed_cose_buffer,
-                               &output);
+                          Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
+                                     signed_cose_buffer,
+                                    &output);
 
     return return_value;
 }
@@ -604,7 +607,8 @@ int_fast32_t all_headers_test()
         return 5;
     }
 
-    if(q_useful_buf_compare(headers.partial_iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
+    if(q_useful_buf_compare(headers.partial_iv,
+                            Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
         return 6;
     }
 
@@ -647,7 +651,6 @@ int_fast32_t bad_headers_test()
     if(run_test_sign_and_verify(T_COSE_TEST_UNPROTECTED_NOT_MAP) != T_COSE_ERR_HEADER_CBOR) {
         return -8;
     }
-
 
     if(run_test_sign_and_verify(T_COSE_TEST_BAD_CRIT_HEADER) != T_COSE_ERR_HEADER_NOT_PROTECTED) {
         return -9;

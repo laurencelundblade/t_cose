@@ -17,6 +17,9 @@
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
 
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
 int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
@@ -60,7 +63,8 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
         return 5000 + return_value;
     }
 
-    /* OpenSSL uses malloc to allocate buffers for keys, so they have to be freed */
+    /* OpenSSL uses malloc to allocate buffers for keys, so they have to be
+     * freed */
     free_ecdsa_key_pair(key_pair);
 
     /* compare payload output to the one expected */
@@ -72,6 +76,9 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
 }
 
 
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
 int_fast32_t sign_verify_basic_test()
 {
     int_fast32_t return_value;
@@ -100,6 +107,9 @@ int_fast32_t sign_verify_basic_test()
 }
 
 
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
 int_fast32_t sign_verify_sig_fail_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
@@ -111,6 +121,7 @@ int_fast32_t sign_verify_sig_fail_test()
     struct q_useful_buf_c          payload;
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
+    size_t                         tamper_offset;
 
 
     /* Make an ECDSA key pair that will be used for both signing and
@@ -145,12 +156,12 @@ int_fast32_t sign_verify_sig_fail_test()
     }
 
     /* tamper with the pay load to see that the signature verification fails */
-    size_t xx = q_useful_buf_find_bytes(signed_cose,
-                                        Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
-    if(xx == SIZE_MAX) {
+    tamper_offset = q_useful_buf_find_bytes(signed_cose,
+                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+    if(tamper_offset == SIZE_MAX) {
         return 99;
     }
-    ((char *)signed_cose.ptr)[xx] = 'h';
+    ((char *)signed_cose.ptr)[tamper_offset] = 'h';
 
 
     t_cose_sign1_verify_init(&verify_ctx, 0);
@@ -172,6 +183,9 @@ int_fast32_t sign_verify_sig_fail_test()
 }
 
 
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
 int_fast32_t sign_verify_make_cwt_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
@@ -183,8 +197,9 @@ int_fast32_t sign_verify_make_cwt_test()
     struct q_useful_buf_c          payload;
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
-
-
+    struct q_useful_buf_c          expected_rfc8392_first_part;
+    struct q_useful_buf_c          expected_payload;
+    struct q_useful_buf_c          actual_rfc8392_first_part;
 
     /* -- initialize for signing --
      *  No special options selected
@@ -222,7 +237,8 @@ int_fast32_t sign_verify_make_cwt_test()
     QCBOREncode_AddInt64ToMapN(&cbor_encode, 5, 1443944944);
     QCBOREncode_AddInt64ToMapN(&cbor_encode, 6, 1443944944);
     const uint8_t xx[] = {0x0b, 0x71};
-    QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
+    QCBOREncode_AddBytesToMapN(&cbor_encode, 7,
+                               Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
     QCBOREncode_CloseMap(&cbor_encode);
 
 
@@ -255,9 +271,12 @@ int_fast32_t sign_verify_make_cwt_test()
         0x63, 0x6f, 0x6d, 0x04, 0x1a, 0x56, 0x12, 0xae, 0xb0, 0x05, 0x1a, 0x56,
         0x10, 0xd9, 0xf0, 0x06, 0x1a, 0x56, 0x10, 0xd9, 0xf0, 0x07, 0x42, 0x0b,
         0x71};
-    struct q_useful_buf_c fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_first_part_bytes);
-    struct q_useful_buf_c head = q_useful_buf_head(signed_cose, sizeof(rfc8392_first_part_bytes));
-    if(q_useful_buf_compare(head, fp)) {
+    expected_rfc8392_first_part = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(
+                                                      rfc8392_first_part_bytes);
+    actual_rfc8392_first_part = q_useful_buf_head(signed_cose,
+                                              sizeof(rfc8392_first_part_bytes));
+    if(q_useful_buf_compare(actual_rfc8392_first_part,
+                            expected_rfc8392_first_part)) {
         return -1;
     }
 
@@ -288,7 +307,9 @@ int_fast32_t sign_verify_make_cwt_test()
 
 
     /* compare payload output to the one expected */
-    if(q_useful_buf_compare(payload, q_useful_buf_tail(fp, kid_encoded_len + 8))) {
+    expected_payload = q_useful_buf_tail(expected_rfc8392_first_part,
+                                         kid_encoded_len + 8);
+    if(q_useful_buf_compare(payload, expected_payload)) {
         return 5000;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
@@ -297,8 +318,9 @@ int_fast32_t sign_verify_make_cwt_test()
 }
 
 
-
-
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
 static int size_test(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
                      struct t_cose_key     key_pair)
@@ -316,7 +338,8 @@ static int size_test(int32_t               cose_algorithm_id,
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
-    return_value = t_cose_crypto_sig_size(cose_algorithm_id, key_pair, &sig_size);
+    return_value = t_cose_crypto_sig_size(cose_algorithm_id,
+                                          key_pair, &sig_size);
 
     /* ---- First calculate the size ----- */
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
@@ -393,7 +416,9 @@ static int size_test(int32_t               cose_algorithm_id,
 }
 
 
-
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
 int_fast32_t sign_verify_get_size_test()
 {
     enum t_cose_err_t   return_value;
@@ -438,6 +463,8 @@ int_fast32_t sign_verify_get_size_test()
     if(result) {
         return result;
     }
+
+    // TODO: test a key that is too large for hardcoded signature size
 
     return 0;
 }

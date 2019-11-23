@@ -38,9 +38,10 @@ extern "C" {
  *   \c struct \c q_useful_buf
  * - Handle key selection
  *
- * An implementations must be made of these functions
+ * An implementation must be made of these functions
  * for the various cryptographic libraries that are used on
  * various platforms and OSs. The functions are:
+ *   - t_cose_t_cose_crypto_sig_size()
  *   - t_cose_crypto_pub_key_sign()
  *   - t_cose_crypto_pub_key_verify()
  *   - t_cose_crypto_hash_start()
@@ -97,7 +98,13 @@ extern "C" {
 
 
 
-/*
+
+#define T_COSE_EC_P256_SIG_SIZE 64  /* size for secp256r1 */
+#define T_COSE_EC_P384_SIG_SIZE 96  /* size for secp384r1 */
+#define T_COSE_EC_P512_SIG_SIZE 132 /* size for secp521r1 */
+
+
+/**
  * There is a stack variable to hold the output of the signing opertaion.
  * This sets the maximum signature size this code can handle based
  * on the COSE algorithms configured. The size of the signature goes
@@ -105,20 +112,12 @@ extern "C" {
  * given for signing or verification that is larger than this. However
  * it is not typical to do so. If the key or signature is too large
  * the failure will be graceful with an error.
- * Theoretically a key could used to sign or to verify that has
- * size of the largest signature of any of the algorithm types
- * supported.
  *
  * For ECDSA the signature format used is defined in RFC 8152
  * section 8.1. It is the concatenaion of r and s, each of
  * which is the key size in bits rounded up to the nearest byte.
  * That is twice the key size in bytes.
  */
-
-#define T_COSE_EC_P256_SIG_SIZE 64  /* size for secp256r1 */
-#define T_COSE_EC_P384_SIG_SIZE 96  /* size for secp384r1 */
-#define T_COSE_EC_P512_SIG_SIZE 132 /* size for secp521r1 */
-
 #ifndef T_COSE_DISABLE_ES512
     #define T_COSE_MAX_SIG_SIZE T_COSE_EC_P512_SIG_SIZE
 #else
@@ -133,7 +132,7 @@ extern "C" {
 
 
 /**
- * \brief returns the (approximate) size of a signature.
+ * \brief Returns the size of a signature given the key and algorithm.
  *
  * \param[in] cose_algorithm_id  The algorithm ID
  * \param[in] signing_key        Key to compute size of
@@ -199,7 +198,7 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  * vary from one platform / OS to another but should conform to the
  * description here.
  *
- * The key selection depends on the platform / OS.
+ * The key selection depends on the platform / OS. TODO:
  *
  * See the note in the Detailed Description (the \\file comment block)
  * for details on how \c q_useful_buf and \c q_useful_buf_c are used to
@@ -219,7 +218,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
 
 
 /**
- * \brief perform public key signature verification. Part of the
+ * \brief Perform public key signature verification. Part of the
  * t_cose crypto adaptation layer.
  *
  * \param[in] cose_algorithm_id The algorithm to use for verification.
@@ -357,14 +356,22 @@ struct t_cose_crypto_hash {
 
 
 /**
- * The size of the output of SHA-256, 384 & 512 in bytes.
+ * The size of the output of SHA-256.
  *
  * (It is safe to define these independently here as they are
  * well-known and fixed. There is no need to reference
  * platform-specific headers and incur messy dependence.)
  */
 #define T_COSE_CRYPTO_SHA256_SIZE 32
+
+/**
+ * The size of the output of SHA-384 in bytes.
+ */
 #define T_COSE_CRYPTO_SHA384_SIZE 48
+
+/**
+ * The size of the output of SHA-512 in bytes.
+ */
 #define T_COSE_CRYPTO_SHA512_SIZE 64
 
 
@@ -436,7 +443,7 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
  *
  * This function can be called with \c data_to_hash.ptr NULL and it
  * will pretend to hash. This allows the same code that is used to
- * produce the real hash to be used to return a length of the would be
+ * produce the real hash to be used to return a length of the would-be
  * hash for encoded data structure size calculations.
  */
 void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
@@ -468,7 +475,7 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  *
  * See the note in the Detailed Description (the \\file comment block)
  * for details on how \c q_useful_buf and \c q_useful_buf_c are used
- * to return the hash.
+ * to return the hash. TODO: figure out this reference.
  *
  * Other errors can be returned and will usually be propagated up, but hashes
  * generally don't fail so it is suggested not to bother (and to reduce
@@ -486,14 +493,14 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
  *
  * \param[in] cose_algorithm_id    The algorithm ID to check.
  *
- * \returns true if the algorithm ID is ECDSA and false if not.
+ * \returns This returns \c true if the algorithm is ECDSA and \c false if not.
  *
  * This is a convenience function to check whether a given
  * integer COSE algorithm ID uses the ECDSA signing algorithm
  * or not.
  *
  * (As other types of signing algorithms are added, RSA for example,
- * a similar function can be added for them.
+ * a similar function can be added for them.)
  */
 static bool t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
 
@@ -505,12 +512,12 @@ static bool t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
  */
 
 /**
- * \brief Look for a integer in a zero-terminated list of integers.
+ * \brief Look for an integer in a zero-terminated list of integers.
  *
  * \param[in] cose_algorithm_id    The algorithm ID to check.
  * \param[in] list                 zero-terminated list of algorithm IDs.
  *
- * \returns true if the algorithm ID is ECDSA and false if not.
+ * \returns This returns \c true if an integer is in the list, \c false if not.
  *
  * Used to implement t_cose_algorithm_is_ecdsa() and in the future
  * _is_rsa() and such.

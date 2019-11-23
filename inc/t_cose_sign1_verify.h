@@ -223,10 +223,10 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
 /**
  * \brief Verify a COSE_Sign1
  *
- * \param[in] sign1             Pointer and length of CBOR encoded \c COSE_Sign1
- *                              that is to be verified.
- * \param[out] payload          Pointer and length of the payload.
- * \param[out] headers          Place to return parsed headers. Maybe be NULL.
+ * \param[in] sign1     Pointer and length of CBOR encoded \c COSE_Sign1
+ *                      that is to be verified.
+ * \param[out] payload  Pointer and length of the payload.
+ * \param[out] headers  Place to return parsed headers. Maybe be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
