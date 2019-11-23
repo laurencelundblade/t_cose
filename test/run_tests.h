@@ -39,9 +39,7 @@
      }
  @endcode
 */
-typedef void (*OutputStringCB)(const char *szString,
-                               void *pOutCtx,
-                               int bNewline);
+typedef void (*OutputStringCB)(const char *szString, void *pOutCtx, int bNewline);
 
 
 /**
@@ -55,10 +53,7 @@ typedef void (*OutputStringCB)(const char *szString,
 
  @return The number of tests that failed. Zero means overall success.
  */
-int RunTests(const char     *szTestNames[],
-             OutputStringCB  pfOutput,
-             void           *pOutCtx,
-             int            *pNumTestsRun);
+int RunTests(const char     *szTestNames[], OutputStringCB pfOutput, void *pOutCtx, int *pNumTestsRun);
 
 
 /**

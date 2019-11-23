@@ -458,7 +458,5 @@ int_fast32_t sign_verify_get_size_test()
         return result;
     }
 
-    // TODO: test a key that is too large for hardcoded signature size
-
     return 0;
 }
