@@ -21,8 +21,8 @@
  * \brief This implements t_cose signing
  *
  * The stack usage to sign is dependent on the signing algorithm and key size
- * and type of hash implementation. t_cose_sign1_finish() is the main
- * user of stack. It uses 384 for \ref COSE_ALGORITHM_ES256 and 778 for
+ * and type of hash implementation. t_cose_sign1_encode_signature() is the main
+ * user of stack. It uses 384 bytes for \ref COSE_ALGORITHM_ES256 and 778 bytes for
  * \ref COSE_ALGORITHM_ES512.
  */
 
@@ -359,7 +359,7 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
          * hash are the protected headers, the payload that is getting
          * signed, the cose signature alg from which the hash alg is
          * determined. The cose_algorithm_id was checked in
-         * t_cose_sign1_init() so it doesn't need to be checked here.
+         * t_cose_sign1_sign_init() so it doesn't need to be checked here.
          */
         return_value = create_tbs_hash(me->cose_algorithm_id,
                                        me->protected_headers,

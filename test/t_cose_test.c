@@ -736,7 +736,7 @@ int_fast32_t content_type_test()
 
 
     /* -- integer content type -- */
-    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG,  T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 

@@ -28,12 +28,12 @@ extern "C" {
 /**
  * \file t_cose_crypto.h
  *
- * \brief This defines the adaptation layer for cryptographic functions used by
- * t_cose.
+ * \brief This defines the adaptation layer for cryptographic
+ * functions needed by t_cose.
  *
  * This is  small wrapper around the cryptographic functions to:
  * - Map COSE algorithm IDs to cryptographic library IDs
- * - Map cryptograpic library errors to \ref t_cose_err_t errors
+ * - Map cryptographic library errors to \ref t_cose_err_t errors
  * - Have inputs and outputs be \c struct \c q_useful_buf_c and
  *   \c struct \c q_useful_buf
  * - Handle key selection
@@ -41,7 +41,7 @@ extern "C" {
  * An implementation must be made of these functions
  * for the various cryptographic libraries that are used on
  * various platforms and OSs. The functions are:
- *   - t_cose_t_cose_crypto_sig_size()
+ *   - t_cose_t_crypto_sig_size()
  *   - t_cose_crypto_pub_key_sign()
  *   - t_cose_crypto_pub_key_verify()
  *   - t_cose_crypto_hash_start()
@@ -65,9 +65,9 @@ extern "C" {
  * q_useful_buf_c returned is const. The lengths of buffers are
  * handled in a clear, consistent and enforced manner.
  *
- * The pointer in the \c q_useful_buf_c will always point to the buffer
- * passed in via the \c q_useful_buf so the lifetime of the data is
- * under control of the caller.
+ * The pointer in the \c q_useful_buf_c will always point to the
+ * buffer passed in via the \c q_useful_buf so the lifetime of the
+ * data is under control of the caller.
  *
  * This is not intended as any sort of general cryptographic API. It
  * is just the functions needed by t_cose in the form that is most
@@ -105,18 +105,18 @@ extern "C" {
 
 
 /**
- * There is a stack variable to hold the output of the signing opertaion.
- * This sets the maximum signature size this code can handle based
- * on the COSE algorithms configured. The size of the signature goes
- * with the size of the key, not the algorithm, so a key could be
- * given for signing or verification that is larger than this. However
- * it is not typical to do so. If the key or signature is too large
- * the failure will be graceful with an error.
+ * There is a stack variable to hold the output of the signing
+ * operation.  This sets the maximum signature size this code can
+ * handle based on the COSE algorithms configured. The size of the
+ * signature goes with the size of the key, not the algorithm, so a
+ * key could be given for signing or verification that is larger than
+ * this. However, it is not typical to do so. If the key or signature
+ * is too large the failure will be graceful with an error.
  *
- * For ECDSA the signature format used is defined in RFC 8152
- * section 8.1. It is the concatenaion of r and s, each of
- * which is the key size in bits rounded up to the nearest byte.
- * That is twice the key size in bytes.
+ * For ECDSA the signature format used is defined in RFC 8152 section
+ * 8.1. It is the concatenation of r and s, each of which is the key
+ * size in bits rounded up to the nearest byte.  That is twice the key
+ * size in bytes.
  */
 #ifndef T_COSE_DISABLE_ES512
     #define T_COSE_MAX_SIG_SIZE T_COSE_EC_P512_SIG_SIZE
@@ -140,11 +140,11 @@ extern "C" {
  *
  * \return An error code or \ref T_COSE_SUCCESS.
  *
- * This is used the caller wishes to compute the size of a
- * token in order to allocate memory for it.
+ * This is used the caller wishes to compute the size of a token in
+ * order to allocate memory for it.
  *
- * The size of a signature depends primarily on the key size
- * but it is usually necessary to know the algorithm too.
+ * The size of a signature depends primarily on the key size but it is
+ * usually necessary to know the algorithm too.
  *
  * This always returns the exact size of the signature.
  */
@@ -201,8 +201,8 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  * The key selection depends on the platform / OS. TODO:
  *
  * See the note in the Detailed Description (the \\file comment block)
- * for details on how \c q_useful_buf and \c q_useful_buf_c are used to
- * return the signature.
+ * for details on how \c q_useful_buf and \c q_useful_buf_c are used
+ * to return the signature.
  *
  * To find out the size of the signature buffer needed, call this with
  * \c signature_buffer->ptr \c NULL and \c signature_buffer->len a
@@ -477,9 +477,9 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  * for details on how \c q_useful_buf and \c q_useful_buf_c are used
  * to return the hash. TODO: figure out this reference.
  *
- * Other errors can be returned and will usually be propagated up, but hashes
- * generally don't fail so it is suggested not to bother (and to reduce
- * object code size for mapping errors).
+ * Other errors can be returned and will usually be propagated up, but
+ * hashes generally don't fail so it is suggested not to bother (and
+ * to reduce object code size for mapping errors).
  */
 enum t_cose_err_t
 t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
@@ -522,9 +522,9 @@ static bool t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
  * Used to implement t_cose_algorithm_is_ecdsa() and in the future
  * _is_rsa() and such.
  *
- * Typically used once in the crypto adaptation layer, so defining it inline
- * rather than in a .c file is OK and saves creating a whole new .c file just
- * for this.
+ * Typically used once in the crypto adaptation layer, so defining it
+ * inline rather than in a .c file is OK and saves creating a whole
+ * new .c file just for this.
  */
 static inline bool
 t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list)

@@ -93,7 +93,8 @@
 /**
  * \def COSE_HEADER_PARAM_IV
  *
- * \brief CBOR map label of parameter that contains an initialization vector.
+ * \brief CBOR map label of parameter that contains an initialization
+ * vector.
  *
  * A binary string initialization vector.
  *
@@ -105,7 +106,8 @@
 /**
  * \def COSE_HEADER_PARAM_PARTIAL_IV
  *
- * \brief CBOR map label of parameter containing partial initialization vector.
+ * \brief CBOR map label of parameter containing partial
+ * initialization vector.
  *
  * A binary string partial initialization vector.
  *
@@ -119,8 +121,8 @@
  *
  * \brief CBOR map label of parameter that holds one or more counter signature.
  *
- * Counter signatures can be full COSE_Sign1, COSE_Signature and such
- * messages.  This implemenation doesn't support them.
+ * Counter signatures can be full \c COSE_Sign1, \c COSE_Signature and
+ * such messages.  This implementation doesn't support them.
  */
 #define COSE_HEADER_PARAM_COUNTER_SIGNATURE 6
 
@@ -396,8 +398,8 @@
 /**
  * \def COSE_SIG_CONTEXT_STRING_SIGNATURE1
  *
- * \brief This is a string constant used by COSE to label \c COSE_Sign1
- * structures. See RFC 8152, section 4.4.
+ * \brief This is a string constant used by COSE to label \c
+ * COSE_Sign1 structures. See RFC 8152, section 4.4.
  */
 #define COSE_SIG_CONTEXT_STRING_SIGNATURE1 "Signature1"
 

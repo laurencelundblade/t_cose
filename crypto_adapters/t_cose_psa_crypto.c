@@ -61,8 +61,8 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
            cose_alg_id == COSE_ALGORITHM_ES512 ? PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
 #endif
                                                  0;
-    /* psa/crypto_values.h doesn't seem to define a "no alg" value, but
-     * zero seems OK for that use in the ECDSA context. */
+    /* psa/crypto_values.h doesn't seem to define a "no alg" value,
+     * but zero seems OK for that use in the ECDSA context. */
 }
 
 
@@ -100,7 +100,8 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
     enum t_cose_err_t return_value;
     psa_key_handle_t  verification_key_psa;
 
-    /* This implementation does no look up keys by kid in the key store */
+    /* This implementation does no look up keys by kid in the key
+       store */
     ARG_UNUSED(kid);
 
     /* Convert to PSA algorithm ID scheme */

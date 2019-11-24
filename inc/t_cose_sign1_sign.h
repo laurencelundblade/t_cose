@@ -204,8 +204,8 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
  * t_cose_sign1_encode_headers() is called.
  *
  * The IANA Media Types registry can be found
- * [here](https://www.iana.org/assignments/media-types/media-types.xhtml). These
- * have been known as MIME types in the past.
+ * [here](https://www.iana.org/assignments/media-types/media-types.xhtml).
+ * These have been known as MIME types in the past.
  */
 static inline void
 t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
