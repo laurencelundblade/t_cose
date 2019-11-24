@@ -101,7 +101,7 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
     psa_key_handle_t  verification_key_psa;
 
     /* This implementation does no look up keys by kid in the key
-       store */
+     * store */
     ARG_UNUSED(kid);
 
     /* Convert to PSA algorithm ID scheme */

@@ -324,7 +324,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     }
 
     /* Check out a few things that are common between signing and
-       verification */
+     * verification */
     return_value = ecdsa_key_checks(signing_key,
                                    &ossl_ec_key,
                                    &key_len);
