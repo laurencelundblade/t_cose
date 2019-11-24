@@ -57,6 +57,7 @@ extern "C" {
  * ones can also be defined (\c \#define) if what is needed is not in
  * the IANA registry.
  *
+ * \anchor useful_buf_use
  * Binary data is returned to the caller using a \c struct \c
  * q_useful_buf to pass the buffer to receive the data and its length in
  * and a \c q_useful_buf_c to return the pointer and length of the
@@ -162,7 +163,7 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *                              defined in [COSE (RFC 8152)]
  *                              (https://tools.ietf.org/html/rfc8152) or
  *                              in the [IANA COSE Registry]
- *                          (https://www.iana.org/assignments/cose/cose.xhtml).
+ *                              (https://www.iana.org/assignments/cose/cose.xhtml).
  *                              A proprietary ID can also be defined
  *                              locally (\c \#define) if the needed
  *                              one hasn't been registered.
@@ -198,7 +199,8 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  * vary from one platform / OS to another but should conform to the
  * description here.
  *
- * The key selection depends on the platform / OS. TODO:
+ * The contents of signing_key is usually the type that holds
+ * a key for the cryptographic library.
  *
  * See the note in the Detailed Description (the \\file comment block)
  * for details on how \c q_useful_buf and \c q_useful_buf_c are used
@@ -473,9 +475,8 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  * errors that occurred during t_cose_crypto_hash_update() are
  * returned here.
  *
- * See the note in the Detailed Description (the \\file comment block)
- * for details on how \c q_useful_buf and \c q_useful_buf_c are used
- * to return the hash. TODO: figure out this reference.
+ * See \ref useful_buf_use for details on how \c q_useful_buf and
+ * \c q_useful_buf_c are used to return the hash.
  *
  * Other errors can be returned and will usually be propagated up, but
  * hashes generally don't fail so it is suggested not to bother (and

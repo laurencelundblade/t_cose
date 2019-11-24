@@ -116,7 +116,7 @@ Done:
  * way.
  *
  * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_header was too
- * small. See also definition of \ref T_COSE_SIGN1_MAX_PROT_HEADER
+ * small. See also definition of \c T_COSE_SIGN1_MAX_PROT_HEADER
  */
 static inline struct q_useful_buf_c
 make_protected_header(int32_t             test_mess_options,
