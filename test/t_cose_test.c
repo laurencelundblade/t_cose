@@ -101,8 +101,7 @@ int_fast32_t short_circuit_verify_fail_test()
 
     /* --- Start Tamper with payload  --- */
     /* Find the offset of the payload in COSE_Sign1 */
-    payload_offset = q_useful_buf_find_bytes(signed_cose,
-                                             Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+    payload_offset = q_useful_buf_find_bytes(signed_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
     if(payload_offset == SIZE_MAX) {
         return 6000;
     }
@@ -704,7 +703,6 @@ static struct test_case crit_tests_table[] = {
 
     {0, 0}
 };
-
 
 
 int_fast32_t crit_parameters_test()

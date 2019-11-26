@@ -42,8 +42,13 @@ extern "C" {
  * of stack. No stack will be saved if \c T_COSE_DISABLE_ES512 is not
  * also defined.
  *
+<<<<<<< HEAD
  * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type
  * parameters for both signing an verifying.
+=======
+ * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type headers
+ * for both signing and verifying.
+>>>>>>> master
  */
 
 
@@ -238,15 +243,15 @@ enum t_cose_err_t {
     T_COSE_ERR_TAMPERING_DETECTED = 18,
 
     /** The key identified by a \ref t_cose_key or a key ID was not
-	found. */
+     * found. */
     T_COSE_ERR_UNKNOWN_KEY = 19,
 
     /** The key was found, but it was the wrong type for the
-	operation. */
+      * operation. */
     T_COSE_ERR_WRONG_TYPE_OF_KEY = 20,
 
     /** Error constructing the COSE \c Sig_structure when signing or
-	verify. */
+     *  verify. */
     T_COSE_ERR_SIG_STRUCT = 21,
 
     /** Signature was short-circuit. The option \ref
@@ -290,7 +295,7 @@ enum t_cose_err_t {
      * values less than \c INT32_MAX. */
 
     T_COSE_ERR_NON_INTEGER_ALG_ID = 30,
-    /** The content type parameter contains a content type that
+    /** The content type parameter contains a content type that is
      * neither integer or text string or it is an integer not in the
      * range of 0 to \c UINT16_MAX. */
     T_COSE_ERR_BAD_CONTENT_TYPE = 31,

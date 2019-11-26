@@ -14,7 +14,15 @@
 
 
 /**
- * \brief Consume a CBOR map or array.
+ * \file t_cose_headers.c
+ *
+ * \brief Implementation of the header parsing functions.
+ *
+ */
+
+
+/**
+ * \brief Consume a CBOR item, particularly a map or array.
  *
  * \param[in] decode_context   Context to read data items from.
  * \param[in] item_to_consume  The already-read item that is being consumed.
@@ -39,8 +47,8 @@ consume_item(QCBORDecodeContext *decode_context,
     if(item_to_consume->uDataType == QCBOR_TYPE_MAP || item_to_consume->uDataType == QCBOR_TYPE_ARRAY) {
         /* There is only real work to do for maps and arrays */
 
-        /* This works for definite and indefinite length
-         * maps and arrays by using the nesting level
+        /* This works for definite and indefinite length maps and
+         * arrays by using the nesting level
          */
         do {
             return_value = QCBORDecode_GetNext(decode_context, &item);
@@ -53,8 +61,8 @@ consume_item(QCBORDecodeContext *decode_context,
         return_value = QCBOR_SUCCESS;
 
     } else {
-        /* item_to_consume is not a map or array */
-        /* Just pass the nesting level through */
+        /* item_to_consume is not a map or array.  Just pass the
+         * nesting level through */
         *next_nest_level = item_to_consume->uNextNestLevel;
         return_value = QCBOR_SUCCESS;
     }
@@ -73,9 +81,15 @@ Done:
  * \param[in,out] label_list   The list to add to.
  *
  * \retval T_COSE_SUCCESS               If added correctly.
+<<<<<<< HEAD:src/t_cose_parameters.c
  * \retval T_COSE_ERR_TOO_MANY_PARAMETERS  Label list is full.
  * \retval T_COSE_ERR_PARAMETER_CBOR       The item to add doesn't have a label
  *                                      type that is understood
+=======
+ * \retval T_COSE_ERR_TOO_MANY_HEADERS  Header list is full.
+ * \retval T_COSE_ERR_HEADER_CBOR       The item to add doesn't have a label
+ *                                      type that is understood.
+>>>>>>> master:src/t_cose_headers.c
  *
  * The label / key from \c item is added to \c label_list.
  */
@@ -111,8 +125,8 @@ add_label_to_list(const QCBORItem          *item,
     } else {
         /* error because label is neither integer or string */
         /* Should never occur because this is caught earlier, but
-         leave it to be safe and because inlining and optimization
-         should take out any unneeded code
+         * leave it to be safe and because inlining and optimization
+         * should take out any unneeded code
          */
         return_value = T_COSE_ERR_PARAMETER_CBOR;
     }
@@ -135,7 +149,7 @@ Done:
  * \param[out]     critical_labels         List of labels of critical
  *                                         parameters.
  * \param[out]     return_next_nest_level  Place to return nesting level of
- *                                         next data item
+ *                                         next data item.
  *
  * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  Undecodable CBOR.
  * \retval T_COSE_ERR_TOO_MANY_PARAMETERS   More critical labels than this

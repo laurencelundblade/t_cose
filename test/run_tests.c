@@ -77,7 +77,14 @@ static test_entry s_tests[] = {
 
 
 
-/*
+/**
+  \brief Convert number to ASCII string, similar to sprint
+
+  \param [in]  nNum       The 32-bit integer to convert.
+  \param [in]  StringMem  The buffer to output to.
+
+  \return POinter to NULL-terminated string with result or "XXX" on failure.
+
  Convert a number up to 999999999 to a string. This is so sprintf doesn't
  have to be linked in so as to minimized dependencies even in test code.
 
@@ -241,11 +248,10 @@ int RunTests(const char    *szTestNames[],
 /*
  Public function. See run_test.h.
  */
-static void
-PrintSize(const char *szWhat,
-          uint32_t uSize,
-          OutputStringCB pfOutput,
-          void *pOutCtx)
+static void PrintSize(const char *szWhat,
+                      uint32_t uSize,
+                      OutputStringCB pfOutput,
+                      void *pOutCtx)
 {
    UsefulBuf_MAKE_STACK_UB(buffer, 20);
 
@@ -256,18 +262,20 @@ PrintSize(const char *szWhat,
 }
 
 
+
+
+#include "t_cose_sign1_sign.h" /* For struct size printing */
+#include "t_cose_sign1_verify.h" /* For struct size printing */
+#include "t_cose_crypto.h" /* For struct size printing */
+
+
 /*
  Public function. See run_test.h.
  */
-
-#include "t_cose_sign1_sign.h" /* For size printing */
-#include "t_cose_sign1_verify.h" /* For size printing */
-#include "t_cose_crypto.h"
-
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
 {
-    // Type and size of return from sizeof() varies.
-    //These will never be large so cast is safe
+   // Type and size of return from sizeof() varies. These will never be large
+   // so cast is safe.
     PrintSize("sizeof(struct t_cose_sign1_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_sign_ctx),
               pfOutput, pOutCtx);

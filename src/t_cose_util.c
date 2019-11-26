@@ -20,9 +20,8 @@
  *
  * \brief Implementation of t_cose utility functions.
  *
- * These are some functions common to signing and
- * verification, primarily the to-be-signed bytes
- * hashing.
+ * These are some functions common to signing and verification,
+ * primarily the to-be-signed bytes hashing.
  */
 
 
@@ -51,9 +50,9 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 
 
 /*
- * Format of to-be-signed bytes used by create_tbs_hash().
- * This is defined in COSE (RFC 8152) section 4.4. It is the input
- * to the hash.
+ * Format of to-be-signed bytes used by create_tbs_hash().  This is
+ * defined in COSE (RFC 8152) section 4.4. It is the input to the
+ * hash.
  *
  * Sig_structure = [
  *    context : "Signature" / "Signature1" / "CounterSignature",
@@ -63,15 +62,21 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
  *    payload : bstr
  * ]
  *
+<<<<<<< HEAD
  * body_protected refers to the protected parameters from the
  * main COSE_Sign1 structure. This is a little hard to
  * to understand in the spec.
+=======
+ * body_protected refers to the protected headers from the main
+ * COSE_Sign1 structure. This is a little hard to to understand in the
+ * spec.
+>>>>>>> master
  *
- * sign_protected is not used with COSE_Sign1 since
- * there is no signer chunk.
+ * sign_protected is not used with COSE_Sign1 since there is no signer
+ * chunk.
  *
- * external_aad allows external data to be covered
- * by the hash, but is not supported by this implementation.
+ * external_aad allows external data to be covered by the hash, but is
+ * not supported by this implementation.
  */
 
 
@@ -136,8 +141,8 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
         QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
     } else {
         /* Fake payload is the type and length of the wrapping
-         * bstr. It gets hashed with the first part, so no
-         * bytes to omit.
+         * bstr. It gets hashed with the first part, so no bytes to
+         * omit.
          */
         bytes_to_omit = 0;
         QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, payload);
@@ -175,20 +180,20 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
      * in the output buffer can be what is hashed. They payload
      * is the largest memory use, so this saves a lot.
      *
-     * This is further complicated because the the payload
-     * does have to be wrapped in a bstr. It is done one way
-     * when signing and another when verifying.
+     * This is further complicated because the the payload does have
+     * to be wrapped in a bstr. It is done one way when signing and
+     * another when verifying.
      */
 
-    /* This is the hashing of the first part, all the CBOR
-     * except the payload.
+    /* This is the hashing of the first part, all the CBOR except the
+     * payload.
      */
     t_cose_crypto_hash_update(&hash_ctx,
                               q_useful_buf_head(tbs_first_part,
                                                 tbs_first_part.len - bytes_to_omit));
 
-    /* Hash the payload, the second part. This may or may not
-     * have the bstr wrapping. If not, it was hashed above.
+    /* Hash the payload, the second part. This may or may not have the
+     * bstr wrapping. If not, it was hashed above.
      */
     t_cose_crypto_hash_update(&hash_ctx, payload);
 
@@ -204,8 +209,8 @@ Done:
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /* This is a random hard coded kid (key ID) that is used to indicate
  * short-circuit signing. It is OK to hard code this as the
- * probability of collision with this ID is very low and the same
- * as for collision between any two key IDs of any sort.
+ * probability of collision with this ID is very low and the same as
+ * for collision between any two key IDs of any sort.
  */
 
 static const uint8_t defined_short_circuit_kid[] = {
