@@ -8,7 +8,7 @@
  See BSD-3-Clause license in README.md
 
  Created on 9/30/18
- ==============================================================================*/
+ =============================================================================*/
 
 #include "run_tests.h"
 #include "UsefulBuf.h"
@@ -60,11 +60,11 @@ static test_entry s_tests[] = {
 #endif
     TEST_ENTRY(sign1_structure_decode_test),
     TEST_ENTRY(content_type_test),
-    TEST_ENTRY(all_headers_test),
+    TEST_ENTRY(all_header_parameters_test),
     TEST_ENTRY(cose_example_test),
-    TEST_ENTRY(critical_headers_test),
-    TEST_ENTRY(bad_headers_test),
-    TEST_ENTRY(short_circuit_no_parse_test),
+    TEST_ENTRY(crit_parameters_test),
+    TEST_ENTRY(bad_parameters_test),
+    TEST_ENTRY(short_circuit_decode_only_test),
     TEST_ENTRY(short_circuit_make_cwt_test),
     TEST_ENTRY(short_circuit_signing_error_conditions_test),
     TEST_ENTRY(short_circuit_verify_fail_test),
@@ -120,7 +120,10 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 /*
  Public function. See run_test.h.
  */
-int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, int *pNumTestsRun)
+int RunTests(const char    *szTestNames[],
+             OutputStringCB pfOutput,
+             void          *poutCtx,
+             int           *pNumTestsRun)
 {
     int nTestsFailed = 0;
     int nTestsRun = 0;
@@ -238,7 +241,11 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
 /*
  Public function. See run_test.h.
  */
-static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutput, void *pOutCtx)
+static void
+PrintSize(const char *szWhat,
+          uint32_t uSize,
+          OutputStringCB pfOutput,
+          void *pOutCtx)
 {
    UsefulBuf_MAKE_STACK_UB(buffer, 20);
 
@@ -259,7 +266,8 @@ static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutpu
 
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
 {
-   // Type and size of return from sizeof() varies. These will never be large so cast is safe
+    // Type and size of return from sizeof() varies.
+    //These will never be large so cast is safe
     PrintSize("sizeof(struct t_cose_sign1_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_sign_ctx),
               pfOutput, pOutCtx);
@@ -269,8 +277,8 @@ void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
     PrintSize("sizeof(struct t_cose_crypto_hash)",
               (uint32_t)sizeof(struct t_cose_crypto_hash),
               pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_headers)",
-              (uint32_t)sizeof(struct t_cose_headers),
+    PrintSize("sizeof(struct t_cose_parameters)",
+              (uint32_t)sizeof(struct t_cose_parameters),
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_sign1_verify_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_verify_ctx),

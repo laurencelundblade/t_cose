@@ -20,6 +20,7 @@
  */
 int_fast32_t sign_verify_basic_test(void);
 
+
 /*
  * Sign some data, perturb the data and see that sig validation fails
  */
@@ -30,6 +31,7 @@ int_fast32_t sign_verify_sig_fail_test(void);
  * Make a CWT and compare it to the one in the CWT RFC
  */
 int_fast32_t sign_verify_make_cwt_test(void);
+
 
 /*
  * Test the ability to calculate size of a COSE_Sign1

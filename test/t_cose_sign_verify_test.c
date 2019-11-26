@@ -37,7 +37,7 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     if(return_value) {
         return 1000 + return_value;
     }
-    t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     t_cose_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
@@ -55,12 +55,13 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     return_value = t_cose_sign1_verify(&verify_ctx,
                                        signed_cose,         /* COSE to verify */
                                        &payload,  /* Payload from signed_cose */
-                                       NULL);         /* Don't return headers */
+                                       NULL);      /* Don't return parameters */
     if(return_value) {
         return 5000 + return_value;
     }
 
-    /* OpenSSL uses malloc to allocate buffers for keys, so they have to be freed */
+    /* OpenSSL uses malloc to allocate buffers for keys, so they have to
+     * be freed */
     free_ecdsa_key_pair(key_pair);
 
     /* compare payload output to the one expected */
@@ -123,10 +124,10 @@ int_fast32_t sign_verify_sig_fail_test()
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,  0,  T_COSE_ALGORITHM_ES256);
-    t_cose_sign1_set_signing_key(&sign_ctx, key_pair,NULL_Q_USEFUL_BUF_C);
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
-    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -159,7 +160,7 @@ int_fast32_t sign_verify_sig_fail_test()
     return_value = t_cose_sign1_verify(&verify_ctx,
                                        signed_cose,         /* COSE to verify */
                                        &payload,  /* Payload from signed_cose */
-                                       NULL);         /* Don't return headers */
+                                       NULL);      /* Don't return parameters */
 
     if(return_value != T_COSE_ERR_SIG_VERIFY) {
         return 5000 + return_value;
@@ -188,7 +189,7 @@ int_fast32_t sign_verify_make_cwt_test()
     /* -- initialize for signing --
      *  No special options selected
      */
-    t_cose_sign1_sign_init(&sign_ctx,  0,  T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
 
 
     /* -- Key and kid --
@@ -204,9 +205,9 @@ int_fast32_t sign_verify_make_cwt_test()
                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256"));
 
 
-    /* -- Encoding context and output of headers -- */
+    /* -- Encoding context and output of parameters -- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
-    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -242,7 +243,7 @@ int_fast32_t sign_verify_make_cwt_test()
 
 
     /* Compare to expected from CWT RFC */
-    /* The first part, the intro and protected headers must be the same */
+    /* The first part, the intro and protected parameters must be the same */
     const uint8_t rfc8392_first_part_bytes[] = {
         0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa1, 0x04, 0x52, 0x41, 0x73, 0x79,
         0x6d, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x45, 0x43, 0x44, 0x53, 0x41,
@@ -266,11 +267,10 @@ int_fast32_t sign_verify_make_cwt_test()
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
-    return_value =
-        t_cose_sign1_verify(&verify_ctx,
-                            signed_cose,                    /* COSE to verify */
-                            &payload,             /* Payload from signed_cose */
-                            NULL);         /* Don't return headers */
+    return_value =  t_cose_sign1_verify(&verify_ctx,
+                                        signed_cose, /* COSE to verify */
+                                       &payload, /* Payload from signed_cose */
+                                        NULL);  /* Don't return parameters */
 
     if(return_value) {
         return 4000 + return_value;
@@ -324,7 +324,7 @@ static int size_test(int32_t               cose_algorithm_id,
     t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
 
-    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -356,7 +356,7 @@ static int size_test(int32_t               cose_algorithm_id,
     t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
 
-    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -374,7 +374,7 @@ static int size_test(int32_t               cose_algorithm_id,
     }
 
     /* ---- Again with one-call API to make COSE_Sign1 ---- */\
-    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
     return_value = t_cose_sign1_sign(&sign_ctx,
                                      payload,

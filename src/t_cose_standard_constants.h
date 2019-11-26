@@ -31,8 +31,6 @@
  * and cross checked in t_cose_sign1_sign.c
  */
 
-// TODO: are the headers, parameters or header parameters?
-
 
 /* --------------- COSE Header parameters -----------
  * https://www.iana.org/assignments/cose/cose.xhtml#header-parameters

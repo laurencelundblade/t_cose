@@ -63,7 +63,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
  *    payload : bstr
  * ]
  *
- * body_protected refers to the protected headers from the
+ * body_protected refers to the protected parameters from the
  * main COSE_Sign1 structure. This is a little hard to
  * to understand in the spec.
  *
@@ -83,7 +83,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
     1 + /* For opening the array */ \
     sizeof(COSE_SIG_CONTEXT_STRING_SIGNATURE1) + /* "Signature1" */ \
     2 + /* Overhead for encoding string */ \
-    T_COSE_SIGN1_MAX_PROT_HEADER + /* entire protected headers */ \
+    T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS + /* entire protected params */ \
     1 + /* Empty bstr for absent external_aad */ \
     9 /* The max CBOR length encoding for start of payload */
 
@@ -92,7 +92,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
  * Public function. See t_cose_util.h
  */
 enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
-                                  struct q_useful_buf_c       protected_headers,
+                                  struct q_useful_buf_c       protected_parameters,
                                   enum t_cose_tbs_hash_mode_t payload_mode,
                                   struct q_useful_buf_c       payload,
                                   struct q_useful_buf         buffer_for_hash,
@@ -119,7 +119,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     /* context */
     QCBOREncode_AddSZString(&cbor_encode_ctx, COSE_SIG_CONTEXT_STRING_SIGNATURE1);
     /* body_protected */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, protected_headers);
+    QCBOREncode_AddBytes(&cbor_encode_ctx, protected_parameters);
 
     /* sign_protected is not used for COSE_Sign1 */
 
@@ -150,7 +150,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     /* get the encoded results, except for payload */
     qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &tbs_first_part);
     if(qcbor_result) {
-        /* Mainly means that the protected_headers were too big
+        /* Mainly means that the protected_parameters were too big
          * (which should never happen) */
         return_value = T_COSE_ERR_SIG_STRUCT;
         goto Done;
@@ -167,7 +167,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     }
 
     /* This structure is hashed in two parts. The first part is
-     * the CBOR-formatted array with protected headers and such.
+     * the CBOR-formatted array with protected parameters and such.
      * The last part is the actual bytes of the payload. Doing it
      * this way avoids having to allocate a big buffer to hold
      * these two parts together.  It avoids having two copies of
