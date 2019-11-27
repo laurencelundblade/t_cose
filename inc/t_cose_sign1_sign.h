@@ -246,10 +246,10 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
  * be taken into account to give an exact size.
  *
  * This function requires the payload be complete and formatted in a
- * contiguous buffer. The resulting \c COSE_Sign1 also contains the
- * payload preceded by the header parameters and followed by the
- * signature, all CBOR formatted. This function thus requires two
- * copies of the payload to be in memory.  Alternatively
+ * contiguous buffer. The resulting \c COSE_Sign1 message also
+ * contains the payload preceded by the header parameters and followed
+ * by the signature, all CBOR formatted. This function thus requires
+ * two copies of the payload to be in memory.  Alternatively
  * t_cose_sign1_encode_parameters() and
  * t_cose_sign1_encode_signature() can be used. They are more complex
  * to use, but avoid the two copies of the payload.

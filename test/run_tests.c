@@ -15,7 +15,6 @@
 #include <stdbool.h>
 
 #include "t_cose_test.h"
-#include "t_cose_openssl_test.h"
 #include "t_cose_sign_verify_test.h"
 
 

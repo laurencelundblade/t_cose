@@ -43,7 +43,7 @@ extern "C" {
  * also defined.
  *
  * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type
- * parameters for both signing an verifying.
+ * parameters for both signing and verifying.
  */
 
 
