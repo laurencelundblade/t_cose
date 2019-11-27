@@ -42,13 +42,8 @@ extern "C" {
  * of stack. No stack will be saved if \c T_COSE_DISABLE_ES512 is not
  * also defined.
  *
-<<<<<<< HEAD
  * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type
  * parameters for both signing an verifying.
-=======
- * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type headers
- * for both signing and verifying.
->>>>>>> master
  */
 
 

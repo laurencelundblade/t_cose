@@ -13,6 +13,12 @@
 
 #include <stdint.h>
 
+/**
+ * \file t_cose_test.h
+ *
+ * \brief Entry points for the basic t_cose_tests.
+ */
+
 
 /**
  * \brief Minimal message creation test using a short-circuit signature.

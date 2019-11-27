@@ -80,16 +80,10 @@ Done:
  * \param[in] item             Data item to add to the label list.
  * \param[in,out] label_list   The list to add to.
  *
- * \retval T_COSE_SUCCESS               If added correctly.
-<<<<<<< HEAD:src/t_cose_parameters.c
+ * \retval T_COSE_SUCCESS                  If added correctly.
  * \retval T_COSE_ERR_TOO_MANY_PARAMETERS  Label list is full.
  * \retval T_COSE_ERR_PARAMETER_CBOR       The item to add doesn't have a label
- *                                      type that is understood
-=======
- * \retval T_COSE_ERR_TOO_MANY_HEADERS  Header list is full.
- * \retval T_COSE_ERR_HEADER_CBOR       The item to add doesn't have a label
- *                                      type that is understood.
->>>>>>> master:src/t_cose_headers.c
+ *                                         type that is understood
  *
  * The label / key from \c item is added to \c label_list.
  */

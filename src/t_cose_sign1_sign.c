@@ -20,15 +20,9 @@
  *
  * \brief This implements t_cose signing
  *
-<<<<<<< HEAD
  * Stack usage to sign is dependent on the signing alg and key size
  * and type of hash implementation. t_cose_sign1_finish() is the main
  * user of stack It is 384 for \ref COSE_ALGORITHM_ES256 and 778 for
-=======
- * The stack usage to sign is dependent on the signing algorithm and key size
- * and type of hash implementation. t_cose_sign1_encode_signature() is the main
- * user of stack. It uses 384 bytes for \ref COSE_ALGORITHM_ES256 and 778 bytes for
->>>>>>> master
  * \ref COSE_ALGORITHM_ES512.
  */
 
@@ -143,13 +137,8 @@ Done:
  * different from the unprotected parameters which are not handled this
  * way.
  *
-<<<<<<< HEAD
  * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_parameters was too
  * small. See also definition of \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS
-=======
- * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_header was too
- * small. See also definition of \c T_COSE_SIGN1_MAX_PROT_HEADER
->>>>>>> master
  */
 static inline struct q_useful_buf_c
 encode_protected_parameters(int32_t             cose_algorithm_id,
@@ -193,12 +182,7 @@ encode_protected_parameters(int32_t             cose_algorithm_id,
  * No error is returned. If an error occurred it will be returned when
  * \c QCBOR_Finish() is called on \c cbor_encode_ctx.
  *
-<<<<<<< HEAD
  * The unprotected parameters added by this are the kid and content type.
-=======
- * The unprotected headers added by this are the \c kid and the
- * content type.
->>>>>>> master
  */
 static inline enum t_cose_err_t
 add_unprotected_parameters(const struct t_cose_sign1_sign_ctx *me,
@@ -373,17 +357,10 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
      } else {
 
         /* Create the hash of the to-be-signed bytes. Inputs to the
-<<<<<<< HEAD
          * hash are the protected parameters, the payload that is
          * getting signed, the cose signature alg from which the hash
          * alg is determined. The cose_algorithm_id was checked in
          * t_cose_sign1_init() so it doesn't need to be checked here.
-=======
-         * hash are the protected headers, the payload that is getting
-         * signed, the cose signature alg from which the hash alg is
-         * determined. The cose_algorithm_id was checked in
-         * t_cose_sign1_sign_init() so it doesn't need to be checked here.
->>>>>>> master
          */
         return_value = create_tbs_hash(me->cose_algorithm_id,
                                        me->protected_parameters,
@@ -433,13 +410,8 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_CloseArray(cbor_encode_ctx);
 
     /* The layer above this must check for and handle CBOR encoding
-<<<<<<< HEAD
      * errors CBOR encoding errors.  Some are detected at the start of
      * this function, but they cannot all be deteced there.
-=======
-     * errors.  Some are detected at the start of this function, but
-     * they cannot all be deteced there.
->>>>>>> master
      */
 Done:
     return return_value;

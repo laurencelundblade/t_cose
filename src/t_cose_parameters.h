@@ -20,7 +20,9 @@
 
 
 /**
- * A list of COSE parameter labels, both integer and string.
+ * \file t_cose_parameters.h
+ *
+ * \brief A list of COSE parameter labels, both integer and string.
  *
  * It is fixed size to avoid the complexity of memory management and
  * because the number of parameters is assumed to be small.

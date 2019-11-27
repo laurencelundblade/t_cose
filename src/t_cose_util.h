@@ -102,13 +102,8 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * \retval T_COSE_ERR_SIG_STRUCT
-<<<<<<< HEAD
  *         Most likely this is because the protected_parameters passed in
  *         is larger than \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
-=======
- *         Most likely this is because the protected_headers passed in
- *         is larger than \c T_COSE_SIGN1_MAX_PROT_HEADER.
->>>>>>> master
  * \retval T_COSE_ERR_UNSUPPORTED_HASH
  *         If the hash algorithm is not known.
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL

@@ -13,6 +13,14 @@
 
 #include <stdint.h>
 
+
+/**
+ * \file t_cose_sign_verify_test.h
+ *
+ * \brief Tests that need public key crypto to be implemented
+ */
+
+
 /**
  * \brief Self test using openssl crypto.
  *

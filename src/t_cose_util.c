@@ -62,15 +62,9 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
  *    payload : bstr
  * ]
  *
-<<<<<<< HEAD
  * body_protected refers to the protected parameters from the
  * main COSE_Sign1 structure. This is a little hard to
  * to understand in the spec.
-=======
- * body_protected refers to the protected headers from the main
- * COSE_Sign1 structure. This is a little hard to to understand in the
- * spec.
->>>>>>> master
  *
  * sign_protected is not used with COSE_Sign1 since there is no signer
  * chunk.

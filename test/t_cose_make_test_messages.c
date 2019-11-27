@@ -115,14 +115,9 @@ Done:
  * different from the unprotected parameters which are not handled this
  * way.
  *
-<<<<<<< HEAD
  * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_protected_parameters was
  * too small. See also definition of
  * \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
-=======
- * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_header was too
- * small. See also definition of \c T_COSE_SIGN1_MAX_PROT_HEADER
->>>>>>> master
  */
 static inline struct q_useful_buf_c
 encode_protected_parameters(int32_t             test_message_options,
@@ -507,17 +502,10 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     }
 
     /* Create the hash of the to-be-signed bytes. Inputs to the hash
-<<<<<<< HEAD
      * are the protected parameters, the payload that is getting signed, the
      * cose signature alg from which the hash alg is determined. The
      * cose_algorithm_id was checked in t_cose_sign1_init() so it
      * doesn't need to be checked here.
-=======
-     * are the protected headers, the payload that is getting signed,
-     * the cose signature alg from which the hash alg is
-     * determined. The cose_algorithm_id was checked in
-     * t_cose_sign1_init() so it doesn't need to be checked here.
->>>>>>> master
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
                                    me->protected_parameters,
