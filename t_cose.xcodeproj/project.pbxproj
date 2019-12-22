@@ -50,7 +50,18 @@
 		E73BF6C923AF3DD100DF5C36 /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E73BF6CA23AF3DD100DF5C36 /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
 		E73BF6CC23AF3DD100DF5C36 /* libmbedcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E73CDAC723A7319200D262E0 /* libmbedcrypto.a */; settings = {ATTRIBUTES = (Required, ); }; };
-		E73CDAA423A0839900D262E0 /* example_sign_ossl.c in Sources */ = {isa = PBXBuildFile; fileRef = E73CDAA223A082D300D262E0 /* example_sign_ossl.c */; };
+		E73BF6D723AFFB4100DF5C36 /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
+		E73BF6D823AFFB4100DF5C36 /* qcbor_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E9D226CBA1A0040613B /* qcbor_decode.c */; };
+		E73BF6DA23AFFB4100DF5C36 /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E99226CBA1A0040613B /* ieee754.c */; };
+		E73BF6DB23AFFB4100DF5C36 /* t_cose_psa_crypto.c in Sources */ = {isa = PBXBuildFile; fileRef = E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */; };
+		E73BF6DC23AFFB4100DF5C36 /* t_cose_util.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E89226CB9460040613B /* t_cose_util.c */; };
+		E73BF6DD23AFFB4100DF5C36 /* qcbor_encode.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E9A226CBA1A0040613B /* qcbor_encode.c */; };
+		E73BF6DE23AFFB4100DF5C36 /* t_cose_parameters.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_parameters.c */; };
+		E73BF6DF23AFFB4100DF5C36 /* UsefulBuf.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E9B226CBA1A0040613B /* UsefulBuf.c */; };
+		E73BF6E023AFFB4100DF5C36 /* t_cose_basic_example_psa.c in Sources */ = {isa = PBXBuildFile; fileRef = E73BF6D223AFFA6500DF5C36 /* t_cose_basic_example_psa.c */; };
+		E73BF6E323AFFB4100DF5C36 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = E730E60723612D2B00175CE0 /* sha256.c */; };
+		E73BF6E723AFFB4100DF5C36 /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
+		E73BF6E923AFFB4100DF5C36 /* libmbedcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E73CDAC723A7319200D262E0 /* libmbedcrypto.a */; settings = {ATTRIBUTES = (Required, ); }; };
 		E73CDAA623A0BEBF00D262E0 /* qcbor_encode.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E9A226CBA1A0040613B /* qcbor_encode.c */; };
 		E73CDAA723A0BED100D262E0 /* UsefulBuf.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E9B226CBA1A0040613B /* UsefulBuf.c */; };
 		E73CDAA823A0BED500D262E0 /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E99226CBA1A0040613B /* ieee754.c */; };
@@ -116,6 +127,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		E73BF6EA23AFFB4100DF5C36 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		E73CDAC223A7316700D262E0 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -173,7 +193,8 @@
 		E730E60723612D2B00175CE0 /* sha256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sha256.c; path = b_con_hash/sha256.c; sourceTree = "<group>"; };
 		E730E62023612DAB00175CE0 /* t_cose_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_test; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73BF6D123AF3DD100DF5C36 /* t_cose_psa_11 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_psa_11; sourceTree = BUILT_PRODUCTS_DIR; };
-		E73CDAA223A082D300D262E0 /* example_sign_ossl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = example_sign_ossl.c; sourceTree = "<group>"; };
+		E73BF6D223AFFA6500DF5C36 /* t_cose_basic_example_psa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_basic_example_psa.c; sourceTree = "<group>"; };
+		E73BF6EE23AFFB4100DF5C36 /* t_cose_basic_example_psa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_basic_example_psa; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73CDAC623A7316700D262E0 /* t_cose_psa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_psa; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73CDAC723A7319200D262E0 /* libmbedcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmbedcrypto.a; path = "../../mbed-crypto/library/libmbedcrypto.a"; sourceTree = "<group>"; };
 		E73CDAD023AC131A00D262E0 /* libmbedcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmbedcrypto.a; path = "../../mbed-crypto-mbedcrypto-1.1.0/library/libmbedcrypto.a"; sourceTree = "<group>"; };
@@ -219,6 +240,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				E73BF6CC23AF3DD100DF5C36 /* libmbedcrypto.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E73BF6E823AFFB4100DF5C36 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E73BF6E923AFFB4100DF5C36 /* libmbedcrypto.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,32 +297,24 @@
 		E73CDAA123A082A500D262E0 /* examples */ = {
 			isa = PBXGroup;
 			children = (
-				E73CDAA223A082D300D262E0 /* example_sign_ossl.c */,
+				E73BF6D223AFFA6500DF5C36 /* t_cose_basic_example_psa.c */,
 			);
 			path = examples;
-			sourceTree = "<group>";
-		};
-		E7E2071F2368BEF60003AAAB /* encode_sample */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = encode_sample;
 			sourceTree = "<group>";
 		};
 		E7E36E6F226CB8400040613B = {
 			isa = PBXGroup;
 			children = (
-				E73CDAA123A082A500D262E0 /* examples */,
 				E71D9E8E231C930B00A21F7F /* README.md */,
+				E73CDAA123A082A500D262E0 /* examples */,
 				E7E36E7B226CB8400040613B /* main.c */,
 				E7E36E82226CB9460040613B /* inc */,
 				E7E36E86226CB9460040613B /* src */,
 				E7E36EA2226CBA540040613B /* crypto_adapters */,
 				E7F70AC32270DF90007CE07F /* test */,
 				E730E605235E0B1800175CE0 /* QCBOR */,
-				E7E2071F2368BEF60003AAAB /* encode_sample */,
-				E7E36E79226CB8400040613B /* Products */,
 				E7F70AB22270D989007CE07F /* Frameworks */,
+				E7E36E79226CB8400040613B /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -306,6 +327,7 @@
 				E7E2071E2368BEF60003AAAB /* encode_sample */,
 				E73CDAC623A7316700D262E0 /* t_cose_psa */,
 				E73BF6D123AF3DD100DF5C36 /* t_cose_psa_11 */,
+				E73BF6EE23AFFB4100DF5C36 /* t_cose_basic_example_psa */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -452,6 +474,23 @@
 			productReference = E73BF6D123AF3DD100DF5C36 /* t_cose_psa_11 */;
 			productType = "com.apple.product-type.tool";
 		};
+		E73BF6D523AFFB4100DF5C36 /* t_cose_basic_example_psa */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E73BF6EB23AFFB4100DF5C36 /* Build configuration list for PBXNativeTarget "t_cose_basic_example_psa" */;
+			buildPhases = (
+				E73BF6D623AFFB4100DF5C36 /* Sources */,
+				E73BF6E823AFFB4100DF5C36 /* Frameworks */,
+				E73BF6EA23AFFB4100DF5C36 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = t_cose_basic_example_psa;
+			productName = t_cose;
+			productReference = E73BF6EE23AFFB4100DF5C36 /* t_cose_basic_example_psa */;
+			productType = "com.apple.product-type.tool";
+		};
 		E73CDAAC23A7316700D262E0 /* t_cose_psa */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E73CDAC323A7316700D262E0 /* Build configuration list for PBXNativeTarget "t_cose_psa" */;
@@ -556,6 +595,7 @@
 				E7E2071D2368BEF60003AAAB /* encode_sample */,
 				E73CDAAC23A7316700D262E0 /* t_cose_psa */,
 				E73BF6B923AF3DD100DF5C36 /* t_cose_psa_11 */,
+				E73BF6D523AFFB4100DF5C36 /* t_cose_basic_example_psa */,
 			);
 		};
 /* End PBXProject section */
@@ -605,6 +645,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E73BF6D623AFFB4100DF5C36 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E73BF6D723AFFB4100DF5C36 /* t_cose_sign1_verify.c in Sources */,
+				E73BF6D823AFFB4100DF5C36 /* qcbor_decode.c in Sources */,
+				E73BF6DA23AFFB4100DF5C36 /* ieee754.c in Sources */,
+				E73BF6DB23AFFB4100DF5C36 /* t_cose_psa_crypto.c in Sources */,
+				E73BF6DC23AFFB4100DF5C36 /* t_cose_util.c in Sources */,
+				E73BF6DD23AFFB4100DF5C36 /* qcbor_encode.c in Sources */,
+				E73BF6DE23AFFB4100DF5C36 /* t_cose_parameters.c in Sources */,
+				E73BF6DF23AFFB4100DF5C36 /* UsefulBuf.c in Sources */,
+				E73BF6E023AFFB4100DF5C36 /* t_cose_basic_example_psa.c in Sources */,
+				E73BF6E323AFFB4100DF5C36 /* sha256.c in Sources */,
+				E73BF6E723AFFB4100DF5C36 /* t_cose_sign1_sign.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E73CDAAD23A7316700D262E0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -635,7 +693,6 @@
 				E73CDAAB23A0BEF900D262E0 /* t_cose_openssl_crypto.c in Sources */,
 				E73CDAA623A0BEBF00D262E0 /* qcbor_encode.c in Sources */,
 				E73CDAA723A0BED100D262E0 /* UsefulBuf.c in Sources */,
-				E73CDAA423A0839900D262E0 /* example_sign_ossl.c in Sources */,
 				E73CDAAA23A0BEE900D262E0 /* t_cose_util.c in Sources */,
 				E73CDAA823A0BED500D262E0 /* ieee754.c in Sources */,
 				E73CDAA923A0BEE500D262E0 /* t_cose_sign1_sign.c in Sources */,
@@ -739,6 +796,27 @@
 				CODE_SIGN_STYLE = Automatic;
 				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto-mbedcrypto-1.1.0/include";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto-mbedcrypto-1.1.0/library/";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		E73BF6EC23AFFB4100DF5C36 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = T_COSE_USE_PSA_CRYPTO;
+				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/include";
+				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E73BF6ED23AFFB4100DF5C36 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/include";
+				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -963,6 +1041,15 @@
 			buildConfigurations = (
 				E73BF6CF23AF3DD100DF5C36 /* Debug */,
 				E73BF6D023AF3DD100DF5C36 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E73BF6EB23AFFB4100DF5C36 /* Build configuration list for PBXNativeTarget "t_cose_basic_example_psa" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E73BF6EC23AFFB4100DF5C36 /* Debug */,
+				E73BF6ED23AFFB4100DF5C36 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
