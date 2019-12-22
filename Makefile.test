@@ -23,7 +23,7 @@ QCBOR_LIB=../../QCBOR/master/libqcbor.a
 # Uses only the internal Brad Conte hash implementation that is bundled with t_cose
 CRYPTO_INC=-I crypto_adapters/b_con_hash
 CRYPTO_LIB=
-CRYPT_CONGI_OPTS=-DT_COSE_USE_B_CON_SHA256 
+CRYPTO_CONFIG_OPTS=-DT_COSE_USE_B_CON_SHA256 
 CRYPTO_OBJ=crypto_adapters/t_cose_test_crypto.o crypto_adapters/b_con_hash/sha256.o
 CRYPTO_TEST_OBJ=
 
