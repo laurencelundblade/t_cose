@@ -43,7 +43,7 @@ CFLAGS=$(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
 SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
 
-all:	libt_cose.a t_cose_test example_sign
+all:	libt_cose.a t_cose_test
 
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
@@ -52,11 +52,6 @@ libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 
 t_cose_test: main.o $(CRYPTO_OBJ) $(TEST_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB) libt_cose.a
-
-
-example_sign: examples/example_sign_ossl.o libt_cose.a
-	cc -dead_strip -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB) libt_cose.a
-
 
 
 clean:
