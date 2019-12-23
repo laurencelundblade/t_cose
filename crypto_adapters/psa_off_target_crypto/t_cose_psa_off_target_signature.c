@@ -20,6 +20,16 @@
 
 
 /*
+ * Nothing to do for crypto_init in this mock implementation
+ */
+psa_status_t psa_crypto_init()
+{
+    return PSA_SUCCESS;
+}
+
+
+
+/*
  * A very degenerate key store that can hold just one key
  */
 struct degenerate_key_pair {
@@ -65,7 +75,7 @@ psa_status_t psa_allocate_key(psa_key_handle_t *handle)
 /*
  * Public function. See documentation in psa/crypto.h
  */
-psa_status_t psa_destroy_key(psa_key_handle_t handle)
+psa_status_t psa_close_key(psa_key_handle_t handle)
 {
     EC_KEY_free(key_store[handle].key_pair);
 
