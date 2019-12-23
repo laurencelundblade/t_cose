@@ -1,5 +1,5 @@
 /*
- *  t_cose_basic_example_psa.c
+ *  t_cose_basic_example_ossl.c
  *
  * Copyright 2019, Laurence Lundblade
  *
@@ -14,196 +14,194 @@
 #include "t_cose_sign1_verify.h"
 #include "q_useful_buf.h"
 
-#include "psa/crypto.h"
-
 #include <stdio.h>
 
-
-
-/* Here's the auto-detect and manual override logic for managing PSA
- * Crypto API compatibility.
- *
- * PSA_GENERATOR_UNBRIDLED_CAPACITY happens to be defined in MBed
- * Crypto 1.1 and not in MBed Crypto 2.0 so it is what auto-detect
- * hinges off of.
- *
- * T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO20 can be defined to force
- * setting to MBed Crypto 2.0
- *
- * T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 can be defined to force
- * setting to MBed Crypt 1.1. It is also what the code below hinges
- * on.
- */
-#if defined(PSA_GENERATOR_UNBRIDLED_CAPACITY) && !defined(T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO20)
-#define T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11
-#endif
+#include "openssl/ecdsa.h"
+#include "openssl/obj_mac.h" /* for NID for EC curve */
+#include "openssl/err.h"
 
 
 /*
  * Some hard coded keys for the test cases here.
  */
+#define PUBLIC_KEY_prime256v1 \
+"0437ab65955fae0466673c3a2934a3" \
+"4f2f0ec2b3eec224198557998fc04b" \
+"f4b2b495d9798f2539c90d7d102b3b" \
+"bbda7fcbdb0e9b58d4e1ad2e61508d" \
+"a75f84a67b"
+
 #define PRIVATE_KEY_prime256v1 \
-0xf1, 0xb7, 0x14, 0x23, 0x43, 0x40, 0x2f, 0x3b, 0x5d, 0xe7, 0x31, 0x5e, 0xa8, \
-0x94, 0xf9, 0xda, 0x5c, 0xf5, 0x03, 0xff, 0x79, 0x38, 0xa3, 0x7c, 0xa1, 0x4e, \
-0xb0, 0x32, 0x86, 0x98, 0x84, 0x50
+"f1b7142343402f3b5de7315ea894f9" \
+"da5cf503ff7938a37ca14eb0328698" \
+"8450"
+
+
+#define PUBLIC_KEY_secp384r1 \
+"04bdd9c3f818c9cef3e11e2d40e775" \
+"beb37bc376698d71967f93337a4e03" \
+"2dffb11b505067dddb4214b56d9bce" \
+"c59177eccd8ab05f50975933b9a738" \
+"d90c0b07eb9519567ef9075807cf77" \
+"139fc1fe85608851361136806123ed" \
+"c735ce5a03e8e4"
 
 #define PRIVATE_KEY_secp384r1 \
-0x03, 0xdf, 0x14, 0xf4, 0xb8, 0xa4, 0x3f, 0xd8, 0xab, 0x75, 0xa6, 0x04, 0x6b, \
-0xd2, 0xb5, 0xea, 0xa6, 0xfd, 0x10, 0xb2, 0xb2, 0x03, 0xfd, 0x8a, 0x78, 0xd7, \
-0x91, 0x6d, 0xe2, 0x0a, 0xa2, 0x41, 0xeb, 0x37, 0xec, 0x3d, 0x4c, 0x69, 0x3d, \
-0x23, 0xba, 0x2b, 0x4f, 0x6e, 0x5b, 0x66, 0xf5, 0x7f
+"03df14f4b8a43fd8ab75a6046bd2b5" \
+"eaa6fd10b2b203fd8a78d7916de20a" \
+"a241eb37ec3d4c693d23ba2b4f6e5b" \
+"66f57f"
+
+
+#define PUBLIC_KEY_secp521r1 \
+"0400e4d253175a14311fc2dd487687" \
+"70cb49b07bd15d327beb98aa33e60c" \
+"d0181b17fb8f1cbf07dbc8652ff5b7" \
+"b4452c082e0686c0fab8089071cbc5" \
+"37101d344b94c201e6424f3a18da4f" \
+"20ecabfbc84b8467c217cd67055fa5" \
+"dec7fb1ae87082302c1813caa4b7b1" \
+"cf28d94677e486fb4b317097e9307a" \
+"bdb9d50187779a3d1e682c123c"
 
 #define PRIVATE_KEY_secp521r1 \
-0x00, 0x45, 0xd2, 0xd1, 0x43, 0x94, 0x35, 0xfa, 0xb3, 0x33, 0xb1, 0xc6, 0xc8, \
-0xb5, 0x34, 0xf0, 0x96, 0x93, 0x96, 0xad, 0x64, 0xd5, 0xf5, 0x35, 0xd6, 0x5f, \
-0x68, 0xf2, 0xa1, 0x60, 0x65, 0x90, 0xbb, 0x15, 0xfd, 0x53, 0x22, 0xfc, 0x97, \
-0xa4, 0x16, 0xc3, 0x95, 0x74, 0x5e, 0x72, 0xc7, 0xc8, 0x51, 0x98, 0xc0, 0x92, \
-0x1a, 0xb3, 0xb8, 0xe9, 0x2d, 0xd9, 0x01, 0xb5, 0xa4, 0x21, 0x59, 0xad, 0xac, \
-0x6d
-
+"0045d2d1439435fab333b1c6c8b534" \
+"f0969396ad64d5f535d65f68f2a160" \
+"6590bb15fd5322fc97a416c395745e" \
+"72c7c85198c0921ab3b8e92dd901b5" \
+"a42159adac6d"
 
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            psa_algorithm_id,
+/*
+ * The key object returned by this is malloced and has to be freed by
+ * by calling free_ecdsa_key_pair(). This heap use is a part of
+ * OpenSSL and not t_cose which does not use the heap
+ */
+enum t_cose_err_t make_ossl_ecdsa_key_pair(int32_t           cose_algorithm_id,
                                       struct t_cose_key *key_pair)
 {
-    psa_key_type_t      key_type;
-    psa_status_t        crypto_result;
-    psa_key_handle_t    key_handle;
-    psa_algorithm_t     key_alg;
-    const uint8_t      *private_key;
-    size_t              private_key_len;
+    EC_GROUP          *ossl_ec_group = NULL;
+    enum t_cose_err_t  return_value;
+    BIGNUM            *ossl_private_key_bn = NULL;
+    EC_KEY            *ossl_ec_key = NULL;
+    int                ossl_result;
+    EC_POINT          *ossl_pub_key_point = NULL;
+    int                nid;
+    const char        *public_key;
+    const char        *private_key;
 
-    static const uint8_t private_key_256[] = {PRIVATE_KEY_prime256v1};
-    static const uint8_t private_key_384[] = {PRIVATE_KEY_secp384r1};
-    static const uint8_t private_key_521[] = {PRIVATE_KEY_secp521r1};
-
-    /* There is not a 1:1 mapping from alg to key type, but
-     * there is usually an obvious curve for an algorithm. That
-     * is what this does.
-     */
-
-#ifdef T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11
-#define PSA_KEY_TYPE_ECC_KEY_PAIR PSA_KEY_TYPE_ECC_KEYPAIR
-#endif /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
-
-    switch(psa_algorithm_id) {
+    switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_ES256:
-            private_key     = private_key_256;
-            private_key_len = sizeof(private_key_256);
-            key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_CURVE_SECP256R1);
-            key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_256);
+            nid         = NID_X9_62_prime256v1;
+            public_key  = PUBLIC_KEY_prime256v1;
+            private_key =  PRIVATE_KEY_prime256v1 ;
             break;
 
         case T_COSE_ALGORITHM_ES384:
-            private_key     = private_key_384;
-            private_key_len = sizeof(private_key_384);
-            key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_CURVE_SECP384R1);
-            key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_384);
+            nid         = NID_secp384r1;
+            public_key  = PUBLIC_KEY_secp384r1;
+            private_key = PRIVATE_KEY_secp384r1;
             break;
 
         case T_COSE_ALGORITHM_ES512:
-            private_key     = private_key_521;
-            private_key_len = sizeof(private_key_521);
-            key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_CURVE_SECP521R1);
-            key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_512);
+            nid         = NID_secp521r1;
+            public_key  = PUBLIC_KEY_secp521r1;
+            private_key = PRIVATE_KEY_secp521r1;
             break;
 
         default:
-            return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+            return -1;
+    }
+
+    /* Make a group for the particular EC algorithm */
+    ossl_ec_group = EC_GROUP_new_by_curve_name(nid);
+    if(ossl_ec_group == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
+    }
+
+    /* Make an empty EC key object */
+    ossl_ec_key = EC_KEY_new();
+    if(ossl_ec_key == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
+    }
+
+    /* Associate group with key object */
+    ossl_result = EC_KEY_set_group(ossl_ec_key, ossl_ec_group);
+    if (!ossl_result) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Make an instance of a big number to store the private key */
+    ossl_private_key_bn = BN_new();
+    if(ossl_private_key_bn == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
+    }
+    BN_zero(ossl_private_key_bn);
+
+    /* Stuff the specific private key into the big num */
+    ossl_result = BN_hex2bn(&ossl_private_key_bn, private_key);
+    if(ossl_private_key_bn == 0) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Now associate the big num with the key object so we finally
+     * have a key set up and ready for signing */
+    ossl_result = EC_KEY_set_private_key(ossl_ec_key, ossl_private_key_bn);
+    if (!ossl_result) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
     }
 
 
-    psa_crypto_init(); /* OK to call this multiple times */
-
-    /* When importing a key with the PSA API there are two main
-     * things to do.
-     *
-     * First you must tell it what type of key it is as this
-     * cannot be discovered from the raw data. The variable
-     * key_type contains that information including the EC curve. This is sufficient
-     * for psa_import_key() to succeed, but you probably want
-     * actually use the key.
-     *
-     * Second, you must say what algorithm(s) and operations
-     * the key can be used as the PSA Crypto Library has
-     * policy enforcement.
-     *
-     * How this is done varies quite a lot in the newer
-     * PSA Crypto API compared to the older.
-     */
-
-#ifdef T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11
-    /* Allocate for the key pair in the Crypto service */
-    crypto_result = psa_allocate_key(&key_handle);
-    if (crypto_result != PSA_SUCCESS) {
-        return T_COSE_ERR_FAIL;
+    /* Make an empty EC point into which the public key gets loaded */
+    ossl_pub_key_point = EC_POINT_new(ossl_ec_group);
+    if(ossl_pub_key_point == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
     }
 
-    /* Say what algorithm and operations the key can be used with / for */
-    psa_key_policy_t policy = psa_key_policy_init();
-    psa_key_policy_set_usage(&policy,
-                             PSA_KEY_USAGE_SIGN | PSA_KEY_USAGE_VERIFY,
-                             key_alg);
-    crypto_result = psa_set_key_policy(key_handle, &policy);
-    if (crypto_result != PSA_SUCCESS) {
-        return T_COSE_ERR_FAIL;
+    /* Turn the serialized public key into an EC point */
+    ossl_pub_key_point = EC_POINT_hex2point(ossl_ec_group,
+                                            public_key,
+                                            ossl_pub_key_point,
+                                            NULL);
+    if(ossl_pub_key_point == NULL) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
     }
 
-    /* Import the private key. psa_import_key() automatically
-     * generates the public key from the private so no need to import
-     * more than the private key. (With ECDSA the public key is always
-     * deterministically derivable from the private key).
-     */
-    /* key_type has the type of key including the EC curve */
-    crypto_result = psa_import_key(key_handle,
-                                   key_type,
-                                   private_key,
-                                   private_key_len);
-
-#else /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
-    psa_key_attributes_t key_attributes;
-
-    key_attributes = psa_key_attributes_init();
-
-    /* Say what algorithm and operations the key can be used with / for */
-    psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH);
-    psa_set_key_algorithm(&key_attributes, key_alg);
-
-    /* The type of key including the EC curve */
-    psa_set_key_type(&key_attributes, key_type);
-
-    /* Import the private key. psa_import_key() automatically
-     * generates the public key from the private so no need to import
-     * more than the private key. (With ECDSA the public key is always
-     * deterministically derivable from the private key).
-     */
-    crypto_result = psa_import_key(&key_attributes,
-                                   private_key,
-                                   private_key_len,
-                                   &key_handle);
-
-#endif /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
-
-    if (crypto_result != PSA_SUCCESS) {
-        return T_COSE_ERR_FAIL;
+    /* Associate the EC point with key object */
+    /* The key object has both the public and private keys in it */
+    ossl_result = EC_KEY_set_public_key(ossl_ec_key, ossl_pub_key_point);
+    if(ossl_result == 0) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
     }
 
-    key_pair->k.key_handle = key_handle;
-    key_pair->crypto_lib   = T_COSE_CRYPTO_LIB_PSA;
+    key_pair->k.key_ptr  = ossl_ec_key;
+    key_pair->crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;
+    return_value         = T_COSE_SUCCESS;
 
-    return T_COSE_SUCCESS;
+Done:
+    return return_value;
 }
 
 
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-void free_psa_ecdsa_key_pair(struct t_cose_key key_pair)
+void free_ossl_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-    psa_close_key(key_pair.k.key_handle);
+    EC_KEY_free(key_pair.k.key_ptr);
 }
+
 
 
 
@@ -233,7 +231,7 @@ static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf
 
 static const char *s_or_f(int32_t result)
 {
-    return !result ? "success" : "fail";
+    return !result ? "fail" : "success";
 }
 
 
@@ -262,9 +260,9 @@ int main(int argc, const char * argv[])
      * is that of the crypto library used, PSA in this case. They key
      * is just passed through t_cose to the underlying crypto library.
      */
-    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    return_value = make_ossl_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
 
-    printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, s_or_f(return_value));
+    printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
         goto Done;
     }
@@ -304,7 +302,7 @@ int main(int argc, const char * argv[])
      */
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
 
-    printf("Encoded COSE headers: %d (%s)\n", return_value, s_or_f(return_value));
+    printf("Encoded COSE headers: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
         goto Done;
     }
@@ -345,7 +343,7 @@ int main(int argc, const char * argv[])
      */
     return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
 
-    printf("Fnished signing: %d (%s)\n", return_value, s_or_f(return_value));
+    printf("Fnished signing: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
         goto Done;
     }
@@ -365,12 +363,10 @@ int main(int argc, const char * argv[])
         goto Done;
     }
 
-
-
     print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
 
-    printf("\n");
 
+    printf("\n");
 
 
     /* ------   Set up for verification   ------
@@ -403,7 +399,7 @@ int main(int argc, const char * argv[])
                                        &payload,  /* Payload from signed_cose */
                                        NULL);      /* Don't return parameters */
 
-    printf("Verification complete: %d (%s)\n", return_value, s_or_f(return_value));
+    printf("Verification complete: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
         goto Done;
     }
@@ -417,7 +413,7 @@ int main(int argc, const char * argv[])
      * call indicates that the key slot can be de allocated.
      */
     printf("Freeing key pair\n");
-    free_psa_ecdsa_key_pair(key_pair);
+    free_ossl_ecdsa_key_pair(key_pair);
 
 Done:
     return return_value;
