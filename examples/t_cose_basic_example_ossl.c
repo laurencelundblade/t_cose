@@ -9,6 +9,20 @@
  */
 
 
+/**
+ * \file t_cose_basic_example_ossl.c
+ *
+ * \brief Example code for signing and verifying a COSE_Sign1 message
+ *        using OpenSSL
+ *
+ * This file has simple code to sign a payload and verify it.
+ *
+ * This works with OpenSSL. It assumes t_cose has been wired up to the
+ * OpenSSL crypto library and hase code specific to OpenSSL to make an
+ * EC key pair. See t_cose README for more details on how integration
+ * with crypto libraries works.
+ */
+
 #include "t_cose_common.h"
 #include "t_cose_sign1_sign.h"
 #include "t_cose_sign1_verify.h"
@@ -71,16 +85,18 @@
 "72c7c85198c0921ab3b8e92dd901b5" \
 "a42159adac6d"
 
-/*
- * Public function, see t_cose_make_test_pub_key.h
+
+/**
+ * \brief Make an EC key pair in OpenSSL library form.
+ *
+ * \param[in] cose_algorithm_id  The algorithm to sign with, for example
+ *                               \ref T_COSE_ALGORITHM_ES256.
+ * \param[out] key_pair          The key pair. This must be freed.
+ *
+ * The key made here is fixed and just useful for testing.
  */
-/*
- * The key object returned by this is malloced and has to be freed by
- * by calling free_ecdsa_key_pair(). This heap use is a part of
- * OpenSSL and not t_cose which does not use the heap
- */
-enum t_cose_err_t make_ossl_ecdsa_key_pair(int32_t           cose_algorithm_id,
-                                      struct t_cose_key *key_pair)
+enum t_cose_err_t make_ossl_ecdsa_key_pair(int32_t            cose_algorithm_id,
+                                           struct t_cose_key *key_pair)
 {
     EC_GROUP          *ossl_ec_group = NULL;
     enum t_cose_err_t  return_value;
@@ -93,26 +109,26 @@ enum t_cose_err_t make_ossl_ecdsa_key_pair(int32_t           cose_algorithm_id,
     const char        *private_key;
 
     switch (cose_algorithm_id) {
-        case T_COSE_ALGORITHM_ES256:
-            nid         = NID_X9_62_prime256v1;
-            public_key  = PUBLIC_KEY_prime256v1;
-            private_key =  PRIVATE_KEY_prime256v1 ;
-            break;
+    case T_COSE_ALGORITHM_ES256:
+        nid         = NID_X9_62_prime256v1;
+        public_key  = PUBLIC_KEY_prime256v1;
+        private_key =  PRIVATE_KEY_prime256v1 ;
+        break;
 
-        case T_COSE_ALGORITHM_ES384:
-            nid         = NID_secp384r1;
-            public_key  = PUBLIC_KEY_secp384r1;
-            private_key = PRIVATE_KEY_secp384r1;
-            break;
+    case T_COSE_ALGORITHM_ES384:
+        nid         = NID_secp384r1;
+        public_key  = PUBLIC_KEY_secp384r1;
+        private_key = PRIVATE_KEY_secp384r1;
+        break;
 
-        case T_COSE_ALGORITHM_ES512:
-            nid         = NID_secp521r1;
-            public_key  = PUBLIC_KEY_secp521r1;
-            private_key = PRIVATE_KEY_secp521r1;
-            break;
+    case T_COSE_ALGORITHM_ES512:
+        nid         = NID_secp521r1;
+        public_key  = PUBLIC_KEY_secp521r1;
+        private_key = PRIVATE_KEY_secp521r1;
+        break;
 
-        default:
-            return -1;
+    default:
+        return -1;
     }
 
     /* Make a group for the particular EC algorithm */
@@ -194,8 +210,10 @@ Done:
 }
 
 
-/*
- * Public function, see t_cose_make_test_pub_key.h
+/**
+ * \brief  Free a PSA / MBed key.
+ *
+ * \param[in] key_pair   The key pair to close / deallocate / free.
  */
 void free_ossl_ecdsa_key_pair(struct t_cose_key key_pair)
 {
@@ -203,8 +221,14 @@ void free_ossl_ecdsa_key_pair(struct t_cose_key key_pair)
 }
 
 
-
-
+/**
+ * \brief  Print a q_useful_buf_c on stdout in hex ASCII text.
+ *
+ * \param[in] string_label   A string label to output first
+ * \param[in] buf            The q_useful_buf_c to output.
+ *
+ * This is just for pretty printing.
+ */
 static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf)
 {
     if(string_label) {
@@ -229,18 +253,12 @@ static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf
 }
 
 
-static const char *s_or_f(int32_t result)
-{
-    return !result ? "fail" : "success";
-}
-
-
 int main(int argc, const char * argv[])
 {
     (void)argc; // Avoid unused parameter error
     (void)argv;
 
-    
+
     struct t_cose_sign1_sign_ctx   sign_ctx;
     enum t_cose_err_t              return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
@@ -255,10 +273,14 @@ int main(int argc, const char * argv[])
 
     /* ------   Make an ECDSA key pair    ------
      *
-     * The key pair will be used for both signing and encryption. The data
-     * type is struct t_cose_key on the outside, but internally the format
-     * is that of the crypto library used, PSA in this case. They key
-     * is just passed through t_cose to the underlying crypto library.
+     * The key pair will be used for both signing and encryption. The
+     * data type is struct t_cose_key on the outside, but internally
+     * the format is that of the crypto library used, PSA in this
+     * case. They key is just passed through t_cose to the underlying
+     * crypto library.
+     *
+     * The making and destroying of the key pair is the only code
+     * dependent on the crypto library in this file.
      */
     return_value = make_ossl_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
 
@@ -272,11 +294,11 @@ int main(int argc, const char * argv[])
      *
      * Set up the QCBOR encoding context with the output buffer. This
      * is where all the outputs including the payload goes. In this
-     * case the maximum size is small and known so a fixed length buffer
-     * is given. If it is not known then QCBOR and t_cose can run
-     * without a buffer to calculate the needed size. In all cases,
-     * if the buffer is too small QCBOR and t_cose will error out
-     * gracefully and not overrun any buffers.
+     * case the maximum size is small and known so a fixed length
+     * buffer is given. If it is not known then QCBOR and t_cose can
+     * run without a buffer to calculate the needed size. In all
+     * cases, if the buffer is too small QCBOR and t_cose will error
+     * out gracefully and not overrun any buffers.
      *
      * Initialize the signing context by telling it the signing
      * algorithm and signing options. No options are set here hence
@@ -315,19 +337,21 @@ int main(int argc, const char * argv[])
      * QCBOR keeps track of the what is the payload so t_cose knows
      * what to hash and sign.
      *
-     * The encoded CBOR here can be very large and complex. The only limit
-     * is that the output buffer is large enough. If it is too small, one
-     * of the following two calls will report the error as QCBOR tracks
-     * encoding errors internally so the code calling it doesn't have to.
+     * The encoded CBOR here can be very large and complex. The only
+     * limit is that the output buffer is large enough. If it is too
+     * small, one of the following two calls will report the error as
+     * QCBOR tracks encoding errors internally so the code calling it
+     * doesn't have to.
      *
-     * The payload in this case is a CBOR map with one label-value pair
-     * that is "greeting": "We come in peace".
+     * The payload in this case is a CBOR map with one label-value
+     * pair that is "greeting": "We come in peace".
      *
      * A simpler alternative is to call t_cose_sign1_sign() instead of
-     * t_cose_sign1_encode_parameters() and t_cose_sign1_encode_signature(),
-     * however this requires memory to hold a copy of the payload and
-     * the output COSE_Sign1 message. For that call the payload is just
-     * passed in as a buffer.
+     * t_cose_sign1_encode_parameters() and
+     * t_cose_sign1_encode_signature(), however this requires memory
+     * to hold a copy of the payload and the output COSE_Sign1
+     * message. For that call the payload is just passed in as a
+     * buffer.
      */
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMap(&cbor_encode, "Greeting", "We come in peace");
@@ -351,14 +375,15 @@ int main(int argc, const char * argv[])
 
     /* ------   Complete CBOR Encoding   ------
      *
-     * This closes out the CBOR encoding returning any errors that might
-     * have been recorded.
+     * This closes out the CBOR encoding returning any errors that
+     * might have been recorded.
      *
-     * The resulting signed message is returned in signed_cose. It is a pointer
-     * and length into the buffer give to QCBOREncode_Init().
+     * The resulting signed message is returned in signed_cose. It is
+     * a pointer and length into the buffer give to
+     * QCBOREncode_Init().
      */
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
-    printf("Finished CBOR encoding: %d (%s)\n", cbor_error, s_or_f(cbor_error));
+    printf("Finished CBOR encoding: %d (%s)\n", cbor_error, return_value ? "fail" : "success");
     if(cbor_error) {
         goto Done;
     }
@@ -373,9 +398,9 @@ int main(int argc, const char * argv[])
      *
      * Initialize the verification context.
      *
-     * The verification key works the same way as the signing key. Internally
-     * it must be in the format for the crypto library used. It is passed
-     * straight through t_cose.
+     * The verification key works the same way as the signing
+     * key. Internally it must be in the format for the crypto library
+     * used. It is passed straight through t_cose.
      */
     t_cose_sign1_verify_init(&verify_ctx, 0);
 
@@ -386,13 +411,14 @@ int main(int argc, const char * argv[])
 
     /* ------   Perform the verification   ------
      *
-     * Verification is relatively simple. The COSE_Sign1 message to verify
-     * is passed in and the payload is returned if verification is successful.
-     * The key must be of the correct type for the algorithm used to sign
-     * the COSE_Sign1.
+     * Verification is relatively simple. The COSE_Sign1 message to
+     * verify is passed in and the payload is returned if verification
+     * is successful.  The key must be of the correct type for the
+     * algorithm used to sign the COSE_Sign1.
      *
-     * The COSE header parameters will be returned if requested, but in this
-     * example they are not as NULL is passed for the location to put them.
+     * The COSE header parameters will be returned if requested, but
+     * in this example they are not as NULL is passed for the location
+     * to put them.
      */
     return_value = t_cose_sign1_verify(&verify_ctx,
                                        signed_cose,         /* COSE to verify */
@@ -409,8 +435,8 @@ int main(int argc, const char * argv[])
 
     /* ------   Free key pair   ------
      *
-     * Some implementations of PSA allocate slots for the keys in use. This
-     * call indicates that the key slot can be de allocated.
+     * Some implementations of PSA allocate slots for the keys in
+     * use. This call indicates that the key slot can be de allocated.
      */
     printf("Freeing key pair\n");
     free_ossl_ecdsa_key_pair(key_pair);
