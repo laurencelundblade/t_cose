@@ -485,7 +485,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
 
-    QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &signed_payload);
+    QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
 
     /* Check there are no CBOR encoding errors before proceeding with
      * hashing and signing. This is not actually necessary as the
@@ -509,7 +509,6 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
                                    me->protected_parameters,
-                                   T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
                                    signed_payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);
