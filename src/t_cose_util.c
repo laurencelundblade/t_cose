@@ -9,9 +9,9 @@
  */
 
 #include "t_cose_util.h"
-#include "qcbor.h"
+#include <qcbor/qcbor.h>
 #include "t_cose_standard_constants.h"
-#include "t_cose_common.h"
+#include <t_cose/t_cose_common.h>
 #include "t_cose_crypto.h"
 
 

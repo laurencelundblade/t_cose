@@ -12,8 +12,8 @@
 #ifndef __T_COSE_CRYPTO_H__
 #define __T_COSE_CRYPTO_H__
 
-#include "t_cose_common.h"
-#include "q_useful_buf.h"
+#include <t_cose/t_cose_common.h>
+#include <t_cose/q_useful_buf.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "t_cose_standard_constants.h"

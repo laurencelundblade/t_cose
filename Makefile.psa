@@ -14,21 +14,25 @@
 
 # ---- QCBOR location ----
 # Adjust this to the location of QCBOR in your build environment
-QCBOR_INC= -I ../../QCBOR/master/inc
-QCBOR_LIB=../../QCBOR/master/libqcbor.a
+#QCBOR_INC= -I ../../QCBOR/master/inc
+#QCBOR_LIB=../../QCBOR/master/libqcbor.a
+QCBOR_INC= -I/usr/include -I/usr/local/include
+QCBOR_LIB= -l qcbor
 
 
 # ---- crypto configuration -----
 # The lib and inc directories may have to be adjusted for your build environment.
-CRYPTO_LIB=../../mbed-crypto/library/libmbedcrypto.a
-CRYPTO_INC= -I  ../../mbed-crypto/include/
+#CRYPTO_LIB=../../mbed-crypto/library/libmbedcrypto.a
+#CRYPTO_INC= -I  ../../mbed-crypto/include/
+CRYPTO_LIB= -l mbedcrypto
+CRYPTO_INC=
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_PSA_CRYPTO
 CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o 
 CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
 
 
 # ---- compiler configuration -----
-C_OPTS=-Os -Wall -Wconstant-conversion -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
+C_OPTS=-Os -Wall -Wno-conversion -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
 
 
 # ---- T_COSE Config and test options ----
@@ -57,6 +61,18 @@ t_cose_test: main.o $(TEST_OBJ) libt_cose.a
 t_cose_basic_example_psa:      examples/t_cose_basic_example_psa.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
+endif
+
+install: all
+	install -d $(DESTDIR)$(PREFIX)/lib/
+	install -m 644 libt_cose.a $(DESTDIR)$(PREFIX)/lib/
+	install -d $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_common.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/q_useful_buf.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_sign1_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
 
 clean:
 	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_basic_example_psa t_cose_test libt_cose.a main.o
