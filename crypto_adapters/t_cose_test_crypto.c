@@ -1,7 +1,7 @@
 /*
  *  t_cose_test_crypto.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,6 +12,22 @@
 
 
 #include "t_cose_crypto.h"
+
+
+/*
+ * This file is stub crypto for initial bring up and test of t_cose.
+ * It is NOT intended for commercial use. When this file is used as
+ * the crypto adapter, no external crypto library is necessary. This is
+ * convenient because sometime it takes a while to sort out the crypto
+ * porting layer for a new platform. With this most of t_cose can be tested
+ * and demo signatures (short-circuit signatures) can be generated to
+ * simulate out this would work.
+ *
+ * This file uses no signature algorithm. It uses the Brad Conte hash
+ * implementation that is bundled with t_cose for the purpose of this
+ * testing, not for commercial use.
+ */
+
 
 /* The Brad Conte hash implementaiton bundled with t_cose */
 #include "sha256.h"
@@ -65,6 +81,10 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
                              struct t_cose_key      verification_key,
@@ -80,6 +100,18 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
+
+/*
+ * Public function, see t_cose_make_test_pub_key.h
+ */
+int check_for_key_pair_leaks()
+{
+    /* No check for leaks with this stubbed out crypto. With this test
+     crypto there is no file with code to make keys so there is no place
+     but here for this function to live.
+     */
+    return 0;
+}
 
 
 

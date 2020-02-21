@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,6 +17,9 @@
  * \file t_cose_test.h
  *
  * \brief Entry points for the basic t_cose_tests.
+ *
+ * These tests can be performed without any crypto library such as OpenSSL
+ * integrated with t_cose.
  */
 
 
@@ -37,7 +40,7 @@ int_fast32_t short_circuit_self_test(void);
  *
  * \return non-zero on failure.
  *
- * This test makes a simple COSE_Sign1 modify the payload and see that
+ * This test makes a simple COSE_Sign1 modifies the payload and sees that
  * verification fails.  It uses short-circuit signatures so no keys or
  * even integration with public key crypto is necessary.
  */
@@ -61,7 +64,9 @@ int_fast32_t short_circuit_make_cwt_test(void);
 
 
 /*
- * Test the decode only mode.
+ * Test the decode only mode, the mode where the
+ * headers are returned, but the signature is no
+ * verified.
  */
 int_fast32_t short_circuit_decode_only_test(void);
 
@@ -104,10 +109,20 @@ int_fast32_t content_type_test(void);
 int_fast32_t sign1_structure_decode_test(void);
 
 
+#ifdef T_COSE_ENABLE_HASH_FAIL_TEST
 /*
- * Use the short-circuit signing to test hash algorithm failures
+ * This forces / simulates failures in the hash algorithm implementation
+ * to test t_cose's handling of those condidtions. This test is off
+ * by default because it needs a hacked version of a hash algorithm.
+ * It is very hard to get hash algorithms to fail, so this hacked
+ * version is necessary. This test will not run correctly with
+ * OpenSSL or PSA hashes because they aren't (and shouldn't be) hacked.
+ * It works only with the b_con hash bundled and not intended for
+ * commercial use (though it is a perfectly fine implementation).
  */
 int_fast32_t short_circuit_hash_fail_test(void);
+
+#endif /* T_COSE_ENABLE_HASH_FAIL_TEST*/
 
 
 #endif /* t_cose_test_h */

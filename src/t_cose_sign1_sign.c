@@ -144,7 +144,7 @@ encode_protected_parameters(int32_t             cose_algorithm_id,
      */
     struct q_useful_buf_c protected_parameters;
 
-    QCBOREncode_OpenBstrWrap(cbor_encode_ctx);
+    QCBOREncode_BstrWrap(cbor_encode_ctx);
     QCBOREncode_OpenMap(cbor_encode_ctx);
     QCBOREncode_AddInt64ToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_ALG, cose_algorithm_id);
     QCBOREncode_CloseMap(cbor_encode_ctx);
@@ -266,7 +266,7 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
-    QCBOREncode_OpenBstrWrap(cbor_encode_ctx);
+    QCBOREncode_BstrWrap(cbor_encode_ctx);
 
     /* Any failures in CBOR encoding will be caught in finish when the
      * CBOR encoding is closed off. No need to track here as the CBOR

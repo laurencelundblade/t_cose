@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,8 +14,12 @@
 #include "t_cose_make_test_messages.h"
 #include "q_useful_buf.h"
 #include "t_cose_crypto.h" /* For signature size constant */
+#include "t_cose_util.h" /* for get_short_circuit_kid */
 
 
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t short_circuit_self_test()
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
@@ -71,7 +75,9 @@ int_fast32_t short_circuit_self_test()
 }
 
 
-
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t short_circuit_verify_fail_test()
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
@@ -134,6 +140,9 @@ int_fast32_t short_circuit_verify_fail_test()
 }
 
 
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t short_circuit_signing_error_conditions_test()
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
@@ -209,7 +218,9 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 }
 
 
-
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t short_circuit_make_cwt_test()
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
@@ -333,7 +344,9 @@ int_fast32_t short_circuit_make_cwt_test()
 }
 
 
-
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t short_circuit_decode_only_test()
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
@@ -454,7 +467,11 @@ static const uint8_t rfc8152_example_2_1[] = {
     0x3B, 0x09, 0x16, 0xE5, 0xA4, 0xC3, 0x45, 0xCA,
     0xCB, 0x36};
 
-int cose_example_test()
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t cose_example_test()
 {
     enum t_cose_err_t             return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(   signed_cose_buffer, 200);
@@ -496,7 +513,7 @@ int cose_example_test()
 }
 
 
-static enum t_cose_err_t run_test_sign_and_verify(int32_t test_mess_options)
+static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -546,8 +563,12 @@ static enum t_cose_err_t run_test_sign_and_verify(int32_t test_mess_options)
 }
 
 
-/* copied from t_cose_util.c */
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+
+#ifdef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+/* copied from t_cose_util.c so these tests that depend on
+ * short circuit signatures can run even when it is
+ * is disabled.  TODO: is this dependency real?*/
+
 /* This is a random hard coded key ID that is used to indicate
  * short-circuit signing. It is OK to hard code this as the
  * probability of collision with this ID is very low and the same
@@ -562,6 +583,7 @@ static const uint8_t defined_short_circuit_kid[] = {
 
 static struct q_useful_buf_c ss_kid;
 
+
 /*
  * Public function. See t_cose_util.h
  */
@@ -572,7 +594,7 @@ static struct q_useful_buf_c get_short_circuit_kid(void)
 
     return ss_kid;
 }
-#endif
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 int_fast32_t all_header_parameters_test()
 {
@@ -625,9 +647,11 @@ int_fast32_t all_header_parameters_test()
         return 3;
     }
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     if(parameters.content_type_uint != 1) {
         return 4;
     }
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
     if(q_useful_buf_compare(parameters.iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
         return 5;
@@ -641,14 +665,12 @@ int_fast32_t all_header_parameters_test()
 }
 
 struct test_case {
-    int32_t test_option;
-    int   result;
+    uint32_t test_option;
+    enum t_cose_err_t   result;
 };
 
 static struct test_case bad_parameters_tests_table[] = {
-    /* Test existance of the critical header. Also makes sure that
-     * it works with the max number of labels allowed in it.
-     */
+
     {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_UNSUPPORTED_HASH},
 
     {T_COSE_TEST_DUP_CONTENT_ID, T_COSE_ERR_DUPLICATE_PARAMETER},
@@ -686,13 +708,16 @@ static struct test_case bad_parameters_tests_table[] = {
 };
 
 
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t bad_parameters_test()
 {
     struct test_case *test;
 
     for(test = bad_parameters_tests_table; test->test_option; test++) {
         if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int)(test - bad_parameters_tests_table);
+            return (int_fast32_t)(test - bad_parameters_tests_table + 1);
         }
     }
 
@@ -737,13 +762,16 @@ static struct test_case crit_tests_table[] = {
 };
 
 
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t crit_parameters_test()
 {
     struct test_case *test;
 
     for(test = crit_tests_table; test->test_option; test++) {
         if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int)(test - crit_tests_table);
+            return (int_fast32_t)(test - crit_tests_table);
         }
     }
 
@@ -751,6 +779,9 @@ int_fast32_t crit_parameters_test()
 }
 
 
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t content_type_test()
 {
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
@@ -877,6 +908,9 @@ static struct sign1_sample sign1_sample_inputs[] = {
 };
 
 
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t sign1_structure_decode_test(void)
 {
     const struct sign1_sample      *sample;
@@ -894,24 +928,39 @@ int_fast32_t sign1_structure_decode_test(void)
                                      &payload,
                                       NULL);
         if(result != sample->expected_error) {
-            /* Returns 100 * index of the input + error code not expected */
-            return (int32_t)(sample - sign1_sample_inputs+1)*100 + result;
+            /* Returns 100 * index of the input + the unexpected error code */
+            const size_t sample_index = (size_t)(sample - sign1_sample_inputs) / sizeof(struct sign1_sample);
+            return (int32_t)((sample_index+1)*100 + result);
         }
     }
 
     return 0;
 }
 
+
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
+
+/* Linkage to global variable in t_cose_test_crypto.c. This is only
+ * used for an occasional test in a non-threaded environment so a global
+ * variable is safe. This test and the hacks in the crypto code are
+ * never enabled for commercial deployments.
+ */
 extern int hash_test_mode;
 
 
+/*
+ * Public function, see t_cose_test.h
+ */
 int_fast32_t short_circuit_hash_fail_test()
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
     enum t_cose_err_t            return_value;
     struct q_useful_buf_c        wrapped_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 200);
+
+    /* See test description in t_cose_test.h for a full description of
+     * what this does and what it needs to run.
+     */
 
 
     /* Set the global variable to cause the hash implementation to
@@ -958,4 +1007,4 @@ int_fast32_t short_circuit_hash_fail_test()
     return 0;
 }
 
-#endif
+#endif /* T_COSE_ENABLE_HASH_FAIL_TEST */
