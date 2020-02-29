@@ -437,8 +437,7 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         kid = get_short_circuit_kid();
 #else
-        return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
-        goto Done;
+        return T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
 #endif
     } else {
         kid = me->kid;
