@@ -52,10 +52,10 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 
 
 /**
- \brief Hash an encoded bstr without actually encoding it in memory
-
- @param hash_ctx  Hash context to hash it into
- @param bstr      Bytes of the bstr
+ * \brief Hash an encoded bstr without actually encoding it in memory
+ *
+ * @param hash_ctx  Hash context to hash it into
+ * @param bstr      Bytes of the bstr
  */
 static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
                       struct q_useful_buf_c      bstr)
@@ -149,15 +149,15 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
      * memory.
      */
 
-    /* Hand-constructed CBOR for the array of 4 and the context string */
-    static const uint8_t first_part[] = "\x84\x65" COSE_SIG_CONTEXT_STRING_SIGNATURE1;
-    t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(first_part));
+    /* Hand-constructed CBOR for the array of 4 and the context string.
+     * \x84 is an array of 4. \x6A is a text string of 10 bytes. */
+    t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
 
     /* body_protected */
     hash_bstr(&hash_ctx, protected_parameters);
 
     /* external_aad which is an empty string since it is not supported here */
-    hash_bstr(&hash_ctx, (struct q_useful_buf_c){NULL, 0});
+    hash_bstr(&hash_ctx, NULL_Q_USEFUL_BUF_C);
 
     /* payload */
     hash_bstr(&hash_ctx, payload);

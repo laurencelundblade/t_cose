@@ -281,7 +281,8 @@ add_unprotected_parameters(uint32_t              test_message_options,
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
     if(test_message_options & T_COSE_TEST_NOT_WELL_FORMED_1) {
-        QCBOREncode_AddEncoded(cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxx"));
+        QCBOREncode_AddEncoded(cbor_encode_ctx,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxx"));
     }
 
     /* Put in a byte string (not a text string) for the parameter label */
@@ -566,7 +567,7 @@ Done:
  */
 enum t_cose_err_t
 t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
-                               uint32_t                      test_message_options,
+                               uint32_t                    test_message_options,
                                struct q_useful_buf_c         payload,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result)
