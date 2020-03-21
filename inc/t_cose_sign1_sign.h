@@ -1,7 +1,7 @@
 /*
  * t_cose_sign1_sign.h
  *
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright 2019, Laurence Lundblade
  * Copyright 2020, Michael Eckel
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -10,3 +10,4 @@
  */
 
 #include "t_cose/t_cose_sign1_sign.h"
+

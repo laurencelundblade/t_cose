@@ -2,6 +2,7 @@
  * t_cose_sign1_sign.h
  *
  * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2020, Michael Eckel
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -13,8 +14,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <qcbor/qcbor.h>
-#include <t_cose/t_cose_common.h>
+#include "qcbor/qcbor.h"
+#include "t_cose/t_cose_common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,7 +67,6 @@ extern "C" {
  */
 struct t_cose_sign1_sign_ctx {
     /* Private data structure */
-    uint8_t               protected_parameters_buffer[T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS];
     struct q_useful_buf_c protected_parameters; /* The encoded protected parameters */
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key;
