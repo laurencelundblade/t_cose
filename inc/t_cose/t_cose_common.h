@@ -139,6 +139,10 @@ struct t_cose_key {
     ((struct t_cose_key){T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}})
 
 
+// TODO: this probably needs work
+#define T_COSE_IS_NULL_KEY(x) (x.k.key_ptr == 0)
+
+
 /* Private value. Intentionally not documented for Doxygen.  This is
  * the size allocated for the encoded protected header parameters.  It
  * needs to be big enough for encode_protected_parameters() to

@@ -284,6 +284,10 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
 
 #elif T_COSE_USE_OPENSSL_CRYPTO
 #include "openssl/sha.h"
+#include <openssl/evp.h>
+#include "openssl/ossl_typ.h"
+#include <openssl/hmac.h>
+
 
 #elif T_COSE_USE_B_CON_SHA256
 /* This is code for use with Brad Conte's crypto.  See
@@ -340,7 +344,7 @@ struct t_cose_crypto_hash {
         psa_status_t         status;
 
     #elif T_COSE_USE_OPENSSL_CRYPTO
-        /* --- The context for PSA Crypto (MBed Crypto) --- */
+        /* --- The context for OpenSSL Crypto  --- */
 
         /* What is needed for a full proper integration of OpenSSL's hashes */
         union {
@@ -350,6 +354,8 @@ struct t_cose_crypto_hash {
              * This uses about 100 bytes above SHA-256  */
             SHA512_CTX sha_512;
         #endif
+            //HMAC_CTX hmac; // TODO: figure out where this is defined
+            void *hmac;
         } ctx;
 
         int     update_error; /* Used to track error return by SHAXXX_Upate() */
@@ -442,6 +448,12 @@ enum t_cose_err_t
 t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
                          int32_t                    cose_hash_alg_id);
 
+
+
+enum t_cose_err_t
+t_cose_crypto_hmac_start(struct t_cose_crypto_hash *hash_ctx,
+                         struct t_cose_key      hmac_key,
+                         int32_t                    cose_hash_alg_id);
 
 /**
  * \brief Feed data into a cryptographic hash. Part of the t_cose

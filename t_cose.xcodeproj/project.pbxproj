@@ -1086,10 +1086,10 @@
 				);
 				HEADER_SEARCH_PATHS = (
 					../../QCBOR/master/inc,
-					"../../openssl/openssl-1.1.1b/include",
+					"../../openssl/openssl-1.1.1/include",
 					inc,
 				);
-				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b";
+				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				"USER_HEADER_SEARCH_PATHS[arch=*]" = "";
 			};
@@ -1104,10 +1104,10 @@
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = T_COSE_USE_OPENSSL_CRYPTO;
 				HEADER_SEARCH_PATHS = (
 					../../QCBOR/master/inc,
-					"../../openssl/openssl-1.1.1b/include",
+					"../../openssl/openssl-1.1.1/include",
 					inc,
 				);
-				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b";
+				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
