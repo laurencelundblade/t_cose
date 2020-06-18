@@ -100,6 +100,7 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
 
  */
 enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
+                                  struct t_cose_key      hmac_key,
                                   struct q_useful_buf_c  protected_parameters,
                                   struct q_useful_buf_c  payload,
                                   struct q_useful_buf    buffer_for_hash,
@@ -115,11 +116,16 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
     int32_t                     hash_alg_id;
 
     /* Start the hashing */
-    hash_alg_id = hash_alg_id_from_sig_alg_id(cose_algorithm_id);
-    /* Don't check hash_alg_id for failure. t_cose_crypto_hash_start()
-     * will handle error properly. It was also checked earlier.
-     */
-    return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
+    if(T_COSE_IS_NULL_KEY(hmac_key)) {
+        hash_alg_id = hash_alg_id_from_sig_alg_id(cose_algorithm_id);
+        /* Don't check hash_alg_id for failure. t_cose_crypto_hash_start()
+         * will handle error properly. It was also checked earlier.
+         */
+        return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
+
+    } else {
+        return_value = t_cose_crypto_hmac_start(&hash_ctx, hmac_key, cose_algorithm_id);
+    }
     if(return_value) {
         goto Done;
     }
@@ -151,7 +157,14 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
 
     /* Hand-constructed CBOR for the array of 4 and the context string.
      * \x84 is an array of 4. \x6A is a text string of 10 bytes. */
-    t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+    struct q_useful_buf_c array_and_string;
+    if(T_COSE_IS_NULL_KEY(hmac_key)) {
+        array_and_string = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    } else {
+        // TODO: comments
+        array_and_string = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x64" COSE_SIG_CONTEXT_STRING_MAC0);
+    }
+    t_cose_crypto_hash_update(&hash_ctx, array_and_string);
 
     /* body_protected */
     hash_bstr(&hash_ctx, protected_parameters);

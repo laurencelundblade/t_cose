@@ -447,6 +447,23 @@ Done:
 }
 
 
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t t_cose_crypto_hmac_start(struct t_cose_crypto_hash *hash_ctx,
+                                           struct t_cose_key hmac_key,
+                                           int32_t cose_hash_alg_id)
+{
+    int ossl_result;
+
+    // TODO: lots of work here
+
+    //HMAC_Init_ex
+
+    return 0;
+
+
+}
 
 
 /*
@@ -503,6 +520,14 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
                                                        data_to_hash.len);
                 break;
 
+            case COSE_ALGORITHM_HMAC_SHA256:
+            case COSE_ALGORITHM_HMAC_SHA384:
+            case COSE_ALGORITHM_HMAC_SHA512:
+                hash_ctx->update_error = HMAC_Update(hash_ctx->ctx.hmac,
+                                                      data_to_hash.ptr,
+                                                      data_to_hash.len);
+                break;
+
 #ifndef T_COSE_DISABLE_ES384
             case COSE_ALGORITHM_SHA_384:
                 hash_ctx->update_error = SHA384_Update(&hash_ctx->ctx.sha_512,
@@ -547,6 +572,16 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
                                    &hash_ctx->ctx.sha_256);
         hash_result_len = T_COSE_CRYPTO_SHA256_SIZE;
         break;
+
+
+    case COSE_ALGORITHM_HMAC_SHA256:
+    case COSE_ALGORITHM_HMAC_SHA384:
+    case COSE_ALGORITHM_HMAC_SHA512:
+        hash_ctx->update_error = HMAC_Final(&hash_ctx->ctx.hmac,
+                                            buffer_to_hold_result.ptr,
+                                            &hash_result_len);
+        break;
+
 
 #ifndef T_COSE_DISABLE_ES384
     case COSE_ALGORITHM_SHA_384:

@@ -218,6 +218,10 @@
 #define COSE_ALGORITHM_SHA_512 -44
 
 
+// TODO: proper documentation
+#define COSE_ALGORITHM_HMAC_SHA256 5
+#define COSE_ALGORITHM_HMAC_SHA384 6
+#define COSE_ALGORITHM_HMAC_SHA512 7
 
 
 /* ---------- COSE Key Common Parameters --------------
@@ -400,6 +404,10 @@
  * COSE_Sign1 structures. See RFC 8152, section 4.4.
  */
 #define COSE_SIG_CONTEXT_STRING_SIGNATURE1 "Signature1"
+
+
+// TODO: comment
+#define COSE_SIG_CONTEXT_STRING_MAC0 "Mac0"
 
 
 #endif /* __T_COSE_STANDARD_CONSTANTS_H__ */

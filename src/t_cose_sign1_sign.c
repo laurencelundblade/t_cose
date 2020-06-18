@@ -341,6 +341,7 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
          * t_cose_sign1_init() so it doesn't need to be checked here.
          */
         return_value = create_tbs_hash(me->cose_algorithm_id,
+                                       T_COSE_NULL_KEY,
                                        me->protected_parameters,
                                        signed_payload,
                                        buffer_for_tbs_hash,
