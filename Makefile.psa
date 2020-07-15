@@ -98,9 +98,9 @@ endif
 install: libt_cose.a install_headers
 	install -d $(DESTDIR)$(PREFIX)/lib/
 	install -m 644 libt_cose.a $(DESTDIR)$(PREFIX)/lib/
-	install -d $(DESTDIR)$(PREFIX)/include/t_cose
 
 install_headers: $(PUBLIC_INTERFACE)
+	install -d $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_common.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/q_useful_buf.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
