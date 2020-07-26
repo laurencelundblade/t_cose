@@ -75,9 +75,9 @@ struct t_cose_parameters {
     /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
      * parameter is not present */
     struct q_useful_buf_c partial_iv;
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     /** The content type as a MIME type like
      * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
     struct q_useful_buf_c content_type_tstr;
     /** The content type as a CoAP Content-Format
      * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not

@@ -703,7 +703,7 @@ static struct test_case bad_parameters_tests_table[] = {
 
     {T_COSE_TEST_DUP_CONTENT_ID, T_COSE_ERR_DUPLICATE_PARAMETER},
 
-    {T_COSE_TEST_UNCLOSED_PROTECTED, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
+    {T_COSE_TEST_UNCLOSED_PROTECTED, T_COSE_ERR_PARAMETER_CBOR},
 
     {T_COSE_TEST_TOO_LARGE_CONTENT_TYPE, T_COSE_ERR_BAD_CONTENT_TYPE},
 
@@ -716,15 +716,13 @@ static struct test_case bad_parameters_tests_table[] = {
 
     {T_COSE_TEST_UNPROTECTED_NOT_MAP, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_BAD_CRIT_PARAMETER, T_COSE_ERR_PARAMETER_NOT_PROTECTED},
-
-    {T_COSE_TEST_BAD_CRIT_PARAMETER, T_COSE_ERR_PARAMETER_NOT_PROTECTED},
+    {T_COSE_TEST_BAD_CRIT_PARAMETER, T_COSE_ERR_CRIT_PARAMETER},
 
     {T_COSE_TEST_NOT_WELL_FORMED_1, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
 
     {T_COSE_TEST_NO_UNPROTECTED_PARAMETERS, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_NO_PROTECTED_PARAMETERS, T_COSE_ERR_SIGN1_FORMAT},
+    {T_COSE_TEST_NO_PROTECTED_PARAMETERS, T_COSE_ERR_PARAMETER_CBOR},
 
     {T_COSE_TEST_EXTRA_PARAMETER, T_COSE_SUCCESS},
 
@@ -918,19 +916,19 @@ static struct sign1_sample sign1_sample_inputs[] = {
     /* Too few items in definite array */
     { {(uint8_t[]){0x83, 0x40, 0xa0, 0x40}, 4}, T_COSE_ERR_SIGN1_FORMAT},
     /* Too-long signature */
-    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x4f}, 5}, T_COSE_ERR_SIGN1_FORMAT},
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x4f}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
     /* Too-long payload */
-    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x4f, 0x40}, 5}, T_COSE_ERR_SIGN1_FORMAT},
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x4f, 0x40}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
     /* Too-long protected parameters bucket */
-    { {(uint8_t[]){0x84, 0x4f, 0xa0, 0x40, 0x40}, 5}, T_COSE_ERR_SIGN1_FORMAT},
+    { {(uint8_t[]){0x84, 0x4f, 0xa0, 0x40, 0x40}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
     /* Unterminated indefinite length */
-    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40}, 6}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
+    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40}, 6}, T_COSE_ERR_SIGN1_FORMAT},
     /* The smallest legal COSE_Sign1 using indefinite lengths */
     { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40, 0xff}, 7}, T_COSE_SUCCESS},
     /* The smallest legal COSE_Sign1 using definite lengths */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_SUCCESS},
     /* Just one not-well-formed byte -- a reserved value */
-    { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_SIGN1_FORMAT },
+    { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_CBOR_NOT_WELL_FORMED },
     /* terminate the list */
     { {NULL, 0}, 0 },
 };
@@ -950,14 +948,14 @@ int_fast32_t sign1_structure_decode_test(void)
     for(sample = sign1_sample_inputs; !q_useful_buf_c_is_null(sample->CBOR); sample++) {
         t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
 
-
         result = t_cose_sign1_verify(&verify_ctx,
                                       sample->CBOR,
                                      &payload,
                                       NULL);
+
         if(result != sample->expected_error) {
             /* Returns 100 * index of the input + the unexpected error code */
-            const size_t sample_index = (size_t)(sample - sign1_sample_inputs) / sizeof(struct sign1_sample);
+            const size_t sample_index = (size_t)(sample - sign1_sample_inputs);
             return (int32_t)((sample_index+1)*100 + result);
         }
     }
