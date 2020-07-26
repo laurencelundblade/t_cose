@@ -157,7 +157,6 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
      * items. Works for definite and indefinte length arrays. Also
      * make sure there were no extra bytes. */
     qcbor_error = QCBORDecode_Finish(&decode_context);
-    // TODO: lots of error handling here.
     if(QCBORDecode_IsNotWellFormed(qcbor_error)) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         goto Done;
@@ -229,7 +228,4 @@ Done:
 
     return return_value;
 }
-
-int foo(){return 999;}
-
 
