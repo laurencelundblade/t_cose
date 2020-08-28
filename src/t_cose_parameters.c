@@ -11,6 +11,7 @@
 
 #include "t_cose_parameters.h"
 #include "t_cose_standard_constants.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 
 
 /**
@@ -238,7 +239,6 @@ Done:
 
 struct cb_context {
     struct t_cose_label_list *unknown_labels;
-    struct t_cose_parameters *parameters;
     enum t_cose_err_t         return_value;
 } ;
 
@@ -251,42 +251,7 @@ struct cb_context {
  *
 
  */
-#if 0
-static QCBORError header_parameter_callback(void *pCallbackCtx, const QCBORItem *pItem)
-{
-    enum t_cose_err_t return_value;
-    struct cb_context *context = (struct cb_context *)pCallbackCtx;
 
-    if(pItem->uLabelType == QCBOR_TYPE_INT64 && pItem->label.int64 == COSE_HEADER_PARAM_CONTENT_TYPE) {
-        struct t_cose_parameters *returned_parameters = context->parameters;
-
-        if(pItem->uDataType == QCBOR_TYPE_TEXT_STRING) {
-            if(!q_useful_buf_c_is_null_or_empty(returned_parameters->content_type_tstr)) {
-                context->return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
-                goto Done;
-            }
-            returned_parameters->content_type_tstr = pItem->val.string;
-        } else if(pItem->uDataType == QCBOR_TYPE_INT64) {
-            if(pItem->val.int64 < 0 || pItem->val.int64 > UINT16_MAX) {
-                context->return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
-                goto Done;
-            }
-            if(returned_parameters->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-                context->return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
-                goto Done;
-            }
-            returned_parameters->content_type_uint = (uint32_t)pItem->val.int64;
-        } else {
-            return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
-            goto Done;
-        }
-    } else {
-        context->return_value = add_label_to_list(pItem, context->unknown_labels);
-    }
-Done:
-    return context->return_value == T_COSE_SUCCESS ? QCBOR_SUCCESS : QCBOR_ERR_CALLBACK_FAIL;
-}
-#endif
 
 static QCBORError header_parameter_callback(void *pCallbackCtx, const QCBORItem *pItem)
 {
@@ -311,45 +276,6 @@ static QCBORError header_parameter_callback(void *pCallbackCtx, const QCBORItem 
         return QCBOR_ERR_CALLBACK_FAIL;
     }
 }
-
-
-#if 0
-static inline enum t_cose_err_t
-decode_content_type(QCBORDecodeContext       *decode_context,
-                          struct t_cose_parameters  *parameters)
-{
-    QCBORItem item;
-    enum t_cose_err_t return_value;
-
-    QCBORDecode_GetItemInMapN(decode_context, COSE_HEADER_PARAM_CONTENT_TYPE, QCBOR_TYPE_ANY, &item);
-    // TODO: error check
-
-    if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
-        if(!q_useful_buf_c_is_null_or_empty(parameters->content_type_tstr)) {
-            return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
-            goto Done;
-        }
-        parameters->content_type_tstr = item.val.string;
-    } else if(item.uDataType == QCBOR_TYPE_INT64) {
-        if(item.val.int64 < 0 || item.val.int64 > UINT16_MAX) {
-            return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
-            goto Done;
-        }
-        if(parameters->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-            return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
-            goto Done;
-        }
-        parameters->content_type_uint = (uint32_t)item.val.int64;
-    } else {
-        return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
-        goto Done;
-    }
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
-#endif
 
 
 /**
@@ -398,7 +324,7 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
      */
     enum t_cose_err_t  return_value;
     QCBORError         qcbor_result;
-    struct cb_context callback_context = {unknown_labels, parameters};
+    struct cb_context callback_context = {unknown_labels, 0};
 
     QCBORDecode_EnterMap(decode_context);
 
@@ -464,7 +390,7 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
      * between protected and unprotected parameter headers is performed as
      * well as type checking for a few cases
      */
-    
+
     /* COSE_HEADER_PARAM_ALG */
     if(header_items[ALG_INDEX].uDataType != QCBOR_TYPE_NONE) {
         if(critical_labels == NULL) {

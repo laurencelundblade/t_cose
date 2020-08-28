@@ -317,6 +317,8 @@ enum t_cose_err_t {
     /** Something is wrong with the crit parameter. */
     T_COSE_ERR_CRIT_PARAMETER = 36,
 
+    /** The tag nesting is too deep. */ // TODO: error code.
+    T_COSE_ERR_TOO_MANY_TAGS = 37,
 };
 
 

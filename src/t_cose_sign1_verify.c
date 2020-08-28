@@ -10,6 +10,7 @@
 
 
 #include "qcbor/qcbor.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h"
@@ -63,13 +64,71 @@ Done:
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
-static inline
-enum t_cose_err_t check_tag(QCBORDecodeContext *me, uint32_t uOptions)
-{
-    QCBORItem array_item;
-    QCBORDecode_PeekNext(me, &array_item);
 
-    // TODO: finish the logic here
+/*
+
+ */
+static inline enum t_cose_err_t
+process_tags(struct t_cose_sign1_verify_ctx *me, QCBORDecodeContext *decode_context)
+{
+    uint64_t uTag;
+    uint32_t item_tag_index = 0;
+
+    /* The 0th tag is the only one that might identify the type of the
+     CBOR we are trying to decode so it is handled special.
+     */
+    uTag = QCBORDecode_GetNthTagOfLast(decode_context, item_tag_index);
+    item_tag_index++;
+    if(me->option_flags & T_COSE_OPT_TAG_REQUIRED) {
+        /* The protocol that is using COSE says the input CBOR must
+         be a COSE tag.
+         */
+        if(uTag != CBOR_TAG_COSE_SIGN1) {
+            return T_COSE_ERR_INCORRECTLY_TAGGED;
+        }
+    }
+    if(me->option_flags & T_COSE_OPT_TAG_PROHIBITED) {
+        /* The protocol that is using COSE says the input CBOR must
+         not be a COSE tag.
+         */
+        if(uTag == CBOR_TAG_COSE_SIGN1) {
+            return T_COSE_ERR_INCORRECTLY_TAGGED;
+        }
+    }
+    /* If the protocol using COSE doesn't say one way or another about the
+     tag, then either is OK */
+
+
+    /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */
+#if CBOR_TAG_INVALID64 != 0xffffffffffffffff
+#error Initializing return tags array
+#endif
+    memset(me->auTags, 0xff, sizeof(me->auTags));
+
+    int returned_tag_index = 0;
+
+    if(uTag != CBOR_TAG_COSE_SIGN1) {
+        /* Never return the tag that this code is about to process. Note
+         that you can sign a COSE_SIGN1 recursively. This only takes out
+         the one tag layer that is processed here
+         */
+        me->auTags[returned_tag_index] = uTag;
+        returned_tag_index++;
+    }
+
+    while(1) {
+        uTag = QCBORDecode_GetNthTagOfLast(decode_context, item_tag_index);
+        item_tag_index++;
+        if(uTag == CBOR_TAG_INVALID64) {
+            break;
+        }
+        if(returned_tag_index > 4) {
+            return T_COSE_ERR_TOO_MANY_TAGS;
+        }
+        me->auTags[returned_tag_index] = uTag;
+        returned_tag_index++;
+    }
+
     return T_COSE_SUCCESS;
 }
 
@@ -83,7 +142,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameters       *returned_parameters)
 {
-    /* Stack use for 32-bit CPUs:
+    /* TODO: revamp this. Stack use for 32-bit CPUs:
      *   268 for local except hash output
      *   32 to 64 local for hash output
      *   220 to 434 to make TBS hash
@@ -113,18 +172,14 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     QCBORDecode_Init(&decode_context, cose_sign1, QCBOR_DECODE_MODE_NORMAL);
 
     /* --- Check the tag on the array --- */
-#if 0
-    // TODO: fix this.
-    return_value = check_tag(&decode_context, me->option_flags);
+    QCBORDecode_EnterArray(&decode_context);
+    return_value = process_tags(me, &decode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-#endif
-    
-    QCBORDecode_EnterArray(&decode_context);
 
     /* --- The protected parameters --- */
-    QCBORDecode_EnterBstrWrapped(&decode_context, QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, &protected_parameters);
+    QCBORDecode_EnterBstrWrapped(&decode_context, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &protected_parameters);
     if(protected_parameters.len) {
         return_value = parse_cose_header_parameters(&decode_context,
                                                     &parameters,
@@ -140,7 +195,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     return_value = parse_cose_header_parameters(&decode_context,
                                                 &parameters,
                                                  NULL,
-                                                 &unknown_parameter_labels);
+                                                &unknown_parameter_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -181,7 +236,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     }
 
 
-    /* -- Skip signature verification if such is requested --*/
+    /* -- Skip signature verification if requested --*/
     if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;

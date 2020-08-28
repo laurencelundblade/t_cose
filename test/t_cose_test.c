@@ -909,25 +909,25 @@ struct sign1_sample {
 };
 
 static struct sign1_sample sign1_sample_inputs[] = {
-    /* With an indefinite length string payload */
+    /* 0. With an indefinite length string payload */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x5f, 0x00, 0xff, 0x40}, 7}, T_COSE_ERR_SIGN1_FORMAT},
-    /* Too few items in unprotected header parameters bucket */
+    /* 1. Too few items in unprotected header parameters bucket */
     { {(uint8_t[]){0x84, 0x40, 0xa3, 0x40, 0x40}, 5}, T_COSE_ERR_PARAMETER_CBOR},
-    /* Too few items in definite array */
+    /* 2. Too few items in definite array */
     { {(uint8_t[]){0x83, 0x40, 0xa0, 0x40}, 4}, T_COSE_ERR_SIGN1_FORMAT},
-    /* Too-long signature */
+    /* 3. Too-long signature */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x4f}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
-    /* Too-long payload */
+    /* 4. Too-long payload */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x4f, 0x40}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
-    /* Too-long protected parameters bucket */
+    /* 5. Too-long protected parameters bucket */
     { {(uint8_t[]){0x84, 0x4f, 0xa0, 0x40, 0x40}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
-    /* Unterminated indefinite length */
+    /* 6. Unterminated indefinite length */
     { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40}, 6}, T_COSE_ERR_SIGN1_FORMAT},
-    /* The smallest legal COSE_Sign1 using indefinite lengths */
+    /* 7. The smallest legal COSE_Sign1 using indefinite lengths */
     { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40, 0xff}, 7}, T_COSE_SUCCESS},
-    /* The smallest legal COSE_Sign1 using definite lengths */
+    /* 8. The smallest legal COSE_Sign1 using definite lengths */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_SUCCESS},
-    /* Just one not-well-formed byte -- a reserved value */
+    /* 9. Just one not-well-formed byte -- a reserved value */
     { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_CBOR_NOT_WELL_FORMED },
     /* terminate the list */
     { {NULL, 0}, 0 },
