@@ -17,7 +17,7 @@
 /**
  * \file t_cose_parameters.c
  *
- * \brief Implementation of the header parsing functions.
+ * \brief Implementation of COSE header parameter decoding.
  *
  */
 
@@ -38,6 +38,7 @@
 static inline enum t_cose_err_t
 add_label_to_list(const QCBORItem *item, struct t_cose_label_list *label_list)
 {
+    /* Stack use: 16 bytes for 64-bit */
     enum t_cose_err_t return_value;
     uint_fast8_t      n;
 
@@ -111,7 +112,7 @@ static inline enum t_cose_err_t
 decode_critical_parameter(QCBORDecodeContext       *decode_context,
                           struct t_cose_label_list *critical_labels)
 {
-    /* Stack use 64-bit: 56 + 40 = 96
+    /* Stack use 64-bit: 56 + 32 = 88
      *           32-bit: 52 + 20 = 72
      */
     QCBORItem         item;
@@ -196,6 +197,7 @@ enum t_cose_err_t
 check_critical_labels(const struct t_cose_label_list *critical_labels,
                       const struct t_cose_label_list *unknown_labels)
 {
+    /* 24 bytes on 64-bit */
     enum t_cose_err_t return_value;
     uint_fast8_t      num_unknown;
     uint_fast8_t      num_critical;
@@ -240,31 +242,36 @@ Done:
 struct cb_context {
     struct t_cose_label_list *unknown_labels;
     enum t_cose_err_t         return_value;
-} ;
+};
 
 /**
- * \brief Add unknown parameter to unknown labels list and fully consume it
- * TODO: doc
- * \param[in] pCallbackCtx       CBOR decode context to read from.
- * \param[in] pItem    The data item for the unknown parameter.
-*                                 fetched. Helps to know if at end of list.
+ * \brief Add unknown parameter to unknown labels list
  *
-
+ * \param[in] pCallbackCtx   Callback context.
+ * \param[in] pItem          The data item for the unknown parameter.
+ *
+ * \returns On failure to add to the list (because it is full) this returns
+ *          \ref QCBOR_ERR_CALLBACK_FAIL to signal an error in traversal.
+ *          The error details is in \c context->return_value.
+ *
+ * This gets called through QCBORDecode_GetItemsInMapWithCallback() on any
+ * parameter that is not recognized. (Maybe someday this will call out
+ * further to allow t_cose to handle custom parameters).
  */
-
-
 static QCBORError header_parameter_callback(void *pCallbackCtx, const QCBORItem *pItem)
 {
     struct cb_context *context = (struct cb_context *)pCallbackCtx;
     enum t_cose_err_t result;
 
     if(pItem->uLabelType == QCBOR_TYPE_INT64 &&
-        pItem->label.int64 == COSE_HEADER_PARAM_CRIT ) {
+        pItem->label.int64 == COSE_HEADER_PARAM_CRIT) {
            /* header parameters that are not processed through the call to
-            QCBORDecode_GetItemsInMapWithCallback show up here, but are not
-            unknown header parameters */
+            * QCBORDecode_GetItemsInMapWithCallback show up here, but are not
+            * unknown header parameters. There is only one: COSE_HEADER_PARAM_CRIT
+            */
            result = T_COSE_SUCCESS;
     } else {
+        /* Add an unknown header parameter to the list or unknowns */
         result = add_label_to_list(pItem, context->unknown_labels);
     }
 
@@ -317,9 +324,10 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
                              struct t_cose_label_list  *critical_labels,
                              struct t_cose_label_list  *unknown_labels)
 {
-    /* Local stack use 64-bit: 5 * 56 + 4 + 2 * 8 = 300
-     * Local stack use 32-bit: 5 * 52 + 4 + 2 * 4 = 272
-     * Total stack use 64-bit:
+    /* Local stack use 64-bit: 6 * 56 + 4 + 2 * 8 = 300
+     * Local stack use 32-bit: 6 * 52 + 4 + 2 * 4 = 272
+     * Total stack use 64-bit: around 600 (QCBORDecode_GetItemsInMapWithCallback
+     *                                     uses around 300 bytes of stack)
      * Total stack use 32-bit:
      */
     enum t_cose_err_t  return_value;
@@ -329,9 +337,8 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
     QCBORDecode_EnterMap(decode_context);
 
     /* Get all the non-aggregate headers in one fell swoop
-       with QCBORDecode_GetItemsInMapWithCallback().
+     * with QCBORDecode_GetItemsInMapWithCallback().
      */
-
 #define ALG_INDEX            0
 #define KID_INDEX            1
 #define IV_INDEX             2
@@ -364,11 +371,11 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
     header_items[END_INDEX].uLabelType  = QCBOR_TYPE_NONE;
 
     /* This call takes care of duplicate detection in the map itself.
-
-     COSE has the
-     notion of critical parameters that can't be ignored, so the
-     callback has to be set up to catch items in this map that
-     are not handled by code here. */
+     * COSE has the
+     * notion of critical parameters that can't be ignored, so the
+     * callback has to be set up to catch items in this map that
+     * are not handled by code here.
+     */
     qcbor_result = QCBORDecode_GetItemsInMapWithCallback(decode_context,
                                                          header_items,
                                                          &callback_context,
@@ -385,10 +392,10 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
         goto Done;
     }
 
-    /* The following few clauses copies the parameters out of the QCBORItems
-     * retrieved to the returned parameters structure. Duplicate detection
+    /* The following few clauses copy the parameters out of the QCBORItems
+     * retrieved into the returned parameters structure. Duplicate detection
      * between protected and unprotected parameter headers is performed as
-     * well as type checking for a few cases
+     * well as type checking for a few cases.
      */
 
     /* COSE_HEADER_PARAM_ALG */

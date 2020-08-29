@@ -142,12 +142,19 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameters       *returned_parameters)
 {
-    /* TODO: revamp this. Stack use for 32-bit CPUs:
-     *   268 for local except hash output
-     *   32 to 64 local for hash output
-     *   220 to 434 to make TBS hash
-     * Total 420 to 768 depending on hash and EC alg.
-     * Stack used internally by hash and crypto is extra.
+    /* Aproximate stack usage
+     *                              64-bit      32-bit
+     *   Hash output                32-64
+     *   Label lists                448
+     *   Parameter list             80
+     *   Decode context             300
+     *   Other local                64
+     *   If compiler does well, max of:
+     *      Parameter decoding      600
+     *      TBS Hashing             220-434
+     *         Hash alg             500?
+     *      EC alg verify           500?
+     *                              1524 - 1766
      */
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
@@ -171,7 +178,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     /* === Decoding of the array of four starts here === */
     QCBORDecode_Init(&decode_context, cose_sign1, QCBOR_DECODE_MODE_NORMAL);
 
-    /* --- Check the tag on the array --- */
+    /* --- The array of 4 and tags --- */
     QCBORDecode_EnterArray(&decode_context);
     return_value = process_tags(me, &decode_context);
     if(return_value != T_COSE_SUCCESS) {
@@ -201,16 +208,18 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     }
 
     /* --- The payload --- */
-    QCBORDecode_GetBytes(&decode_context, payload); // TODO: have QCBORDecode_GetBytes set payload to NULL on error?
+    QCBORDecode_GetBytes(&decode_context, payload);
 
+    /* --- The signature --- */
     QCBORDecode_GetBytes(&decode_context, &signature);
 
+    /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);
 
-    /* --- Finish up the CBOR decode --- */
     /* This check make sure the array only had the expected four
      * items. Works for definite and indefinte length arrays. Also
-     * make sure there were no extra bytes. */
+     * make sure there were no extra bytes. Also that the payload
+     * and signature were decoded correctly. */
     qcbor_error = QCBORDecode_Finish(&decode_context);
     if(QCBORDecode_IsNotWellFormed(qcbor_error)) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;

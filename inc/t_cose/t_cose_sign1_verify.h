@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign1_verify.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -121,43 +121,19 @@ struct t_cose_parameters {
 #define T_COSE_OPT_REQUIRE_KID 0x00000002
 
 
-    /*
-
-     Still three choices: tag present, tag absent, don't care.
-
-     May have to say whether it is a a COSE_SIGN or a COSE_Sign1.
-
-     May have to say if aditional tags should be allowed.
-
-
-     Alt view -- For a given item, what types are allowed in it.
-     Hard to square with the various APIS and structures?
-     A union of the C data types?
-
-The basic model of processing a CBOR tag is this.
-     - Input to processing
-      - Tag / data type that is allowed for processing
-      - Whether CBOR must be a tag, not be a tag or either
-
-     - Output
-       - tags not processed
-
-     // TODO: clean up tagging comments
-     // TODO: tagging test cases
-     */
-
-
 /**
  * Normally this will decode the CBOR presented as a \c COSE_Sign1
  * message whether it is tagged using QCBOR tagging as such or not.
  * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if it is not tagged.
+ * returned if it is not a \ref CBOR_TAG_COSE_SIGN1 tag.
  *
- * Either this or @ref T_COSE_OPT_TAG_PROHIBITED should be set
- * to align correctly with CBOR tagging rules. In the CBOR
- * tagging rules, a tag should always be present or never
- * be present. The design of the protocol using COSE should
- * indicate clearly which it is.
+ * See also \ref T_COSE_OPT_TAG_PROHIBITED. If neither this or
+ * \ref T_COSE_OPT_TAG_PROHIBITED is set then the content can
+ * either be COSE message (COSE_Sign1 CDDL from RFC 8152) or
+ * a COSESign1 tagg (COSE_Sign1_Tagged from RFC 8152).
+ *
+ * See t_cose_sign1_get_nth_tag() to get further tags that enclose
+ * the COSE message.
  */
 #define T_COSE_OPT_TAG_REQUIRED  0x00000004
 
@@ -166,12 +142,13 @@ The basic model of processing a CBOR tag is this.
  * Normally this will decode the CBOR presented as a \c COSE_Sign1
  * message whether it is tagged using QCBOR tagging as such or not.
  * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if a tag is present. When this option is set the caller
+ * returned if a \ref CBOR_TAG_COSE_SIGN1 tag. When this option is set the caller
  * knows for certain that a COSE signed message is expected.
  *
  * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
  */
 #define T_COSE_OPT_TAG_PROHIBITED  0x00000010
+
 
 /**
  * See t_cose_sign1_set_verification_key().
@@ -191,7 +168,12 @@ The basic model of processing a CBOR tag is this.
 #define T_COSE_OPT_DECODE_ONLY  0x00000008
 
 
-// TODO: document this.
+/**
+ * The maximum number of unprocessed tags that can be returned by
+ * t_cose_sign1_get_nth_tag(). The CWT
+ * tag is an example of the tags that might returned. The COSE tags
+ * that are processed, don't count here.
+ */
 #define T_COSE_MAX_TAGS_TO_RETURN 4
 
 
@@ -334,8 +316,12 @@ enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
  * \param[in] context   The t_cose signature verification context.
  * \param[in] n         Index of the tag to return.
  *
- * \return  The tag value or CBOR_TAG_INVALID64 if there is none
+ * \return  The tag value or \ref CBOR_TAG_INVALID64 if there is no tag
  *          at the index or the index is too large.
+ *
+ * The 0th tag is the one for which the COSE message is the content. Loop
+ * from 0 up until \ref CBOR_TAG_INVALID64 is returned. The maximum
+ * is \ref T_COSE_MAX_TAGS_TO_RETURN.
  *
  * It will be necessary to call this for a general implementation
  * of a CWT since sometimes the CWT tag is required. This is also
