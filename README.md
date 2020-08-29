@@ -35,9 +35,10 @@ As of December 2019, the code is in reasonable working order and the public inte
 fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org) 
 and for [Arm MBed Crypto](https://github.com/ARMmbed/mbed-crypto).
 
-### The to-do list:
-* Add some more tests, particular test vectors from C_COSE or such
-* General documentation clean up, spelling checks and formatting.
+This version requires a QCBOR library that supports Spiffy Decode. The t_cose
+code is smaller, but QCBOR so there is not much size change, except other
+things like CWT / ctoken also re use the code in QCBOR, so overall code
+size does go down. This is only on the decode side. The encode size is as before.
 
 ## Building and Dependencies
 
@@ -176,6 +177,8 @@ the t_cose_crypto.h interface into the underlying crypto.
 
 ### Code 
 
+THESE NEED TO BE UPDATED FOR SPIFFY DECODE.
+
 Here are code sizes on 64-bit x86 optimized for size
 
      |                   | smallest | largest |  
@@ -239,6 +242,7 @@ verification.
 
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
 * Rob Coombs, Shebu Varghese Kuriakose and other ARM folks for sponsorship.
+* Michael Eckel for makefile fixes.
 
 ## Copyright and License
 
