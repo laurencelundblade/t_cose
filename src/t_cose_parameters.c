@@ -254,9 +254,9 @@ struct cb_context {
  *          \ref QCBOR_ERR_CALLBACK_FAIL to signal an error in traversal.
  *          The error details is in \c context->return_value.
  *
- * This gets called through QCBORDecode_GetItemsInMapWithCallback() on any
- * parameter that is not recognized. (Maybe someday this will call out
- * further to allow t_cose to handle custom parameters).
+ * This gets called through QCBORDecode_GetItemsInMapWithCallback() on
+ * any parameter that is not recognized. (Maybe someday this will call
+ * out further to allow t_cose to handle custom parameters).
  */
 static QCBORError header_parameter_callback(void *pCallbackCtx, const QCBORItem *pItem)
 {
@@ -265,9 +265,10 @@ static QCBORError header_parameter_callback(void *pCallbackCtx, const QCBORItem 
 
     if(pItem->uLabelType == QCBOR_TYPE_INT64 &&
         pItem->label.int64 == COSE_HEADER_PARAM_CRIT) {
-           /* header parameters that are not processed through the call to
-            * QCBORDecode_GetItemsInMapWithCallback show up here, but are not
-            * unknown header parameters. There is only one: COSE_HEADER_PARAM_CRIT
+           /* header parameters that are not processed through the
+            * call to QCBORDecode_GetItemsInMapWithCallback show up
+            * here, but are not unknown header parameters. There is
+            * only one: COSE_HEADER_PARAM_CRIT
             */
            result = T_COSE_SUCCESS;
     } else {
@@ -311,9 +312,9 @@ static QCBORError header_parameter_callback(void *pCallbackCtx, const QCBORItem 
  * \retval T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER   A label marked critical is
  *                                                 present and not understood.
  *
- * No header parameters are mandatory. Which parameters were present or not
- * is indicated in \c returned_parameters.  It is OK for there to be
- * no parameters at all.
+ * No header parameters are mandatory. Which parameters were present
+ * or not is indicated in \c returned_parameters.  It is OK for there
+ * to be no parameters at all.
  *
  * The first item to be read from the decode_context must be the map
  * data item that contains the parameters.
@@ -332,12 +333,10 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
      */
     enum t_cose_err_t  return_value;
     QCBORError         qcbor_result;
-    struct cb_context callback_context = {unknown_labels, 0};
+    struct cb_context  callback_context = {unknown_labels, 0};
 
-    QCBORDecode_EnterMap(decode_context);
-
-    /* Get all the non-aggregate headers in one fell swoop
-     * with QCBORDecode_GetItemsInMapWithCallback().
+    /* Get all the non-aggregate headers in one fell swoop with
+     * QCBORDecode_GetItemsInMapWithCallback().
      */
 #define ALG_INDEX            0
 #define KID_INDEX            1
@@ -345,8 +344,9 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
 #define PARTIAL_IV_INDEX     3
 #define CONTENT_TYPE         4
 #define END_INDEX            5
+    QCBORItem         header_items[END_INDEX+1];
 
-    QCBORItem header_items[END_INDEX+1];
+    QCBORDecode_EnterMap(decode_context);
 
     header_items[ALG_INDEX].label.int64 = COSE_HEADER_PARAM_ALG;
     header_items[ALG_INDEX].uLabelType  = QCBOR_TYPE_INT64;
@@ -371,15 +371,16 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
     header_items[END_INDEX].uLabelType  = QCBOR_TYPE_NONE;
 
     /* This call takes care of duplicate detection in the map itself.
-     * COSE has the
-     * notion of critical parameters that can't be ignored, so the
-     * callback has to be set up to catch items in this map that
-     * are not handled by code here.
+     *
+     * COSE has the notion of critical parameters that can't be
+     * ignored, so the callback has to be set up to catch items in
+     * this map that are not handled by code here.
      */
-    qcbor_result = QCBORDecode_GetItemsInMapWithCallback(decode_context,
-                                                         header_items,
-                                                         &callback_context,
-                                                         header_parameter_callback);
+    QCBORDecode_GetItemsInMapWithCallback(decode_context,
+                                          header_items,
+                                          &callback_context,
+                                          header_parameter_callback);
+    qcbor_result = QCBORDecode_GetError(decode_context);
     if(qcbor_result == QCBOR_ERR_CALLBACK_FAIL) {
         return_value = callback_context.return_value;
         goto Done;
@@ -392,10 +393,17 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
         goto Done;
     }
 
-    /* The following few clauses copy the parameters out of the QCBORItems
-     * retrieved into the returned parameters structure. Duplicate detection
-     * between protected and unprotected parameter headers is performed as
-     * well as type checking for a few cases.
+    /* The following few clauses copy the parameters out of the
+     * QCBORItems retrieved into the returned parameters
+     * structure.
+     *
+     * Duplicate detection between protected and unprotected parameter
+     * headers is performed by erroring out if a parameter has already
+     * been filled in.
+     *
+     * Much of the type checking was performed by
+     * QCBORDecode_GetItemsInMapWithCallback() but not all so the rest
+     * is done here.
      */
 
     /* COSE_HEADER_PARAM_ALG */
@@ -405,7 +413,8 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
             return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
             goto Done;
         }
-        if(header_items[ALG_INDEX].val.int64 == COSE_ALGORITHM_RESERVED || header_items[ALG_INDEX].val.int64 > INT32_MAX) {
+        if(header_items[ALG_INDEX].val.int64 == COSE_ALGORITHM_RESERVED ||
+           header_items[ALG_INDEX].val.int64 > INT32_MAX) {
             return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
             goto Done;
         }
