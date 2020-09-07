@@ -9,13 +9,17 @@
  */
 
 
-#include "qcbor/qcbor.h"
+#include "qcbor/qcbor_decode.h"
+#ifndef QCBOR_SPIFFY_DECODE
+#error This version of t_cose requires a version of QCBOR that supports spiffy decode
+#endif
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
 #include "t_cose_parameters.h"
+
 
 
 /**
@@ -208,10 +212,10 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     }
 
     /* --- The payload --- */
-    QCBORDecode_GetBytes(&decode_context, payload);
+    QCBORDecode_GetByteString(&decode_context, payload);
 
     /* --- The signature --- */
-    QCBORDecode_GetBytes(&decode_context, &signature);
+    QCBORDecode_GetByteString(&decode_context, &signature);
 
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);

@@ -24,6 +24,10 @@ extern "C" {
 #endif
 #endif
 
+#ifndef QCBOR_SPIFFY_DECODE
+#error This version of t_cose requires a version of QCBOR that supports spiffy decode
+#endif
+
 /**
  * \file t_cose_sign1_verify.h
  *
