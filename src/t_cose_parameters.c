@@ -127,7 +127,7 @@ decode_critical_parameter(QCBORDecodeContext       *decode_context,
     QCBORDecode_EnterArrayFromMapN(decode_context, COSE_HEADER_PARAM_CRIT);
 
     cbor_result = QCBORDecode_GetAndResetError(decode_context);
-    if(cbor_result == QCBOR_ERR_NOT_FOUND) {
+    if(cbor_result == QCBOR_ERR_LABEL_NOT_FOUND) {
         /* Critical paratmeters parameter doesn't exist */
         return_value = T_COSE_SUCCESS;
         goto Done;
@@ -385,7 +385,7 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
         return_value = callback_context.return_value;
         goto Done;
     } else if(qcbor_result != QCBOR_SUCCESS) {
-        if(QCBORDecode_IsNotWellFormed(qcbor_result)) {
+        if(QCBORDecode_IsNotWellFormedError(qcbor_result)) {
             return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         } else {
             return_value = T_COSE_ERR_PARAMETER_CBOR;

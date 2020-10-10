@@ -225,7 +225,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
      * make sure there were no extra bytes. Also that the payload
      * and signature were decoded correctly. */
     qcbor_error = QCBORDecode_Finish(&decode_context);
-    if(QCBORDecode_IsNotWellFormed(qcbor_error)) {
+    if(QCBORDecode_IsNotWellFormedError(qcbor_error)) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         goto Done;
     }

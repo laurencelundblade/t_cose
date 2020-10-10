@@ -707,7 +707,6 @@ static struct test_case bad_parameters_tests_table[] = {
 
     {T_COSE_TEST_TOO_LARGE_CONTENT_TYPE, T_COSE_ERR_BAD_CONTENT_TYPE},
 
-    /* This makes consume_item() error out */
     {T_COSE_TEST_NOT_WELL_FORMED_2, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
 
     {T_COSE_TEST_KID_IN_PROTECTED, T_COSE_ERR_DUPLICATE_PARAMETER},
