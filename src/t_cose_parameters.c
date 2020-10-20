@@ -346,7 +346,7 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
 #define END_INDEX            5
     QCBORItem         header_items[END_INDEX+1];
 
-    QCBORDecode_EnterMap(decode_context);
+    QCBORDecode_EnterMap(decode_context, NULL);
 
     header_items[ALG_INDEX].label.int64 = COSE_HEADER_PARAM_ALG;
     header_items[ALG_INDEX].uLabelType  = QCBOR_TYPE_INT64;

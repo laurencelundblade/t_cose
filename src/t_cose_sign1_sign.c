@@ -354,8 +354,9 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
          * with. The hash of the TBS bytes is what is signed. A buffer
          * in which to place the signature is passed in and the
          * signature is returned.
-         *
-         * Short-circuit signing is invoked if requested. It does no
+         */
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+        /* Short-circuit signing is invoked if requested. It does no
          * public key operation and requires no key. It is just a test
          * mode that works even if no public key algorithm is
          * integrated.
@@ -368,14 +369,19 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
                                                       buffer_for_signature,
                                                       &signature);
         } else {
-    #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
             /* Short-circuit signing */
             return_value = short_circuit_sign(me->cose_algorithm_id,
                                               tbs_hash,
                                               buffer_for_signature,
                                               &signature);
-    #endif
         }
+#else /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+        return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
+                                                  me->signing_key,
+                                                  tbs_hash,
+                                                  buffer_for_signature,
+                                                  &signature);
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
         if(return_value) {
             goto Done;

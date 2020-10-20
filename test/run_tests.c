@@ -51,7 +51,6 @@ static test_entry2 s_tests2[] = {
 static test_entry s_tests[] = {
     TEST_ENTRY(sign1_structure_decode_test),
     TEST_ENTRY(crit_parameters_test),
-    TEST_ENTRY(bad_parameters_test),
 
 #ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
     /* Many tests can be run without a crypto library integration and
@@ -72,6 +71,7 @@ static test_entry s_tests[] = {
      * signing is only disabled for extreme code size savings so these
      * tests are typically always run.
      */
+    TEST_ENTRY(bad_parameters_test),
     TEST_ENTRY(content_type_test),
     TEST_ENTRY(all_header_parameters_test),
     TEST_ENTRY(cose_example_test),
@@ -80,11 +80,13 @@ static test_entry s_tests[] = {
     TEST_ENTRY(short_circuit_decode_only_test),
     TEST_ENTRY(short_circuit_make_cwt_test),
     TEST_ENTRY(short_circuit_verify_fail_test),
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),
 #endif /* T_COSE_DISABLE_HASH_FAIL_TEST */
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+
+
 };
 
 

@@ -183,7 +183,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     QCBORDecode_Init(&decode_context, cose_sign1, QCBOR_DECODE_MODE_NORMAL);
 
     /* --- The array of 4 and tags --- */
-    QCBORDecode_EnterArray(&decode_context);
+    QCBORDecode_EnterArray(&decode_context, NULL);
     return_value = process_tags(me, &decode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
