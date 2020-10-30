@@ -6,13 +6,26 @@ t_cose implements enough of COSE to support [CBOR Web Token, RFC 8392](https://t
 and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
 This is the COSE_Sign1 part of [COSE, RFC 8152](https://tools.ietf.org/html/rfc8152). 
 
+## New Version Using Spiffy Decode
+**A major new version of t_cose implemented with QCBOR's new**
+**spiffy decode APIs that makes the verification code much**
+**simpler. This requires QCBOR from Oct 25th or later**
+
+- Encoding/Signing is unchanged
+- Backwards compatibility with previous version
+- Decoding/Verifying implementation is simpler and cleaner
+- Improvements to COSE tag decoding
+
+See Memory Use section below for discussion on the new code size.
+
 ## Characteristics
 
 **Implemented in C with minimal dependency** – There are three main 
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR), 2) A 
 cryptographic library for ECDSA and SHA-2, 3)  C99, <stdint.h>, <stddef.h>,
 <stdbool.h> and <string.h>.  It is intended to be highly portable to different HW, OS's and 
-cryptographic libraries. No #ifdefs or compiler options  need to be set for it to run correctly.
+cryptographic libraries. Except for some minor configuration for the cryptographic library,
+no #ifdefs or compiler options  need to be set for it to run correctly.
 
 **Crypto Library Integration Layer** – t_cose can work with different cryptographic
 libraries via a simple integration layer. The integration layer is kept small and simple, 
@@ -35,11 +48,7 @@ As of December 2019, the code is in reasonable working order and the public inte
 fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org) 
 and for [Arm MBed Crypto](https://github.com/ARMmbed/mbed-crypto).
 
-This version requires a QCBOR library that supports Spiffy Decode. The t_cose
-code is smaller, but QCBOR so there is not much size change, except other
-things like CWT / ctoken also re use the code in QCBOR, so overall code
-size does go down. This is only on the decode side. The encode size is as before.
-
+This version requires a QCBOR library that supports Spiffy Decode. 
 ## Building and Dependencies
 
 Except for the crypto library set up, t_cose is very portable and
@@ -181,11 +190,12 @@ THESE NEED TO BE UPDATED FOR SPIFFY DECODE.
 
 Here are code sizes on 64-bit x86 optimized for size
 
-     |                   | smallest | largest |  
-     |-------------------|----------|---------|
-     | signing only      |     1400 |    2500 |
-     | verification only |     2700 |    3300 |
-     | combined          |     3600 |    5600 |
+     |                          | smallest | largest |  
+     |--------------------------|----------|---------|
+     | signing only             |     1300 |    2300 |
+     | verification only        |     2100 |    3200 |
+     | common to sig and verify |     (500)|    (800)|
+     | combined                 |     2800 |    4700 |
      
 Things that make the code smaller:
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
@@ -194,10 +204,23 @@ Things that make the code smaller:
 * Disable short-circut sig debug faclity T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 * Disable the content type header T_COSE_DISABLE_CONTENT_TYPE
 
+#### Change in code size with spiffy decode
+
+The encode size is as before.
+
+Compared to the previous t_cose, the code size for decoding/verifying is reduced by about
+600 bytes. However, spiffy decode functions in QCBOR are now required and they are
+about 2KB, so there is a net size increase of 1.4KB. But, use of spiffy decode will
+also make other parts of the over all SW stack smaller, perhaps by a lot, so this will
+likely break even. For example, EAT or CWT decoding will be reduced a lot through
+use of spiffy decode.  Basically the more CBOR maps a SW stack has to handle, 
+the more saving there will be from spiffy decode.
+
+
 ### Heap and stack
 Malloc is not used.
 
-Stack usage is less than 1KB for signing and for encryption.
+Stack usage is less than 1KB for signing and for encryption.  TODO: evaluate stack use.
 
 The design is such that only one copy of the COSE_Sign1 need be in memory. It makes
 use of special features in QCBOR to accomplish this.
