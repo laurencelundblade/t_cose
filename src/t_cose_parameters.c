@@ -38,6 +38,11 @@
 static inline enum t_cose_err_t
 add_label_to_list(const QCBORItem *item, struct t_cose_label_list *label_list)
 {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    16           8
+     *   TOTAL                                         16           8
+     */
     /* Stack use: 16 bytes for 64-bit */
     enum t_cose_err_t return_value;
     uint_fast8_t      n;
@@ -112,8 +117,11 @@ static inline enum t_cose_err_t
 decode_critical_parameter(QCBORDecodeContext       *decode_context,
                           struct t_cose_label_list *critical_labels)
 {
-    /* Stack use 64-bit: 56 + 32 = 88
-     *           32-bit: 52 + 20 = 72
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   QCBORItem                                     56          52
+     *   local vars                                    32          16
+     *   TOTAL                                         88          68
      */
     QCBORItem         item;
     uint_fast8_t      num_int_labels;
@@ -197,7 +205,11 @@ enum t_cose_err_t
 check_critical_labels(const struct t_cose_label_list *critical_labels,
                       const struct t_cose_label_list *unknown_labels)
 {
-    /* 24 bytes on 64-bit */
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    24          12
+     *   TOTAL                                         24          12
+     */
     enum t_cose_err_t return_value;
     uint_fast8_t      num_unknown;
     uint_fast8_t      num_critical;
@@ -260,6 +272,11 @@ struct cb_context {
  */
 static QCBORError header_parameter_callback(void *pCallbackCtx, const QCBORItem *pItem)
 {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    16          8
+     *   TOTAL                                         16          8
+     */
     struct cb_context *context = (struct cb_context *)pCallbackCtx;
     enum t_cose_err_t result;
 
@@ -325,11 +342,13 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
                              struct t_cose_label_list  *critical_labels,
                              struct t_cose_label_list  *unknown_labels)
 {
-    /* Local stack use 64-bit: 6 * 56 + 4 + 2 * 8 = 300
-     * Local stack use 32-bit: 6 * 52 + 4 + 2 * 4 = 272
-     * Total stack use 64-bit: around 600 (QCBORDecode_GetItemsInMapWithCallback
-     *                                     uses around 300 bytes of stack)
-     * Total stack use 32-bit:
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    32          16
+     *   header_items                                 336         312
+     *   MAX (GetItemsInMapWithCallback+CB 432  316
+     *        decode_critical               88   68)  432         316
+     *   TOTAL                                        768         628
      */
     enum t_cose_err_t  return_value;
     QCBORError         qcbor_result;

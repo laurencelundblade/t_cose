@@ -72,7 +72,9 @@ static test_entry s_tests[] = {
      * tests are typically always run.
      */
     TEST_ENTRY(bad_parameters_test),
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     TEST_ENTRY(content_type_test),
+#endif
     TEST_ENTRY(all_header_parameters_test),
     TEST_ENTRY(cose_example_test),
     TEST_ENTRY(short_circuit_signing_error_conditions_test),

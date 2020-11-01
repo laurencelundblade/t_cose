@@ -47,6 +47,11 @@ static inline enum t_cose_err_t
 t_cose_crypto_short_circuit_verify(struct q_useful_buf_c hash_to_verify,
                                    struct q_useful_buf_c signature)
 {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    24          12
+     *   TOTAL                                         24          12
+     */
     struct q_useful_buf_c hash_from_sig;
     enum t_cose_err_t     return_value;
 
@@ -75,6 +80,11 @@ Done:
 static inline enum t_cose_err_t
 process_tags(struct t_cose_sign1_verify_ctx *me, QCBORDecodeContext *decode_context)
 {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    12          12
+     *   TOTAL                                         12          12
+     */
     uint64_t uTag;
     uint32_t item_tag_index = 0;
 
@@ -147,18 +157,17 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct t_cose_parameters       *returned_parameters)
 {
     /* Aproximate stack usage
-     *                              64-bit      32-bit
-     *   Hash output                32-64
-     *   Label lists                448
-     *   Parameter list             80
-     *   Decode context             300
-     *   Other local                64
-     *   If compiler does well, max of:
-     *      Parameter decoding      600
-     *      TBS Hashing             220-434
-     *         Hash alg             500?
-     *      EC alg verify           500?
-     *                              1524 - 1766
+     *                                             64-bit      32-bit
+     *   local vars                                    80          40
+     *   Decode context                               312         256
+     *   Hash output                                32-64       32-64
+     *   header parameter lists                       244         176
+     *   MAX(parse_headers         768     628
+     *       process tags           12      12
+     *       check crit             24      12
+     *       create_tbs_hash     32-748  30-746
+     *       crypto lib verify  64-1024 64-1024) 768-1024    768-1024
+     *   TOTAL                                  1724-1436   1560-1272
      */
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;

@@ -190,12 +190,12 @@ THESE NEED TO BE UPDATED FOR SPIFFY DECODE.
 
 Here are code sizes on 64-bit x86 optimized for size
 
-     |                          | smallest | largest |  
-     |--------------------------|----------|---------|
-     | signing only             |     1300 |    2300 |
-     | verification only        |     2100 |    3200 |
-     | common to sig and verify |     (500)|    (800)|
-     | combined                 |     2800 |    4700 |
+     |                           | smallest | largest |  
+     |---------------------------|----------|---------|
+     | signing only              |     1300 |    2300 |
+     | verification only         |     2100 |    3200 |
+     | common to sign and verify |     (500)|    (800)|
+     | combined                  |     2800 |    4700 |
      
 Things that make the code smaller:
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
@@ -220,25 +220,42 @@ the more saving there will be from spiffy decode.
 ### Heap and stack
 Malloc is not used.
 
-Stack usage is less than 1KB for signing and for encryption.  TODO: evaluate stack use.
+Stack usage is variable depending on the key and hash size and the stack usage
+by the cryptographic library that performs the hash and public key crypto functions.
+The maximum requirement is roughly 2KB. This is an estimage from examing the code,
+not an actual measurement.
 
-The design is such that only one copy of the COSE_Sign1 need be in memory. It makes
-use of special features in QCBOR to accomplish this.
+Since the keys, hash outputs and signatures are stored on the stack, the stronger
+the security, the more stack is used. By default up to 512 bit EC is enabled. Disable
+512 and 384 bit EC to reduce stack usage by about 100 bytes.
 
-The payload to sign must be in one contiguous buffer and be passed in. It can be allocated
-however the caller wishes, even in ROM, since it is only read.
+Different cryptographic libraries may have very different stack usage characteristics.
+For example if one use malloc rather than the stack, it will (hopefully) use less stack.
+The guess estimate range of usage by the cryptographic library is between 64 and 1024
+bytes of stack.
+
+Aside from the cryptograpic library, the base stack use by t_cose is 500 bytes for signing and
+1500 bytes for verification. With a large cryptographic library, the total is about 1500
+bytes for signing and 2000 bytes for verification. (For verification, the crypto library stack
+re uses stack used to decode header parameters so the increment isn't so large).
+
+The design is such that only one copy of the output, the COSE_Sign1, need be in memory. 
+It makes use of special features in QCBOR that allows contstuction of the output
+including the payload, using just the single output buffer to accomplish this.
 
 A buffer to hold the signed COSE result must be passed in. It must be about 100 bytes 
 larger than the combined size of the payload and key id for ECDSA 256. It can be 
 allocated however the caller wishes.
 
 ### Crypto library memory usage
-In addition to the above memory usage, the crypto library will use some stack and / or
+In addition to the above memory usage, the crypto library will use some stack and/or
 heap memory. This will vary quite a bit by crypto library. Some may use malloc. Some may
 not. 
 
+So far, no support for RSA has been added. If it were to be added, stack use 
+
 So far no support for RSA is available, but since the keys and signatures are much bigger,
-it will up the memory usage a lot and may require use of malloc. 
+implementing it will increase stack and memory usage substantially.
 
 The OpenSSL library does use malloc, even with ECDSA. Another implementation of ECDSA
 might not use malloc, as the keys are small enough.

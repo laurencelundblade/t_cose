@@ -591,39 +591,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 }
 
 
-
-#ifdef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/* copied from t_cose_util.c so these tests that depend on
- * short circuit signatures can run even when it is
- * is disabled.  TODO: is this dependency real?*/
-
-/* This is a random hard coded key ID that is used to indicate
- * short-circuit signing. It is OK to hard code this as the
- * probability of collision with this ID is very low and the same
- * as for collision between any two key IDs of any sort.
- */
-
-static const uint8_t defined_short_circuit_kid[] = {
-    0xef, 0x95, 0x4b, 0x4b, 0xd9, 0xbd, 0xf6, 0x70,
-    0xd0, 0x33, 0x60, 0x82, 0xf5, 0xef, 0x15, 0x2a,
-    0xf8, 0xf3, 0x5b, 0x6a, 0x6c, 0x00, 0xef, 0xa6,
-    0xa9, 0xa7, 0x1f, 0x49, 0x51, 0x7e, 0x18, 0xc6};
-
-static struct q_useful_buf_c ss_kid;
-
-
-/*
- * Public function. See t_cose_util.h
- */
-static struct q_useful_buf_c get_short_circuit_kid(void)
-{
-    ss_kid.len = sizeof(defined_short_circuit_kid);
-    ss_kid.ptr = defined_short_circuit_kid;
-
-    return ss_kid;
-}
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 int_fast32_t all_header_parameters_test()
 {
     enum t_cose_err_t               result;
@@ -681,16 +649,19 @@ int_fast32_t all_header_parameters_test()
     }
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
-    if(q_useful_buf_compare(parameters.iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
+    if(q_useful_buf_compare(parameters.iv,
+                            Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
         return 5;
     }
 
-    if(q_useful_buf_compare(parameters.partial_iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
+    if(q_useful_buf_compare(parameters.partial_iv,
+                            Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
         return 6;
     }
 
     return 0;
 }
+#endif
 
 struct test_case {
     uint32_t           test_option;
@@ -806,13 +777,12 @@ int_fast32_t crit_parameters_test()
 }
 
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
 /*
  * Public function, see t_cose_test.h
  */
 int_fast32_t content_type_test()
 {
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-
     struct t_cose_parameters        parameters;
     struct t_cose_sign1_sign_ctx    sign_ctx;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
@@ -898,10 +868,9 @@ int_fast32_t content_type_test()
     if(result != T_COSE_ERR_DUPLICATE_PARAMETER) {
         return 1;
     }
-#endif
     return 0;
-
 }
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 
 struct sign1_sample {
