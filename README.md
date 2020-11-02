@@ -21,26 +21,26 @@ See Memory Use section below for discussion on the new code size.
 ## Characteristics
 
 **Implemented in C with minimal dependency** – There are three main 
-dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR), 2) A 
-cryptographic library for ECDSA and SHA-2, 3)  C99, <stdint.h>, <stddef.h>,
-<stdbool.h> and <string.h>.  It is intended to be highly portable to different HW, OS's and 
-cryptographic libraries. Except for some minor configuration for the cryptographic library,
-no #ifdefs or compiler options  need to be set for it to run correctly.
+dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
+2) A cryptographic library for ECDSA and SHA-2, 3) C99, <stdint.h>,
+<stddef.h>, <stdbool.h> and <string.h>.  It is intended to be highly
+portable to different HW, OS's and cryptographic libraries. Except for
+some minor configuration for the cryptographic library, no #ifdefs or
+compiler options need to be set for it to run correctly.
 
 **Crypto Library Integration Layer** – t_cose can work with different cryptographic
 libraries via a simple integration layer. The integration layer is kept small and simple, 
 just enough for the use cases, so that integration is simpler. An integration layer for 
-Openssl is included (not complete yet).
+the Openssl mbed/psa cryptographic libraries are included.
 
 **Secure coding style** – Uses a construct called UsefulBuf / q_useful_buf as a
 discipline for very safe coding and handling of binary data.
 
-**Small simple memory model** – Malloc is not needed. The signing
-context is less than 100 bytes. Stack use is light and
-there is no recursion. The caller supplies the memory to hold the
-completed COSE_Sign1 and encode/decode contexts so caller has full control
-of memory usage making it good for embedded implementations that
-have to run in small fixed memory.
+**Small simple memory model** – Malloc is not needed. Besides the
+cryptographic library and payload buffer, about 600 bytes of heap/stack is needed
+for signing and 1500 bytes for verifying. The caller supplies the output buffer
+and context structures so the caller has control over memory usage making it
+useful for embedded implementations that have to run in small fixed memory.
 
 ## Code Status
 
@@ -72,7 +72,7 @@ however produce some fake signatures called "short-circuit
 signatures" that are very useful for testing. See header
 documentation for details on short-circuit sigs.
 
-This configuration (and only this configuration) uses an bundled
+This configuration (and only this configuration) uses a bundled
 SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
 not).
 
@@ -208,57 +208,65 @@ Things that make the code smaller:
 
 The encode size is as before.
 
-Compared to the previous t_cose, the code size for decoding/verifying is reduced by about
-600 bytes. However, spiffy decode functions in QCBOR are now required and they are
-about 2KB, so there is a net size increase of 1.4KB. But, use of spiffy decode will
-also make other parts of the over all SW stack smaller, perhaps by a lot, so this will
-likely break even. For example, EAT or CWT decoding will be reduced a lot through
-use of spiffy decode.  Basically the more CBOR maps a SW stack has to handle, 
-the more saving there will be from spiffy decode.
+Compared to the previous t_cose, the code size for decoding/verifying
+is reduced by about 600 bytes. However, spiffy decode functions in
+QCBOR are now required and they are about 2KB, so there is a net size
+increase of 1.4KB. But use of spiffy decode will also make other parts
+of the overall SW stack smaller, perhaps by a lot, so this will likely
+break even. For example, EAT or CWT decoding will be reduced a lot
+through use of spiffy decode.  Basically, the more CBOR maps a SW
+stack has to handle, the more saving there will be from spiffy decode.
 
 
 ### Heap and stack
 Malloc is not used.
 
-Stack usage is variable depending on the key and hash size and the stack usage
-by the cryptographic library that performs the hash and public key crypto functions.
-The maximum requirement is roughly 2KB. This is an estimage from examing the code,
-not an actual measurement.
+Stack usage is variable depending on the key and hash size and the
+stack usage by the cryptographic library that performs the hash and
+public key crypto functions.  The maximum requirement is roughly
+2KB. This is an estimate from examining the code, not an actual
+measurement.
 
-Since the keys, hash outputs and signatures are stored on the stack, the stronger
-the security, the more stack is used. By default up to 512 bit EC is enabled. Disable
-512 and 384 bit EC to reduce stack usage by about 100 bytes.
+Since the keys, hash outputs and signatures are stored on the stack,
+the stronger the security, the more stack is used. By default up to
+512 bit EC is enabled. Disable 512 and 384 bit EC to reduce stack
+usage by about 100 bytes.
 
-Different cryptographic libraries may have very different stack usage characteristics.
-For example if one use malloc rather than the stack, it will (hopefully) use less stack.
-The guess estimate range of usage by the cryptographic library is between 64 and 1024
-bytes of stack.
+Different cryptographic libraries may have very different stack usage
+characteristics.  For example if one use malloc rather than the stack,
+it will (hopefully) use less stack.  The guess estimate range of usage
+by the cryptographic library is between 64 and 1024 bytes of stack.
 
-Aside from the cryptograpic library, the base stack use by t_cose is 500 bytes for signing and
-1500 bytes for verification. With a large cryptographic library, the total is about 1500
-bytes for signing and 2000 bytes for verification. (For verification, the crypto library stack
-re uses stack used to decode header parameters so the increment isn't so large).
+Aside from the cryptographic library, the base stack use by t_cose is
+500 bytes for signing and 1500 bytes for verification. With a large
+cryptographic library, the total is about 1500 bytes for signing and
+2000 bytes for verification (for verification, the crypto library
+stack re uses stack used to decode header parameters so the increment
+isn't so large).
 
-The design is such that only one copy of the output, the COSE_Sign1, need be in memory. 
-It makes use of special features in QCBOR that allows contstuction of the output
-including the payload, using just the single output buffer to accomplish this.
+The design is such that only one copy of the output, the COSE_Sign1,
+need be in memory.  It makes use of special features in QCBOR that
+allows contstuction of the output including the payload, using just
+the single output buffer to accomplish this.
 
-A buffer to hold the signed COSE result must be passed in. It must be about 100 bytes 
-larger than the combined size of the payload and key id for ECDSA 256. It can be 
-allocated however the caller wishes.
+A buffer to hold the signed COSE result must be passed in. It must be
+about 100 bytes larger than the combined size of the payload and key
+id for ECDSA 256. It can be allocated as the caller wishes.
 
 ### Crypto library memory usage
-In addition to the above memory usage, the crypto library will use some stack and/or
-heap memory. This will vary quite a bit by crypto library. Some may use malloc. Some may
-not. 
+In addition to the above memory usage, the crypto library will use
+some stack and/or heap memory. This will vary quite a bit by crypto
+library. Some may use malloc. Some may not.
 
 So far, no support for RSA has been added. If it were to be added, stack use 
 
-So far no support for RSA is available, but since the keys and signatures are much bigger,
-implementing it will increase stack and memory usage substantially.
+So far no support for RSA is available, but since the keys and
+signatures are much bigger, implementing it will increase stack and
+memory usage substantially.
 
-The OpenSSL library does use malloc, even with ECDSA. Another implementation of ECDSA
-might not use malloc, as the keys are small enough.
+The OpenSSL library does use malloc, even with ECDSA. Another
+implementation of ECDSA might not use malloc, as the keys are small
+enough.
 
 ### Mixed code style
 QCBOR uses camelCase and t_cose follows 
@@ -267,15 +275,21 @@ resulting in code with mixed styles. For better or worse, an Arm-style version o
 is created and used and so there is a duplicate of UsefulBuf. The two are identical. They
 just have different names.
 
-## Limitations
-* The payload input and output and the signed structure input and output must be in 
-contiguous memory.
-* Doesn't handle COSE string algorithm IDs. Only COSE integer algorithm IDs are handled. 
-Thus far no string algorithm IDs have been assigned by IANA.
-* No way to add custom headers when creating signed messages or process them during 
-verification.
-* Only ECDSA is supported so far (facilities are available to add others).
-* Does not handle CBOR indefinite length strings (indefinite length maps and arrays are handled).
+## Limitations 
+
+* Most inputs and outputs must be in a continguous buffer. One
+  exception to this is that CBOR payloads being signed can be
+  constructed piecemeal into the output buffer and signed without
+  using a separate buffer.
+* Doesn't handle COSE string algorithm IDs. Only COSE integer
+  algorithm IDs are handled.  Thus far no string algorithm IDs have
+  been assigned by IANA.
+* No way to add custom headers when creating signed messages or
+  process them during verification.
+* Only ECDSA is supported so far (facilities are available to add
+  others).
+* Does not handle CBOR indefinite length strings (indefinite length
+  maps and arrays are handled).
 * Counter signatures are not supported.
 
 ## Credit
