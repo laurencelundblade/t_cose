@@ -16,8 +16,8 @@
 
 # ---- QCBOR location ----
 # Adjust this to the location of QCBOR in your build environment
-QCBOR_INC= -I ../../QCBOR/SpiffyDecode/inc
-QCBOR_LIB=../../QCBOR/SpiffyDecode/libqcbor.a
+QCBOR_INC= -I ../../QCBOR/master/inc
+QCBOR_LIB=../../QCBOR/master/libqcbor.a
 #QCBOR_INC= -I/usr/include -I/usr/local/include
 #QCBOR_LIB= -l qcbor
 

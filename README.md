@@ -15,6 +15,7 @@ This is the COSE_Sign1 part of [COSE, RFC 8152](https://tools.ietf.org/html/rfc8
 - Backwards compatibility with previous version
 - Decoding/Verifying implementation is simpler and cleaner
 - Improvements to COSE tag decoding
+- Some decoding/verifying error codes have changed
 
 See Memory Use section below for discussion on the new code size.
 

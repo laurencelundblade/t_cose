@@ -82,6 +82,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(short_circuit_decode_only_test),
     TEST_ENTRY(short_circuit_make_cwt_test),
     TEST_ENTRY(short_circuit_verify_fail_test),
+    TEST_ENTRY(tags_test),
 
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),

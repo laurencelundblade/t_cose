@@ -1004,3 +1004,213 @@ int_fast32_t short_circuit_hash_fail_test()
 }
 
 #endif /* T_COSE_ENABLE_HASH_FAIL_TEST */
+
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t tags_test()
+{
+    struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_verify_ctx  verify_ctx;
+    QCBOREncodeContext              cbor_encode;
+    enum t_cose_err_t               result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
+    struct q_useful_buf_c           signed_cose;
+    struct q_useful_buf_c           payload;
+    QCBORError                      cbor_error;
+    uint64_t                        tag;
+
+    /* --- Start making COSE Sign1 object  --- */
+
+    /* The CBOR encoder instance that the COSE_Sign1 is output into */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    QCBOREncode_AddTag(&cbor_encode, 900);
+
+    QCBOREncode_AddTag(&cbor_encode, 901);
+
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                           T_COSE_ALGORITHM_ES256);
+
+    /* Do the first part of the the COSE_Sign1, the parameters */
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+
+    QCBOREncode_OpenMap(&cbor_encode);
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 3, "coap://light.example.com");
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 4, 1444064944);
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 5, 1443944944);
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 6, 1443944944);
+    const uint8_t xx[] = {0x0b, 0x71};
+    QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
+    QCBOREncode_CloseMap(&cbor_encode);
+
+    /* Finish up the COSE_Sign1. This is where the signing happens */
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* Finally close off the CBOR formatting and get the pointer and length
+     * of the resulting COSE_Sign1
+     */
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(cbor_error) {
+        return 3000 + (int32_t)cbor_error;
+    }
+    /* --- Done making COSE Sign1 object  --- */
+
+
+    /* --- Compare to expected from CWT RFC --- */
+    /* The first part, the intro and protected pararameters must be the same */
+    const uint8_t cwt_first_part_bytes[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85, 0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26};
+    struct q_useful_buf_c fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes);
+    struct q_useful_buf_c head = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes));
+    if(q_useful_buf_compare(head, fp)) {
+        return -1;
+    }
+
+    /* Skip the key id, because this has the short-circuit key id */
+    const size_t kid_encoded_len =
+    1 +
+    1 +
+    2 +
+    32; // length of short-circuit key id
+
+    /* Compare the payload */
+    const uint8_t rfc8392_payload_bytes[] = {
+        0x58, 0x50, 0xa7, 0x01, 0x75, 0x63, 0x6f, 0x61, 0x70, 0x3a, 0x2f,
+        0x2f, 0x61, 0x73, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
+        0x2e, 0x63, 0x6f, 0x6d, 0x02, 0x65, 0x65, 0x72, 0x69, 0x6b, 0x77,
+        0x03, 0x78, 0x18, 0x63, 0x6f, 0x61, 0x70, 0x3a, 0x2f, 0x2f, 0x6c,
+        0x69, 0x67, 0x68, 0x74, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c,
+        0x65, 0x2e, 0x63, 0x6f, 0x6d, 0x04, 0x1a, 0x56, 0x12, 0xae, 0xb0,
+        0x05, 0x1a, 0x56, 0x10, 0xd9, 0xf0, 0x06, 0x1a, 0x56, 0x10, 0xd9,
+        0xf0, 0x07, 0x42, 0x0b, 0x71};
+
+    struct q_useful_buf_c fp2 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_payload_bytes);
+
+    struct q_useful_buf_c payload2 = q_useful_buf_tail(signed_cose,
+                                                       sizeof(cwt_first_part_bytes)+kid_encoded_len);
+    struct q_useful_buf_c pl3 = q_useful_buf_head(payload2,
+                                                  sizeof(rfc8392_payload_bytes));
+    if(q_useful_buf_compare(pl3, fp2)) {
+        return -2;
+    }
+
+    /* Skip the signature because ECDSA signatures usually have a random
+     component */
+
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result) {
+        return 4000 + (int32_t)result;
+    }
+
+    tag = t_cose_sign1_get_nth_tag(&verify_ctx, 0);
+    if(tag != 901) {
+        return -3;
+    }
+
+    tag = t_cose_sign1_get_nth_tag(&verify_ctx, 1);
+    if(tag != 900) {
+        return -3;
+    }
+
+    tag = t_cose_sign1_get_nth_tag(&verify_ctx, 2);
+    if(tag != CBOR_TAG_INVALID64) {
+        return -4;
+    }
+
+    /* compare payload output to the one expected */
+    if(q_useful_buf_compare(payload, q_useful_buf_tail(fp2, 2))) {
+        return 5000;
+    }
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+
+
+    /* --- Start making COSE Sign1 object  --- */
+
+    /* The CBOR encoder instance that the COSE_Sign1 is output into */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    QCBOREncode_AddTag(&cbor_encode, 900);
+
+    QCBOREncode_AddTag(&cbor_encode, 901);
+
+    QCBOREncode_AddTag(&cbor_encode, 902);
+
+    QCBOREncode_AddTag(&cbor_encode, 903);
+
+    QCBOREncode_AddTag(&cbor_encode, 904);
+
+
+
+
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                           T_COSE_ALGORITHM_ES256);
+
+    /* Do the first part of the the COSE_Sign1, the parameters */
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+
+    QCBOREncode_OpenMap(&cbor_encode);
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
+    QCBOREncode_CloseMap(&cbor_encode);
+
+    /* Finish up the COSE_Sign1. This is where the signing happens */
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* Finally close off the CBOR formatting and get the pointer and length
+     * of the resulting COSE_Sign1
+     */
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(cbor_error) {
+        return 3000 + (int32_t)cbor_error;
+    }
+    /* --- Done making COSE Sign1 object  --- */
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_ERR_TOO_MANY_TAGS) {
+        return 4000 + (int32_t)result;
+    }
+
+    return 0;
+}
