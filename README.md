@@ -19,6 +19,7 @@ This is the COSE_Sign1 part of [COSE, RFC 8152](https://tools.ietf.org/html/rfc8
 
 See Memory Use section below for discussion on the new code size.
 
+
 ## Characteristics
 
 **Implemented in C with minimal dependency** – There are three main 
@@ -32,7 +33,8 @@ compiler options need to be set for it to run correctly.
 **Crypto Library Integration Layer** – t_cose can work with different cryptographic
 libraries via a simple integration layer. The integration layer is kept small and simple, 
 just enough for the use cases, so that integration is simpler. An integration layer for 
-the Openssl mbed/psa cryptographic libraries are included.
+the OpenSSL and ARM Mbed TLS (PSA Cryptography API) cryptographic libraries 
+are included.
 
 **Secure coding style** – Uses a construct called UsefulBuf / q_useful_buf as a
 discipline for very safe coding and handling of binary data.
@@ -43,6 +45,7 @@ for signing and 1500 bytes for verifying. The caller supplies the output buffer
 and context structures so the caller has control over memory usage making it
 useful for embedded implementations that have to run in small fixed memory.
 
+
 ## Code Status
 
 As of December 2019, the code is in reasonable working order and the public interface is 
@@ -50,6 +53,8 @@ fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.opens
 and for [Arm MBed Crypto](https://github.com/ARMmbed/mbed-crypto).
 
 This version requires a QCBOR library that supports Spiffy Decode. 
+
+
 ## Building and Dependencies
 
 Except for the crypto library set up, t_cose is very portable and
@@ -183,20 +188,19 @@ named test/t_cose_make_xxxx_test_key.c and is linked in with the test
 app. The keys it makes are passed through t_cose untouched, through
 the t_cose_crypto.h interface into the underlying crypto.
 
+
 ## Memory Usage
 
 ### Code 
-
-THESE NEED TO BE UPDATED FOR SPIFFY DECODE.
 
 Here are code sizes on 64-bit x86 optimized for size
 
      |                           | smallest | largest |  
      |---------------------------|----------|---------|
-     | signing only              |     1300 |    2300 |
-     | verification only         |     2100 |    3200 |
+     | signing only              |     1400 |    2300 |
+     | verification only         |     2200 |    3300 |
      | common to sign and verify |     (500)|    (800)|
-     | combined                  |     2800 |    4700 |
+     | combined                  |     3000 |    4800 |
      
 Things that make the code smaller:
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
@@ -220,6 +224,7 @@ stack has to handle, the more saving there will be from spiffy decode.
 
 
 ### Heap and stack
+
 Malloc is not used.
 
 Stack usage is variable depending on the key and hash size and the
