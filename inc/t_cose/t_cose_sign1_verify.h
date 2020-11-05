@@ -75,19 +75,24 @@ struct t_cose_parameters {
      * for the algorithms corresponding to the integer values.
      */
     int32_t               cose_algorithm_id;
+
     /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if parameter is not
      * present */
     struct q_useful_buf_c kid;
+
     /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if parameter
      * is not present */
     struct q_useful_buf_c iv;
+
     /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
      * parameter is not present */
     struct q_useful_buf_c partial_iv;
+
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     /** The content type as a MIME type like
      * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
     struct q_useful_buf_c content_type_tstr;
+    
     /** The content type as a CoAP Content-Format
      * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not
      * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */

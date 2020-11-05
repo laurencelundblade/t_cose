@@ -1021,7 +1021,7 @@ int_fast32_t tags_test()
     QCBORError                      cbor_error;
     uint64_t                        tag;
 
-    /* --- Start making COSE Sign1 object  --- */
+    /* --- Start making COSE Sign1 object tagged 900(901(18())) --- */
 
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
@@ -1064,7 +1064,7 @@ int_fast32_t tags_test()
     if(cbor_error) {
         return 3000 + (int32_t)cbor_error;
     }
-    /* --- Done making COSE Sign1 object  --- */
+    /* --- Done making COSE Sign1 object tagged 900(901(18(0))) --- */
 
 
     /* --- Compare to expected from CWT RFC --- */
@@ -1147,6 +1147,49 @@ int_fast32_t tags_test()
     /* --- Done verifying the COSE Sign1 object  --- */
 
 
+    /* --- Start verifying the COSE Sign1 object, requiring tag--- */
+    t_cose_sign1_verify_init(&verify_ctx,
+                             T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_REQUIRED);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_SUCCESS) {
+        return 4000 + (int32_t)result;
+    }
+
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+
+
+    /* --- Start verifying the COSE Sign1 object, prohibiting tag--- */
+    t_cose_sign1_verify_init(&verify_ctx,
+                             T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_PROHIBITED);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_ERR_INCORRECTLY_TAGGED) {
+        return 4000 + (int32_t)result;
+    }
+
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -1154,17 +1197,10 @@ int_fast32_t tags_test()
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     QCBOREncode_AddTag(&cbor_encode, 900);
-
     QCBOREncode_AddTag(&cbor_encode, 901);
-
     QCBOREncode_AddTag(&cbor_encode, 902);
-
     QCBOREncode_AddTag(&cbor_encode, 903);
-
     QCBOREncode_AddTag(&cbor_encode, 904);
-
-
-
 
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
@@ -1211,6 +1247,103 @@ int_fast32_t tags_test()
     if(result != T_COSE_ERR_TOO_MANY_TAGS) {
         return 4000 + (int32_t)result;
     }
+
+
+
+    /* --- Start making COSE Sign1 object tagged 900(901()) --- */
+
+    /* The CBOR encoder instance that the COSE_Sign1 is output into */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    QCBOREncode_AddTag(&cbor_encode, 900);
+
+    QCBOREncode_AddTag(&cbor_encode, 901);
+
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_OPT_OMIT_CBOR_TAG,
+                           T_COSE_ALGORITHM_ES256);
+
+    /* Do the first part of the the COSE_Sign1, the parameters */
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+
+    QCBOREncode_OpenMap(&cbor_encode);
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 3, "coap://light.example.com");
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 4, 1444064944);
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 5, 1443944944);
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 6, 1443944944);
+    const uint8_t xxy[] = {0x0b, 0x71};
+    QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xxy));
+    QCBOREncode_CloseMap(&cbor_encode);
+
+    /* Finish up the COSE_Sign1. This is where the signing happens */
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* Finally close off the CBOR formatting and get the pointer and length
+     * of the resulting COSE_Sign1
+     */
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(cbor_error) {
+        return 3000 + (int32_t)cbor_error;
+    }
+    /* --- Done making COSE Sign1 object tagged 900(901(18(0))) --- */
+
+
+
+    /* --- Compare to expected from CWT RFC --- */
+    /* The first part, the intro and protected pararameters must be the same */
+    const uint8_t cwt_first_part_bytes1[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85, 0x84, 0x43, 0xa1, 0x01, 0x26};
+    struct q_useful_buf_c fp1 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes1);
+    struct q_useful_buf_c head1 = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes1));
+    if(q_useful_buf_compare(head1, fp1)) {
+        return -1;
+    }
+
+    /* --- Start verifying the COSE Sign1 object, requiring tag--- */
+    t_cose_sign1_verify_init(&verify_ctx,
+                             T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_REQUIRED);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_ERR_INCORRECTLY_TAGGED) {
+        return 4000 + (int32_t)result;
+    }
+
+
+    /* --- Start verifying the COSE Sign1 object, prohibiting tag--- */
+    t_cose_sign1_verify_init(&verify_ctx,
+                             T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_PROHIBITED);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_SUCCESS) {
+        return 4000 + (int32_t)result;
+    }
+
+    /* --- Done verifying the COSE Sign1 object  --- */
 
     return 0;
 }
