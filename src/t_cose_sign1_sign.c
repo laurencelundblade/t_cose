@@ -54,7 +54,7 @@ short_circuit_sig_size(int32_t            cose_algorithm_id,
                 cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
                 0;
 
-    return 0;
+    return sig_size == 0 ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG : T_COSE_SUCCESS;
 }
 
 
@@ -95,14 +95,10 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     size_t            amount_to_copy;
     size_t            sig_size;
 
-    sig_size = cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
-               cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
-               cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
-                                                           0;
+    return_value = short_circuit_sig_size(cose_algorithm_id, &sig_size);
 
     /* Check the signature length against buffer size */
-    if(sig_size == 0) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
