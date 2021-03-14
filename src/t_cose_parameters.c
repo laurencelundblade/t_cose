@@ -198,6 +198,61 @@ Done:
 }
 
 
+
+static enum t_cose_err_t
+decode_cert_param(QCBORDecodeContext *decode_context, int label, struct q_useful_buf_c certs[])
+{
+    QCBORError cbor_result;
+    int i;
+
+    cbor_result = 0;
+    QCBORDecode_EnterArrayFromMapN(decode_context, label);
+
+    cbor_result = QCBORDecode_GetAndResetError(decode_context);
+    if(cbor_result == QCBOR_ERR_UNEXPECTED_TYPE) {
+        QCBORDecode_GetByteStringInMapN(decode_context, label, &certs[0]);
+        cbor_result = QCBORDecode_GetAndResetError(decode_context);
+        certs[1] = NULL_Q_USEFUL_BUF_C;
+
+    } else {
+
+        i = 0;
+        while(1) {
+            QCBORDecode_GetByteString(decode_context, &certs[i]);
+            cbor_result = QCBORDecode_GetAndResetError(decode_context);
+            if(cbor_result == QCBOR_ERR_NO_MORE_ITEMS) {
+                certs[i] = NULL_Q_USEFUL_BUF_C;
+                cbor_result = 0; /* Non error exit */
+                break;
+            }
+            if(i > T_COSE_MAX_X_509_CERTIFICATES) {
+                cbor_result = 999;
+                break;
+
+            }
+        }
+        QCBORDecode_ExitArray(decode_context);
+    }
+
+    return cbor_result;
+}
+
+static inline enum t_cose_err_t
+decode_certs(QCBORDecodeContext *decode_context, struct t_cose_parameters *parameters)
+{
+    enum t_cose_err_t return_value;
+
+    return_value = decode_cert_param(decode_context, 44, parameters->cert_bag);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    return_value = decode_cert_param(decode_context, 54, parameters->cert_chain);
+Done:
+    return return_value;
+}
+
+
 /**
  * Public function. See t_cose_parameters.h
  */
@@ -497,6 +552,12 @@ parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
 
     /* COSE_HEADER_PARAM_CRIT */
     return_value = decode_critical_parameter(decode_context, critical_labels);
+    if(return_value != T_COSE_SUCCESS) {
+        // TODO: should this exit the map?
+        goto Done;
+    }
+
+    return_value = decode_certs(decode_context, parameters);
 
     QCBORDecode_ExitMap(decode_context);
 
