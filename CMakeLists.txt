@@ -4,7 +4,7 @@ project(t_cose
 	LANGUAGES C
 	VERSION 1.0.1)
 
-set(CMAKE_C_FLAGS "-pedantic -Wall -O3")
+set(CMAKE_C_FLAGS "-pedantic -Wall -O3 -ffunction-sections")
 
 include_directories(inc)
 include_directories(src)
