@@ -117,6 +117,17 @@ struct t_cose_sign1_sign_ctx {
 #define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
 
 
+/**
+ * An option_flag for t_cose_sign1_sign_init() to specify
+ * to generate "detached content" payload described in
+ * COSE (RFC8152) section 4.1 and 4.2.
+ * The sign function \ref t_cose_sign1_sign() places nil(Null)
+ * at the payload position, instead of the actual input payload.
+ *
+ * See also \ref T_COSE_OPT_ALLOW_DETACHED_CONTENT.
+ */
+#define T_COSE_OPT_DETACHED_CONTENT 0x00000004
+
 
 
 /**
@@ -256,6 +267,9 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
  * t_cose_sign1_encode_parameters() and
  * t_cose_sign1_encode_signature() can be used. They are more complex
  * to use, but avoid the two copies of the payload.
+ * If \ref T_COSE_OPT_DETACHED_CONTENT is set, this function will not
+ * include the payload but CBOR nil(0xF6) will be placed.
+ * It is user's responsibility to send the payload in another channel.
  */
 enum t_cose_err_t
 t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
@@ -322,7 +336,8 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
  */
 enum t_cose_err_t
 t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *context,
-                              QCBOREncodeContext           *cbor_encode_ctx);
+                              QCBOREncodeContext           *cbor_encode_ctx,
+                              struct q_useful_buf_c signed_payload);
 
 
 

@@ -176,6 +176,20 @@ struct t_cose_parameters {
  */
 #define T_COSE_OPT_DECODE_ONLY  0x00000008
 
+/**
+ * This mode specifies to accept "detached content" payload
+ * defined in COSE (RFC8152) section 4.1 and 4.2.
+ * If the payload is nil(Null), then \ref t_cose_sign1_verify()
+ * will not set the argument payload.
+ * The function caller must set the detached content to the payload
+ * before calling \ref t_cose_sign1_verify().
+ * Even this flag is set, the payload argument will be set
+ * if the payload is not "detached content" actually.
+ *
+ * See also \ref T_COSE_OPT_DETACHED_CONTENT.
+ */
+#define T_COSE_OPT_ALLOW_DETACHED_CONTENT 0x00000020
+
 
 /**
  * The maximum number of unprocessed tags that can be returned by
@@ -270,7 +284,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
- * \param[out] payload      Pointer and length of the payload.
+ * \param[in,out] payload   Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -305,6 +319,10 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  *
  * This will recognize the special key ID for short-circuit signing
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
+ *
+ * To allow detached content, the function caller can set payload argument
+ * and \ref T_COSE_OPT_ALLOW_DETACHED_CONTENT. Even they are set,
+ * payload will be overwritten if the input binary is not detached content.
  *
  * Indefinite length CBOR strings are not supported by this
  * implementation.  \ref T_COSE_ERR_SIGN1_FORMAT will be returned if
