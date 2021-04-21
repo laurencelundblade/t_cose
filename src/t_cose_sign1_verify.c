@@ -214,6 +214,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     enum t_cose_err_t             return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c         tbs_hash;
+    QCBORItem                     tmp_payload;
     struct q_useful_buf_c         signature;
     struct t_cose_label_list      critical_parameter_labels;
     struct t_cose_label_list      unknown_parameter_labels;
@@ -265,7 +266,32 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     }
 
     /* --- The payload --- */
-    QCBORDecode_GetByteString(&decode_context, payload);
+    if(me->option_flags & T_COSE_OPT_ALLOW_DETACHED_CONTENT) {
+        /* COSE_Sign detached payload:
+         * This is defined in COSE (RFC8152) section 4.1 and 4.2.
+         * The payload argument should be set by caller,
+         * and only checked below.
+         * Just ignore here, if the input payload is not NULL.
+         */
+        if(payload->ptr == NULL) {
+            return_value = T_COSE_ERR_INVALID_ARGUMENT;
+            goto Done;
+        }
+        QCBORDecode_GetNext(&decode_context, &tmp_payload);
+        if(tmp_payload.uDataType == QCBOR_TYPE_NULL) {
+            /* The payload is nil(Null) i.e. "detached content",
+             * so do not set the payload argument here */
+        } else if (tmp_payload.uDataType == QCBOR_TYPE_BYTE_STRING) {
+            payload->ptr = tmp_payload.val.string.ptr;
+            payload->len = tmp_payload.val.string.len;
+        }
+        else {
+            return_value = T_COSE_ERR_SIGN1_FORMAT;
+            goto Done;
+        }
+    } else {
+        QCBORDecode_GetByteString(&decode_context, payload);
+    }
 
     /* --- The signature --- */
     QCBORDecode_GetByteString(&decode_context, &signature);
