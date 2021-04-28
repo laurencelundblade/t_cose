@@ -312,8 +312,19 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * payload is an indefinite length byte string, this error will be
  * returned.
  */
-enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
+static enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                                       struct q_useful_buf_c           sign1,
+                                      struct q_useful_buf_c          *payload,
+                                      struct t_cose_parameters       *parameters);
+
+
+/* This is just like t_cose_sign1_verify(), but additionally allows passing
+ * AAD. Calling this with aad NULL is the same as calling t_cose_sign1_verify().
+ * TODO: complete this documentation
+ */
+enum t_cose_err_t t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
+                                      struct q_useful_buf_c           sign1,
+                                          struct q_useful_buf_c           aad,
                                       struct q_useful_buf_c          *payload,
                                       struct t_cose_parameters       *parameters);
 
@@ -374,6 +385,15 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
     return context->auTags[n];
 }
 
+
+static inline enum t_cose_err_t
+t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
+                                      struct q_useful_buf_c           sign1,
+                                      struct q_useful_buf_c          *payload,
+                                      struct t_cose_parameters       *parameters)
+{
+    return t_cose_sign1_verify_aad(me, sign1, NULL_Q_USEFUL_BUF_C, payload, parameters);
+}
 
 #ifdef __cplusplus
 }

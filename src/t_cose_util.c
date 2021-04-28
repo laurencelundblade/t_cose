@@ -109,6 +109,7 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
  */
 enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
                                   struct q_useful_buf_c  protected_parameters,
+                                  struct q_useful_buf_c  aad,
                                   struct q_useful_buf_c  payload,
                                   struct q_useful_buf    buffer_for_hash,
                                   struct q_useful_buf_c *hash)
@@ -166,8 +167,8 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
     /* body_protected */
     hash_bstr(&hash_ctx, protected_parameters);
 
-    /* external_aad which is an empty string since it is not supported here */
-    hash_bstr(&hash_ctx, NULL_Q_USEFUL_BUF_C);
+    /* external_aad */
+    hash_bstr(&hash_ctx, aad);
 
     /* payload */
     hash_bstr(&hash_ctx, payload);

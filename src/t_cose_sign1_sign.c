@@ -307,8 +307,9 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
-                              QCBOREncodeContext           *cbor_encode_ctx)
+t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *me,
+                                  struct q_useful_buf_c         aad,
+                                  QCBOREncodeContext           *cbor_encode_ctx)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -357,6 +358,7 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
                                    me->protected_parameters,
+                                   aad,
                                    signed_payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);
@@ -429,8 +431,9 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
+t_cose_sign1_sign_aad(struct t_cose_sign1_sign_ctx *me,
                   struct q_useful_buf_c         payload,
+                  struct q_useful_buf_c         aad,
                   struct q_useful_buf           out_buf,
                   struct q_useful_buf_c        *result)
 {
@@ -462,7 +465,7 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_AddEncoded(&encode_context, payload);
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_encode_signature(me, &encode_context);
+    return_value = t_cose_sign1_encode_signature_aad(me, aad, &encode_context);
     if(return_value) {
         goto Done;
     }

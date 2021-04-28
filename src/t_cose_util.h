@@ -96,6 +96,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  */
 enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
                                   struct q_useful_buf_c       protected_parameters,
+                                  struct q_useful_buf_c       aad,
                                   struct q_useful_buf_c       payload,
                                   struct q_useful_buf         buffer_for_hash,
                                   struct q_useful_buf_c      *hash);
