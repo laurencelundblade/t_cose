@@ -543,7 +543,7 @@
 		E7E36E70226CB8400040613B /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1140;
+				LastUpgradeCheck = 1150;
 				ORGANIZATIONNAME = "Laurence Lundblade";
 				TargetAttributes = {
 					E7E36E77226CB8400040613B = {
@@ -551,7 +551,7 @@
 					};
 				};
 			};
-			buildConfigurationList = E7E36E73226CB8400040613B /* Build configuration list for PBXProject "1.1.1" */;
+			buildConfigurationList = E7E36E73226CB8400040613B /* Build configuration list for PBXProject "t_cose" */;
 			compatibilityVersion = "Xcode 10.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -1110,7 +1110,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E7E36E73226CB8400040613B /* Build configuration list for PBXProject "1.1.1" */ = {
+		E7E36E73226CB8400040613B /* Build configuration list for PBXProject "t_cose" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E7E36E7D226CB8400040613B /* Debug */,

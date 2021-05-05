@@ -265,7 +265,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
 
 
 /**
- * \brief Verify a COSE_Sign1
+ * \brief Verify a COSE_Sign1.
  *
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
@@ -312,22 +312,37 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * payload is an indefinite length byte string, this error will be
  * returned.
  */
-static enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
-                                      struct q_useful_buf_c           sign1,
-                                      struct q_useful_buf_c          *payload,
-                                      struct t_cose_parameters       *parameters);
+static enum t_cose_err_t
+t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
+                    struct q_useful_buf_c           sign1,
+                    struct q_useful_buf_c          *payload,
+                    struct t_cose_parameters       *parameters);
 
 
-/* This is just like t_cose_sign1_verify(), but additionally allows passing
- * AAD. Calling this with aad NULL is the same as calling t_cose_sign1_verify().
- * TODO: complete this documentation
+/**
+ * \brief Verify a COSE_Sign1 with AAD.
+ *
+ * \param[in,out] context   The t_cose signature verification context.
+ * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
+ *                          message that is to be verified.
+ * \param[in] aad           The Additional Autenticated Data.
+ * \param[out] payload      Pointer and length of the payload.
+ * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * This is just like t_cose_sign1_verify(), but additionally allows
+ * passing AAD (Additional Authenticated Data). Calling this with
+ * \c aad as \c NULL_Q_USEFUL_BUF_C is the same as calling
+ * t_cose_sign1_verify().  See t_cose_sign1_encode_signature() for
+ * more details on AAD.
  */
-enum t_cose_err_t t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
-                                      struct q_useful_buf_c           sign1,
-                                          struct q_useful_buf_c           aad,
-                                      struct q_useful_buf_c          *payload,
-                                      struct t_cose_parameters       *parameters);
-
+enum t_cose_err_t
+t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
+                        struct q_useful_buf_c           sign1,
+                        struct q_useful_buf_c           aad,
+                        struct q_useful_buf_c          *payload,
+                        struct t_cose_parameters       *parameters);
 
 
 /**
