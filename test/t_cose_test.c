@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.c
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2021, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *

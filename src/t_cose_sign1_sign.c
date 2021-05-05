@@ -1,7 +1,7 @@
 /*
  * t_cose_sign1_sign.c
  *
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
