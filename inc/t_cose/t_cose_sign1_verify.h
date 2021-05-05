@@ -92,7 +92,7 @@ struct t_cose_parameters {
     /** The content type as a MIME type like
      * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
     struct q_useful_buf_c content_type_tstr;
-    
+
     /** The content type as a CoAP Content-Format
      * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not
      * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
@@ -403,9 +403,9 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 
 static inline enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
-                                      struct q_useful_buf_c           sign1,
-                                      struct q_useful_buf_c          *payload,
-                                      struct t_cose_parameters       *parameters)
+                    struct q_useful_buf_c           sign1,
+                    struct q_useful_buf_c          *payload,
+                    struct t_cose_parameters       *parameters)
 {
     return t_cose_sign1_verify_aad(me, sign1, NULL_Q_USEFUL_BUF_C, payload, parameters);
 }

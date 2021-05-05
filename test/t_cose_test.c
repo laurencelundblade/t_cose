@@ -106,10 +106,10 @@ int_fast32_t short_circuit_self_test()
     /* No key necessary because short-circuit test mode is used */
 
     result = t_cose_sign1_sign_aad(&sign_ctx,
-                                     s_input_payload,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
-                                     signed_cose_buffer,
-                                     &signed_cose);
+                                    s_input_payload,
+                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
+                                    signed_cose_buffer,
+                                   &signed_cose);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -124,13 +124,13 @@ int_fast32_t short_circuit_self_test()
 
     /* Run the signature verification */
     result = t_cose_sign1_verify_aad(&verify_ctx,
-                                       /* COSE to verify */
-                                       signed_cose,
+                                     /* COSE to verify */
+                                     signed_cose,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
-                                       /* The returned payload */
-                                       &payload,
-                                       /* Don't return parameters */
-                                       NULL);
+                                     /* The returned payload */
+                                     &payload,
+                                     /* Don't return parameters */
+                                     NULL);
     if(result) {
         return 2000 + (int32_t)result;
     }

@@ -432,10 +432,10 @@ Done:
  */
 enum t_cose_err_t
 t_cose_sign1_sign_aad(struct t_cose_sign1_sign_ctx *me,
-                  struct q_useful_buf_c         payload,
-                  struct q_useful_buf_c         aad,
-                  struct q_useful_buf           out_buf,
-                  struct q_useful_buf_c        *result)
+                      struct q_useful_buf_c         payload,
+                      struct q_useful_buf_c         aad,
+                      struct q_useful_buf           out_buf,
+                      struct q_useful_buf_c        *result)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit

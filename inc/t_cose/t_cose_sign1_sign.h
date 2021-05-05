@@ -406,12 +406,13 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
 
 static inline enum t_cose_err_t
 t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
-                      struct q_useful_buf_c         payload,
-                      struct q_useful_buf           out_buf,
-                      struct q_useful_buf_c        *result)
+                  struct q_useful_buf_c         payload,
+                  struct q_useful_buf           out_buf,
+                  struct q_useful_buf_c        *result)
 {
     return t_cose_sign1_sign_aad(me, payload, NULL_Q_USEFUL_BUF_C, out_buf, result);
 }
+
 
 static inline enum t_cose_err_t
 t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
