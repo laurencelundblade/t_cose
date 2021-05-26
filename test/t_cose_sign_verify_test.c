@@ -129,7 +129,6 @@ int_fast32_t sign_verify_sig_fail_test()
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
     size_t                         tamper_offset;
-    struct q_useful_buf_c          signed_payload;
 
 
     /* Make an ECDSA key pair that will be used for both signing and
@@ -151,12 +150,10 @@ int_fast32_t sign_verify_sig_fail_test()
         goto Done;
     }
 
-    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_AddSZString(&cbor_encode, "payload");
-    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &signed_payload);
 
 
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode, signed_payload);
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
@@ -217,7 +214,6 @@ int_fast32_t sign_verify_make_cwt_test()
     struct q_useful_buf_c          expected_rfc8392_first_part;
     struct q_useful_buf_c          expected_payload;
     struct q_useful_buf_c          actual_rfc8392_first_part;
-    struct q_useful_buf_c          signed_payload;
 
     /* -- initialize for signing --
      *  No special options selected
@@ -248,7 +244,6 @@ int_fast32_t sign_verify_make_cwt_test()
 
 
     /* -- The payload as from RFC 8932 -- */
-    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
@@ -260,11 +255,10 @@ int_fast32_t sign_verify_make_cwt_test()
     QCBOREncode_AddBytesToMapN(&cbor_encode, 7,
                                Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
     QCBOREncode_CloseMap(&cbor_encode);
-    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &signed_payload);
 
 
     /* -- Finish up the COSE_Sign1. This is where the signing happens -- */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode, signed_payload);
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
@@ -361,7 +355,6 @@ static int size_test(int32_t               cose_algorithm_id,
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          payload;
     size_t                         sig_size;
-    struct q_useful_buf_c          signed_payload;
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
@@ -379,11 +372,9 @@ static int size_test(int32_t               cose_algorithm_id,
         return 2000 + (int32_t)return_value;
     }
 
-    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_AddEncoded(&cbor_encode, payload);
-    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &signed_payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode, signed_payload);
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -413,12 +404,9 @@ static int size_test(int32_t               cose_algorithm_id,
         return 2000 + (int32_t)return_value;
     }
 
-    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_AddEncoded(&cbor_encode, payload);
-    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &signed_payload);
 
-
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode, signed_payload);
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }

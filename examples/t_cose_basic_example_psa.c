@@ -466,7 +466,6 @@ int two_step_sign_example()
     QCBOREncodeContext             cbor_encode;
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
-    struct q_useful_buf_c          signed_payload;
 
 
 
@@ -553,7 +552,6 @@ int two_step_sign_example()
      * message. For that call the payload is just passed in as a
      * buffer.
      */
-    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMap(&cbor_encode, "BeingType", "Humanoid");
     QCBOREncode_AddSZStringToMap(&cbor_encode, "Greeting", "We come in peace");
@@ -562,7 +560,6 @@ int two_step_sign_example()
     QCBOREncode_AddSZStringToMap(&cbor_encode, "BrainSize", "medium");
     QCBOREncode_AddBoolToMap(&cbor_encode, "DrinksWater", true);
     QCBOREncode_CloseMap(&cbor_encode);
-    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &signed_payload);
 
     printf("Payload added\n");
 
@@ -572,7 +569,7 @@ int two_step_sign_example()
      * This call signals the end payload construction, causes the actual
      * signing to run.
      */
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode, signed_payload);
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
 
     printf("Fnished signing: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {

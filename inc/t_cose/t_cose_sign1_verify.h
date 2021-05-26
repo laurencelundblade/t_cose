@@ -284,7 +284,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
- * \param[in,out] payload   Pointer and length of the payload.
+ * \param[out] payload      Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -319,10 +319,6 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  *
  * This will recognize the special key ID for short-circuit signing
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
- *
- * To allow detached content, the function caller can set payload argument
- * and \ref T_COSE_OPT_ALLOW_DETACHED_CONTENT. Even they are set,
- * payload will be overwritten if the input binary is not detached content.
  *
  * Indefinite length CBOR strings are not supported by this
  * implementation.  \ref T_COSE_ERR_SIGN1_FORMAT will be returned if
