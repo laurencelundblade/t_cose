@@ -43,7 +43,7 @@
  * See t_cose_sign1_sign_init() for description of the short-circuit
  * signature.
  */
-/*static inline*/ enum t_cose_err_t
+static inline enum t_cose_err_t
 t_cose_crypto_short_circuit_verify(struct q_useful_buf_c hash_to_verify,
                                    struct q_useful_buf_c signature)
 {
