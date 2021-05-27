@@ -1,0 +1,21 @@
+os:
+  - linux
+
+language: c
+compiler:
+  - gcc
+
+env:
+sudo: false
+addons:
+  apt:
+    packages:
+      - make
+      - ossl:
+
+install:
+  - make -f Makefile.ossl
+
+script:
+  - ./t_cose_test
+
