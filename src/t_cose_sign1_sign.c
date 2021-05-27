@@ -1,7 +1,7 @@
 /*
  * t_cose_sign1_sign.c
  *
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -233,7 +233,7 @@ add_unprotected_parameters(const struct t_cose_sign1_sign_ctx *me,
 enum t_cose_err_t
 t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *me,
                                         QCBOREncodeContext           *cbor_encode_ctx,
-                                        bool                          is_detached_content)
+                                        bool                          as_dc)
 {
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  kid;
@@ -281,7 +281,7 @@ t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
-    if (!is_detached_content) {
+    if (!as_dc) {
         QCBOREncode_BstrWrap(cbor_encode_ctx);
     }
 
@@ -294,27 +294,12 @@ Done:
     return return_value;
 }
 
-/*
- * Public function. See t_cose_sign1_sign.h
- */
-enum t_cose_err_t inline
-t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
-                               QCBOREncodeContext           *cbor_encode_ctx)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    28          16
-     *   QCBOR   (guess)                               32          24
-     *   max(encode_protected, add_unprotected)        48          32
-     *   TOTAL                                        108          72
-     */
-    return t_cose_sign1_encode_parameters_internal(me, cbor_encode_ctx, false);
-}
 
 enum t_cose_err_t
 t_cose_sign1_encode_signature_internal(struct t_cose_sign1_sign_ctx *me,
+                                       struct q_useful_buf_c         aad,
                                        QCBOREncodeContext           *cbor_encode_ctx,
-                                       bool                          is_detached_content)
+                                       bool                          as_dc)
 {
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
@@ -329,7 +314,7 @@ t_cose_sign1_encode_signature_internal(struct t_cose_sign1_sign_ctx *me,
     struct q_useful_buf_c        signed_payload;
 
 
-    if (!is_detached_content) {
+    if (!as_dc) {
         QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
     }
 
@@ -355,6 +340,7 @@ t_cose_sign1_encode_signature_internal(struct t_cose_sign1_sign_ctx *me,
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
                                    me->protected_parameters,
+                                   aad,
                                    signed_payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);
@@ -423,36 +409,17 @@ Done:
 
 }
 
-/*
- * Public function. See t_cose_sign1_sign.h
- */
-enum t_cose_err_t inline
-t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
-                              QCBOREncodeContext           *cbor_encode_ctx)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    64          32
-     *   hash buffer (varies by hashes enabled)     32-64       32-64
-     *   signature buffer (varies by EC key size)  64-132      64-132
-     *   QCBOR   (guess)                               32          24
-     *   max(create_tbs_hash, pub_key_sign)
-     *    32-748 ; 30-746
-     *    64-1024 (wild guess about crypto)       64-1024      64-1024
-     *   TOTAL                                   224-1316     216-1276
-     */
-    return t_cose_sign1_encode_signature_internal(me, cbor_encode_ctx, false);
-}
 
 /*
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_sign_detached(struct t_cose_sign1_sign_ctx *me,
+t_cose_sign1_sign_internal(struct t_cose_sign1_sign_ctx *me,
                            struct q_useful_buf_c         payload,
-                           struct q_useful_buf_c         add,
+                           struct q_useful_buf_c         aad,
                            struct q_useful_buf           out_buf,
-                           struct q_useful_buf_c        *result)
+                           struct q_useful_buf_c        *result,
+                           bool                          as_dc)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -469,73 +436,30 @@ t_cose_sign1_sign_detached(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_sign1_encode_parameters_internal(me, &encode_context, true);
+    return_value = t_cose_sign1_encode_parameters_internal(me, &encode_context, as_dc);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    /* -- Output not payload but NULL -- */
-    /* In detached content mode, the output COSE binary does not
-     * contain the target payload, and it should be derivered
-     * in another channel.
-     */
-    QCBOREncode_AddNULL(&encode_context);
+    if(as_dc) {
+        /* -- Output NULL but the payload -- */
+        /* In detached content mode, the output COSE binary does not
+         * contain the target payload, and it should be derivered
+         * in another channel.
+         */
+
+        QCBOREncode_AddNULL(&encode_context);
+    } else {
+        /* -- Output the payload into the encoder context -- */
+        /* Payload may or may not actually be CBOR format here. This
+         * function does the job just fine because it just adds bytes to
+         * the encoded output without anything extra.
+         */
+        QCBOREncode_AddEncoded(&encode_context, payload);
+    }
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_encode_signature_internal(me, &encode_context, true);
-    if(return_value) {
-        goto Done;
-    }
-
-    /* -- Close off and get the resulting encoded CBOR -- */
-    if(QCBOREncode_Finish(&encode_context, result)) {
-        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-        goto Done;
-    }
-
-Done:
-    return return_value;
-}
-
-
-/*
- * Public function. See t_cose_sign1_sign.h
- */
-enum t_cose_err_t
-t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
-                  struct q_useful_buf_c         payload,
-                  struct q_useful_buf           out_buf,
-                  struct q_useful_buf_c        *result)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                     8           4
-     *   encode context                               168         148
-     *   QCBOR   (guess)                               32          24
-     *   max(encode_param, encode_signature)     224-1316    216-1024
-     *   TOTAL                                   432-1524    392-1300
-     */
-    QCBOREncodeContext  encode_context;
-    enum t_cose_err_t   return_value;
-
-    /* -- Initialize CBOR encoder context with output buffer -- */
-    QCBOREncode_Init(&encode_context, out_buf);
-
-    /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_sign1_encode_parameters(me, &encode_context);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    /* -- Output the payload into the encoder context -- */
-    /* Payload may or may not actually be CBOR format here. This
-     * function does the job just fine because it just adds bytes to
-     * the encoded output without anything extra.
-     */
-    QCBOREncode_AddEncoded(&encode_context, payload);
-
-    /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_encode_signature(me, &encode_context);
+    return_value = t_cose_sign1_encode_signature_internal(me, aad, &encode_context, as_dc);
     if(return_value) {
         goto Done;
     }

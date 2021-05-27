@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign1_verify.c
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2021, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -186,13 +186,28 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error)
     return T_COSE_SUCCESS;
 }
 
+
 enum t_cose_err_t
 t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,
+                             struct q_useful_buf_c           aad,
                              struct q_useful_buf_c          *payload,
                              struct t_cose_parameters       *returned_parameters,
-                             bool                            is_detached_content)
+                             bool                            is_detached)
 {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    80          40
+     *   Decode context                               312         256
+     *   Hash output                                32-64       32-64
+     *   header parameter lists                       244         176
+     *   MAX(parse_headers         768     628
+     *       process tags           20      16
+     *       check crit             24      12
+     *       create_tbs_hash     32-748  30-746
+     *       crypto lib verify  64-1024 64-1024) 768-1024    768-1024
+     *   TOTAL                                  1724-1436   1560-1272
+     */
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     enum t_cose_err_t             return_value;
@@ -249,7 +264,15 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     }
 
     /* --- The payload --- */
-    QCBORDecode_GetByteString(&decode_context, payload);
+    if(is_detached) {
+        QCBORItem tmp;
+        QCBORDecode_GetNext(&decode_context, &tmp);
+        if (tmp.uDataType != QCBOR_TYPE_NULL) {
+            goto Done;
+        }
+    } else {
+        QCBORDecode_GetByteString(&decode_context, payload);
+    }
 
     /* --- The signature --- */
     QCBORDecode_GetByteString(&decode_context, &signature);
@@ -292,6 +315,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     /* -- Compute the TBS bytes -- */
     return_value = create_tbs_hash(parameters.cose_algorithm_id,
                                    protected_parameters,
+                                   aad,
                                    *payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);
@@ -329,55 +353,5 @@ Done:
 
     return return_value;
 
-}
-
-/*
- * Public function. See t_cose_sign1_verify.h
- */
-enum t_cose_err_t
-t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
-                             struct q_useful_buf_c           cose_sign1,
-                             struct q_useful_buf_c          *detached_payload,
-                             struct t_cose_parameters       *returned_parameters)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    80          40
-     *   Decode context                               312         256
-     *   Hash output                                32-64       32-64
-     *   header parameter lists                       244         176
-     *   MAX(parse_headers         768     628
-     *       process tags           20      16
-     *       check crit             24      12
-     *       create_tbs_hash     32-748  30-746
-     *       crypto lib verify  64-1024 64-1024) 768-1024    768-1024
-     *   TOTAL                                  1724-1436   1560-1272
-     */
-     return t_cose_sign1_verify_internal(me, cose_sign1, detached_payload, returned_parameters, true);
-}
-
-/*
- * Public function. See t_cose_sign1_verify.h
- */
-enum t_cose_err_t
-t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
-                    struct q_useful_buf_c           cose_sign1,
-                    struct q_useful_buf_c          *payload,
-                    struct t_cose_parameters       *returned_parameters)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    80          40
-     *   Decode context                               312         256
-     *   Hash output                                32-64       32-64
-     *   header parameter lists                       244         176
-     *   MAX(parse_headers         768     628
-     *       process tags           20      16
-     *       check crit             24      12
-     *       create_tbs_hash     32-748  30-746
-     *       crypto lib verify  64-1024 64-1024) 768-1024    768-1024
-     *   TOTAL                                  1724-1436   1560-1272
-     */
-     return t_cose_sign1_verify_internal(me, cose_sign1, payload, returned_parameters, false);
 }
 
