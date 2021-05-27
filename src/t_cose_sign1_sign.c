@@ -231,9 +231,8 @@ add_unprotected_parameters(const struct t_cose_sign1_sign_ctx *me,
 }
 
 enum t_cose_err_t
-t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *me,
-                                        QCBOREncodeContext           *cbor_encode_ctx,
-                                        bool                          as_dc)
+t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
+                               QCBOREncodeContext           *cbor_encode_ctx)
 {
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  kid;
@@ -281,7 +280,7 @@ t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
-    if (!as_dc) {
+    if (!(me->option_flags & T_COSE_OPT_DETACHED_CONTENT)) {
         QCBOREncode_BstrWrap(cbor_encode_ctx);
     }
 
@@ -298,8 +297,8 @@ Done:
 enum t_cose_err_t
 t_cose_sign1_encode_signature_internal(struct t_cose_sign1_sign_ctx *me,
                                        struct q_useful_buf_c         aad,
-                                       QCBOREncodeContext           *cbor_encode_ctx,
-                                       bool                          as_dc)
+                                       struct q_useful_buf_c         payload,
+                                       QCBOREncodeContext           *cbor_encode_ctx)
 {
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
@@ -314,8 +313,10 @@ t_cose_sign1_encode_signature_internal(struct t_cose_sign1_sign_ctx *me,
     struct q_useful_buf_c        signed_payload;
 
 
-    if (!as_dc) {
+    if(!(me->option_flags & T_COSE_OPT_DETACHED_CONTENT)) {
         QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
+    } else {
+        signed_payload = payload;
     }
 
     /* Check that there are no CBOR encoding errors before proceeding
@@ -414,12 +415,11 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_sign_internal(struct t_cose_sign1_sign_ctx *me,
-                           struct q_useful_buf_c         payload,
-                           struct q_useful_buf_c         aad,
-                           struct q_useful_buf           out_buf,
-                           struct q_useful_buf_c        *result,
-                           bool                          as_dc)
+t_cose_sign1_sign_aad(struct t_cose_sign1_sign_ctx *me,
+                      struct q_useful_buf_c         payload,
+                      struct q_useful_buf_c         aad,
+                      struct q_useful_buf           out_buf,
+                      struct q_useful_buf_c        *result)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -436,12 +436,12 @@ t_cose_sign1_sign_internal(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_sign1_encode_parameters_internal(me, &encode_context, as_dc);
+    return_value = t_cose_sign1_encode_parameters(me, &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    if(as_dc) {
+    if(me->option_flags & T_COSE_OPT_DETACHED_CONTENT) {
         /* -- Output NULL but the payload -- */
         /* In detached content mode, the output COSE binary does not
          * contain the target payload, and it should be derivered
@@ -459,7 +459,7 @@ t_cose_sign1_sign_internal(struct t_cose_sign1_sign_ctx *me,
     }
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_encode_signature_internal(me, aad, &encode_context, as_dc);
+    return_value = t_cose_sign1_encode_signature_internal(me, aad, payload, &encode_context);
     if(return_value) {
         goto Done;
     }

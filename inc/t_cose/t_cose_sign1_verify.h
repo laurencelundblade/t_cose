@@ -177,20 +177,6 @@ struct t_cose_parameters {
  */
 #define T_COSE_OPT_DECODE_ONLY  0x00000008
 
-/**
- * This mode specifies to accept "detached content" payload
- * defined in COSE (RFC8152) section 4.1 and 4.2.
- * If the payload is nil(Null), then \ref t_cose_sign1_verify()
- * will not set the argument payload.
- * The function caller must set the detached content to the payload
- * before calling \ref t_cose_sign1_verify().
- * Even this flag is set, the payload argument will be set
- * if the payload is not "detached content" actually.
- *
- * See also \ref T_COSE_OPT_DETACHED_CONTENT.
- */
-#define T_COSE_OPT_ALLOW_DETACHED_CONTENT 0x00000020
-
 
 /**
  * The maximum number of unprocessed tags that can be returned by
@@ -369,7 +355,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
  * \param[in] aad           The Additional Autenticated Data.
  * \param[in,out] payload   Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
- * \param[in] is_detached   The payload is given in payload if true.
+ * \param[in] is_dc         Indicator of detached content mode.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -386,7 +372,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *context,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c          *payload,
                              struct t_cose_parameters       *parameters,
-                             bool                            is_detached);
+                             bool                            is_dc);
 
 
 
@@ -447,23 +433,23 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 
 
 static inline enum t_cose_err_t
-t_cose_sign1_verify_aad_detached(struct t_cose_sign1_verify_ctx *me,
-                                 struct q_useful_buf_c           cose_sign1,
-                                 struct q_useful_buf_c           aad,
-                                 struct q_useful_buf_c          *detached_payload,
-                                 struct t_cose_parameters       *returned_parameters)
+t_cose_sign1_verify_aad_dc(struct t_cose_sign1_verify_ctx *me,
+                           struct q_useful_buf_c           cose_sign1,
+                           struct q_useful_buf_c           aad,
+                           struct q_useful_buf_c           detached_payload,
+                           struct t_cose_parameters       *returned_parameters)
 {
-     return t_cose_sign1_verify_internal(me, cose_sign1, aad, detached_payload, returned_parameters, false);
+     return t_cose_sign1_verify_internal(me, cose_sign1, aad, &detached_payload, returned_parameters, true);
 }
 
 
 static inline enum t_cose_err_t
-t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
-                             struct q_useful_buf_c           cose_sign1,
-                             struct q_useful_buf_c          *detached_payload,
-                             struct t_cose_parameters       *returned_parameters)
+t_cose_sign1_verify_dc(struct t_cose_sign1_verify_ctx *me,
+                       struct q_useful_buf_c           cose_sign1,
+                       struct q_useful_buf_c           detached_payload,
+                       struct t_cose_parameters       *returned_parameters)
 {
-     return t_cose_sign1_verify_internal(me, cose_sign1, NULL_Q_USEFUL_BUF_C, detached_payload, returned_parameters, true);
+     return t_cose_sign1_verify_internal(me, cose_sign1, NULL_Q_USEFUL_BUF_C, &detached_payload, returned_parameters, true);
 }
 
 
@@ -484,7 +470,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameters       *parameters)
 {
-    return t_cose_sign1_verify_aad(me, sign1, NULL_Q_USEFUL_BUF_C, payload, parameters);
+    return t_cose_sign1_verify_internal(me, sign1, NULL_Q_USEFUL_BUF_C, payload, parameters, false);
 }
 
 #ifdef __cplusplus

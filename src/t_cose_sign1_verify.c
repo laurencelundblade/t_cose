@@ -43,7 +43,7 @@
  * See t_cose_sign1_sign_init() for description of the short-circuit
  * signature.
  */
-static inline enum t_cose_err_t
+/*static inline*/ enum t_cose_err_t
 t_cose_crypto_short_circuit_verify(struct q_useful_buf_c hash_to_verify,
                                    struct q_useful_buf_c signature)
 {
@@ -193,7 +193,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c          *payload,
                              struct t_cose_parameters       *returned_parameters,
-                             bool                            is_detached)
+                             bool                            is_dc)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -264,12 +264,16 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     }
 
     /* --- The payload --- */
-    if(is_detached) {
+    if(is_dc) {
         QCBORItem tmp;
         QCBORDecode_GetNext(&decode_context, &tmp);
         if (tmp.uDataType != QCBOR_TYPE_NULL) {
+            return_value = T_COSE_ERR_CBOR_FORMATTING;
             goto Done;
         }
+        /* In detached content mode, the payload should be set by function caller,
+         * so there is no need to set tye payload.
+         */
     } else {
         QCBORDecode_GetByteString(&decode_context, payload);
     }
