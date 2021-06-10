@@ -20,6 +20,9 @@
 
 #ifdef __cplusplus
 extern "C" {
+#if 0
+} /* Keep editor indention formatting happy */
+#endif
 #endif
 
 
@@ -69,14 +72,16 @@ extern "C" {
 struct t_cose_sign1_sign_ctx {
     /* Private data structure */
     struct q_useful_buf_c protected_parameters; /* The encoded protected parameters */
-    int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key;
-    uint32_t              option_flags;
     struct q_useful_buf_c kid;
+    int32_t               cose_algorithm_id;
+    uint32_t              option_flags;
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
 #endif
+    struct q_useful_buf_c *cert_bag;
+    struct q_useful_buf_c *cert_chain;
 };
 
 
@@ -172,6 +177,31 @@ static void
 t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
                              struct t_cose_key             signing_key,
                              struct q_useful_buf_c         kid);
+
+
+
+
+
+/*
+ Adds the certs to help the verifier.
+
+ These are always put in the protected headers bucket because it is cheap
+ and easy to do.
+
+ One cert, goes into x5chain.
+
+ An ordered chain. Goes into x5chain.
+
+ Some exta certs that might help but we don't know exactly how. Goes into x5bag.
+
+
+
+ */
+static void
+t_cose_sign1_add_chain_certs(struct t_cose_sign1_sign_ctx *context,
+                             const struct q_useful_buf_c   cert[]);
+
+
 
 
 

@@ -59,6 +59,10 @@ extern "C" {
  */
 
 
+
+#define T_COSE_MAX_X_509_CERTIFICATES 3
+
+
 /**
  * The result of parsing a set of COSE header parameters. The pointers
  * are all back into the \c COSE_Sign1 blob passed in to
@@ -98,6 +102,11 @@ struct t_cose_parameters {
      * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
     uint32_t              content_type_uint;
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
+#ifndef T_COSE_DISABLE_X_509_CERTS
+    struct q_useful_buf_c cert_chain[T_COSE_MAX_X_509_CERTIFICATES+1];
+    struct q_useful_buf_c cert_bag[T_COSE_MAX_X_509_CERTIFICATES+1];
+#endif /* T_COSE_DISABLE_X_509_CERTS */
 };
 
 

@@ -128,6 +128,31 @@ Done:
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
+
+void encode_certs(QCBOREncodeContext *cbor_encode_ctx, const struct q_useful_buf_c *certs)
+{
+    if(certs == NULL || certs[0].ptr == NULL) {
+        /* No certs given, nothing to do */
+        return;
+    }
+
+    if(certs[1].ptr == NULL) {
+        /* Just one cert */
+        QCBOREncode_AddBytes(cbor_encode_ctx, certs[0]);
+    } else {
+        /* Several certs go into an array */
+        QCBOREncode_OpenArray(cbor_encode_ctx);
+
+        while(certs->ptr != NULL) {
+            QCBOREncode_AddBytes(cbor_encode_ctx, *certs);
+            certs++;
+        }
+
+        QCBOREncode_CloseArray(cbor_encode_ctx);
+    }
+}
+
+
 /**
  * \brief  Makes the protected header parameters for COSE.
  *
