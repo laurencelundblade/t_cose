@@ -21,7 +21,7 @@
 #ifdef __cplusplus
 extern "C" {
 #if 0
-} // Keep editor indention formatting happy
+} /* Keep editor indention formatting happy */
 #endif
 #endif
 
@@ -62,7 +62,7 @@ extern "C" {
 
 /**
  * The result of parsing a set of COSE header parameters. The pointers
- * are all back into the \c COSE_Sign1 blob passed in to
+ * in this are all back into the \c COSE_Sign1 blob passed in to
  * t_cose_sign1_verify() as the \c sign1 parameter.
  *
  * Approximate size on a 64-bit machine is 80 bytes and on a 32-bit
@@ -173,7 +173,6 @@ struct t_cose_parameters {
  * The payload will always be returned whether this is option is given
  * or not, but it should not be considered secure when this option is
  * given.
- *
  */
 #define T_COSE_OPT_DECODE_ONLY  0x00000008
 
@@ -284,11 +283,11 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * - The CBOR-format COSE_Sign1 structure is parsed. It makes sure \c sign1
  * is valid CBOR and follows the required structure for \c COSE_Sign1.
  *
- * - The protected header parameters are parsed, particular the algorithm id.
+ * - The protected header parameters are decoded, particular the algorithm id.
  *
- * - The unprotected headers parameters are parsed, particularly the kid.
+ * - The unprotected headers parameters are decoded, particularly the kid.
  *
- * - The payload is identified. The internals of the payload are not parsed.
+ * - The payload is identified. The internals of the payload are not decoded.
  *
  * - The expected hash, the "to-be-signed" bytes are computed. The hash
  * algorithm to use comes from the signing algorithm. If the algorithm is
@@ -337,6 +336,14 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
  * \c aad as \c NULL_Q_USEFUL_BUF_C is the same as calling
  * t_cose_sign1_verify().  See t_cose_sign1_encode_signature() for
  * more details on AAD.
+ *
+ * AAD is some additional bytes that are covered by the signature in addition
+ * to the payload. They may be anything, but is often some options or commands
+ * that are sent along with the \c COSE_Sign1. If a \c COSE_Sign1 was
+ * created with AAD, that AAD must be passed in here to successfully verify the signature.
+ * If it is not a \ref T_COSE_ERR_SIG_VERIFY will occur. There is not
+ * indication in the \c COSE_Sign1 to know whether there was AAD
+ * input when it was created. It has to be know by context.
  */
 static enum t_cose_err_t
 t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
@@ -355,10 +362,11 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
  *                          message that is to be verified.
  * \param[in] aad           The Additional Autenticated Data.
  * \param[in] detached_payload      Pointer and length of the payload.
- * \param[out] returned_parameters   Place to return parsed parameters. Maybe be \c NULL.
+ * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
+ * // TODO: improve this
  * This is just like t_cose_sign1_verify_aad(), but for use with a
  * detached payload. Instead of the payload being returned, it must be
  * passed in as it must have arrived separately from the COSE_Sign1.
@@ -369,7 +377,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *context,
                              struct q_useful_buf_c           cose_sign1,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c           detached_payload,
-                             struct t_cose_parameters       *returned_parameters);
+                             struct t_cose_parameters       *parameters);
 
 
 /**
@@ -462,13 +470,13 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c           detached_payload,
-                             struct t_cose_parameters       *returned_parameters)
+                             struct t_cose_parameters       *parameters)
 {
      return t_cose_sign1_verify_internal(me,
                                          cose_sign1,
                                          aad,
                                          &detached_payload,
-                                         returned_parameters,
+                                         parameters,
                                          true);
 }
 
@@ -478,9 +486,9 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                         struct q_useful_buf_c           cose_sign1,
                         struct q_useful_buf_c           aad,
                         struct q_useful_buf_c          *payload,
-                        struct t_cose_parameters       *returned_parameters)
+                        struct t_cose_parameters       *parameters)
 {
-     return t_cose_sign1_verify_internal(me, cose_sign1, aad, payload, returned_parameters, false);
+     return t_cose_sign1_verify_internal(me, cose_sign1, aad, payload, parameters, false);
 }
 
 
