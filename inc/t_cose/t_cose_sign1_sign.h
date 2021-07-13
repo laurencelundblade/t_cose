@@ -229,12 +229,16 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
  * t_cose_sign1_set_signing_key() before this is called.
  *
  * This creates the COSE header parameter, hashes and signs the
- * payload and creates the signature. \c out_buf gives the pointer and
+ * payload and creates the signature all in one go. \c out_buf gives the pointer and
  * length memory into which the output is written. The pointer and
- * length of the actual \c COSE_Sign1 is returned in \c result.
+ * length of the completed \c COSE_Sign1 is returned in \c result.
+ * (\c out_buf and \c result are used instead of the usual
+ * in/out parameter for length because it is the convention for
+ * q_useful_buf and is more const correct.)
  *
- * Typically, the required size of \c out_buf is about 30 bytes plus
- * the size of the signature and the size of the key ID. This is about
+ * The size of \c out_buf must be the size of the payload plus
+ * overhead for formating, the signature and the key id (if used). The
+ * formatting overhead is minimal at about 30 bytes.The total overhead is about
  * 150 bytes for ECDSA 256 with a 32-byte key ID.
  *
  * To compute the size of the buffer needed before it is allocated
@@ -276,6 +280,7 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
  * AAD (Additional Authenticated Data) to be covered by the
  * signature. See t_cose_sign1_encode_signature_aad() for more details
  * about AAD.
+ * TODO: details
  */
 static enum t_cose_err_t
 t_cose_sign1_sign_aad(struct t_cose_sign1_sign_ctx *context,
@@ -296,33 +301,10 @@ t_cose_sign1_sign_aad(struct t_cose_sign1_sign_ctx *context,
  *
  * This is similar to, but not the same as
  * t_cose_sign1_sign_aad(). Here the payload is not included in the
- * COSE_Sign1. The signature is over the payload as with
+ * \c COSE_Sign1. The signature is over the payload as with
  * t_cose_sign1_sign_aad(). They payload must conveyed to recipient by
- * some other means than by being inside the COSE_Sign1.
- *
- * The \c context must have been initialized with
- * t_cose_sign1_sign_init() and the key set with
- * t_cose_sign1_set_signing_key() before this is called.
- *
- * This creates the COSE header parameter, hashes and signs the
- * detached payload and creates the signature. \c out_buf gives the
- * pointer and length memory into which the output is written. The
- * pointer and length of the actual \c COSE_Sign1 is returned in \c
- * result.
- *
- * Typically, the required size of \c out_buf is about 30 bytes plus
- * the size of the signature and the size of the key ID. This is about
- * 150 bytes for ECDSA 256 with a 32-byte key ID.
- *
- * To compute the size of the buffer needed before it is allocated
- * call this with \c out_buf containing a \c NULL pointer and large
- * length like \c UINT32_MAX.  The algorithm and key, kid and such
- * must be set up just as if the real \c COSE_Sign1 were to be created
- * as these values are needed to compute the size correctly.  The
- * contents of \c result will be a \c NULL pointer and the length of
- * the \c COSE_Sign1. When this is run like this, the cryptographic
- * functions will not actually run, but the size of their output will
- * be taken into account to give an exact size.
+ * some other means than by being inside the \c COSE_Sign1. The recipient
+ * will not be able to verify the \c COSE_Sign1 without it.
  */
 static enum t_cose_err_t
 t_cose_sign1_sign_detached(struct t_cose_sign1_sign_ctx *context,
@@ -499,7 +481,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *context
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * This is where the work actually gets done for one-shot signing for
- * the use cases with or without aad and for included or detached
+ * the use cases with or without AAD and for included or detached
  * payloads.
  */
 enum t_cose_err_t
@@ -555,31 +537,6 @@ t_cose_sign1_sign_detached(struct t_cose_sign1_sign_ctx *me,
                                           NULL_Q_USEFUL_BUF_C,
                                           out_buf,
                                           result);
-}
-
-
-static inline enum t_cose_err_t
-t_cose_sign1_encode_signature_aad_dc(struct t_cose_sign1_sign_ctx *me,
-                                     struct q_useful_buf_c         aad,
-                                     struct q_useful_buf_c         detached_payload,
-                                     QCBOREncodeContext           *cbor_encode_ctx)
-{
-    return t_cose_sign1_encode_signature_aad_internal(me,
-                                                      aad,
-                                                      detached_payload,
-                                                      cbor_encode_ctx);
-}
-
-
-static inline enum t_cose_err_t
-t_cose_sign1_encode_signature_dc(struct t_cose_sign1_sign_ctx *me,
-                                 struct q_useful_buf_c         detached_payload,
-                                 QCBOREncodeContext           *cbor_encode_ctx)
-{
-    return t_cose_sign1_encode_signature_aad_internal(me,
-                                                      NULL_Q_USEFUL_BUF_C,
-                                                      detached_payload,
-                                                      cbor_encode_ctx);
 }
 
 
