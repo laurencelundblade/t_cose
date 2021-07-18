@@ -239,7 +239,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
  * t_cose_sign1_verify(), again without the \ref T_COSE_OPT_DECODE_ONLY
  * option.
  *
- * To use 2 ,the key is somehow determined without the kid and
+ * To use 2, the key is somehow determined without the kid and
  * t_cose_sign1_set_verification_key() is called with it. Then
  * t_cose_sign1_verify() is called. Note that this implementation
  * cannot return non-standard header parameters, at least not yet.
@@ -325,7 +325,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
- * \param[in] aad           The Additional Autenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload      Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
  *
@@ -360,7 +360,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] cose_sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
- * \param[in] aad           The Additional Autenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] detached_payload      Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
  *
@@ -448,7 +448,7 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
  * \param[in,out] me   The t_cose signature verification context.
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
- * \param[in] aad           The Additional Autenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in,out] payload   Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
  * \param[in] is_detached         Indicates the payload is detached.
