@@ -32,7 +32,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 {
     /* If other hashes, particularly those that output bigger hashes
      * are added here, various other parts of this code have to be
-     * changed to have larger buffers, in particular 
+     * changed to have larger buffers, in particular
      * \ref T_COSE_CRYPTO_MAX_HASH_SIZE.
      */
     /* ? : operator precedence is correct here. This makes smaller

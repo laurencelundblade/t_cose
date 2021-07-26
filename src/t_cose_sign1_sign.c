@@ -447,7 +447,9 @@ t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_sign1_encode_parameters_internal(me, payload_is_detached, &encode_context);
+    return_value = t_cose_sign1_encode_parameters_internal(me,
+                                                           payload_is_detached,
+                                                           &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

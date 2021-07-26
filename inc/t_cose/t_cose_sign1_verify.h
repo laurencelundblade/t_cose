@@ -265,13 +265,13 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
 
 
 /**
- * \brief Verify a COSE_Sign1.
+ * \brief Verify a \c COSE_Sign1.
  *
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
  * \param[out] payload      Pointer and length of the payload.
- * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
+ * \param[out] parameters   Place to return parsed parameters. Maybe \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -280,8 +280,9 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  *
  * Verification involves the following steps.
  *
- * - The CBOR-format COSE_Sign1 structure is parsed. It makes sure \c sign1
- * is valid CBOR and follows the required structure for \c COSE_Sign1.
+ * - The CBOR-format \c COSE_Sign1 structure is parsed. This makes
+ * sure \c COSE_Sign1 is valid CBOR and follows the required structure
+ * for \c COSE_Sign1.
  *
  * - The protected header parameters are decoded, particular the algorithm id.
  *
@@ -295,7 +296,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  *
  * - Finally, the signature verification is performed.
  *
- * If it is successful, the pointer to the CBOR-encoded payload is
+ * If verification is successful, the pointer to the CBOR-encoded payload is
  * returned. The parameters are returned if requested. All pointers
  * returned are to memory in the \c sign1 passed in.
  *
@@ -309,7 +310,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * Indefinite length CBOR strings are not supported by this
  * implementation.  \ref T_COSE_ERR_SIGN1_FORMAT will be returned if
  * they are in the input \c COSE_Sign1 messages. For example, if the
- * payload is an indefinite length byte string, this error will be
+ * payload is an indefinite-length byte string, this error will be
  * returned.
  */
 static enum t_cose_err_t
@@ -373,7 +374,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
  * This function is the same as t_cose_sign1_verify_aad(), but for use
  * with a detached payload. Instead of the payload being returned, it
  * must be passed in as it must have arrived separately from the
- * COSE_Sign1.  The signature covers it so it must be passed in to
+ * \c COSE_Sign1.  The signature covers it so it must be passed in to
  * complete the verification.
  *
  * \c aad may be \c NULL_Q_USEFUL_BUF_C if there is no AAD.
@@ -457,8 +458,8 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
  *
  * This does the work for t_cose_sign1_verify(),
  * t_cose_sign1_verify_aad() and t_cose_sign1_verify_detached(). It is
- * a semi-private function which means its interface isn't gauranteed
- * so it is best not to call it directly.
+ * a semi-private function which means its interface isn't guaranteed
+ * so it should not to call it directly.
  */
 enum t_cose_err_t
 t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,

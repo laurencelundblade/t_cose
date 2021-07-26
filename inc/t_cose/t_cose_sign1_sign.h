@@ -26,7 +26,7 @@ extern "C" {
 /**
  * \file t_cose_sign1_sign.h
  *
- * \brief Create a \c COSE_Sign1 message, usually for EAT or CWT Token.
+ * \brief Create a \c COSE_Sign1 message, such as for EAT or CWT Token.
  *
  * This creates a \c COSE_Sign1 message in compliance with
  * [COSE (RFC 8152)](https://tools.ietf.org/html/rfc8152).
@@ -230,11 +230,11 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
  *
  * This creates the COSE header parameter, hashes and signs the
  * payload and creates the signature all in one go. \c out_buf gives
- * the pointer and length memory into which the output is written. The
- * pointer and length of the completed \c COSE_Sign1 is returned in \c
- * result.  (\c out_buf and \c result are used instead of the usual
- * in/out parameter for length because it is the convention for
- * q_useful_buf and is more const correct.)
+ * the pointer and length of the memory into which the output is
+ * written. The pointer and length of the completed \c COSE_Sign1 is
+ * returned in \c result.  (\c out_buf and \c result are used instead
+ * of the usual in/out parameter for length because it is the
+ * convention for q_useful_buf and is more const correct.)
  *
  * The size of \c out_buf must be the size of the payload plus
  * overhead for formating, the signature and the key id (if used). The
@@ -355,11 +355,11 @@ t_cose_sign1_sign_detached(struct t_cose_sign1_sign_ctx *context,
  * used to calculate sizes. In this case the \c t_cose_sign1_ctx must
  * be initialized with the options, algorithm, key and kid just as
  * normal as these are needed to calculate the size. Then set up the
- * QCBOR encoder context with a \c NULL pointer and large length like
- * \c UINT32_MAX.  Call t_cose_sign1_encode_parameters(), then format
- * the payload into the encoder context, then call
- * t_cose_sign1_encode_signature().  Finally call \c
- * QCBOREncode_FinishGetSize() to get the length.
+ * output buffer for \c cbor_encode_ctx with a \c NULL pointer and
+ * large length like \c UINT32_MAX.  Call
+ * t_cose_sign1_encode_parameters(), then format the payload into the
+ * encoder context, then call t_cose_sign1_encode_signature().
+ * Finally call \c QCBOREncode_FinishGetSize() to get the length.
  */
 static enum t_cose_err_t
 t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
@@ -401,7 +401,7 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *context,
  * signature.
  *
  * AAD is simply any data that should also be covered by the
- * signature.  The verifier of the COSE_Sign1 must also have exactly
+ * signature.  The verifier of the \c COSE_Sign1 must also have exactly
  * this data to be able to successfully verify the signature. Often
  * this data is some parameters or fields in the protocol carrying the
  * COSE message.
@@ -456,7 +456,9 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This does the actual work for encoding the COSE parameters.
+ * This does the actual work for encoding the COSE parameters, but is
+ * a private function inside the implementation. Call
+ * t_cose_sign1_encode_parameters() instead of this.
  */
 enum t_cose_err_t
 t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *context,
@@ -475,7 +477,7 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
 
 
 /**
- * \brief  Semi-private function that ouput the signature, finishing a
+ * \brief  Semi-private function that ouputs the signature, finishing a
  *         \c COSE_Sign1 message.
  *
  * \param[in] context           The t_cose signing context.
@@ -486,7 +488,9 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This does the actual work for several public methods that output a signature.
+ * This does the actual work for several public methods that output a
+ * signature. It is internal to the implmentation and
+ * t_cose_sign1_encode_signature_aad() should be called instead.
  *
  * If \c detached_payload is \c NULL_Q_USEFUL_BUF_C then the payload
  * is to be inline and must have been added by calls to QCBOREncode
@@ -515,6 +519,9 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *context
  * This is where the work actually gets done for signing that is done
  * all in one call with or without AAD and for included or detached
  * payloads.
+ *
+ * This is a private function internal to the implementation. Call
+ * t_cose_sign1_sign_aad() instead of this.
  */
 enum t_cose_err_t
 t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *context,
