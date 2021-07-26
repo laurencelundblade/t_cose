@@ -271,7 +271,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
  * \param[out] payload      Pointer and length of the payload.
- * \param[out] parameters   Place to return parsed parameters. Maybe \c NULL.
+ * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -328,7 +328,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
  *                          message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload      Pointer and length of the payload.
- * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
+ * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -451,7 +451,7 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
  *                          message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in,out] payload   Pointer and length of the payload.
- * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
+ * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
  * \param[in] is_detached         Indicates the payload is detached.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
