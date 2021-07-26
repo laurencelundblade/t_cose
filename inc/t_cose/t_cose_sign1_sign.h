@@ -573,7 +573,7 @@ t_cose_sign1_sign_detached(struct t_cose_sign1_sign_ctx *me,
     return t_cose_sign1_sign_aad_internal(me,
                                           true,
                                           detached_payload,
-                                          NULL_Q_USEFUL_BUF_C,
+                                          aad,
                                           out_buf,
                                           result);
 }
