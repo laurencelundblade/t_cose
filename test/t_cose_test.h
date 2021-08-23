@@ -145,19 +145,21 @@ int_fast32_t short_circuit_hash_fail_test(void);
 int_fast32_t tags_test(void);
 
 
-int32_t get_size_test(void);
+int_fast32_t get_size_test(void);
 
 
 /*
  * Test the decoding of COSE messages that use indefinite length
  * maps and arrays instead of definite length.
  */
-int32_t indef_array_and_map_test(void);
+int_fast32_t indef_array_and_map_test(void);
 
-
+#ifdef T_COSE_USE_B_CON_SHA256
 /*
- *
+ * Test data being passed to the crypto adapter in crypto context. 
+ * The testcase demonstrates an implementation of a restartable signing.
  */
-int32_t restart_test(void);
+int_fast32_t restart_test(void);
+#endif /* T_COSE_USE_B_CON_SHA256 */
 
 #endif /* t_cose_test_h */

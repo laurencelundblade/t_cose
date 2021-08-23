@@ -1523,7 +1523,7 @@ int_fast32_t tags_test()
 }
 
 
-int32_t get_size_test()
+int_fast32_t get_size_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -1620,7 +1620,7 @@ int32_t get_size_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t indef_array_and_map_test()
+int_fast32_t indef_array_and_map_test()
 {
     enum t_cose_err_t  return_value;
     uint32_t           t_opts;
@@ -1657,28 +1657,31 @@ int32_t indef_array_and_map_test()
     return 0;
 }
 
-#include "t_cose_test_crypto.h"
+#ifdef T_COSE_USE_B_CON_SHA256
+
+#include "../crypto_adapters/t_cose_test_crypto.h"
 
 
-int32_t restart_test(void)
+int_fast32_t restart_test(void)
 {
     struct t_cose_test_crypto_context r_context;
     struct t_cose_sign1_sign_ctx   sign_ctx;
     enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
-    //struct t_cose_sign1_verify_ctx  verify_ctx;
-    //struct q_useful_buf_c           payload;
+    struct t_cose_sign1_verify_ctx  verify_ctx;
+    struct q_useful_buf_c           payload;
+    const int                       iteration_count = 5;
     int                             counter;
 
-    t_cose_test_crypto_restart_init(&r_context, true, 5);
+    t_cose_test_crypto_restart_init(&r_context, true, iteration_count);
 
     /* --- Make COSE Sign1 object --- */
      t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
 
-     /* No key necessary because short-circuit test mode is used */
+    /* No key necessary because short-circuit test mode is used */
 
-    t_cose_sign1_set_crypto_context(&sign_ctx, & r_context);
+    t_cose_sign1_set_crypto_context(&sign_ctx, &r_context);
 
     counter = 0;
     do {
@@ -1692,9 +1695,11 @@ int32_t restart_test(void)
      if(result) {
          return 1000 + (int32_t)result;
      }
+     if(counter!= iteration_count) {
+         return 2000;
+     }
      /* --- Done making COSE Sign1 object  --- */
 
-#if 0
      /* --- Start verifying the COSE Sign1 object  --- */
      /* Select short circuit signing */
      t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
@@ -1710,10 +1715,10 @@ int32_t restart_test(void)
                                  /* Don't return parameters */
                                  NULL);
      if(result) {
-         return 2000 + (int32_t)result;
+         return 3000 + (int32_t)result;
      }
 
-#endif
 
     return 0;
 }
+#endif /* T_COSE_USE_B_CON_SHA256 */

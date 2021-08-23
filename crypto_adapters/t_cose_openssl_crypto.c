@@ -449,6 +449,7 @@ Done2:
 enum t_cose_err_t
 t_cose_crypto_verify(const int32_t                cose_algorithm_id,
                      const struct t_cose_key      verification_key,
+                     void                         *crypto_context,
                      const struct q_useful_buf_c  kid,
                      const struct q_useful_buf_c  hash_to_verify,
                      const struct q_useful_buf_c  cose_signature)
@@ -464,6 +465,7 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
     /* This implementation doesn't use any key store with the ability
      * to look up a key based on kid. */
     (void)kid;
+    (void)crypto_context;
 
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;

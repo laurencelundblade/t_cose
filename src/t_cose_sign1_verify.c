@@ -29,50 +29,6 @@
  */
 
 
-
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/**
- * \brief Verify a short-circuit signature
- *
- * \param[in] hash_to_verify  Pointer and length of hash to verify.
- * \param[in] signature       Pointer and length of signature.
- *
- * \return This returns one of the error codes defined by \ref
- *         t_cose_err_t.
- *
- * See t_cose_sign1_sign_init() for description of the short-circuit
- * signature.
- */
-static inline enum t_cose_err_t
-t_cose_crypto_short_circuit_verify(struct q_useful_buf_c hash_to_verify,
-                                   struct q_useful_buf_c signature)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    24          12
-     *   TOTAL                                         24          12
-     */
-    struct q_useful_buf_c hash_from_sig;
-    enum t_cose_err_t     return_value;
-
-    hash_from_sig = q_useful_buf_head(signature, hash_to_verify.len);
-    if(q_useful_buf_c_is_null(hash_from_sig)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-        goto Done;
-    }
-
-    if(q_useful_buf_compare(hash_from_sig, hash_to_verify)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-    } else {
-        return_value = T_COSE_SUCCESS;
-    }
-
-Done:
-    return return_value;
-}
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
-
 /**
  * \brief Check the tagging of the COSE about to be verified.
  *

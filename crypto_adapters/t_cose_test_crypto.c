@@ -2,6 +2,7 @@
  *  t_cose_test_crypto.c
  *
  * Copyright 2019-2020, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,6 +13,7 @@
 
 
 #include "t_cose_crypto.h"
+#include "t_cose_util.h"
 
 #include "t_cose_test_crypto.h"
 
@@ -76,29 +78,31 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature)
 {
-    struct t_cose_test_crypto_context *me;
-
-    me = (struct t_cose_test_crypto_context *)crypto_context;
-
-    (void)cose_algorithm_id;
     (void)signing_key;
+#ifdef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    (void)cose_algorithm_id;
+    (void)crypto_context;
     (void)hash_to_sign;
     (void)signature_buffer;
     (void)signature;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+#else
+    struct t_cose_test_crypto_context *me;
 
-    // TODO: turn this into short-circuit signing so it actually does something
-    
-    if(me != NULL && me->enable_restart) {
-
-        if(me->iteration_counter) {
-            me->iteration_counter--;
+    me = (struct t_cose_test_crypto_context *)crypto_context;
+    if(me != NULL) {
+        if(me->enable_restart && me->iteration_counter > 1) {
+            me->iteration_counter -= 1;
             return T_COSE_ERR_SIG_IN_PROGRESS;
-        } else {
-            return T_COSE_SUCCESS;
         }
+        return short_circuit_sign(cose_algorithm_id,
+                                  hash_to_sign,
+                                  signature_buffer,
+                                  signature);
     } else {
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
+#endif
 }
 
 
@@ -116,9 +120,14 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
     (void)cose_algorithm_id;
     (void)verification_key;
     (void)kid;
+#ifdef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    (void)crypto_context;
     (void)hash_to_verify;
     (void)signature;
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+#else
+    return t_cose_crypto_short_circuit_verify(hash_to_verify,signature);
+#endif
 }
 
 
