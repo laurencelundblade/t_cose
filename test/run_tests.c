@@ -2,6 +2,7 @@
  run_tests.c -- test aggregator and results reporting
 
  Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2022, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -155,6 +156,7 @@ int RunTestsTCose(const char    *szTestNames[],
 {
     // int (-32767 to 32767 according to C standard) used by conscious choice
     int nTestsFailed = 0;
+    int nTestsSkipped = 0;
     int nTestsRun = 0;
     UsefulBuf_MAKE_STACK_UB(StringStorage, 12);
 
@@ -190,13 +192,20 @@ int RunTestsTCose(const char    *szTestNames[],
             (*pfOutput)(t2->szTestName, poutCtx, 0);
         }
 
-        if(szTestResult) {
+        if(szTestResult > 0) {
             if(pfOutput) {
                 (*pfOutput)(" FAILED (returned ", poutCtx, 0);
                 (*pfOutput)(szTestResult, poutCtx, 0);
                 (*pfOutput)(")", poutCtx, 1);
             }
             nTestsFailed++;
+        } else if(szTestResult < 0) {
+            if(pfOutput) {
+                (*pfOutput)(" SKIPPED (returned ", poutCtx, 0);
+                (*pfOutput)(szTestResult, poutCtx, 0);
+                (*pfOutput)(")", poutCtx, 1);
+            }
+            nTestsSkipped++;
         } else {
             if(pfOutput) {
                 (*pfOutput)( " PASSED", poutCtx, 1);
@@ -237,13 +246,20 @@ int RunTestsTCose(const char    *szTestNames[],
             (*pfOutput)(t->szTestName, poutCtx, 0);
         }
 
-        if(nTestResult) {
+        if(nTestResult > 0) {
             if(pfOutput) {
                 (*pfOutput)(" FAILED (returned ", poutCtx, 0);
                 (*pfOutput)(NumToString(nTestResult, StringStorage), poutCtx, 0);
                 (*pfOutput)(")", poutCtx, 1);
             }
             nTestsFailed++;
+        } else if(nTestResult < 0) {
+            if(pfOutput) {
+                (*pfOutput)(" SKIPPED (returned ", poutCtx, 0);
+                (*pfOutput)(NumToString(nTestResult, StringStorage), poutCtx, 0);
+                (*pfOutput)(")", poutCtx, 1);
+            }
+            nTestsSkipped++;
         } else {
             if(pfOutput) {
                 (*pfOutput)( " PASSED", poutCtx, 1);
@@ -259,6 +275,8 @@ int RunTestsTCose(const char    *szTestNames[],
         (*pfOutput)( "SUMMARY: ", poutCtx, 0);
         (*pfOutput)( NumToString(nTestsRun, StringStorage), poutCtx, 0);
         (*pfOutput)( " tests run; ", poutCtx, 0);
+        (*pfOutput)( NumToString(nTestsSkipped, StringStorage), poutCtx, 0);
+        (*pfOutput)( " tests skipped", poutCtx, 1);
         (*pfOutput)( NumToString(nTestsFailed, StringStorage), poutCtx, 0);
         (*pfOutput)( " tests failed", poutCtx, 1);
     }

@@ -296,7 +296,7 @@ int_fast32_t sign_verify_make_cwt_test()
     expected_rfc8392_first_part = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_first_part_bytes);
     actual_rfc8392_first_part = q_useful_buf_head(signed_cose, sizeof(rfc8392_first_part_bytes));
     if(q_useful_buf_compare(actual_rfc8392_first_part, expected_rfc8392_first_part)) {
-        return_value = -1;
+        return_value = 1;
         goto Done;
     }
 
@@ -394,7 +394,7 @@ static int size_test(int32_t               cose_algorithm_id,
     size_t expected_min = sig_size + payload.len + kid.len;
 
     if(calculated_size < expected_min || calculated_size > expected_min + 30) {
-        return -1;
+        return 1;
     }
 
 
@@ -420,7 +420,7 @@ static int size_test(int32_t               cose_algorithm_id,
 
     cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_signed_cose);
     if(actual_signed_cose.len != calculated_size) {
-        return -2;
+        return 2;
     }
 
     /* ---- Again with one-call API to make COSE_Sign1 ---- */\
@@ -436,7 +436,7 @@ static int size_test(int32_t               cose_algorithm_id,
     }
 
     if(actual_signed_cose.len != calculated_size) {
-        return -3;
+        return 3;
     }
 
     return 0;
