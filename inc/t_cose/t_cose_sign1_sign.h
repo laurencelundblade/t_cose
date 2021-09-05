@@ -62,6 +62,16 @@ extern "C" {
  * and stack use by disabling features.
  */
 
+/**
+ * This is the context for restartable signing.
+ */
+struct t_cose_sign1_sign_restart_ctx {
+    QCBOREncodeContext    encode_context;
+    struct q_useful_buf_c tbs_hash;
+    uint8_t               c_buffer_for_tbs_hash[T_COSE_CRYPTO_MAX_HASH_SIZE];
+    struct q_useful_buf   buffer_for_tbs_hash;
+    bool                  started;
+};
 
 /**
  * This is the context for creating a \c COSE_Sign1 structure. The
@@ -70,7 +80,8 @@ extern "C" {
  */
 struct t_cose_sign1_sign_ctx {
     /* Private data structure */
-    struct q_useful_buf_c protected_parameters; /* Encoded protected paramssy */
+    struct t_cose_sign1_sign_restart_ctx *rst_ctx;
+    struct q_useful_buf_c protected_parameters; /* Encoded protected params */
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key;
     uint32_t              option_flags;
@@ -149,6 +160,25 @@ static void
 t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
                        uint32_t                      option_flags,
                        int32_t                       cose_algorithm_id);
+
+
+/**
+ * \brief  Set the restart context for restartable signing.
+ *
+ * \param[in] context            The t_cose signing context.
+ * \param[in] rst_ctx            The t_cose restartable context.
+ *
+ * Initialize the \ref t_cose_sign1_sign_restart_ctx rst_ctx.
+ *
+ * Setting the \ref t_cose_sign1_sign_restart_ctx rst_ctx with this function
+ * will cause the function \ref t_cose_sign1_sign to execute the signing in a
+ * restartable manner.
+ */
+enum t_cose_err_t
+t_cose_sign1_set_restart_context(
+                        struct t_cose_sign1_sign_ctx         *context,
+                        struct t_cose_sign1_sign_restart_ctx *rst_ctx);
+
 
 /**
  * \brief  Set the crypto backend specfic context for the signing operation.

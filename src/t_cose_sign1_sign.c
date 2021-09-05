@@ -44,6 +44,20 @@
 #error COSE algorithm identifier definitions are in error
 #endif
 
+enum t_cose_err_t
+t_cose_sign1_set_restart_context(
+                       struct t_cose_sign1_sign_ctx         *me,
+                       struct t_cose_sign1_sign_restart_ctx *rst_ctx)
+{
+    me->rst_ctx = rst_ctx;
+    memset(rst_ctx, 0, sizeof(*me));
+
+    rst_ctx->started = false;
+    rst_ctx->buffer_for_tbs_hash.ptr = rst_ctx->c_buffer_for_tbs_hash;
+    rst_ctx->buffer_for_tbs_hash.len = sizeof(rst_ctx->c_buffer_for_tbs_hash);
+
+    return T_COSE_SUCCESS;
+}
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 static inline enum t_cose_err_t
@@ -302,27 +316,36 @@ Done:
 }
 
 
-/*
- * Semi-private function. See t_cose_sign1_sign.h
- */
-enum t_cose_err_t
-t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
-                                           struct q_useful_buf_c         aad,
-                                           struct q_useful_buf_c         detached_payload,
-                                           QCBOREncodeContext           *cbor_encode_ctx)
+static enum t_cose_err_t
+t_cose_sign1_encode_signature_aad_internal_internal(struct t_cose_sign1_sign_ctx *me,
+                                                    struct q_useful_buf_c         aad,
+                                                    struct q_useful_buf_c         detached_payload,
+                                                    QCBOREncodeContext           *cbor_encode_ctx,
+                                                    struct q_useful_buf_c        *tbs_hash,
+                                                    struct q_useful_buf           buffer_for_tbs_hash)
 {
+    bool perform_signing = false;
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
-    /* pointer and length of the completed tbs hash */
-    struct q_useful_buf_c        tbs_hash;
     /* Pointer and length of the completed signature */
     struct q_useful_buf_c        signature;
     /* Buffer for the actual signature */
+    /* TODO: Currently signature is not in the context. Should it be? Can it be
+     * guaranteed that it is written in the last iteration?
+     */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature, T_COSE_MAX_SIG_SIZE);
     /* Buffer for the tbs hash. */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
 
+    if (me->rst_ctx != NULL) {
+        if (me->rst_ctx->started) {
+            /* If there was at least 1 iteration earlier, then we sure need to
+             * perform sign.
+             */
+            perform_signing = true;
+            goto signing_start;
+        }
+    }
 
     if(q_useful_buf_c_is_null(detached_payload)) {
         QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
@@ -355,7 +378,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
                                    aad,
                                    signed_payload,
                                    buffer_for_tbs_hash,
-                                   &tbs_hash);
+                                   tbs_hash);
     if(return_value) {
         goto Done;
     }
@@ -379,12 +402,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
                                                   &signature.len);
         } else {
             /* Perform the public key signing */
-             return_value = t_cose_crypto_sign(me->cose_algorithm_id,
-                                               me->signing_key,
-                                               tbs_hash,
-                                               buffer_for_signature,
-                                              &signature,
-                                               me->crypto_ctx);
+            perform_signing = true;
         }
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
@@ -397,11 +415,30 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
         } else {
             /* Perform the a short circuit signing */
             return_value = short_circuit_sign(me->cose_algorithm_id,
-                                              tbs_hash,
+                                              *tbs_hash,
                                               buffer_for_signature,
                                               &signature);
         }
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+    }
+
+signing_start:
+
+    if (perform_signing) {
+        return_value = t_cose_crypto_sign(
+                                me->cose_algorithm_id,
+                                me->signing_key,
+                                *tbs_hash,
+                                buffer_for_signature,
+                                &signature,
+                                me->crypto_ctx,
+                                me->rst_ctx ? &(me->rst_ctx->started) : NULL);
+        /* Set 'started' after the first call to the crypto adapter layer, so
+         * that it can do the necessary initialisations.
+         */
+        if (me->rst_ctx) {
+            me->rst_ctx->started = true;
+        }
     }
 
     if(return_value != T_COSE_SUCCESS) {
@@ -422,6 +459,177 @@ Done:
 
 }
 
+static enum t_cose_err_t
+t_cose_sign1_encode_signature_aad_internal_restart(
+                                struct t_cose_sign1_sign_ctx *me,
+                                struct q_useful_buf_c         aad,
+                                struct q_useful_buf_c         detached_payload,
+                                QCBOREncodeContext           *cbor_encode_ctx)
+{
+    return t_cose_sign1_encode_signature_aad_internal_internal(
+                                            me,
+                                            aad,
+                                            detached_payload,
+                                            cbor_encode_ctx,
+                                            &(me->rst_ctx->tbs_hash),
+                                            me->rst_ctx->buffer_for_tbs_hash);
+
+}
+
+static enum t_cose_err_t
+t_cose_sign1_encode_signature_aad_internal_no_restart(
+                                struct t_cose_sign1_sign_ctx *me,
+                                struct q_useful_buf_c         aad,
+                                struct q_useful_buf_c         detached_payload,
+                                QCBOREncodeContext           *cbor_encode_ctx)
+{
+    /* pointer and length of the completed tbs hash */
+    struct q_useful_buf_c tbs_hash_stack;
+    Q_USEFUL_BUF_MAKE_STACK_UB(buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
+
+    return t_cose_sign1_encode_signature_aad_internal_internal(me,
+                                                               aad,
+                                                               detached_payload,
+                                                               cbor_encode_ctx,
+                                                               &tbs_hash_stack,
+                                                               buffer_for_tbs_hash);
+}
+
+/*
+ * Semi-private function. See t_cose_sign1_sign.h
+ */
+enum t_cose_err_t
+t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
+                                           struct q_useful_buf_c         aad,
+                                           struct q_useful_buf_c         detached_payload,
+                                           QCBOREncodeContext           *cbor_encode_ctx)
+{
+    if (me->rst_ctx) {
+        return t_cose_sign1_encode_signature_aad_internal_restart(me,
+                                                                  aad,
+                                                                  detached_payload,
+                                                                  cbor_encode_ctx);
+    } else {
+        return t_cose_sign1_encode_signature_aad_internal_no_restart(me,
+                                                                     aad,
+                                                                     detached_payload,
+                                                                     cbor_encode_ctx);
+    }
+}
+
+static enum t_cose_err_t
+t_cose_sign1_sign_aad_internal_internal(
+                              struct t_cose_sign1_sign_ctx *me,
+                              bool                          payload_is_detached,
+                              struct q_useful_buf_c         payload,
+                              struct q_useful_buf_c         aad,
+                              struct q_useful_buf           out_buf,
+                              struct q_useful_buf_c        *result,
+                              QCBOREncodeContext           *encode_context)
+{
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                     8           4
+     *   encode context                               168         148
+     *   QCBOR   (guess)                               32          24
+     *   max(encode_param, encode_signature)     224-1316    216-1024
+     *   TOTAL                                   432-1524    392-1300
+     */
+    enum t_cose_err_t   return_value;
+
+    if (me->rst_ctx != NULL &&
+        me->rst_ctx->started) {
+        goto signing_start;
+    }
+
+    /* -- Initialize CBOR encoder context with output buffer -- */
+    QCBOREncode_Init(encode_context, out_buf);
+
+    /* -- Output the header parameters into the encoder context -- */
+    return_value = t_cose_sign1_encode_parameters_internal(me,
+                                                           payload_is_detached,
+                                                           encode_context);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    if(payload_is_detached) {
+        /* -- Output NULL but the payload -- */
+        /* In detached content mode, the output COSE binary does not
+         * contain the target payload, and it should be derivered
+         * in another channel.
+         */
+        QCBOREncode_AddNULL(encode_context);
+    } else {
+        /* -- Output the payload into the encoder context -- */
+        /* Payload may or may not actually be CBOR format here. This
+         * function does the job just fine because it just adds bytes to
+         * the encoded output without anything extra.
+         */
+        QCBOREncode_AddEncoded(encode_context, payload);
+    }
+
+signing_start:
+    /* -- Sign and put signature in the encoder context -- */
+    if(!payload_is_detached) {
+        payload = NULL_Q_USEFUL_BUF_C;
+    }
+    return_value = t_cose_sign1_encode_signature_aad_internal(me,
+                                                              aad,
+                                                              payload,
+                                                              encode_context);
+    if(return_value) {
+        goto Done;
+    }
+
+    /* -- Close off and get the resulting encoded CBOR -- */
+    if(QCBOREncode_Finish(encode_context, result)) {
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        goto Done;
+    }
+
+Done:
+    return return_value;
+}
+
+static enum t_cose_err_t
+t_cose_sign1_sign_aad_internal_restart(
+                               struct t_cose_sign1_sign_ctx *me,
+                               bool                         payload_is_detached,
+                               struct q_useful_buf_c         payload,
+                               struct q_useful_buf_c         aad,
+                               struct q_useful_buf           out_buf,
+                               struct q_useful_buf_c        *result)
+{
+    return t_cose_sign1_sign_aad_internal_internal(
+                                                me,
+                                                payload_is_detached,
+                                                payload,
+                                                aad,
+                                                out_buf,
+                                                result,
+                                                &(me->rst_ctx->encode_context));
+}
+
+static enum t_cose_err_t
+t_cose_sign1_sign_aad_internal_no_restart(
+                               struct t_cose_sign1_sign_ctx *me,
+                               bool                         payload_is_detached,
+                               struct q_useful_buf_c         payload,
+                               struct q_useful_buf_c         aad,
+                               struct q_useful_buf           out_buf,
+                               struct q_useful_buf_c        *result)
+{
+    QCBOREncodeContext encode_context;
+    return t_cose_sign1_sign_aad_internal_internal(
+                                                me,
+                                                payload_is_detached,
+                                                payload,
+                                                aad,
+                                                out_buf,
+                                                result,
+                                                &encode_context);
+}
 
 /*
  * Semi-private function. See t_cose_sign1_sign.h
@@ -434,63 +642,22 @@ t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *me,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result)
 {
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                     8           4
-     *   encode context                               168         148
-     *   QCBOR   (guess)                               32          24
-     *   max(encode_param, encode_signature)     224-1316    216-1024
-     *   TOTAL                                   432-1524    392-1300
-     */
-    QCBOREncodeContext  encode_context;
-    enum t_cose_err_t   return_value;
-
-    /* -- Initialize CBOR encoder context with output buffer -- */
-    QCBOREncode_Init(&encode_context, out_buf);
-
-    /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_sign1_encode_parameters_internal(me,
-                                                           payload_is_detached,
-                                                           &encode_context);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    if(payload_is_detached) {
-        /* -- Output NULL but the payload -- */
-        /* In detached content mode, the output COSE binary does not
-         * contain the target payload, and it should be derivered
-         * in another channel.
-         */
-        QCBOREncode_AddNULL(&encode_context);
+    if(me->rst_ctx) {
+        return t_cose_sign1_sign_aad_internal_restart(
+                               me,
+                               payload_is_detached,
+                               payload,
+                               aad,
+                               out_buf,
+                               result);
     } else {
-        /* -- Output the payload into the encoder context -- */
-        /* Payload may or may not actually be CBOR format here. This
-         * function does the job just fine because it just adds bytes to
-         * the encoded output without anything extra.
-         */
-        QCBOREncode_AddEncoded(&encode_context, payload);
+        return t_cose_sign1_sign_aad_internal_no_restart(
+                               me,
+                               payload_is_detached,
+                               payload,
+                               aad,
+                               out_buf,
+                               result);
     }
-
-    /* -- Sign and put signature in the encoder context -- */
-    if(!payload_is_detached) {
-        payload = NULL_Q_USEFUL_BUF_C;
-    }
-    return_value = t_cose_sign1_encode_signature_aad_internal(me,
-                                                              aad,
-                                                              payload,
-                                                              &encode_context);
-    if(return_value) {
-        goto Done;
-    }
-
-    /* -- Close off and get the resulting encoded CBOR -- */
-    if(QCBOREncode_Finish(&encode_context, result)) {
-        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-        goto Done;
-    }
-
-Done:
-    return return_value;
 }
 

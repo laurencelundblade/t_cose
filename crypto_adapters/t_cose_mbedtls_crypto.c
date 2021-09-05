@@ -184,7 +184,8 @@ t_cose_crypto_sign(int32_t                           cose_algorithm_id,
                    struct q_useful_buf_c             hash_to_sign,
                    struct q_useful_buf               signature_buffer,
                    struct q_useful_buf_c            *signature,
-                   struct t_cose_crypto_backend_ctx *crypto_ctx)
+                   struct t_cose_crypto_backend_ctx *crypto_ctx,
+                   bool                             *started)
 {
     enum t_cose_err_t return_value = T_COSE_ERR_FAIL;
 
@@ -203,6 +204,10 @@ t_cose_crypto_sign(int32_t                           cose_algorithm_id,
     mbedtls_hmac_drbg_context drbg_ctx;
 
     mbedtls_mpi r, s;
+
+    if (started) {
+        return T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED;
+    }
 
     size_t curve_bytes = (ecp_keypair->MBEDTLS_PRIVATE(grp).pbits + 7) / 8;
 

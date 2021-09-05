@@ -352,7 +352,8 @@ t_cose_crypto_sign(const int32_t                     cose_algorithm_id,
                    const struct q_useful_buf_c       hash_to_sign,
                    const struct q_useful_buf         signature_buffer,
                    struct q_useful_buf_c            *signature,
-                   struct t_cose_crypto_backend_ctx *crypto_ctx)
+                   struct t_cose_crypto_backend_ctx *crypto_ctx,
+                   bool                             *started)
 {
     /* This is the overhead for the DER encoding of an EC signature as
      * described by ECDSA-Sig-Value in RFC 3279.  It is at max 3 * (1
@@ -369,6 +370,10 @@ t_cose_crypto_sign(const int32_t                     cose_algorithm_id,
     unsigned               key_size_bytes;
     MakeUsefulBufOnStack(  der_format_signature, T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
     (void)crypto_ctx;
+
+    if (started) {
+        return T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED;
+    }
 
     /* This implementation supports only ECDSA so far. The
      * interface allows it to support other, but none are implemented.

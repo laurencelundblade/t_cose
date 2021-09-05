@@ -40,6 +40,40 @@ struct t_cose_crypto_backend_ctx {
 };
 
 
+/**
+ * The size of the output of SHA-256.
+ *
+ * (It is safe to define these independently here as they are
+ * well-known and fixed. There is no need to reference
+ * platform-specific headers and incur messy dependence.)
+ */
+#define T_COSE_CRYPTO_SHA256_SIZE 32
+
+/**
+ * The size of the output of SHA-384 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA384_SIZE 48
+
+/**
+ * The size of the output of SHA-512 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA512_SIZE 64
+
+
+/**
+ * The maximum needed to hold a hash. It is smaller and less stack is needed
+ * if the larger hashes are disabled.
+ */
+#ifndef T_COSE_DISABLE_ES512
+    #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
+#else
+    #ifndef T_COSE_DISABLE_ES384
+        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
+    #else
+        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
+    #endif
+#endif
+
 #ifdef __cplusplus
 }
 #endif

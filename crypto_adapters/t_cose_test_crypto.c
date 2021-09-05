@@ -73,7 +73,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature,
-                   struct t_cose_crypto_backend_ctx *crypto_ctx)
+                   struct t_cose_crypto_backend_ctx *crypto_ctx,
+                   bool                  *started)
 {
     (void)cose_algorithm_id;
     (void)signing_key;
@@ -81,6 +82,11 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     (void)signature_buffer;
     (void)signature;
     (void)crypto_ctx;
+
+    if (started) {
+        return T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED;
+    }
+
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 

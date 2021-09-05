@@ -572,7 +572,8 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
                                           tbs_hash,
                                           buffer_for_signature,
                                          &signature,
-                                          me->crypto_ctx);
+                                          me->crypto_ctx,
+                                          me->rst_ctx ? &(me->rst_ctx->started) : NULL);
     } else {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         return_value = short_circuit_sign(me->cose_algorithm_id,

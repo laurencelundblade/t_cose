@@ -345,6 +345,13 @@ enum t_cose_err_t {
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when
      * verifying a signature. */
     T_COSE_ERR_TOO_MANY_TAGS = 37,
+
+    /** A signing operation is in progress. The function returning this value
+     * can be called again until it returns \ref T_COSE_SUCCESS or error. */
+    T_COSE_ERR_SIG_IN_PROGRESS = 38,
+
+    /** The operation in this crypto adapter is not implemented.  */
+    T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED = 39,
 };
 
 

@@ -201,6 +201,8 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *         General unspecific failure.
  * \retval T_COSE_ERR_TAMPERING_DETECTED
  *         Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED.
+ * \retval T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED
+ *         Restartable signing is not implemented.
  *
  * This is called to do public key signing. The implementation will
  * vary from one platform / OS to another but should conform to the
@@ -224,7 +226,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature,
-                   struct t_cose_crypto_backend_ctx *crypto_ctx);
+                   struct t_cose_crypto_backend_ctx *crypto_ctx,
+                   bool                  *started);
 
 
 /**
@@ -381,41 +384,6 @@ struct t_cose_crypto_hash {
    #endif
 
 };
-
-
-/**
- * The size of the output of SHA-256.
- *
- * (It is safe to define these independently here as they are
- * well-known and fixed. There is no need to reference
- * platform-specific headers and incur messy dependence.)
- */
-#define T_COSE_CRYPTO_SHA256_SIZE 32
-
-/**
- * The size of the output of SHA-384 in bytes.
- */
-#define T_COSE_CRYPTO_SHA384_SIZE 48
-
-/**
- * The size of the output of SHA-512 in bytes.
- */
-#define T_COSE_CRYPTO_SHA512_SIZE 64
-
-
-/**
- * The maximum needed to hold a hash. It is smaller and less stack is needed
- * if the larger hashes are disabled.
- */
-#ifndef T_COSE_DISABLE_ES512
-    #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
-#else
-    #ifndef T_COSE_DISABLE_ES384
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
-    #else
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
-    #endif
-#endif
 
 
 /**
