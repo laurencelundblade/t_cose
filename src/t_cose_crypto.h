@@ -175,6 +175,13 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *                              the resulting signature is put.
  * \param[in] signature         Pointer and length of the signature
  *                              returned.
+ * \param[in] started           If this pointer is not NULL, restartable
+ *                              operation is requested by the caller. if the
+ *                              value pointed by the pointer is False, that this
+ *                              is the first call of a signing operation. If it
+ *                              is true, this is a subsequent call. If the
+ *                              pointer is null, then one step signing is
+ *                              expected.
  *
  * \retval T_COSE_SUCCESS
  *         Successfully created the signature.
@@ -195,6 +202,8 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *         General unspecific failure.
  * \retval T_COSE_ERR_TAMPERING_DETECTED
  *         Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED.
+ * \retval T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED
+ *         Restartable signing is not implemented.
  *
  * This is called to do public key signing. The implementation will
  * vary from one platform / OS to another but should conform to the
@@ -218,7 +227,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
-                   struct q_useful_buf_c *signature);
+                   struct q_useful_buf_c *signature,
+                   const bool            *started);
 
 
 /**
@@ -278,41 +288,6 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature);
-
-
-/**
- * The size of the output of SHA-256.
- *
- * (It is safe to define these independently here as they are
- * well-known and fixed. There is no need to reference
- * platform-specific headers and incur messy dependence.)
- */
-#define T_COSE_CRYPTO_SHA256_SIZE 32
-
-/**
- * The size of the output of SHA-384 in bytes.
- */
-#define T_COSE_CRYPTO_SHA384_SIZE 48
-
-/**
- * The size of the output of SHA-512 in bytes.
- */
-#define T_COSE_CRYPTO_SHA512_SIZE 64
-
-
-/**
- * The maximum needed to hold a hash. It is smaller and less stack is needed
- * if the larger hashes are disabled.
- */
-#ifndef T_COSE_DISABLE_ES512
-    #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
-#else
-    #ifndef T_COSE_DISABLE_ES384
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
-    #else
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
-    #endif
-#endif
 
 
 /**

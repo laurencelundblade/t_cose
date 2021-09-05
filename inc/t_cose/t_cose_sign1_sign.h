@@ -61,6 +61,53 @@ extern "C" {
  * and stack use by disabling features.
  */
 
+/**
+ * The size of the output of SHA-256.
+ *
+ * (It is safe to define these independently here as they are
+ * well-known and fixed. There is no need to reference
+ * platform-specific headers and incur messy dependence.)
+ */
+#define T_COSE_CRYPTO_SHA256_SIZE 32
+
+/**
+ * The size of the output of SHA-384 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA384_SIZE 48
+
+/**
+ * The size of the output of SHA-512 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA512_SIZE 64
+
+
+/**
+ * The maximum needed to hold a hash. It is smaller and less stack is needed
+ * if the larger hashes are disabled.
+ */
+#ifndef T_COSE_DISABLE_ES512
+    #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
+#else
+    #ifndef T_COSE_DISABLE_ES384
+        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
+    #else
+        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
+    #endif
+#endif
+
+#ifndef T_COSE_DISABLE_RESTART
+/**
+ * This is the context for restartable signing.
+ */
+struct t_cose_sign1_sign_restart_ctx {
+    bool                  restartable;
+    bool                  started;
+    QCBOREncodeContext    encode_context;
+    struct q_useful_buf_c tbs_hash;
+    uint8_t               c_buffer_for_tbs_hash[T_COSE_CRYPTO_MAX_HASH_SIZE];
+    struct q_useful_buf   buffer_for_tbs_hash;
+};
+#endif /* T_COSE_DISABLE_RESTART */
 
 /**
  * This is the context for creating a \c COSE_Sign1 structure. The
@@ -69,7 +116,10 @@ extern "C" {
  */
 struct t_cose_sign1_sign_ctx {
     /* Private data structure */
-    struct q_useful_buf_c protected_parameters; /* Encoded protected paramssy */
+#ifndef T_COSE_DISABLE_RESTART
+    struct t_cose_sign1_sign_restart_ctx rst_ctx;
+#endif /* T_COSE_DISABLE_RESTART */
+    struct q_useful_buf_c protected_parameters; /* Encoded protected params */
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key;
     uint32_t              option_flags;
@@ -168,6 +218,19 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
                        void                         *crypto_context,
                        uint32_t                      option_flags,
                        int32_t                       cose_algorithm_id);
+
+
+#ifndef T_COSE_DISABLE_RESTART
+/**
+ * \brief  Set restartable behaviour for the signing.
+ *
+ * \param[in] context            The t_cose signing context.
+ * \param[in] restartable        A bool whether restartable is required
+ */
+enum t_cose_err_t
+t_cose_sign1_set_restart(struct t_cose_sign1_sign_ctx *context,
+                         bool                         restartable);
+#endif /* T_COSE_DISABLE_RESTART */
 
 
 /**
@@ -455,6 +518,11 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
     me->crypto_context    = crypto_context;
     me->cose_algorithm_id = cose_algorithm_id;
     me->option_flags      = option_flags;
+#ifndef T_COSE_DISABLE_RESTART
+    me->rst_ctx.started = false;
+    me->rst_ctx.buffer_for_tbs_hash.ptr = me->rst_ctx.c_buffer_for_tbs_hash;
+    me->rst_ctx.buffer_for_tbs_hash.len = sizeof(me->rst_ctx.c_buffer_for_tbs_hash);
+#endif /* T_COSE_DISABLE_RESTART */
 }
 
 

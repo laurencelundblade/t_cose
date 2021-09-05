@@ -34,7 +34,7 @@
         #include "../crypto_adapters/t_cose_test_crypto.h"
         #define DECLARE_CRYPTO_CONTEXT() \
             struct t_cose_test_crypto_context test_crypto_context; \
-            t_cose_test_crypto_context_init(&test_crypto_context, true, 5);\
+            t_cose_test_crypto_context_init(&test_crypto_context, 5);\
             void* crypto_context = &test_crypto_context
     #else
         #error "DECLARE_CRYPTO_CONTEXT is not defined"
@@ -1722,6 +1722,8 @@ int_fast32_t indef_array_and_map_test()
 }
 
 #ifdef T_COSE_USE_B_CON_SHA256
+#ifndef T_COSE_DISABLE_RESTART
+
 
 #include "../crypto_adapters/t_cose_test_crypto.h"
 
@@ -1738,10 +1740,11 @@ int_fast32_t restart_test(void)
     const int                       iteration_count = 5;
     int                             counter;
 
-    t_cose_test_crypto_context_init(&r_context, true, iteration_count);
+    t_cose_test_crypto_context_init(&r_context, iteration_count);
 
     /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx, &r_context, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_set_restart(&sign_ctx, true);
 
     /* No key necessary because short-circuit test mode is used */
 
@@ -1798,10 +1801,11 @@ int_fast32_t restart_test_2_step(void)
     const int                       iteration_count = 5;
     int                             counter;
 
-    t_cose_test_crypto_context_init(&r_context, true, iteration_count);
+    t_cose_test_crypto_context_init(&r_context, iteration_count);
 
     /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx, &r_context, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_set_restart(&sign_ctx, true);
 
     /* No key necessary because short-circuit test mode is used */
 
@@ -1856,4 +1860,5 @@ int_fast32_t restart_test_2_step(void)
     return 0;
 }
 
+#endif /* T_COSE_DISABLE_RESTART */
 #endif /* T_COSE_USE_B_CON_SHA256 */

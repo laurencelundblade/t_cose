@@ -89,8 +89,10 @@ static test_entry s_tests[] = {
     TEST_ENTRY(get_size_test),
     TEST_ENTRY(indef_array_and_map_test),
 #ifdef T_COSE_USE_B_CON_SHA256
+#ifndef T_COSE_DISABLE_RESTART
     TEST_ENTRY(restart_test),
     TEST_ENTRY(restart_test_2_step),
+#endif /* T_COSE_DISABLE_RESTART */
 #endif /* T_COSE_USE_B_CON_SHA256 */
 
 

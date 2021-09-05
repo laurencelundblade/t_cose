@@ -153,7 +153,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
-                   struct q_useful_buf_c *signature)
+                   struct q_useful_buf_c *signature,
+                   const bool            *started)
 {
     enum t_cose_err_t     return_value;
     psa_status_t          psa_result;
@@ -162,6 +163,10 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     size_t                signature_len;
 
     (void)crypto_context; /* Crypto context not used */
+
+    if (started) {
+        return T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED;
+    }
 
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);
 

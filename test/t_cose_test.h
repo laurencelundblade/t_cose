@@ -156,6 +156,7 @@ int_fast32_t get_size_test(void);
 int_fast32_t indef_array_and_map_test(void);
 
 #ifdef T_COSE_USE_B_CON_SHA256
+#ifndef T_COSE_DISABLE_RESTART
 /*
  * Test data being passed to the crypto adapter in crypto context. 
  * The testcase demonstrates an implementation of a restartable signing.
@@ -167,6 +168,7 @@ int_fast32_t restart_test(void);
  * The testcase demonstrates an implementation of a restartable signing.
  */
 int_fast32_t restart_test_2_step(void);
+#endif /* T_COSE_DISABLE_RESTART */
 #endif /* T_COSE_USE_B_CON_SHA256 */
 
 #endif /* t_cose_test_h */

@@ -78,7 +78,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
-                   struct q_useful_buf_c *signature)
+                   struct q_useful_buf_c *signature,
+                   const bool            *started)
 {
     (void)signing_key;
 #ifdef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
@@ -89,21 +90,41 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     (void)signature;
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 #else
-    struct t_cose_test_crypto_context *me;
+    struct t_cose_test_crypto_context *me = crypto_context;
+    enum t_cose_err_t retval;
 
-    me = (struct t_cose_test_crypto_context *)crypto_context;
-    if(me != NULL) {
-        if(me->enable_restart && me->iteration_counter > 1) {
-            me->iteration_counter -= 1;
-            return T_COSE_ERR_SIG_IN_PROGRESS;
+    if (started) {
+        if (!(*started)) {
+            if ( me->iteration_counter <= 1) {
+                return T_COSE_ERR_INVALID_ARGUMENT;
+            }
         }
-        return short_circuit_sign(cose_algorithm_id,
-                                  hash_to_sign,
-                                  signature_buffer,
-                                  signature);
+        if (*started != me->started) {
+            return T_COSE_ERR_INVALID_ARGUMENT;
+        }
     } else {
-        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        if (me->iteration_counter > 1) {
+            return T_COSE_ERR_INVALID_ARGUMENT;
+        }
     }
+
+    if(me != NULL) {
+        if(started && me->iteration_counter > 1) {
+            me->iteration_counter -= 1;
+            retval = T_COSE_ERR_SIG_IN_PROGRESS;
+        } else {
+            retval = short_circuit_sign(cose_algorithm_id,
+                                    hash_to_sign,
+                                    signature_buffer,
+                                    signature);
+        }
+    } else {
+        retval = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
+
+    me->started = true;
+
+    return retval;
 #endif
 }
 

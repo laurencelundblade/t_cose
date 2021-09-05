@@ -15,6 +15,7 @@
 #error This t_cose requires a version of QCBOR that supports spiffy decode
 #endif
 #include "qcbor/qcbor_spiffy_decode.h"
+#include "t_cose/t_cose_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h"

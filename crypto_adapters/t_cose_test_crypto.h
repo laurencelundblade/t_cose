@@ -16,19 +16,18 @@
 #include "sha256.h"
 
 struct t_cose_test_crypto_context {
-    bool       enable_restart;
     int32_t    iteration_counter;
+    bool       started;
 
     SHA256_CTX b_con_hash_context;
 };
 
 static inline void
 t_cose_test_crypto_context_init(struct t_cose_test_crypto_context *me,
-                                bool                               enable_restart,
                                 int32_t                            restart_test_iterations)
 {
-    me->enable_restart = enable_restart;
     me->iteration_counter = restart_test_iterations;
+    me->started = false;
 }
 
 
