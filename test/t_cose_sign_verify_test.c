@@ -9,6 +9,9 @@
  * See BSD-3-Clause license in README.md
  */
 
+#include <stddef.h>
+#include <stdio.h>
+
 #include "t_cose/t_cose_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
@@ -16,13 +19,25 @@
 
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
+/* This function is used to clear the stack between iterations.
+ * This should help to discover bugs if some data is not saved into the restart
+ * context and the error would be hidden by the stack preserving unsaved values.
+ */
+static void clear_stack() {
+    volatile unsigned char buffer[1 * 1024 * 1024];
+    size_t i;
+    for (i = 0; i < sizeof(buffer); ++i) {
+      buffer[i] = 0;
+    }
+}
 
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
+int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg, bool restartable)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx sign_rst_ctx;
     int32_t                        return_value;
     enum t_cose_err_t              result;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
@@ -30,9 +45,13 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     struct t_cose_key              key_pair;
     struct q_useful_buf_c          payload;
     struct t_cose_sign1_verify_ctx verify_ctx;
+    int sign_iteration_count = 0;
 
     /* -- Get started with context initialization, selecting the alg -- */
     t_cose_sign1_sign_init(&sign_ctx, 0, cose_alg);
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &sign_rst_ctx);
+    }
 
     /* Make an ECDSA key pair that will be used for both signing and
      * verification.
@@ -44,13 +63,34 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
     t_cose_test_set_crypto_context(&sign_ctx);
 
-    result = t_cose_sign1_sign(&sign_ctx,
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
                       signed_cose_buffer,
                       &signed_cose);
+        ++sign_iteration_count;
+        clear_stack();
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return_value = 2000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return_value = -2000 - (int32_t)result;
+        } else {
+            return_value =  2000 + (int32_t)result;
+        }
         goto Done;
+    }
+
+    if (restartable) {
+        if (sign_iteration_count < 2) {
+            return_value = 4000;
+            goto Done;
+        }
+    } else {
+        if (sign_iteration_count > 1) {
+            return_value = 4000;
+            goto Done;
+        }
     }
 
     /* Verification */
@@ -91,20 +131,20 @@ int_fast32_t sign_verify_basic_test()
 {
     int_fast32_t return_value;
 
-   return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256);
+   return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256, false);
    if(return_value) {
         return 20000 + return_value;
    }
 
 #ifndef T_COSE_DISABLE_ES384
-    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES384);
+    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES384, false);
     if(return_value) {
         return 30000 + return_value;
     }
 #endif
 
 #ifndef T_COSE_DISABLE_ES512
-    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES512);
+    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES512, false);
     if(return_value) {
         return 50000 + return_value;
     }
@@ -118,9 +158,46 @@ int_fast32_t sign_verify_basic_test()
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_sig_fail_test()
+int_fast32_t sign_verify_basic_test_restartable(void)
+{
+    int_fast32_t return_value;
+
+    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256, true);
+    if (return_value < 0) {
+        return -60000 + return_value;
+    }
+    if (return_value) {
+        return 60000 + return_value;
+    }
+
+#ifndef T_COSE_DISABLE_ES384
+    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES384, true);
+    if (return_value < 0) {
+        return -70000 + return_value;
+    }
+    if (return_value) {
+        return 70000 + return_value;
+    }
+#endif
+
+#ifndef T_COSE_DISABLE_ES512
+    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES512, true);
+    if (return_value < 0) {
+        return -80000 + return_value;
+    }
+    if (return_value) {
+        return 80000 + return_value;
+    }
+#endif
+
+    return 0;
+
+}
+
+int_fast32_t sign_verify_sig_fail_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx sign_rst_ctx;
     QCBOREncodeContext             cbor_encode;
     int32_t                        return_value;
     enum t_cose_err_t              result;
@@ -131,6 +208,7 @@ int_fast32_t sign_verify_sig_fail_test()
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
     size_t                         tamper_offset;
+    int sign_iteration_count = 0;
 
 
     /* Make an ECDSA key pair that will be used for both signing and
@@ -144,6 +222,9 @@ int_fast32_t sign_verify_sig_fail_test()
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &sign_rst_ctx);
+    }
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
     t_cose_test_set_crypto_context(&sign_ctx);
 
@@ -156,10 +237,31 @@ int_fast32_t sign_verify_sig_fail_test()
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
 
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    do {
+        result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+        clear_stack();
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return_value = 3000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return_value = -3000 - (int32_t)result;
+        } else {
+            return_value =  3000 + (int32_t)result;
+        }
         goto Done;
+    }
+
+    if (restartable) {
+        if (sign_iteration_count < 2) {
+            return_value = 6000;
+            goto Done;
+        }
+    } else {
+        if (sign_iteration_count > 1) {
+            return_value = 6000;
+            goto Done;
+        }
     }
 
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
@@ -189,6 +291,7 @@ int_fast32_t sign_verify_sig_fail_test()
 
     if(result != T_COSE_ERR_SIG_VERIFY) {
         return_value = 5000 + (int32_t)result;
+        goto Done;
     }
 
     return_value = 0;
@@ -203,9 +306,35 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_make_cwt_test()
+int_fast32_t sign_verify_sig_fail_test(void)
+{
+    int32_t return_value;
+
+    return_value = sign_verify_sig_fail_test_internal(false);
+    if (return_value) {
+        return 10000 + return_value;
+    }
+    return return_value;
+}
+
+int_fast32_t sign_verify_sig_fail_test_restartable(void)
+{
+    int32_t return_value;
+
+    return_value = sign_verify_sig_fail_test_internal(true);
+    if (return_value < 0) {
+        return -20000 + return_value;
+    }
+    if (return_value) {
+        return  20000 + return_value;
+    }
+    return return_value;
+}
+
+int_fast32_t sign_verify_make_cwt_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx sign_rst_ctx;
     QCBOREncodeContext             cbor_encode;
     int32_t                        return_value;
     enum t_cose_err_t              result;
@@ -218,11 +347,15 @@ int_fast32_t sign_verify_make_cwt_test()
     struct q_useful_buf_c          expected_rfc8392_first_part;
     struct q_useful_buf_c          expected_payload;
     struct q_useful_buf_c          actual_rfc8392_first_part;
+    int sign_iteration_count = 0;
 
     /* -- initialize for signing --
      *  No special options selected
      */
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &sign_rst_ctx);
+    }
 
 
     /* -- Key and kid --
@@ -263,10 +396,31 @@ int_fast32_t sign_verify_make_cwt_test()
 
 
     /* -- Finish up the COSE_Sign1. This is where the signing happens -- */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    do {
+        result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+        clear_stack();
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return_value = 3000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return_value = -3000 - (int32_t)result;
+        } else {
+            return_value =  3000 + (int32_t)result;
+        }
         goto Done;
+    }
+
+    if (restartable) {
+        if (sign_iteration_count < 2) {
+            return_value =  7000;
+            goto Done;
+        }
+    } else {
+        if (sign_iteration_count > 1) {
+            return_value =  7000;
+            goto Done;
+        }
     }
 
     /* Finally close off the CBOR formatting and get the pointer and length
@@ -330,6 +484,7 @@ int_fast32_t sign_verify_make_cwt_test()
     expected_payload = q_useful_buf_tail(expected_rfc8392_first_part, kid_encoded_len + 8);
     if(q_useful_buf_compare(payload, expected_payload)) {
         return_value = 6000;
+        goto Done;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
 
@@ -342,15 +497,47 @@ Done:
     return return_value;
 }
 
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
+int_fast32_t sign_verify_make_cwt_test(void)
+{
+    int32_t return_value;
+
+    return_value = sign_verify_make_cwt_test_internal(false);
+    if (return_value) {
+        return 10000 + return_value;
+    }
+    return return_value;
+}
+
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
+int_fast32_t sign_verify_make_cwt_test_restartable(void)
+{
+    int32_t return_value;
+
+    return_value = sign_verify_make_cwt_test_internal(true);
+    if (return_value > 0) {
+        return  20000 + return_value;
+    }
+    if (return_value < 0) {
+        return -20000 + return_value;
+    }
+    return 0;
+}
 
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
 static int size_test(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
-                     struct t_cose_key     key_pair)
+                     struct t_cose_key     key_pair,
+                     bool restartable)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx sign_rst_ctx;
     QCBOREncodeContext             cbor_encode;
     enum t_cose_err_t              return_value;
     struct q_useful_buf            nil_buf;
@@ -360,6 +547,7 @@ static int size_test(int32_t               cose_algorithm_id,
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          payload;
     size_t                         sig_size;
+    int sign_iteration_count = 0;
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
@@ -369,7 +557,10 @@ static int size_test(int32_t               cose_algorithm_id,
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
-    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &sign_rst_ctx);
+    }
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
     t_cose_test_set_crypto_context(&sign_ctx);
 
@@ -380,9 +571,21 @@ static int size_test(int32_t               cose_algorithm_id,
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    do {
+        return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+        clear_stack();
+    } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
+
+    if (restartable && return_value == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+        return -3000 - (int32_t)return_value;
+    }
     if(return_value) {
         return 3000 + (int32_t)return_value;
+    }
+
+    if (sign_iteration_count > 1) {
+        return 5000;
     }
 
     cbor_error = QCBOREncode_FinishGetSize(&cbor_encode, &calculated_size);
@@ -413,13 +616,26 @@ static int size_test(int32_t               cose_algorithm_id,
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    sign_iteration_count = 0;
+    do {
+        return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+        clear_stack();
+    } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
+
+    if (restartable && return_value == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+        return -3000 - (int32_t)return_value;
+    }
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
 
+    if (sign_iteration_count > 1) {
+        return 8000;
+    }
+
     cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_signed_cose);
-    if(actual_signed_cose.len != calculated_size) {
+    if (actual_signed_cose.len != calculated_size) {
         return 2;
     }
 
@@ -427,15 +643,29 @@ static int size_test(int32_t               cose_algorithm_id,
     t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
     t_cose_test_set_crypto_context(&sign_ctx);
-    return_value = t_cose_sign1_sign(&sign_ctx,
-                                     payload,
-                                     signed_cose_buffer,
-                                     &actual_signed_cose);
+
+    sign_iteration_count = 0;
+    do {
+        return_value = t_cose_sign1_sign(&sign_ctx,
+                                            payload,
+                                            signed_cose_buffer,
+                                            &actual_signed_cose);
+        ++sign_iteration_count;
+        clear_stack();
+    } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
+
+    if (restartable && return_value == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+        return -7000 - (int32_t)return_value;
+    }
     if(return_value) {
         return 7000 + (int32_t)return_value;
     }
 
-    if(actual_signed_cose.len != calculated_size) {
+    if (sign_iteration_count > 1) {
+        return 9000;
+    }
+
+    if (actual_signed_cose.len != calculated_size) {
         return 3;
     }
 
@@ -443,24 +673,25 @@ static int size_test(int32_t               cose_algorithm_id,
 }
 
 
-/*
- * Public function, see t_cose_sign_verify_test.h
- */
-int_fast32_t sign_verify_get_size_test()
+int_fast32_t sign_verify_get_size_test_internal(bool restartable)
 {
     enum t_cose_err_t   return_value;
     struct t_cose_key   key_pair;
     int32_t             result;
 
     return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
-    if(return_value) {
+    if (return_value) {
         return 1000 + (int32_t)return_value;
     }
 
-    result = size_test(T_COSE_ALGORITHM_ES256, NULL_Q_USEFUL_BUF_C, key_pair);
+    result = size_test(T_COSE_ALGORITHM_ES256, NULL_Q_USEFUL_BUF_C,
+                       key_pair, restartable);
     free_ecdsa_key_pair(key_pair);
-    if(result) {
-        return 2000 + result;
+    if (result > 0) {
+        return  2000 + result;
+    }
+    if (result < 0) {
+        return -2000 + result;
     }
 
 
@@ -471,10 +702,14 @@ int_fast32_t sign_verify_get_size_test()
         return 3000 + (int32_t)return_value;
     }
 
-    result = size_test(T_COSE_ALGORITHM_ES384, NULL_Q_USEFUL_BUF_C, key_pair);
+    result = size_test(T_COSE_ALGORITHM_ES384, NULL_Q_USEFUL_BUF_C,
+                       key_pair, restartable);
     free_ecdsa_key_pair(key_pair);
-    if(result) {
-        return 4000 + result;
+    if (result > 0) {
+        return  4000 + result;
+    }
+    if (result < 0) {
+        return -4000 + result;
     }
 
 #endif /* T_COSE_DISABLE_ES384 */
@@ -487,18 +722,27 @@ int_fast32_t sign_verify_get_size_test()
         return 5000 + (int32_t)return_value;
     }
 
-    result = size_test(T_COSE_ALGORITHM_ES512, NULL_Q_USEFUL_BUF_C, key_pair);
-    if(result) {
+    result = size_test(T_COSE_ALGORITHM_ES512, NULL_Q_USEFUL_BUF_C,
+                       key_pair, restartable);
+    if (result > 0) {
         free_ecdsa_key_pair(key_pair);
         return 6000 + result;
+    }
+    if (result < 0) {
+        free_ecdsa_key_pair(key_pair);
+        return -6000 + result;
     }
 
     result = size_test(T_COSE_ALGORITHM_ES512,
                        Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
-                       key_pair);
+                       key_pair,
+                       restartable);
     free_ecdsa_key_pair(key_pair);
-    if(result) {
-        return 7000 + result;
+    if (result > 0) {
+        return  7000 + result;
+    }
+    if (result < 0) {
+        return -7000 + result;
     }
 
 #endif /* T_COSE_DISABLE_ES512 */
@@ -507,6 +751,37 @@ int_fast32_t sign_verify_get_size_test()
     return 0;
 }
 
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
+int_fast32_t sign_verify_get_size_test(void)
+{
+    int32_t return_value;
+
+    return_value = sign_verify_get_size_test_internal(false);
+    if (return_value) {
+        return 10000 + return_value;
+    }
+    return return_value;
+}
+
+
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
+int_fast32_t sign_verify_get_size_test_restartable(void)
+{
+    int32_t return_value;
+
+    return_value = sign_verify_get_size_test_internal(true);
+    if (return_value < 0) {
+        return -20000 + return_value;
+    }
+    if (return_value) {
+        return  20000 + return_value;
+    }
+    return return_value;
+}
 
 /* These are complete known-good COSE messages for a verification
  * test. The key used to verify them is made by make_ecdsa_key_pair().

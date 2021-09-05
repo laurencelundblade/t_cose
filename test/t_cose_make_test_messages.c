@@ -501,7 +501,8 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
 static enum t_cose_err_t
 t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
                                            uint32_t                      test_mess_options,
-                                           QCBOREncodeContext           *cbor_encode_ctx)
+                                           QCBOREncodeContext           *cbor_encode_ctx,
+                                           int                          *sign_iteration_count)
 {
     /* approximate stack use on 32-bit machine:
      *   32 bytes local use
@@ -567,19 +568,24 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      */
     if(!(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG)) {
         /* Normal, non-short-circuit signing */
-        return_value = t_cose_crypto_sign(me->cose_algorithm_id,
+        do {
+            return_value = t_cose_crypto_sign(
+                                          me->cose_algorithm_id,
                                           me->signing_key,
                                           tbs_hash,
                                           buffer_for_signature,
                                          &signature,
                                           me->crypto_ctx,
                                           me->rst_ctx ? &(me->rst_ctx->started) : NULL);
+            ++(*sign_iteration_count);
+        } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
     } else {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         return_value = short_circuit_sign(me->cose_algorithm_id,
                                           tbs_hash,
                                           buffer_for_signature,
                                           &signature);
+        ++(*sign_iteration_count);
 #endif
     }
 
@@ -610,10 +616,11 @@ Done:
  */
 enum t_cose_err_t
 t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
-                               uint32_t                    test_message_options,
-                               struct q_useful_buf_c         payload,
-                               struct q_useful_buf           out_buf,
-                               struct q_useful_buf_c        *result)
+                             uint32_t                     test_message_options,
+                             struct q_useful_buf_c        payload,
+                             struct q_useful_buf          out_buf,
+                             struct q_useful_buf_c        *result,
+                             int                          *sign_iteration_count)
 {
     QCBOREncodeContext  encode_context;
     enum t_cose_err_t   return_value;
@@ -637,7 +644,8 @@ t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
     /* -- Sign and put signature in the encoder context -- */
     return_value = t_cose_sign1_test_message_output_signature(me,
                                                               test_message_options,
-                                                              &encode_context);
+                                                              &encode_context,
+                                                              sign_iteration_count);
     if(return_value) {
         goto Done;
     }

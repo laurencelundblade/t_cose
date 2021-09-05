@@ -2,6 +2,7 @@
  * t_cose_make_test_messages.h
  *
  * Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -143,7 +144,8 @@ t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
                                uint32_t                      test_message_options,
                                struct q_useful_buf_c         payload,
                                struct q_useful_buf           out_buf,
-                               struct q_useful_buf_c        *result);
+                               struct q_useful_buf_c        *result,
+                               int                          *sign_iteration_count);
 
 
 #ifdef __cplusplus

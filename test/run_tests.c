@@ -59,9 +59,13 @@ static test_entry s_tests[] = {
      * verification short circuited.  They must have a real crypto
      * library integrated. */
     TEST_ENTRY(sign_verify_basic_test),
+    TEST_ENTRY(sign_verify_basic_test_restartable),
     TEST_ENTRY(sign_verify_make_cwt_test),
+    TEST_ENTRY(sign_verify_make_cwt_test_restartable),
     TEST_ENTRY(sign_verify_sig_fail_test),
+    TEST_ENTRY(sign_verify_sig_fail_test_restartable),
     TEST_ENTRY(sign_verify_get_size_test),
+    TEST_ENTRY(sign_verify_get_size_test_restartable),
     TEST_ENTRY(known_good_test),
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
@@ -73,24 +77,39 @@ static test_entry s_tests[] = {
      * tests are typically always run.
      */
     TEST_ENTRY(bad_parameters_test),
+    TEST_ENTRY(bad_parameters_test_restartable),
     TEST_ENTRY(crit_parameters_test),
+    TEST_ENTRY(crit_parameters_test_restartable),
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     TEST_ENTRY(content_type_test),
+    TEST_ENTRY(content_type_test_restartable),
 #endif
     TEST_ENTRY(all_header_parameters_test),
+    TEST_ENTRY(all_header_parameters_test_restartable),
     TEST_ENTRY(cose_example_test),
+    TEST_ENTRY(cose_example_test_restartable),
     TEST_ENTRY(short_circuit_signing_error_conditions_test),
+    TEST_ENTRY(short_circuit_signing_error_conditions_test_restartable),
     TEST_ENTRY(short_circuit_self_test),
+    TEST_ENTRY(short_circuit_self_test_restartable),
     TEST_ENTRY(short_circuit_self_detached_content_test),
+    TEST_ENTRY(short_circuit_self_detached_content_test_restartable),
     TEST_ENTRY(short_circuit_decode_only_test),
+    TEST_ENTRY(short_circuit_decode_only_test_restartable),
     TEST_ENTRY(short_circuit_make_cwt_test),
+    TEST_ENTRY(short_circuit_make_cwt_test_restartable),
     TEST_ENTRY(short_circuit_verify_fail_test),
+    TEST_ENTRY(short_circuit_verify_fail_test_restartable),
     TEST_ENTRY(tags_test),
+    TEST_ENTRY(tags_test_restartable),
     TEST_ENTRY(get_size_test),
+    TEST_ENTRY(get_size_test_restartable),
     TEST_ENTRY(indef_array_and_map_test),
+    TEST_ENTRY(indef_array_and_map_test_restartable),
 
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),
+    TEST_ENTRY(short_circuit_hash_fail_test_restartable),
 #endif /* T_COSE_DISABLE_HASH_FAIL_TEST */
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 

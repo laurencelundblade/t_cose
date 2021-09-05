@@ -2,7 +2,7 @@
  *  t_cose_test.c
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -22,17 +22,33 @@
 #define SZ_CONTENT "This is the content."
 static const struct q_useful_buf_c s_input_payload = {SZ_CONTENT, sizeof(SZ_CONTENT)-1};
 
+static int_fast32_t short_circuit_self_test_internal(bool restartable);
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t short_circuit_self_test()
+int_fast32_t short_circuit_self_test(void)
+{
+    return short_circuit_self_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t short_circuit_self_test_restartable(void)
+{
+    return short_circuit_self_test_internal(true);
+}
+
+static int_fast32_t short_circuit_self_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
+    int sign_iteration_count = 0;
 
 
     /* --- Make COSE Sign1 object --- */
@@ -40,14 +56,31 @@ int_fast32_t short_circuit_self_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     /* No key necessary because short-circuit test mode is used */
 
-    result = t_cose_sign1_sign(&sign_ctx,
-                                s_input_payload,
-                                signed_cose_buffer,
-                                &signed_cose);
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
+                                   s_input_payload,
+                                   signed_cose_buffer,
+                                   &signed_cose);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return 1000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -1000 - (int32_t)result;
+        } else {
+            return  1000 + (int32_t)result;
+        }
+    }
+
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 6000;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -104,15 +137,33 @@ int_fast32_t short_circuit_self_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     /* No key necessary because short-circuit test mode is used */
 
-    result = t_cose_sign1_sign_aad(&sign_ctx,
-                                    s_input_payload,
-                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
-                                    signed_cose_buffer,
-                                   &signed_cose);
+    sign_iteration_count = 0;
+    do {
+        result = t_cose_sign1_sign_aad(&sign_ctx,
+                                       s_input_payload,
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
+                                       signed_cose_buffer,
+                                       &signed_cose);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return 1000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -1000 - (int32_t)result;
+        } else {
+            return  1000 + (int32_t)result;
+        }
+    }
+
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 8000;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -144,17 +195,36 @@ int_fast32_t short_circuit_self_test()
     return 0;
 }
 
+static int_fast32_t
+short_circuit_self_detached_content_test_internal(bool restartable);
+
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t short_circuit_self_detached_content_test()
+int_fast32_t short_circuit_self_detached_content_test(void)
+{
+    return short_circuit_self_detached_content_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t short_circuit_self_detached_content_test_restartable(void)
+{
+    return short_circuit_self_detached_content_test_internal(true);
+}
+
+static int_fast32_t
+short_circuit_self_detached_content_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
+    int sign_iteration_count = 0;
 
 
     /* --- Make COSE Sign1 object --- */
@@ -162,15 +232,31 @@ int_fast32_t short_circuit_self_detached_content_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     /* No key necessary because short-circuit test mode is used */
 
-    result = t_cose_sign1_sign_detached(&sign_ctx,
-                                          NULL_Q_USEFUL_BUF_C,
-                                          s_input_payload,
-                                          signed_cose_buffer,
-                                         &signed_cose);
+    do {
+        result = t_cose_sign1_sign_detached(&sign_ctx,
+                                            NULL_Q_USEFUL_BUF_C,
+                                            s_input_payload,
+                                            signed_cose_buffer,
+                                            &signed_cose);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return 1000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -1000 - (int32_t)result;
+        } else {
+            return  1000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 6000;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -231,33 +317,66 @@ int_fast32_t short_circuit_self_detached_content_test()
     return 0;
 }
 
+static int_fast32_t short_circuit_verify_fail_test_internal(bool restartable);
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t short_circuit_verify_fail_test()
+int_fast32_t short_circuit_verify_fail_test(void)
+{
+    return short_circuit_verify_fail_test_internal(false);
+}
+
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t short_circuit_verify_fail_test_restartable(void)
+{
+    return short_circuit_verify_fail_test_internal(true);
+}
+
+
+static int_fast32_t short_circuit_verify_fail_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
     size_t                          payload_offset;
+    int sign_iteration_count = 0;
 
     /* --- Start making COSE Sign1 object  --- */
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     /* No key necessary because short-circuit test mode is used */
 
-    result = t_cose_sign1_sign(&sign_ctx,
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
     if(result) {
-        return 1000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -1000 - (int32_t)result;
+        } else {
+            return  1000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 7000;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -301,15 +420,31 @@ int_fast32_t short_circuit_verify_fail_test()
                             T_COSE_OPT_SHORT_CIRCUIT_SIG,
                             T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     /* No key necessary because short-circuit test mode is used */
 
-    result = t_cose_sign1_sign_aad(&sign_ctx,
+    sign_iteration_count = 0;
+    do {
+        result = t_cose_sign1_sign_aad(&sign_ctx,
                                     s_input_payload,
                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
                                     signed_cose_buffer,
                                     &signed_cose);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
     if(result) {
-        return 1000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -1000 - (int32_t)result;
+        } else {
+            return  1000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 6000;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -338,13 +473,30 @@ int_fast32_t short_circuit_verify_fail_test()
     return 0;
 }
 
+static int_fast32_t
+short_circuit_signing_error_conditions_test_internal(bool restartable);
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t short_circuit_signing_error_conditions_test()
+int_fast32_t short_circuit_signing_error_conditions_test(void)
+{
+    return short_circuit_signing_error_conditions_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t short_circuit_signing_error_conditions_test_restartable(void)
+{
+    return short_circuit_signing_error_conditions_test_internal(true);
+}
+
+static int_fast32_t
+short_circuit_signing_error_conditions_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     QCBOREncodeContext           cbor_encode;
     enum t_cose_err_t            result;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
@@ -356,25 +508,34 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     /* Use reserved alg ID 0 to cause error. */
     t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, 0);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
+    /* should return immediately with error even if restartable is used */
     if(result != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
-        return -1;
+        return 1;
     }
 
 
     /* -- Test bad algorithm ID -4444444 -- */
     /* Use unassigned alg ID -4444444 to cause error. */
     t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, -4444444);
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
+    /* should return immediately with error even if restartable is used */
     if(result != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
-        return -2;
+        return 2;
     }
 
 
@@ -385,6 +546,11 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
+
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
 
 
@@ -394,8 +560,9 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
     result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
 
+    /* should return immediately with error even if restartable is used */
     if(result != T_COSE_ERR_CBOR_FORMATTING) {
-        return -3;
+        return 3;
     }
 
 
@@ -404,25 +571,45 @@ int_fast32_t short_circuit_signing_error_conditions_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      small_signed_cose_buffer,
                                      &signed_cose);
 
+    /* should return immediately with error even if restartable is used */
     if(result != T_COSE_ERR_TOO_SMALL) {
-        return -4;
+        return 4;
     }
 
     return 0;
 }
 
+static int_fast32_t short_circuit_make_cwt_test_internal(bool restartable);
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t short_circuit_make_cwt_test()
+int_fast32_t short_circuit_make_cwt_test(void)
+{
+    return short_circuit_make_cwt_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t short_circuit_make_cwt_test_restartable(void)
+{
+    return short_circuit_make_cwt_test_internal(true);
+}
+
+static int_fast32_t short_circuit_make_cwt_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
     enum t_cose_err_t               result;
@@ -430,6 +617,7 @@ int_fast32_t short_circuit_make_cwt_test()
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
     QCBORError                      cbor_error;
+    int sign_iteration_count = 0;
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -439,6 +627,10 @@ int_fast32_t short_circuit_make_cwt_test()
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
+
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
 
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -458,9 +650,20 @@ int_fast32_t short_circuit_make_cwt_test()
     QCBOREncode_CloseMap(&cbor_encode);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    do {
+        result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
     if(result) {
-        return 2000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -7000 - (int32_t)result;
+        } else {
+            return  7000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 8000;
     }
 
     /* Finally close off the CBOR formatting and get the pointer and length
@@ -479,7 +682,7 @@ int_fast32_t short_circuit_make_cwt_test()
     struct q_useful_buf_c fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes);
     struct q_useful_buf_c head = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes));
     if(q_useful_buf_compare(head, fp)) {
-        return -1;
+        return 1;
     }
 
     /* Skip the key id, because this has the short-circuit key id */
@@ -507,7 +710,7 @@ int_fast32_t short_circuit_make_cwt_test()
     struct q_useful_buf_c pl3 = q_useful_buf_head(payload2,
                                                 sizeof(rfc8392_payload_bytes));
     if(q_useful_buf_compare(pl3, fp2)) {
-        return -2;
+        return 2;
     }
 
     /* Skip the signature because ECDSA signatures usually have a random
@@ -542,13 +745,30 @@ int_fast32_t short_circuit_make_cwt_test()
     return 0;
 }
 
+static int_fast32_t short_circuit_decode_only_test_internal(bool restartable);
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t short_circuit_decode_only_test()
+int_fast32_t short_circuit_decode_only_test(void)
+{
+    return short_circuit_decode_only_test_internal(false);
+}
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t short_circuit_decode_only_test_restartable(void)
+{
+    return short_circuit_decode_only_test_internal(true);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+static int_fast32_t short_circuit_decode_only_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
     enum t_cose_err_t               result;
@@ -558,6 +778,7 @@ int_fast32_t short_circuit_decode_only_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(     expected_payload_buffer, 10);
     struct q_useful_buf_c           expected_payload;
     QCBORError                      cbor_error;
+    int sign_iteration_count = 0;
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -567,6 +788,10 @@ int_fast32_t short_circuit_decode_only_test()
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
+
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
 
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -578,9 +803,20 @@ int_fast32_t short_circuit_decode_only_test()
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    do {
+        result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
     if(result) {
-        return 2000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -2000 - (int32_t)result;
+        } else {
+            return  2000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 6000;
     }
 
     /* Finally close of the CBOR formatting and get the pointer and
@@ -669,22 +905,41 @@ static const uint8_t rfc8152_example_2_1[] = {
     0x3B, 0x09, 0x16, 0xE5, 0xA4, 0xC3, 0x45, 0xCA,
     0xCB, 0x36};
 
+static int_fast32_t cose_example_test_internal(bool restartable);
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t cose_example_test()
+int_fast32_t cose_example_test(void)
+{
+    return cose_example_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t cose_example_test_restartable(void)
+{
+    return cose_example_test_internal(true);
+}
+static int_fast32_t cose_example_test_internal(bool restartable)
 {
     enum t_cose_err_t             result;
     Q_USEFUL_BUF_MAKE_STACK_UB(   signed_cose_buffer, 200);
     struct q_useful_buf_c         output;
     struct t_cose_sign1_sign_ctx  sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     struct q_useful_buf_c         head_actual;
     struct q_useful_buf_c         head_exp;
+    int sign_iteration_count = 0;
 
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
+
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
 
     t_cose_sign1_set_signing_key(&sign_ctx,
                                  T_COSE_NULL_KEY,
@@ -692,13 +947,24 @@ int_fast32_t cose_example_test()
 
     /* Make example C.2.1 from RFC 8152 */
 
-    result = t_cose_sign1_sign(&sign_ctx,
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
                                       s_input_payload,
                                       signed_cose_buffer,
                                      &output);
 
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
     if(result != T_COSE_SUCCESS) {
-        return (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -1000 - (int32_t)result;
+        } else {
+            return  1000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 2000;
     }
 
     /* Compare only the headers and payload as this was not signed
@@ -708,22 +974,25 @@ int_fast32_t cose_example_test()
     head_exp = q_useful_buf_head(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8152_example_2_1), 32);
 
     if(q_useful_buf_compare(head_actual, head_exp)) {
-        return -1000;
+        return 3000;
     }
 
     return (int32_t)result;
 }
 
 
-static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
+static int run_test_sign_and_verify(uint32_t test_mess_options,
+                                    bool restartable)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     QCBOREncodeContext              cbor_encode;
     enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
+    int sign_iteration_count = 0;
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -734,14 +1003,28 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     result =
         t_cose_test_message_sign1_sign(&sign_ctx,
                                        test_mess_options,
                                        Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
                                        signed_cose_buffer,
-                                       &signed_cose);
+                                       &signed_cose,
+                                       &sign_iteration_count);
+
     if(result) {
-        return result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -2000 - (int32_t)result;
+        } else {
+            return  2000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 3000;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -766,7 +1049,19 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-int_fast32_t all_header_parameters_test()
+static int_fast32_t all_header_parameters_test_internal(bool restartable);
+
+int_fast32_t all_header_parameters_test(void)
+{
+    return all_header_parameters_test_internal(false);
+}
+
+int_fast32_t all_header_parameters_test_restartable(void)
+{
+    return all_header_parameters_test_internal(true);
+}
+
+static int_fast32_t all_header_parameters_test_internal(bool restartable)
 {
     enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 300);
@@ -774,12 +1069,18 @@ int_fast32_t all_header_parameters_test()
     struct q_useful_buf_c           payload;
     struct t_cose_parameters        parameters;
     struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+    int sign_iteration_count = 0;
 
 
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
+
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
 
     t_cose_sign1_set_signing_key(&sign_ctx,
                                  T_COSE_NULL_KEY,
@@ -790,9 +1091,14 @@ int_fast32_t all_header_parameters_test()
                                        T_COSE_TEST_ALL_PARAMETERS,
                                        s_input_payload,
                                        signed_cose_buffer,
-                                      &output);
+                                       &output,
+                                       &sign_iteration_count);
     if(result) {
-        return 1;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -2000 - (int32_t)result;
+        } else {
+            return  2000 + (int32_t)result;
+        }
     }
 
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
@@ -879,16 +1185,37 @@ static struct test_case bad_parameters_tests_table[] = {
     {0, 0}
 };
 
+static int_fast32_t bad_parameters_test_internal(bool restartable);
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t bad_parameters_test()
+int_fast32_t bad_parameters_test(void)
+{
+    return bad_parameters_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t bad_parameters_test_restartable(void)
+{
+    return bad_parameters_test_internal(true);
+}
+
+static int_fast32_t bad_parameters_test_internal(bool restartable)
 {
     struct test_case *test;
+    int ret;
 
     for(test = bad_parameters_tests_table; test->test_option; test++) {
-        if(run_test_sign_and_verify(test->test_option) != test->result) {
+        ret = run_test_sign_and_verify(test->test_option, restartable);
+        if (ret < 0) {
+            /* If a tets returns negative value, no further tests are executed,
+             * and the whole testcase is reported as SKIPPED
+             */
+            return ret;
+        } else if (ret != test->result) {
             return (int_fast32_t)(test - bad_parameters_tests_table + 1);
         }
     }
@@ -933,16 +1260,37 @@ static struct test_case crit_tests_table[] = {
     {0, 0}
 };
 
+static int_fast32_t crit_parameters_test_internal(bool restartable);
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t crit_parameters_test()
+int_fast32_t crit_parameters_test(void)
+{
+    return crit_parameters_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t crit_parameters_test_restartable(void)
+{
+    return crit_parameters_test_internal(true);
+}
+
+static int_fast32_t crit_parameters_test_internal(bool restartable)
 {
     struct test_case *test;
 
     for(test = crit_tests_table; test->test_option; test++) {
-        if(run_test_sign_and_verify(test->test_option) != test->result) {
+        int ret = run_test_sign_and_verify(test->test_option, restartable);
+
+        if (ret < 0) {
+            /* If a tets returns negative value, no further tests are executed,
+             * and the whole testcase is reported as SKIPPED
+             */
+            return ret;
+        } else if (ret != test->result) {
             return (int_fast32_t)(test - crit_tests_table + 1);
         }
     }
@@ -952,18 +1300,34 @@ int_fast32_t crit_parameters_test()
 
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
+static int_fast32_t content_type_test_internal(bool restartable);
+
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t content_type_test()
+int_fast32_t content_type_test(void)
+{
+    return content_type_test_internal(false);
+}
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t content_type_test_restartable(void)
+{
+    return content_type_test_internal(true);
+}
+
+static int_fast32_t content_type_test_internal(bool restartable)
 {
     struct t_cose_parameters        parameters;
     struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           output;
     struct q_useful_buf_c           payload;
     enum t_cose_err_t               result;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+    int sign_iteration_count = 0;
 
 
     /* -- integer content type -- */
@@ -971,14 +1335,29 @@ int_fast32_t content_type_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 
-    result = t_cose_sign1_sign(&sign_ctx,
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
                                       s_input_payload,
                                       signed_cose_buffer,
                                      &output);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
     if(result) {
-        return 1;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -2000 - (int32_t)result;
+        } else {
+            return  2000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 3000;
     }
 
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
@@ -1001,14 +1380,30 @@ int_fast32_t content_type_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
 
-    result = t_cose_sign1_sign(&sign_ctx,
+    sign_iteration_count = 0;
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &output);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
     if(result) {
-        return 1;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -4000 - (int32_t)result;
+        } else {
+            return  4000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 5000;
     }
 
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
@@ -1031,16 +1426,32 @@ int_fast32_t content_type_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 
 
-    result = t_cose_sign1_sign(&sign_ctx,
+    sign_iteration_count = 0;
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
                                      signed_cose_buffer,
                                      &output);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
     if(result != T_COSE_ERR_DUPLICATE_PARAMETER) {
-        return 1;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -6000 - (int32_t)result;
+        } else {
+            return  7000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 5000;
     }
     return 0;
 }
@@ -1117,16 +1528,32 @@ int_fast32_t sign1_structure_decode_test(void)
  */
 extern int hash_test_mode;
 
+static int_fast32_t short_circuit_hash_fail_test_internal(bool restartable);
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t short_circuit_hash_fail_test()
+int_fast32_t short_circuit_hash_fail_test(void)
+{
+    return short_circuit_hash_fail_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t short_circuit_hash_fail_test_restartable(void)
+{
+    return short_circuit_hash_fail_test_internal(true);
+}
+
+static int_fast32_t short_circuit_hash_fail_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     enum t_cose_err_t            result;
     struct q_useful_buf_c        wrapped_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 200);
+    int sign_iteration_count = 0;
 
     /* See test description in t_cose_test.h for a full description of
      * what this does and what it needs to run.
@@ -1142,15 +1569,30 @@ int_fast32_t short_circuit_hash_fail_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
-    result = t_cose_sign1_sign(&sign_ctx,
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &wrapped_payload);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
 
     hash_test_mode = 0;
 
     if(result != T_COSE_ERR_HASH_GENERAL_FAIL) {
-        return 2000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -2000 - (int32_t)result;
+        } else {
+            return  2000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 3000;
     }
 
 
@@ -1163,15 +1605,31 @@ int_fast32_t short_circuit_hash_fail_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
-    result = t_cose_sign1_sign(&sign_ctx,
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
+    sign_iteration_count = 0;
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &wrapped_payload);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
 
     hash_test_mode = 0;
 
     if(result != T_COSE_ERR_HASH_GENERAL_FAIL) {
-        return 2000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -4000 - (int32_t)result;
+        } else {
+            return  4000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 5000;
     }
 
     return 0;
@@ -1180,12 +1638,28 @@ int_fast32_t short_circuit_hash_fail_test()
 #endif /* T_COSE_ENABLE_HASH_FAIL_TEST */
 
 
+static int_fast32_t tags_test_internal(bool restartable);
+
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t tags_test()
+int_fast32_t tags_test(void)
+{
+    return tags_test_internal(false);
+}
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t tags_test_restartable(void)
+{
+    return tags_test_internal(true);
+}
+
+static int_fast32_t tags_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
     enum t_cose_err_t               result;
@@ -1194,6 +1668,7 @@ int_fast32_t tags_test()
     struct q_useful_buf_c           payload;
     QCBORError                      cbor_error;
     uint64_t                        tag;
+    int sign_iteration_count = 0;
 
     /* --- Start making COSE Sign1 object tagged 900(901(18())) --- */
 
@@ -1207,6 +1682,10 @@ int_fast32_t tags_test()
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
+
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
 
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -1226,9 +1705,21 @@ int_fast32_t tags_test()
     QCBOREncode_CloseMap(&cbor_encode);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    do {
+        result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return 2000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -2000 - (int32_t)result;
+        } else {
+            return  2000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 2500;
     }
 
     /* Finally close off the CBOR formatting and get the pointer and length
@@ -1247,7 +1738,7 @@ int_fast32_t tags_test()
     struct q_useful_buf_c fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes);
     struct q_useful_buf_c head = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes));
     if(q_useful_buf_compare(head, fp)) {
-        return -1;
+        return 1;
     }
 
     /* Skip the key id, because this has the short-circuit key id */
@@ -1275,7 +1766,7 @@ int_fast32_t tags_test()
     struct q_useful_buf_c pl3 = q_useful_buf_head(payload2,
                                                   sizeof(rfc8392_payload_bytes));
     if(q_useful_buf_compare(pl3, fp2)) {
-        return -2;
+        return 2;
     }
 
     /* Skip the signature because ECDSA signatures usually have a random
@@ -1301,17 +1792,17 @@ int_fast32_t tags_test()
 
     tag = t_cose_sign1_get_nth_tag(&verify_ctx, 0);
     if(tag != 901) {
-        return -3;
+        return 3;
     }
 
     tag = t_cose_sign1_get_nth_tag(&verify_ctx, 1);
     if(tag != 900) {
-        return -3;
+        return 3;
     }
 
     tag = t_cose_sign1_get_nth_tag(&verify_ctx, 2);
     if(tag != CBOR_TAG_INVALID64) {
-        return -4;
+        return 4;
     }
 
     /* compare payload output to the one expected */
@@ -1380,6 +1871,10 @@ int_fast32_t tags_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(result) {
@@ -1391,9 +1886,22 @@ int_fast32_t tags_test()
     QCBOREncode_CloseMap(&cbor_encode);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    sign_iteration_count = 0;
+    do {
+        result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return 2000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -2000 - (int32_t)result;
+        } else {
+            return  2000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 2500;
     }
 
     /* Finally close off the CBOR formatting and get the pointer and length
@@ -1437,6 +1945,10 @@ int_fast32_t tags_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_OPT_OMIT_CBOR_TAG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(result) {
@@ -1455,9 +1967,22 @@ int_fast32_t tags_test()
     QCBOREncode_CloseMap(&cbor_encode);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    sign_iteration_count = 0;
+    do {
+        result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+    } while (result == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(result) {
-        return 2000 + (int32_t)result;
+        if (restartable && result == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -2000 - (int32_t)result;
+        } else {
+            return  2000 + (int32_t)result;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 2500;
     }
 
     /* Finally close off the CBOR formatting and get the pointer and length
@@ -1477,7 +2002,7 @@ int_fast32_t tags_test()
     struct q_useful_buf_c fp1 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes1);
     struct q_useful_buf_c head1 = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes1));
     if(q_useful_buf_compare(head1, fp1)) {
-        return -1;
+        return 1;
     }
 
     /* --- Start verifying the COSE Sign1 object, requiring tag--- */
@@ -1523,9 +2048,22 @@ int_fast32_t tags_test()
 }
 
 
-int_fast32_t get_size_test()
+static int_fast32_t get_size_test_internal(bool restartable);
+
+int_fast32_t get_size_test(void)
+{
+    return get_size_test_internal(false);
+}
+
+int_fast32_t get_size_test_restartable(void)
+{
+    return get_size_test_internal(true);
+}
+
+static int_fast32_t get_size_test_internal(bool restartable)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx rs_context;
     QCBOREncodeContext             cbor_encode;
     enum t_cose_err_t              return_value;
     struct q_useful_buf            nil_buf;
@@ -1534,6 +2072,7 @@ int_fast32_t get_size_test()
     struct q_useful_buf_c          actual_signed_cose;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          payload;
+    int sign_iteration_count = 0;
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
@@ -1546,6 +2085,10 @@ int_fast32_t get_size_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
@@ -1553,9 +2096,22 @@ int_fast32_t get_size_test()
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    do {
+        return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+    } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(return_value) {
-        return 3000 + (int32_t)return_value;
+        if (restartable &&
+            return_value == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -3000 - (int32_t)return_value;
+        } else {
+            return  3000 + (int32_t)return_value;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 3500;
     }
 
     cbor_error = QCBOREncode_FinishGetSize(&cbor_encode, &calculated_size);
@@ -1567,7 +2123,7 @@ int_fast32_t get_size_test()
     size_t expected_min = 32 + payload.len + 64;
 
     if(calculated_size < expected_min || calculated_size > expected_min + 30) {
-        return -1;
+        return 1;
     }
 
 
@@ -1579,6 +2135,10 @@ int_fast32_t get_size_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
@@ -1586,9 +2146,23 @@ int_fast32_t get_size_test()
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    sign_iteration_count = 0;
+    do {
+        return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        ++sign_iteration_count;
+    } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(return_value) {
-        return 3000 + (int32_t)return_value;
+        if (restartable &&
+            return_value == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -3000 - (int32_t)return_value;
+        } else {
+            return  3000 + (int32_t)return_value;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 3500;
     }
 
     cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_signed_cose);
@@ -1600,27 +2174,57 @@ int_fast32_t get_size_test()
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
-    return_value = t_cose_sign1_sign(&sign_ctx,
-                                     payload,
-                                     signed_cose_buffer,
-                                     &actual_signed_cose);
+
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &rs_context);
+    }
+
+    sign_iteration_count = 0;
+    do {
+        return_value = t_cose_sign1_sign(&sign_ctx,
+                                         payload,
+                                         signed_cose_buffer,
+                                         &actual_signed_cose);
+        ++sign_iteration_count;
+    } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
+
     if(return_value) {
-        return 7000 + (int32_t)return_value;
+        if (restartable &&
+            return_value == T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED) {
+            return -7000 - (int32_t)return_value;
+        } else {
+            return  7000 + (int32_t)return_value;
+        }
+    }
+    /* short-circuit sign should be a single step */
+    if (sign_iteration_count > 1) {
+        return 7500;
     }
 
     if(actual_signed_cose.len != calculated_size) {
-        return -3;
+        return 3;
     }
 
 
     return 0;
 }
 
+static int_fast32_t indef_array_and_map_test_internal(bool restartable);
+
+int_fast32_t indef_array_and_map_test(void)
+{
+    return indef_array_and_map_test_internal(false);
+}
+
+int_fast32_t indef_array_and_map_test_restartable(void)
+{
+    return indef_array_and_map_test_internal(true);
+}
 
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t indef_array_and_map_test()
+int_fast32_t indef_array_and_map_test_internal(bool restartable)
 {
     enum t_cose_err_t  return_value;
     uint32_t           t_opts;
@@ -1633,7 +2237,7 @@ int_fast32_t indef_array_and_map_test()
      */
 
     /* General test with indefinite lengths */
-    return_value = run_test_sign_and_verify(T_COSE_TEST_INDEFINITE_MAPS_ARRAYS);
+    return_value = run_test_sign_and_verify(T_COSE_TEST_INDEFINITE_MAPS_ARRAYS, restartable);
     if(return_value != T_COSE_SUCCESS) {
         return 1000 + (int32_t) return_value;
     }
@@ -1641,7 +2245,7 @@ int_fast32_t indef_array_and_map_test()
     /* Test critical parameters encoded as indefinite length */
     t_opts = T_COSE_TEST_INDEFINITE_MAPS_ARRAYS |
              T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER;
-    return_value = run_test_sign_and_verify(t_opts);
+    return_value = run_test_sign_and_verify(t_opts, restartable);
     if(return_value != T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER) {
         return 2000 + (int32_t) return_value;
     }
@@ -1649,7 +2253,7 @@ int_fast32_t indef_array_and_map_test()
     /* Another general test with indefinite lengths */
     t_opts = T_COSE_TEST_INDEFINITE_MAPS_ARRAYS |
              T_COSE_TEST_ALL_PARAMETERS;
-    return_value = run_test_sign_and_verify(t_opts);
+    return_value = run_test_sign_and_verify(t_opts, restartable);
     if(return_value != T_COSE_SUCCESS) {
         return 3000 + (int32_t) return_value;
     }

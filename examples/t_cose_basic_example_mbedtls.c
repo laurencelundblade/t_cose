@@ -205,10 +205,11 @@ static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf
  * is simpler to use. In the code below constructed_payload_buffer is
  * the extra buffer that two-step signing avoids.
  */
-int32_t one_step_sign_example(void)
+int32_t one_step_sign_example(bool restartable)
 {
 
     struct t_cose_sign1_sign_ctx   sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx sign_rst_ctx;
     enum t_cose_err_t              return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
@@ -285,6 +286,10 @@ int32_t one_step_sign_example(void)
 
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
 
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &sign_rst_ctx);
+    }
+
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);
     t_cose_sign1_set_crypto_context(&sign_ctx, &mbedtls_crypto_backend_ctx);
 
@@ -300,8 +305,13 @@ int32_t one_step_sign_example(void)
      * input and once in the output. If the payload is large, this
      * needs about double the size of the payload to work.
      */
-    return_value = t_cose_sign1_sign(/* The context set up with signing key */
-                                     &sign_ctx,
+    size_t cnt = 0;
+
+    do {
+        ++cnt;
+        return_value = t_cose_sign1_sign(
+                                    /* The context set up with signing key */
+                                    &sign_ctx,
                                      /* Pointer and length of payload to be
                                       * signed.
                                       */
@@ -319,8 +329,10 @@ int32_t one_step_sign_example(void)
                                       * lifetime of the output buffer.
                                       */
                                      &signed_cose);
+    } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
 
-    printf("Finished signing: %d (%s)\n", return_value, return_value ? "fail" : "success");
+    printf("Finished signing: %d (%s), in %zu iterations.\n",
+            return_value, return_value ? "fail" : "success", cnt);
     if(return_value) {
         goto Done;
     }
@@ -384,9 +396,10 @@ Done:
  * constructed directly into the output buffer, uses less memory,
  * but is more complicated to use.
  */
-int two_step_sign_example(void)
+int two_step_sign_example(bool restartable)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
+    struct t_cose_sign1_sign_restart_ctx sign_rst_ctx;
     enum t_cose_err_t              return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
@@ -440,6 +453,10 @@ int two_step_sign_example(void)
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+
+    if (restartable) {
+        t_cose_sign1_set_restart_context(&sign_ctx, &sign_rst_ctx);
+    }
 
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);
     t_cose_sign1_set_crypto_context(&sign_ctx, &mbedtls_crypto_backend_ctx);
@@ -501,9 +518,16 @@ int two_step_sign_example(void)
      * This call signals the end payload construction, causes the actual
      * signing to run.
      */
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
 
-    printf("Fnished signing: %d (%s)\n", return_value, return_value ? "fail" : "success");
+    size_t cnt = 0;
+
+    do {
+        ++cnt;
+        return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    } while (return_value == T_COSE_ERR_SIG_IN_PROGRESS);
+    printf("Fnished signing: %d (%s) in %zu iterations.\n",
+            return_value, return_value ? "fail" : "success", cnt);
+
     if(return_value) {
         goto Done;
     }
@@ -577,6 +601,8 @@ int main(int argc, const char * argv[])
     (void)argc; /* Avoid unused parameter error */
     (void)argv;
 
-    one_step_sign_example();
-    two_step_sign_example();
+    one_step_sign_example(false);
+    one_step_sign_example(true);
+    two_step_sign_example(false);
+    two_step_sign_example(true);
 }
