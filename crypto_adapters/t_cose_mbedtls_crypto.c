@@ -174,24 +174,20 @@ Done:
     return return_value;
 }
 
-
-/*
- * See documentation in t_cose_crypto.h
- */
 enum t_cose_err_t
-t_cose_crypto_sign(int32_t                           cose_algorithm_id,
-                   struct t_cose_key                 signing_key,
-                   struct q_useful_buf_c             hash_to_sign,
-                   struct q_useful_buf               signature_buffer,
-                   struct q_useful_buf_c            *signature,
-                   struct t_cose_crypto_backend_ctx *crypto_ctx,
-                   bool                             *started)
+t_cose_crypto_sign_internal(
+                   int32_t                    cose_algorithm_id,
+                   struct t_cose_key          signing_key,
+                   struct q_useful_buf_c      hash_to_sign,
+                   struct q_useful_buf        signature_buffer,
+                   struct q_useful_buf_c     *signature,
+                   mbedtls_ecdsa_context     *ecdsa_context,
+                   mbedtls_ecdsa_restart_ctx *ecdsa_rst_ctx,
+                   bool                      *started)
 {
     enum t_cose_err_t return_value = T_COSE_ERR_FAIL;
-
     mbedtls_ecp_keypair *ecp_keypair =
         (mbedtls_ecp_keypair *)signing_key.k.key_ptr;
-    mbedtls_ecdsa_context ecdsa_context;
     Q_USEFUL_BUF_MAKE_STACK_UB(asn1_signature, MBEDTLS_ECDSA_MAX_LEN);
     size_t required_sign_buf_size;
     int md_alg;
@@ -204,10 +200,6 @@ t_cose_crypto_sign(int32_t                           cose_algorithm_id,
     mbedtls_hmac_drbg_context drbg_ctx;
 
     mbedtls_mpi r, s;
-
-    if (started) {
-        return T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED;
-    }
 
     size_t curve_bytes = (ecp_keypair->MBEDTLS_PRIVATE(grp).pbits + 7) / 8;
 
@@ -250,23 +242,63 @@ t_cose_crypto_sign(int32_t                           cose_algorithm_id,
         goto Done;
     }
 
+    if (started) {
+#ifdef MBEDTLS_ECP_RESTARTABLE
+        if (*started) {
+            goto Sign_restartable;
+        }
+        /* No need to set the started flag to true as it is done in the general
+         * implementation.
+         */
+#else
+    return T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED;
+#endif
+    }
+
     /* Do the signing */
-    mbedtls_ecdsa_init(&ecdsa_context);
-    ret = mbedtls_ecdsa_from_keypair(&ecdsa_context, ecp_keypair);
+    mbedtls_ecdsa_init(ecdsa_context);
+#ifdef MBEDTLS_ECP_RESTARTABLE
+    if (started) { /* non-null 'started' pointer means restartable behaviour */
+        mbedtls_ecdsa_restart_init(ecdsa_rst_ctx);
+    }
+#endif
+    ret = mbedtls_ecdsa_from_keypair(ecdsa_context, ecp_keypair);
     if (ret != 0) {
         return_value = mbedtls_err_to_t_cose_error_signing(ret);
         goto Done;
     }
 
-    ret = mbedtls_ecdsa_write_signature(&ecdsa_context,
-        md_alg,
-        hash_to_sign.ptr,
-        hash_to_sign.len,
-        asn1_signature.ptr,
-        asn1_signature.len,
-        &asn1_signature.len,
-        mbedtls_hmac_drbg_random,
-        &drbg_ctx);
+#ifdef MBEDTLS_ECP_RESTARTABLE
+    if (started) { /* non-null 'started' pointer means restartable behaviour */
+Sign_restartable:
+        ret = mbedtls_ecdsa_write_signature_restartable(ecdsa_context,
+            md_alg,
+            hash_to_sign.ptr,
+            hash_to_sign.len,
+            asn1_signature.ptr,
+            asn1_signature.len,
+            &asn1_signature.len,
+            mbedtls_hmac_drbg_random,
+            &drbg_ctx,
+            ecdsa_rst_ctx);
+
+        if (ret == MBEDTLS_ERR_ECP_IN_PROGRESS) {
+            return_value = T_COSE_ERR_SIG_IN_PROGRESS;
+            goto Done;
+        }
+    } else
+#endif /* MBEDTLS_ECP_RESTARTABLE */
+    {
+        ret = mbedtls_ecdsa_write_signature(ecdsa_context,
+            md_alg,
+            hash_to_sign.ptr,
+            hash_to_sign.len,
+            asn1_signature.ptr,
+            asn1_signature.len,
+            &asn1_signature.len,
+            mbedtls_hmac_drbg_random,
+            &drbg_ctx);
+    }
 
     if (ret != 0) {
         return_value = mbedtls_err_to_t_cose_error_signing(ret);
@@ -304,19 +336,104 @@ t_cose_crypto_sign(int32_t                           cose_algorithm_id,
     mbedtls_mpi_free(&r);
     mbedtls_mpi_free(&s);
 
-    (void)mbedtls_ecdsa_free(&ecdsa_context);
+#ifdef MBEDTLS_ECP_RESTARTABLE
+    if (started) { /* non-null 'started' pointer means restartable behaviour */
+        (void)mbedtls_ecdsa_restart_free(ecdsa_rst_ctx);
+    }
+#endif
+    (void)mbedtls_ecdsa_free(ecdsa_context);
 
     return_value = T_COSE_SUCCESS;
 
 Done:
     mbedtls_hmac_drbg_free(&drbg_ctx);
 
-    signature->ptr = signature_buffer.ptr;
-    signature->len = curve_bytes * 2;
+    /* Success, fill in the return useful_buf's ptr */
+    if (return_value == T_COSE_SUCCESS) {
+        signature->ptr = signature_buffer.ptr;
+        signature->len = curve_bytes * 2;
+    }
 
     return return_value;
 }
 
+/* Wrap the internal signing function, so that no duplicate memory is allocated
+ * on the stack if restart context is provided.
+ */
+#ifdef MBEDTLS_ECP_RESTARTABLE
+static enum t_cose_err_t
+t_cose_crypto_sign_with_context(int32_t                cose_algorithm_id,
+                                struct t_cose_key      signing_key,
+                                struct q_useful_buf_c  hash_to_sign,
+                                struct q_useful_buf    signature_buffer,
+                                struct q_useful_buf_c *signature,
+                                struct t_cose_crypto_backend_ctx *crypto_ctx,
+                                bool                  *started)
+{
+    return t_cose_crypto_sign_internal(cose_algorithm_id,
+                                signing_key,
+                                hash_to_sign,
+                                signature_buffer,
+                                signature,
+                                &(crypto_ctx->ecdsa_ctx),
+                                &(crypto_ctx->ecdsa_rst_ctx),
+                                started);
+}
+#endif /* MBEDTLS_ECP_RESTARTABLE */
+
+static enum t_cose_err_t
+t_cose_crypto_sign_without_context(int32_t                cose_algorithm_id,
+                                   struct t_cose_key      signing_key,
+                                   struct q_useful_buf_c  hash_to_sign,
+                                   struct q_useful_buf    signature_buffer,
+                                   struct q_useful_buf_c *signature,
+                                   struct t_cose_crypto_backend_ctx *crypto_ctx,
+                                   bool                  *started)
+{
+    mbedtls_ecdsa_context ecdsa_context;
+    return t_cose_crypto_sign_internal(cose_algorithm_id,
+                                signing_key,
+                                hash_to_sign,
+                                signature_buffer,
+                                signature,
+                                &ecdsa_context,
+                                NULL,
+                                started);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_sign(int32_t                cose_algorithm_id,
+                   struct t_cose_key      signing_key,
+                   struct q_useful_buf_c  hash_to_sign,
+                   struct q_useful_buf    signature_buffer,
+                   struct q_useful_buf_c *signature,
+                   struct t_cose_crypto_backend_ctx *crypto_ctx,
+                   bool                  *started)
+{
+#ifdef MBEDTLS_ECP_RESTARTABLE
+    if (started) {
+        return t_cose_crypto_sign_with_context(cose_algorithm_id,
+                                               signing_key,
+                                               hash_to_sign,
+                                               signature_buffer,
+                                               signature,
+                                               crypto_ctx,
+                                               started);
+    } else
+#endif /* MBEDTLS_ECP_RESTARTABLE */
+    {
+        return t_cose_crypto_sign_without_context(cose_algorithm_id,
+                                                  signing_key,
+                                                  hash_to_sign,
+                                                  signature_buffer,
+                                                  signature,
+                                                  crypto_ctx,
+                                                  started);
+    }
+}
 
 
 /*

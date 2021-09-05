@@ -288,6 +288,10 @@ int32_t one_step_sign_example(bool restartable)
 
     if (restartable) {
         t_cose_sign1_set_restart_context(&sign_ctx, &sign_rst_ctx);
+#ifdef MBEDTLS_ECP_RESTARTABLE
+        /* Set the number of max operations per iteration */
+        mbedtls_ecp_set_max_ops(682); /* include/mbedtls/ecp.h:493 */
+#endif
     }
 
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);
@@ -456,6 +460,10 @@ int two_step_sign_example(bool restartable)
 
     if (restartable) {
         t_cose_sign1_set_restart_context(&sign_ctx, &sign_rst_ctx);
+#ifdef MBEDTLS_ECP_RESTARTABLE
+        /* Set the number of max operations per iteration */
+        mbedtls_ecp_set_max_ops(682); /* include/mbedtls/ecp.h:493 */
+#endif
     }
 
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);

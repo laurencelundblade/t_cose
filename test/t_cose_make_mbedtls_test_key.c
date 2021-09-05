@@ -73,6 +73,11 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
     static const uint8_t private_key_384[] = {PRIVATE_KEY_secp384r1};
     static const uint8_t private_key_521[] = {PRIVATE_KEY_secp521r1};
 
+#ifdef MBEDTLS_ECP_RESTARTABLE
+    /* Set the number of max operations per iteration */
+    mbedtls_ecp_set_max_ops(682); /* include/mbedtls/ecp.h:446 */
+#endif
+
     /* There is not a 1:1 mapping from alg to key type, but
      * there is usually an obvious curve for an algorithm. That
      * is what this does.

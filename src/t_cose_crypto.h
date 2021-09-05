@@ -288,27 +288,6 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c signature);
 
 
-
-
-#if defined(T_COSE_USE_PSA_CRYPTO)
-#include "psa/crypto.h"
-
-#elif defined(T_COSE_USE_MBEDTLS_CRYPTO)
-#include <mbedtls/sha256.h>
-#include <mbedtls/sha512.h>
-
-#elif defined(T_COSE_USE_OPENSSL_CRYPTO)
-#include "openssl/evp.h"
-
-#elif defined(T_COSE_USE_B_CON_SHA256)
-/* This is code for use with Brad Conte's crypto.  See
- * https://github.com/B-Con/crypto-algorithms and see the description
- * of t_cose_crypto_hash
- */
-#include "sha256.h"
-#endif
-
-
 /**
  * The context for use with the hash adaptation layer here.
  *

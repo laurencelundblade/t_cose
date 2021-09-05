@@ -202,6 +202,24 @@ result t_cose cannot be used with Mbed Crypto.
 This implementation supports the Mbed TLS library, and is tested with the version
 v3.1.0.
 
+This implementation supports the restartable signing API behaviour. The
+existence of the restartable API in Mbed TLS is controlled by the define
+`MBEDTLS_ECP_RESTARTABLE`. t_cose uses the same define to decide whether it can
+call the restartable sign API in the crypto library. If
+`MBEDTLS_ECP_RESTARTABLE` is not defined for t_cose then the restartable APIs
+return `T_COSE_ERR_SIGN_RESTART_NOT_SUPPORTED`.
+
+Note that it is the responsibility of the caller of the t_cose library to set
+the maximum number of operations that can be executed by the Mbed TLS library in
+a single iteration. This can be done with the following call:
+
+```
+#ifdef MBEDTLS_ECP_RESTARTABLE
+        /* Set the number of max operations per iteration */
+        mbedtls_ecp_set_max_ops(682); /* include/mbedtls/ecp.h:446 */
+#endif
+```
+
 ### General Crypto Library Strategy
 
 The functions that t_cose needs from the crypto library are all
