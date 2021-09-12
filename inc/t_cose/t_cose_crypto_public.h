@@ -11,6 +11,10 @@
 #ifndef __T_COSE_CRYPTO_PUBLIC_H__
 #define __T_COSE_CRYPTO_PUBLIC_H__
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,7 +24,10 @@ extern "C" {
  * specific.
  */
 struct t_cose_crypto_backend_ctx {
-#ifdef T_COSE_USE_PSA_CRYPTO
+#ifdef T_COSE_USE_MBEDTLS_CRYPTO
+    uint32_t unused; /* To prevent empty structure warning */
+
+#elif defined (T_COSE_USE_PSA_CRYPTO)
     uint32_t unused; /* To prevent empty structure warning */
 
 #elif defined(T_COSE_USE_OPENSSL_CRYPTO)
@@ -29,7 +36,7 @@ struct t_cose_crypto_backend_ctx {
 #else
     uint32_t unused; /* To prevent empty structure warning */
 
-#endif /* T_COSE_USE_MBED_CRYPTO */
+#endif /* T_COSE_USE_MBEDTLS_CRYPTO */
 };
 
 

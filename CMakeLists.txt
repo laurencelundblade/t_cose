@@ -5,7 +5,7 @@ project(t_cose
     VERSION 1.0.1)
 
 # Constants
-set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
+set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS_PSA" "MbedTLS_Mbedtls" "Test")
 
 # Project options
 set(CRYPTO_PROVIDER "OpenSSL" CACHE STRING "The crypto provider to use: ${CRYPTO_PROVIDERS}")
@@ -31,12 +31,19 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
+if(CRYPTO_PROVIDER STREQUAL "MbedTLS_PSA")
 
     find_package(MbedTLS REQUIRED)
     set(CRYPTO_LIBRARY MbedTLS::MbedCrypto)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1)
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
+
+elseif(CRYPTO_PROVIDER STREQUAL "MbedTLS_Mbedtls")
+
+    find_package(MbedTLS REQUIRED)
+    set(CRYPTO_LIBRARY MbedTLS::MbedCrypto)
+    set(CRYPTO_COMPILE_DEFS  -DT_COSE_USE_MBEDTLS_CRYPTO=1)
+    set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_mbedtls_crypto.c)
 
 elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
 
@@ -86,11 +93,16 @@ install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 if (BUILD_EXAMPLES)
 
-    if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
+    if (CRYPTO_PROVIDER STREQUAL "MbedTLS_PSA")
         add_executable(t_cose_basic_example_psa examples/t_cose_basic_example_psa.c)
         target_link_libraries(t_cose_basic_example_psa PRIVATE t_cose ${CRYPTO_LIBRARY})
         # Crypto defs are needed because the tests include headers from src/
         target_compile_definitions(t_cose_basic_example_psa PRIVATE ${CRYPTO_COMPILE_DEFS})
+    elseif (CRYPTO_PROVIDER STREQUAL "MbedTLS_Mbedtls")
+        add_executable(t_cose_basic_example_mbedtls examples/t_cose_basic_example_mbedtls.c)
+        target_link_libraries(t_cose_basic_example_mbedtls PRIVATE t_cose ${CRYPTO_LIBRARY})
+        # Crypto defs are needed because the tests include headers from src/
+        target_compile_definitions(t_cose_basic_example_mbedtls PRIVATE ${CRYPTO_COMPILE_DEFS})
     elseif (CRYPTO_PROVIDER STREQUAL "OpenSSL")
         add_executable(t_cose_basic_example_ossl examples/t_cose_basic_example_ossl.c)
         target_link_libraries(t_cose_basic_example_ossl PRIVATE t_cose ${CRYPTO_LIBRARY})
@@ -115,8 +127,11 @@ if (BUILD_TESTS)
         list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c)
     endif()
 
-    if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
+    if (CRYPTO_PROVIDER STREQUAL "MbedTLS_PSA")
         set(TEST_SRC_EXTRA test/t_cose_make_psa_test_key.c)
+        set(TEST_EXTRA_DEFS)
+    elseif (CRYPTO_PROVIDER STREQUAL "MbedTLS_Mbedtls")
+        set(TEST_SRC_EXTRA test/t_cose_make_mbedtls_test_key.c)
         set(TEST_EXTRA_DEFS)
     elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
         set(TEST_SRC_EXTRA test/t_cose_make_openssl_test_key.c)

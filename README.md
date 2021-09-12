@@ -16,8 +16,8 @@ compiler options need to be set for it to run correctly.
 **Crypto Library Integration Layer** – Works with different cryptographic
 libraries via a simple integration layer. The integration layer is kept small and simple, 
 just enough for the use cases, so that integration is simpler. Integration layers for 
-the OpenSSL and ARM Mbed TLS (PSA Cryptography API) cryptographic libraries 
-are included.
+the OpenSSL and ARM Mbed TLS (PSA Cryptography API and Mbed TLS Cryptography API)
+cryptographic libraries are included.
 
 **Secure coding style** – Uses a construct called UsefulBuf / q_useful_buf as a
 discipline for safe coding and handling of binary data.
@@ -168,6 +168,39 @@ Mbed TLS, an implementation of the PSA crypto API.
 Confidence in the adaptor code is high and reasonably well tested
 because it is simple.
 
+
+### Mbed TLS -- Makefile.mbedtls
+
+This build configuration works for the Mbed TLS Library.
+
+This integration supports SHA-256, SHA-384 and SHA-512 with ECDSA to support
+the COSE algorithms ES256, ES384 and ES512. It is a full implementation but
+needs on-target testing.
+
+To use this, edit the makefile for the location of CBOR and your
+Mbed TLS cryptographic library and do:
+
+    make -f Makefile.mbedtls
+
+The specific things that Makefile.mbedtls does is:
+    * Links the crypto_adapters/t_cose_mbedtls_crypto.o into libt_cose.a
+    * Links test/test/t_cose_make_mbedtls_test_key.o into the test binary
+    * `#define T_COSE_USE_MBEDTLS_CRYPTO`
+
+Note that the internally supplied b_con_hash is not used in this case
+by virtue of the Makefile not linking to it.
+
+Following are some notes on things discovered doing this integration.
+
+The Mbed TLS API is implemented by [Mbed TLS](https://github.com/ARMmbed/mbedtls).
+
+The project [Mbed Crypto](https://github.com/ARMmbed/mbed-crypto) used to have
+similar interface compared to Mbed TLS, but it is not the case anymore, as Mbed
+Crypto is not updating anymore, and the interface of Mbed TLS has evolved. As a
+result t_cose cannot be used with Mbed Crypto.
+
+This implementation supports the Mbed TLS library, and is tested with the version
+v3.1.0.
 
 ### General Crypto Library Strategy
 

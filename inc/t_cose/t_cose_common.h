@@ -2,6 +2,7 @@
  * t_cose_common.h
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -108,7 +109,10 @@ enum t_cose_crypto_lib_t {
     T_COSE_CRYPTO_LIB_OPENSSL = 1,
      /** \c key_handle is a \c psa_key_handle_t in Arm's Platform Security
       * Architecture */
-    T_COSE_CRYPTO_LIB_PSA = 2
+    T_COSE_CRYPTO_LIB_PSA = 2,
+     /** \c key_ptr points to a \c mbedtls_ecdsa_context, which is in turn
+      * a \c  mbedtls_ecp_keypair in Mbed TLS */
+    T_COSE_CRYPTO_LIB_MBEDTLS = 3
 };
 
 

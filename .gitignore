@@ -55,6 +55,7 @@ dkms.conf
 t_cose_test
 t_cose_basic_example_ossl
 t_cose_basic_example_psa
+t_cose_basic_example_mbedtls
 
 # CMake build folder
 build/

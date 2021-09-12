@@ -287,13 +287,17 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
 
 
 
-#ifdef T_COSE_USE_PSA_CRYPTO
+#if defined(T_COSE_USE_PSA_CRYPTO)
 #include "psa/crypto.h"
 
-#elif T_COSE_USE_OPENSSL_CRYPTO
+#elif defined(T_COSE_USE_MBEDTLS_CRYPTO)
+#include <mbedtls/sha256.h>
+#include <mbedtls/sha512.h>
+
+#elif defined(T_COSE_USE_OPENSSL_CRYPTO)
 #include "openssl/evp.h"
 
-#elif T_COSE_USE_B_CON_SHA256
+#elif defined(T_COSE_USE_B_CON_SHA256)
 /* This is code for use with Brad Conte's crypto.  See
  * https://github.com/B-Con/crypto-algorithms and see the description
  * of t_cose_crypto_hash
@@ -332,7 +336,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
  */
 struct t_cose_crypto_hash {
 
-    #ifdef T_COSE_USE_PSA_CRYPTO
+    #if defined(T_COSE_USE_PSA_CRYPTO)
         /* --- The context for PSA Crypto (MBed Crypto) --- */
 
         /* psa_hash_operation_t actually varied by the implementation of
@@ -347,13 +351,22 @@ struct t_cose_crypto_hash {
         psa_hash_operation_t ctx;
         psa_status_t         status;
 
-    #elif T_COSE_USE_OPENSSL_CRYPTO
+    #elif defined(T_COSE_USE_MBEDTLS_CRYPTO)
+        mbedtls_sha256_context sha256_ctx;
+        #if !defined T_COSE_DISABLE_ES512 || !defined T_COSE_DISABLE_ES384
+            /* SHA 384 uses the sha_512 context  */
+            mbedtls_sha512_context sha512_ctx;
+        #endif
+        int32_t cose_hash_alg_id;
+        int status;
+
+    #elif defined(T_COSE_USE_OPENSSL_CRYPTO)
         /* --- The context for OpenSSL crypto --- */
         EVP_MD_CTX  *evp_ctx;
         int          update_error; /* Used to track error return by SHAXXX_Update() */
         int32_t      cose_hash_alg_id; /* COSE integer ID for the hash alg */
 
-   #elif T_COSE_USE_B_CON_SHA256
+   #elif defined(T_COSE_USE_B_CON_SHA256)
         /* --- Specific context for Brad Conte's sha256.c --- */
         SHA256_CTX b_con_hash_context;
 
