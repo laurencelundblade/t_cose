@@ -3,6 +3,7 @@
 #
 # Copyright (c) 2019-2021, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
+# Copyright (c) 2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -64,11 +65,11 @@ INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
-SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
+SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_encrypt_enc.o src/t_cose_encrypt_dec.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
 
 .PHONY: all install install_headers install_so uninstall clean
 
-all: libt_cose.a t_cose_test t_cose_basic_example_psa
+all: libt_cose.a t_cose_test t_cose_basic_example_psa t_cose_encryption_example_psa
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
@@ -86,6 +87,8 @@ t_cose_test: main.o $(TEST_OBJ) libt_cose.a
 t_cose_basic_example_psa: examples/t_cose_basic_example_psa.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
+t_cose_encryption_example_psa: examples/t_cose_encryption_example_psa.o libt_cose.a
+	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 # ---- Installation ----
 ifeq ($(PREFIX),)
@@ -102,6 +105,8 @@ install_headers: $(PUBLIC_INTERFACE)
 	install -m 644 inc/t_cose/q_useful_buf.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign1_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_encrypt_enc.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_encrypt_dec.h $(DESTDIR)$(PREFIX)/include/t_cose
 
 # The shared library is not installed by default because of platform variability.
 install_so: libt_cose.so install_headers
@@ -116,18 +121,18 @@ uninstall: libt_cose.a $(PUBLIC_INTERFACE)
 		libt_cose.a libt_cose.so libt_cose.so.1 libt_cose.so.1.0.0)
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_basic_example_psa t_cose_test libt_cose.a libt_cose.so examples/*.o main.o
-
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_encryption_example_psa t_cose_basic_example_psa t_cose_test libt_cose.a libt_cose.so examples/*.o main.o
 
 # ---- public headers -----
-PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_sign1_verify.h
+PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_encrypt_enc.h inc/t_cose/t_cose_encrypt_dec.h
 
 # ---- source dependecies -----
 src/t_cose_util.o: src/t_cose_util.h src/t_cose_standard_constants.h inc/t_cose/t_cose_common.h src/t_cose_crypto.h
 src/t_cose_sign1_verify.o: inc/t_cose/t_cose_sign1_verify.h src/t_cose_crypto.h src/t_cose_util.h src/t_cose_parameters.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h
 src/t_cose_parameters.o: src/t_cose_parameters.h src/t_cose_standard_constants.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_common.h
-src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h 
-
+src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
+src/t_cose_encrypt_enc.o: inc/t_cose/t_cose_encrypt_enc.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
+src/t_cose_encrypt_dec.o: inc/t_cose/t_cose_encrypt_dec.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
 
 # ---- test dependencies -----
 test/t_cose_test.o: test/t_cose_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h $(PUBLIC_INTERFACE)
@@ -141,3 +146,4 @@ crypto_adapters/t_cose_psa_crypto.o: src/t_cose_crypto.h inc/t_cose/t_cose_commo
 
 # ---- example dependencies ----
 examples/t_cose_basic_example_psa.o: $(PUBLIC_INTERFACE)
+examples/t_cose_encryption_example_psa.o: $(PUBLIC_INTERFACE)

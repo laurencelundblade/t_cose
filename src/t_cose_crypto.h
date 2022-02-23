@@ -97,7 +97,8 @@ extern "C" {
  * works, whether dead stripping of object code is on and such.
  */
 
-
+/* Constant for the maximum key size with encryption algorithms */
+#define T_COSE_ENCRYPTION_MAX_KEY_LENGTH 32
 
 
 #define T_COSE_EC_P256_SIG_SIZE 64  /* size for secp256r1 */

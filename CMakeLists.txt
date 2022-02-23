@@ -15,7 +15,7 @@ add_definitions(${thirdparty_def})
 
 if(MBEDTLS)
 
-	set(T_COSE_SOURCE crypto_adapters/t_cose_psa_crypto.c src/t_cose_sign1_sign.c src/t_cose_parameters.c src/t_cose_sign1_verify.c src/t_cose_util.c)
+	set(T_COSE_SOURCE crypto_adapters/t_cose_psa_crypto.c src/t_cose_sign1_sign.c src/t_cose_parameters.c src/t_cose_sign1_verify.c src/t_cose_util.c  src/t_cose_encrypt_enc.c src/t_cose_encrypt_dec.c)
 
 	add_definitions(-DT_COSE_USE_PSA_CRYPTO=1)
 

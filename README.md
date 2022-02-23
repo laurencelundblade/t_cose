@@ -1,10 +1,22 @@
-
-
 #  t_cose
 
-t_cose implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)  
-and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
-This is the COSE_Sign1 part of [COSE, RFC 8152](https://tools.ietf.org/html/rfc8152). 
+t_cose implements COSE_Sign1 of [COSE, RFC 8152]
+(https://tools.ietf.org/html/rfc8152).
+
+- [CBOR Web Token,RFC 8392]
+  (https://tools.ietf.org/html/rfc8392)
+- [Entity Attestation Token (EAT)]
+  (https://tools.ietf.org/html/draft-ietf-rats-eat-01).
+
+Furthermore, an initial implementation of COSE_Encrypt and 
+COSE_Encrypt0 is provided. For key distribution direct key distribution
+and the Hybrid Public Key Encryption (HPKE)-based key agreement is
+provided. Direct key distribution assumes that the Content Encryption
+Key (CEK) is negotiated out-of-band. Key agreement with HPKE for use
+with COSE is defined in
+https://datatracker.ietf.org/doc/draft-ietf-cose-hpke/ while HPKE itself
+is specified in https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke.
+(Note: HPKE and COSE-HPKE are work in progress.)
 
 ## New Version Using Spiffy Decode
 **A major new version of t_cose implemented with QCBOR's new**
@@ -22,37 +34,51 @@ See Memory Use section below for discussion on the new code size.
 
 ## Characteristics
 
-**Implemented in C with minimal dependency** – There are three main 
-dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
-2) A cryptographic library for ECDSA and SHA-2, 3) C99, <stdint.h>,
-<stddef.h>, <stdbool.h> and <string.h>.  It is intended to be highly
-portable to different HW, OS's and cryptographic libraries. Except for
-some minor configuration for the cryptographic library, no #ifdefs or
-compiler options need to be set for it to run correctly.
+**Implemented in C with minimal dependency** – There are three main
+dependencies:
 
-**Crypto Library Integration Layer** – t_cose can work with different cryptographic
-libraries via a simple integration layer. The integration layer is kept small and simple, 
-just enough for the use cases, so that integration is simpler. An integration layer for 
-the OpenSSL and ARM Mbed TLS (PSA Cryptography API) cryptographic libraries 
-are included.
+1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
 
-**Secure coding style** – Uses a construct called UsefulBuf / q_useful_buf as a
-discipline for very safe coding and handling of binary data.
+2) For signature generation and verification a cryptographic library
+for ECDSA and SHA-2 is required. For encryption/decryption functionality
+it is necessary to additionally support encryption algorithms, such as
+AES-GCM, and [HPKE](https://github.com/hannestschofenig/mbedtls/tree/hpke)
+if the HPKE-based key distribution mechanism is utilized. HPKE has its
+own dependencies, such as the HKDF key derivation function.
+
+3) C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h>.
+
+The cryptographic library is intended to be highly portable to different HW,
+OS's and cryptographic libraries. Except for some minor configuration for
+the cryptographic library, no #ifdefs or compiler options need to be set
+for it to run correctly.
+
+
+**Crypto Library Integration Layer** – t_cose can work with different
+cryptographic libraries via a simple integration layer. The integration
+layer is kept small and simple, just enough for the use cases, so that
+integration is simpler. An integration layer for the OpenSSL and Arm 
+Mbed TLS (PSA Cryptography API) cryptographic libraries are included.
+
+**Secure coding style** – Uses a construct called UsefulBuf/q_useful_buf
+as a discipline for very safe coding and handling of binary data.
 
 **Small simple memory model** – Malloc is not needed. Besides the
-cryptographic library and payload buffer, about 600 bytes of heap/stack is needed
-for signing and 1500 bytes for verifying. The caller supplies the output buffer
-and context structures so the caller has control over memory usage making it
-useful for embedded implementations that have to run in small fixed memory.
+cryptographic library and payload buffer, about 600 bytes of heap/stack
+is needed for signing and 1500 bytes for verifying. The caller supplies
+the output buffer and context structures so the caller has control over
+memory usage making it useful for embedded implementations that have to
+run in small fixed memory.
 
 
 ## Code Status
 
-As of December 2019, the code is in reasonable working order and the public interface is 
-fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org) 
-and for [Arm MBed Crypto](https://github.com/ARMmbed/mbed-crypto).
+As of December 2019, the code is in reasonable working order and the
+public interface is fairly stable. There is a crypto adaptaion layer
+for [OpenSSL](https://www.openssl.org) and for [Arm Mbed Crypto]
+(https://github.com/ARMmbed/mbed-crypto).
 
-This version requires a QCBOR library that supports Spiffy Decode. 
+This version requires a QCBOR library that supports Spiffy Decode.
 
 
 ## Building and Dependencies
@@ -276,10 +302,11 @@ enough.
 
 ### Mixed code style
 QCBOR uses camelCase and t_cose follows 
-[Arm's coding guidelines](https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git/tree/docs/contributing/coding_guide.rst)
-resulting in code with mixed styles. For better or worse, an Arm-style version of UsefulBuf
-is created and used and so there is a duplicate of UsefulBuf. The two are identical. They
-just have different names.
+[Arm's coding guidelines]
+(https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git/tree/docs/contributing/coding_guide.rst)
+resulting in code with mixed styles. For better or worse, an Arm-style
+version of UsefulBuf is created and used and so there is a duplicate of
+UsefulBuf. The two are identical. They just have different names.
 
 ## Limitations 
 
@@ -301,8 +328,9 @@ just have different names.
 ## Credit
 
 * Ken Takayama for the bulk of the detached content implementation.
-* Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
-* Rob Coombs, Shebu Varghese Kuriakose and other ARM folks for sponsorship.
+* Tamas Ban for lots code review comments, design ideas and porting
+  to Arm PSA.
+* Rob Coombs, Shebu Varghese Kuriakose and other Arm folks for sponsorship.
 * Michael Eckel for makefile fixes.
 
 ## Copyright and License
