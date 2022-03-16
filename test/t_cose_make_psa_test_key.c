@@ -62,12 +62,12 @@
 enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair)
 {
-    psa_key_type_t      key_type;
-    psa_status_t        crypto_result;
-    psa_key_handle_t    key_handle;
-    psa_algorithm_t     key_alg;
-    const uint8_t      *private_key;
-    size_t              private_key_len;
+    psa_key_type_t        key_type;
+    psa_status_t          crypto_result;
+    mbedtls_svc_key_id_t  key_handle;
+    psa_algorithm_t       key_alg;
+    const uint8_t        *private_key;
+    size_t                private_key_len;
 
     static const uint8_t private_key_256[] = {PRIVATE_KEY_prime256v1};
     static const uint8_t private_key_384[] = {PRIVATE_KEY_secp384r1};
@@ -116,21 +116,20 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
     }
 
 
-    /* When importing a key with the PSA API there are two main
-     * things to do.
+    /* When importing a key with the PSA API there are two main things
+     * to do.
      *
-     * First you must tell it what type of key it is as this
-     * cannot be discovered from the raw data. The variable
-     * key_type contains that information including the EC curve. This is sufficient
-     * for psa_import_key() to succeed, but you probably want
-     * actually use the key.
+     * First you must tell it what type of key it is as this cannot be
+     * discovered from the raw data. The variable key_type contains
+     * that information including the EC curve. This is sufficient for
+     * psa_import_key() to succeed, but you probably want actually use
+     * the key.
      *
-     * Second, you must say what algorithm(s) and operations
-     * the key can be used as the PSA Crypto Library has
-     * policy enforcement.
+     * Second, you must say what algorithm(s) and operations the key
+     * can be used as the PSA Crypto Library has policy enforcement.
      *
-     * How this is done varies quite a lot in the newer
-     * PSA Crypto API compared to the older.
+     * How this is done varies quite a lot in the newer PSA Crypto API
+     * compared to the older.
      */
 
 #ifdef T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11
@@ -201,7 +200,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
  */
 void free_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-   psa_close_key((psa_key_handle_t)key_pair.k.key_handle);
+   psa_destroy_key((mbedtls_svc_key_id_t)key_pair.k.key_handle);
 }
 
 
@@ -219,11 +218,11 @@ int check_for_key_pair_leaks()
 
     mbedtls_psa_get_stats(&stats);
 
-    return (int)(stats.volatile_slots +
-           stats.persistent_slots +
-           stats.external_slots +
-           stats.half_filled_slots +
-           stats.cache_slots);
+    return (int)(stats.private_volatile_slots +
+           stats.private_persistent_slots +
+           stats.private_external_slots +
+           stats.private_half_filled_slots +
+           stats.private_cache_slots);
 
 #endif /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
 }
