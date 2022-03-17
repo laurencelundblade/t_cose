@@ -159,14 +159,21 @@ void free_ecdsa_key_pair(struct t_cose_key key_pair)
  */
 int check_for_key_pair_leaks()
 {
+    /* The key allocation counters are private data structures, but
+     * they are the only way to do the valuable test for key
+     * deallocation leakage, so they are used.  MbedTLS 3 formally
+     * labeled them private with a macro. */
+#if MBEDTLS_VERSION_MAJOR < 3
+#define MBEDTLS_PRIVATE(x) x
+#endif
+
     mbedtls_psa_stats_t stats;
 
     mbedtls_psa_get_stats(&stats);
 
-    // TODO: fix this 
-    return (int)(stats.private_volatile_slots +
-           stats.private_persistent_slots +
-           stats.private_external_slots +
-           stats.private_half_filled_slots +
-           stats.private_cache_slots);
+    return (int)(stats.MBEDTLS_PRIVATE(volatile_slots) +
+           stats.MBEDTLS_PRIVATE(persistent_slots) +
+           stats.MBEDTLS_PRIVATE(external_slots) +
+           stats.MBEDTLS_PRIVATE(half_filled_slots) +
+           stats.MBEDTLS_PRIVATE(cache_slots));
 }
