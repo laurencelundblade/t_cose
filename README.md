@@ -159,6 +159,8 @@ PSA Crypto 1.0. Presumably the older implementations like Mbed
 Crypto 1.1 will stop being used. Also, PSA Crypto 1.0 has 
 official #defines to manage API versions.
 
+TODO: test against an Mbed 2.x library
+
 ### General Crypto Library Strategy
 
 The functions that t_cose needs from the crypto library are all
