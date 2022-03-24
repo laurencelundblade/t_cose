@@ -13,6 +13,8 @@
 #include "openssl/ecdsa.h"
 #include "openssl/obj_mac.h" /* for NID for EC curve */
 #include "openssl/err.h"
+#include "openssl/evp.h"
+
 
 
 /*
@@ -76,15 +78,13 @@
 enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
                                       struct t_cose_key *key_pair)
 {
-    EC_GROUP          *ossl_ec_group = NULL;
     enum t_cose_err_t  return_value;
-    BIGNUM            *ossl_private_key_bn = NULL;
-    EC_KEY            *ossl_ec_key = NULL;
     int                ossl_result;
-    EC_POINT          *ossl_pub_key_point = NULL;
     int                nid;
     const char        *public_key;
     const char        *private_key;
+    EVP_PKEY          *pkey = NULL;
+    EVP_PKEY_CTX      *ctx;
 
     switch (cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
@@ -109,77 +109,35 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
-    /* Make a group for the particular EC algorithm */
-    ossl_ec_group = EC_GROUP_new_by_curve_name(nid);
-    if(ossl_ec_group == NULL) {
-        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+    ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
+    if(ctx == NULL) {
+        return_value = 99;
         goto Done;
     }
 
-    /* Make an empty EC key object */
-    ossl_ec_key = EC_KEY_new();
-    if(ossl_ec_key == NULL) {
-        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+    if (EVP_PKEY_keygen_init(ctx) <= 0) {
+        return_value = 99;
         goto Done;
     }
 
-    /* Associate group with key object */
-    ossl_result = EC_KEY_set_group(ossl_ec_key, ossl_ec_group);
-    if (!ossl_result) {
-        return_value = T_COSE_ERR_SIG_FAIL;
+    ossl_result = EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid);
+    if(ossl_result != 1) {
+        return_value = 98;
         goto Done;
     }
 
-    /* Make an instance of a big number to store the private key */
-    ossl_private_key_bn = BN_new();
-    if(ossl_private_key_bn == NULL) {
-        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
-        goto Done;
-    }
-    BN_zero(ossl_private_key_bn);
+    pkey = EVP_PKEY_new();
 
-    /* Stuff the specific private key into the big num */
-    ossl_result = BN_hex2bn(&ossl_private_key_bn, private_key);
-    if(ossl_private_key_bn == 0) {
-        return_value = T_COSE_ERR_SIG_FAIL;
+    ossl_result = EVP_PKEY_keygen(ctx, &pkey);
+
+    if(ossl_result != 1) {
+        return_value = 98;
         goto Done;
     }
 
-    /* Now associate the big num with the key object so we finally
-     * have a key set up and ready for signing */
-    ossl_result = EC_KEY_set_private_key(ossl_ec_key, ossl_private_key_bn);
-    if (!ossl_result) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
+    size_t key_len_bits = (size_t)EVP_PKEY_bits(pkey);
 
-
-    /* Make an empty EC point into which the public key gets loaded */
-    ossl_pub_key_point = EC_POINT_new(ossl_ec_group);
-    if(ossl_pub_key_point == NULL) {
-        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
-        goto Done;
-    }
-
-    /* Turn the serialized public key into an EC point */
-    ossl_pub_key_point = EC_POINT_hex2point(ossl_ec_group,
-                                            public_key,
-                                            ossl_pub_key_point,
-                                            NULL);
-    if(ossl_pub_key_point == NULL) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    /* Associate the EC point with key object */
-    /* The key object has both the public and private keys in it */
-    ossl_result = EC_KEY_set_public_key(ossl_ec_key, ossl_pub_key_point);
-    if(ossl_result == 0) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    key_pair->k.key_ptr  = ossl_ec_key;
+    key_pair->k.key_ptr  = pkey;
     key_pair->crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;
     return_value         = T_COSE_SUCCESS;
 
@@ -193,7 +151,7 @@ Done:
  */
 void free_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-    EC_KEY_free(key_pair.k.key_ptr);
+    EVP_PKEY_free(key_pair.k.key_ptr);
 }
 
 

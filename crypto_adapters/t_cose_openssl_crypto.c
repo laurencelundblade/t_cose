@@ -13,7 +13,9 @@
 
 #include "t_cose_crypto.h" /* The interface this code implements */
 
-#include <openssl/ecdsa.h>
+#include <openssl/ecdsa.h> // TODO: get rid of this
+
+#include <openssl/evp.h>
 #include <openssl/err.h>
 
 #include <openssl/sha.h>
@@ -63,9 +65,9 @@
  * internals are NULL.
  */
 static inline struct q_useful_buf_c
-convert_ecdsa_signature_from_ossl(unsigned            key_len,
-                                  const ECDSA_SIG    *ossl_signature,
-                                  struct q_useful_buf signature_buffer)
+convert_ecdsa_signature_from_ossl(unsigned               key_len,
+                                  struct q_useful_buf_c  ossl_signature,
+                                  struct q_useful_buf    signature_buffer)
 {
     size_t                r_len;
     size_t                s_len;
@@ -74,6 +76,13 @@ convert_ecdsa_signature_from_ossl(unsigned            key_len,
     struct q_useful_buf_c signature;
     void                 *r_start_ptr;
     void                 *s_start_ptr;
+    const unsigned char  *temp_der_sig_pointer;
+
+    temp_der_sig_pointer = ossl_signature.ptr;
+    ECDSA_SIG *es = d2i_ECDSA_SIG(NULL,
+                                  &temp_der_sig_pointer,
+                                  (long)ossl_signature.len);
+    // TODO: Check for NULL
 
     /* Zero the buffer so that bytes r and s are padded with zeros */
     q_useful_buf_set(signature_buffer, 0);
@@ -81,8 +90,10 @@ convert_ecdsa_signature_from_ossl(unsigned            key_len,
     /* Get the signature r and s as BIGNUMs */
     ossl_signature_r_bn = NULL;
     ossl_signature_s_bn = NULL;
-    ECDSA_SIG_get0(ossl_signature, &ossl_signature_r_bn, &ossl_signature_s_bn);
+    ECDSA_SIG_get0(es, &ossl_signature_r_bn, &ossl_signature_s_bn);
     /* ECDSA_SIG_get0 returns void */
+
+    ECDSA_SIG_free(es);
 
     /* Internal consistency check that the r and s values will fit
      * into the expected size. Be sure the output buffer is not
@@ -275,21 +286,27 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
                                          size_t           *sig_size)
 {
     enum t_cose_err_t return_value;
-    EC_KEY            *ossl_ec_key;
-    unsigned           key_size;
-
+    size_t            key_len_bits;
+    size_t            key_len_bytes;
 
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
 
-    return_value = ecdsa_key_checks(signing_key,
-                                    &ossl_ec_key,
-                                    &key_size);
+    // TODO: say why cast is safe
+    key_len_bits = (size_t)EVP_PKEY_bits(signing_key.k.key_ptr);
 
-    /* ECDSA signatures for COSE are twice the key size */
-    *sig_size = 2*key_size;
+    /* Calculation of size per RFC 8152 section 8.1 -- round up to
+     * number of bytes. */
+    key_len_bytes = key_len_bits / 8;
+    if(key_len_bits % 8) {
+        key_len_bytes++;
+    }
+    /* Double because signature is made of up r and s values */
+    *sig_size = key_len_bytes * 2;
+
+    return_value = T_COSE_SUCCESS;
 
 Done:
     return return_value;
@@ -306,12 +323,14 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
                            struct q_useful_buf    signature_buffer,
                            struct q_useful_buf_c *serialized_signature)
 {
+#define DER_SIG_ENCODE_OVER_HEAD 20
     enum t_cose_err_t  return_value;
-    EC_KEY            *ossl_ec_key;
-    ECDSA_SIG         *ossl_signature;
-    unsigned           key_len; /* in bytes; type unsigned is conscious choice */
-
-    ossl_signature = NULL;
+    EVP_MD_CTX        *sign_context;
+    EVP_PKEY          *private_key;
+    int                ossl_result;
+    size_t             temp_der_signature_length;
+    uint8_t            temp_der_signature[T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD];
+    struct q_useful_buf_c temp_der_signature_ub;
 
     /* This implementation supports ECDSA and only ECDSA. The
      * interface allows it to support other, but none are implemented.
@@ -326,35 +345,93 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
      */
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done2;
+    }
+
+    /*
+     * Make a message signature context to hold temporary state
+     * during signature creation
+     */
+    sign_context = EVP_MD_CTX_new();
+    if(sign_context == NULL) {
+        return_value = 99; // TODO: correct error
         goto Done;
     }
 
-    /* Check out a few things that are common between signing and
-     * verification */
-    return_value = ecdsa_key_checks(signing_key,
-                                   &ossl_ec_key,
-                                   &key_len);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
+    /*
+     * Initialize the sign context to use the fetched
+     * sign provider.
 
-    /* Actually do the EC signature over the hash */
-    ossl_signature = ECDSA_do_sign(hash_to_sign.ptr,
-                                   (int)hash_to_sign.len,
-                                   ossl_ec_key);
-    if(ossl_signature == NULL) {
+     int EVP_DigestSignInit_ex(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
+                               const char *mdname, OSSL_LIB_CTX *libctx,
+                               const char *props, EVP_PKEY *pkey,
+                               const OSSL_PARAM params[]);
+
+     */
+
+    /*int EVP_DigestSignInit(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
+                           const EVP_MD *type, ENGINE *e, EVP_PKEY *pkey); */
+
+    /* EVP_DigestSignInit_ex() is what the OpenSSL examples use, but
+     OpenSSL 1.1.1 doesn't have it, so try to figure out what
+     EVP_DigestSignInit() does since the documentation is terrible
+     (it is for people that already know how it works).
+
+     pctx is NULL because that seems to be some way to return
+     a copy of the signing context that is not needed here.
+
+     type and e should be named digest_type and digest_engine
+     so it's clear they are for a hash function that may be
+     needed in the signature. RSA signature schemes like PSS need
+     this. ECDSA doesn't so they are both NULL.
+     */
+
+    private_key = (EVP_PKEY *)signing_key.k.key_ptr;
+
+    ossl_result = EVP_DigestSignInit(sign_context,
+                                     NULL, /* pctx */
+                                     NULL, /* type */
+                                     NULL, /* Engine */
+                                     private_key /* The private key */);
+
+    if(!ossl_result) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
+
+
+    temp_der_signature_length = sizeof(temp_der_signature);
+
+    /*
+     EVP_DigestSign(
+        EVP_MD_CTX *ctx,
+        unsigned char *sigret, size_t *siglen,
+        const unsigned char *tbs, size_t tbslen);
+     */
+    ossl_result = EVP_DigestSign(sign_context,
+                                 temp_der_signature, &temp_der_signature_length,
+                                 hash_to_sign.ptr, hash_to_sign.len);
+
+    if(ossl_result != 1) {
+        return_value = 99;
+        goto Done;
+    }
+
+
+
 
     /* Convert signature from OSSL format to the serialized format in
      * a q_useful_buf. Presumably everything inside ossl_signature is
      * correct since it is not NULL.
      */
+    temp_der_signature_ub.ptr = temp_der_signature;
+    temp_der_signature_ub.len = temp_der_signature_length;
+
     *serialized_signature =
-        convert_ecdsa_signature_from_ossl(key_len,
-                                          ossl_signature,
+        convert_ecdsa_signature_from_ossl(256/8,
+                                          temp_der_signature_ub,
                                           signature_buffer);
+
     if(q_useful_buf_c_is_null(*serialized_signature)) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
@@ -367,8 +444,9 @@ Done:
     /* This (is assumed to) checks for NULL before free, so it is not
      * necessary to check for NULL here.
      */
-    ECDSA_SIG_free(ossl_signature);
+    EVP_MD_CTX_free(sign_context);
 
+Done2:
     return return_value;
 }
 
@@ -386,9 +464,9 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
 {
     int               ossl_result;
     enum t_cose_err_t return_value;
-    EC_KEY           *ossl_pub_key;
     ECDSA_SIG        *ossl_sig_to_verify;
-    unsigned          key_len; /* in bytes; type unsigned is conscious choice */
+    EVP_MD_CTX        *verify_context = NULL;
+    EVP_PKEY          *public_key;
 
     /* This implementation doesn't use any key store with the ability
      * to look up a key based on kid. */
@@ -401,36 +479,58 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
         goto Done;
     }
 
-    /* Check out a few things that are common between signing and verification*/
-    return_value = ecdsa_key_checks(verification_key,
-                                   &ossl_pub_key,
-                                   &key_len);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
 
     /* Convert the serialized signature off the wire into the openssl
      * object / structure
      */
     return_value =
-       convert_ecdsa_signature_to_ossl(key_len,
+       convert_ecdsa_signature_to_ossl(256/8,
                                        serialized_sig_to_verify,
                                        &ossl_sig_to_verify);
     if(return_value) {
         goto Done;
     }
 
+    serialized_sig_to_verify.ptr = NULL;
+
+    serialized_sig_to_verify.len = (size_t)i2d_ECDSA_SIG(ossl_sig_to_verify, (uint8_t **)&serialized_sig_to_verify.ptr);
+
+    public_key = (EVP_PKEY *)verification_key.k.key_ptr;
+
+    verify_context = EVP_MD_CTX_new();
+    if(verify_context == NULL) {
+        return_value = 99; // TODO: correct error
+        goto Done;
+    }
+
+
+    ossl_result = EVP_DigestVerifyInit(verify_context,
+                                       NULL, /* ppctx */
+                                       NULL, /* type */
+                                       NULL, /* e */
+                                       public_key);
+    if(!ossl_result) {
+        return_value = 99;
+        goto Done;
+    }
+
+
     /* Actually do the signature verification */
-    ossl_result = ECDSA_do_verify(hash_to_verify.ptr,
-                                  (int)hash_to_verify.len,
-                                  ossl_sig_to_verify,
-                                  ossl_pub_key);
+    ossl_result =  EVP_DigestVerify(verify_context,
+                                    serialized_sig_to_verify.ptr,
+                                    serialized_sig_to_verify.len,
+                                    hash_to_verify.ptr,
+                                    hash_to_verify.len);
+
+
     if(ossl_result == 0) {
         /* The operation succeeded, but the signature doesn't match */
         return_value = T_COSE_ERR_SIG_VERIFY;
         goto Done;
     } else if (ossl_result != 1) {
         /* Failed before even trying to verify the signature */
+        unsigned long e = ERR_get_error();
+        char *ee = ERR_error_string(e, NULL);
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
@@ -439,9 +539,7 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done:
-    /* These (are assumed to) all check for NULL before they free, so
-     * it is not necessary to check here */
-    ECDSA_SIG_free(ossl_sig_to_verify);
+    EVP_MD_CTX_free(verify_context);
 
     return return_value;
 }
