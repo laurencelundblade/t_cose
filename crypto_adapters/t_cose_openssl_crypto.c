@@ -93,7 +93,6 @@ convert_ecdsa_signature_from_ossl(unsigned               key_len,
     ECDSA_SIG_get0(es, &ossl_signature_r_bn, &ossl_signature_s_bn);
     /* ECDSA_SIG_get0 returns void */
 
-    ECDSA_SIG_free(es);
 
     /* Internal consistency check that the r and s values will fit
      * into the expected size. Be sure the output buffer is not
@@ -106,7 +105,7 @@ convert_ecdsa_signature_from_ossl(unsigned               key_len,
     s_len = (size_t)BN_num_bytes(ossl_signature_s_bn);
     if(r_len + s_len > signature_buffer.len) {
         signature = NULL_Q_USEFUL_BUF_C;
-        goto Done;
+        goto Done2;
     }
 
     /* Copy r and s of signature to output buffer and set length */
@@ -117,6 +116,9 @@ convert_ecdsa_signature_from_ossl(unsigned               key_len,
     BN_bn2bin(ossl_signature_s_bn, s_start_ptr);
 
     signature = (UsefulBufC){signature_buffer.ptr, 2 * key_len};
+
+Done2:
+    ECDSA_SIG_free(es);
 
 Done:
     return signature;
@@ -213,6 +215,7 @@ Done:
  * it and figures out the number of bytes in the key rounded up. This
  * is also the size of r and s in the signature.
  */
+// TODO: convert this to EVP
 static enum t_cose_err_t
 ecdsa_key_checks(struct t_cose_key  t_cose_key,
                  EC_KEY           **return_ossl_ec_key,
@@ -418,8 +421,6 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     }
 
 
-
-
     /* Convert signature from OSSL format to the serialized format in
      * a q_useful_buf. Presumably everything inside ossl_signature is
      * correct since it is not NULL.
@@ -427,8 +428,12 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     temp_der_signature_ub.ptr = temp_der_signature;
     temp_der_signature_ub.len = temp_der_signature_length;
 
+    size_t sig_size;
+
+    return_value = t_cose_crypto_sig_size(cose_algorithm_id, signing_key, &sig_size);
+
     *serialized_signature =
-        convert_ecdsa_signature_from_ossl(256/8,
+        convert_ecdsa_signature_from_ossl((unsigned int)sig_size/2,
                                           temp_der_signature_ub,
                                           signature_buffer);
 
@@ -480,11 +485,15 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
     }
 
 
+    size_t sig_size;
+
+    return_value = t_cose_crypto_sig_size(cose_algorithm_id, verification_key, &sig_size);
+
     /* Convert the serialized signature off the wire into the openssl
      * object / structure
      */
     return_value =
-       convert_ecdsa_signature_to_ossl(256/8,
+       convert_ecdsa_signature_to_ossl((unsigned)sig_size/2,
                                        serialized_sig_to_verify,
                                        &ossl_sig_to_verify);
     if(return_value) {
@@ -529,8 +538,6 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
         goto Done;
     } else if (ossl_result != 1) {
         /* Failed before even trying to verify the signature */
-        unsigned long e = ERR_get_error();
-        char *ee = ERR_error_string(e, NULL);
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
