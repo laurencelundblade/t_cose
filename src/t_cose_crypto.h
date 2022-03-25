@@ -284,6 +284,7 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
 
 #elif T_COSE_USE_OPENSSL_CRYPTO
 #include "openssl/sha.h"
+#include "openssl/evp.h"
 
 #elif T_COSE_USE_B_CON_SHA256
 /* This is code for use with Brad Conte's crypto.  See
@@ -340,6 +341,7 @@ struct t_cose_crypto_hash {
         psa_status_t         status;
 
     #elif T_COSE_USE_OPENSSL_CRYPTO
+        EVP_MD_CTX  *evp_ctx;
         /* --- The context for PSA Crypto (MBed Crypto) --- */
 
         /* What is needed for a full proper integration of OpenSSL's hashes */
