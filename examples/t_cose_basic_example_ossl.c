@@ -31,60 +31,9 @@
 #include <stdio.h>
 
 #include "openssl/ecdsa.h"
-#include "openssl/obj_mac.h" /* for NID for EC curve */
 #include "openssl/err.h"
 #include "openssl/evp.h"
 
-
-/*
- * Some hard coded keys for the test cases here.
- */
-#define PUBLIC_KEY_prime256v1 \
-"0437ab65955fae0466673c3a2934a3" \
-"4f2f0ec2b3eec224198557998fc04b" \
-"f4b2b495d9798f2539c90d7d102b3b" \
-"bbda7fcbdb0e9b58d4e1ad2e61508d" \
-"a75f84a67b"
-
-#define PRIVATE_KEY_prime256v1 \
-"f1b7142343402f3b5de7315ea894f9" \
-"da5cf503ff7938a37ca14eb0328698" \
-"8450"
-
-
-#define PUBLIC_KEY_secp384r1 \
-"04bdd9c3f818c9cef3e11e2d40e775" \
-"beb37bc376698d71967f93337a4e03" \
-"2dffb11b505067dddb4214b56d9bce" \
-"c59177eccd8ab05f50975933b9a738" \
-"d90c0b07eb9519567ef9075807cf77" \
-"139fc1fe85608851361136806123ed" \
-"c735ce5a03e8e4"
-
-#define PRIVATE_KEY_secp384r1 \
-"03df14f4b8a43fd8ab75a6046bd2b5" \
-"eaa6fd10b2b203fd8a78d7916de20a" \
-"a241eb37ec3d4c693d23ba2b4f6e5b" \
-"66f57f"
-
-
-#define PUBLIC_KEY_secp521r1 \
-"0400e4d253175a14311fc2dd487687" \
-"70cb49b07bd15d327beb98aa33e60c" \
-"d0181b17fb8f1cbf07dbc8652ff5b7" \
-"b4452c082e0686c0fab8089071cbc5" \
-"37101d344b94c201e6424f3a18da4f" \
-"20ecabfbc84b8467c217cd67055fa5" \
-"dec7fb1ae87082302c1813caa4b7b1" \
-"cf28d94677e486fb4b317097e9307a" \
-"bdb9d50187779a3d1e682c123c"
-
-#define PRIVATE_KEY_secp521r1 \
-"0045d2d1439435fab333b1c6c8b534" \
-"f0969396ad64d5f535d65f68f2a160" \
-"6590bb15fd5322fc97a416c395745e" \
-"72c7c85198c0921ab3b8e92dd901b5" \
-"a42159adac6d"
 
 
 /**
@@ -226,9 +175,9 @@ int32_t one_step_sign_example()
     /* ------   Construct the payload    ------
      *
      * The payload is constructed into its own continguous buffer.
-     * In this case the payload is CBOR formatm so it uses QCBOR to
-     * encode it, but CBOR is not
-     * required by COSE so it could be anything at all.
+     * In this case the payload is CBOR format so it uses QCBOR to
+     * encode it, but CBOR is not required for COSE payloads so it could
+     * be anything at all.
      *
      * The payload constructed here is a map of some label-value
      * pairs similar to a CWT or EAT, but using string labels

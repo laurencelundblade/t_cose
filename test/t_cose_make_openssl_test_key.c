@@ -1,7 +1,7 @@
 /*
  *  t_cose_make_openssl_test_key.c
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -11,7 +11,6 @@
 #include "t_cose_make_test_pub_key.h" /* The interface implemented here */
 
 #include "openssl/ecdsa.h"
-#include "openssl/obj_mac.h" /* for NID for EC curve */
 #include "openssl/err.h"
 #include "openssl/evp.h"
 
@@ -25,7 +24,7 @@
  * by calling free_ecdsa_key_pair(). This heap use is a part of
  * OpenSSL and not t_cose which does not use the heap
  */
-enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
+enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair)
 {
     enum t_cose_err_t  return_value;

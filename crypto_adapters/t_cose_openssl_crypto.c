@@ -13,10 +13,9 @@
 
 #include "t_cose_crypto.h" /* The interface this code implements */
 
-#include <openssl/ecdsa.h>
+#include <openssl/ecdsa.h> /* Needed for signature format conversion */
 #include <openssl/evp.h>
 #include <openssl/err.h>
-#include <openssl/sha.h>
 
 
 /**
@@ -27,7 +26,7 @@
  * This connects up the abstracted crypto services defined in
  * t_cose_crypto.h to the OpenSSL implementation of them.
  *
- * This adapter layer doesn't bloat the implementation as everything here
+ * Having this adapter layer doesn't bloat the implementation as everything here
  * had to be done anyway -- the mapping of algorithm IDs, the data format
  * rearranging, the error code translation.
  *
@@ -35,11 +34,8 @@
  * against OpenSSL and with the T_COSE_USE_OPENSSL_CRYPTO preprocessor
  * define set for the build.
  *
- * You can disable SHA-384 and SHA-512 to save code and space by
- * defining T_COSE_DISABLE_ES384 or T_COSE_DISABLE_ES512. This saving
- * is most in stack space in the main t_cose implementation. (It seems
- * likely that changes to OpenSSL itself would be needed to remove
- * the SHA-384 and SHA-512 implementations to save that code).
+ * This works with OpenSSL 1.1.1 and 3.0. It uses the API common
+ * to these two and that is not marked for future deprecation.
  *
  * A few complaints about OpenSSL in comparison to Mbed TLS:
  *
@@ -230,7 +226,7 @@ signature_cose_to_der(unsigned                key_len,
      * better to avoid the allocation, but the copy mode is not safe
      * because you can't give it a buffer length. This is bad stuff
      * from last century.
-
+     *
      * So the allocation mode is used on the presumption that it is
      * safe and correct even though there is more copying and memory
      * use.
@@ -270,7 +266,7 @@ Done:
  *
  * \return Error or \ref T_COSE_SUCCESS.
  *
- * It pulls the OpenSSL in-memory key out of \c t_cose_key and checks
+ * It pulls the OpenSSL key out of \c t_cose_key and checks
  * it and figures out the number of bytes in the key rounded up. This
  * is also the size of r and s in the signature.
  */
@@ -570,7 +566,7 @@ Done:
  */
 enum t_cose_err_t
 t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
-                         int32_t cose_hash_alg_id)
+                         int32_t                    cose_hash_alg_id)
 {
     int           ossl_result;
     int           nid;
@@ -604,6 +600,9 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
     }
 
     hash_ctx->evp_ctx = EVP_MD_CTX_new();
+    if(hash_ctx->evp_ctx == NULL) {
+        return T_COSE_ERR_INSUFFICIENT_MEMORY;
+    }
 
     ossl_result = EVP_DigestInit_ex(hash_ctx->evp_ctx, message_digest, NULL);
     if(ossl_result == 0) {
