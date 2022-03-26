@@ -18,56 +18,6 @@
 
 
 /*
- * Some hard coded keys for the test cases here.
- */
-#define PUBLIC_KEY_prime256v1 \
-    "0437ab65955fae0466673c3a2934a3" \
-    "4f2f0ec2b3eec224198557998fc04b" \
-    "f4b2b495d9798f2539c90d7d102b3b" \
-    "bbda7fcbdb0e9b58d4e1ad2e61508d" \
-    "a75f84a67b"
-
-#define PRIVATE_KEY_prime256v1 \
-    "f1b7142343402f3b5de7315ea894f9" \
-    "da5cf503ff7938a37ca14eb0328698" \
-    "8450"
-
-
-#define PUBLIC_KEY_secp384r1 \
-    "04bdd9c3f818c9cef3e11e2d40e775" \
-    "beb37bc376698d71967f93337a4e03" \
-    "2dffb11b505067dddb4214b56d9bce" \
-    "c59177eccd8ab05f50975933b9a738" \
-    "d90c0b07eb9519567ef9075807cf77" \
-    "139fc1fe85608851361136806123ed" \
-    "c735ce5a03e8e4"
-
-#define PRIVATE_KEY_secp384r1 \
-    "03df14f4b8a43fd8ab75a6046bd2b5" \
-    "eaa6fd10b2b203fd8a78d7916de20a" \
-    "a241eb37ec3d4c693d23ba2b4f6e5b" \
-    "66f57f"
-
-
-#define PUBLIC_KEY_secp521r1 \
-    "0400e4d253175a14311fc2dd487687" \
-    "70cb49b07bd15d327beb98aa33e60c" \
-    "d0181b17fb8f1cbf07dbc8652ff5b7" \
-    "b4452c082e0686c0fab8089071cbc5" \
-    "37101d344b94c201e6424f3a18da4f" \
-    "20ecabfbc84b8467c217cd67055fa5" \
-    "dec7fb1ae87082302c1813caa4b7b1" \
-    "cf28d94677e486fb4b317097e9307a" \
-    "bdb9d50187779a3d1e682c123c"
-
-#define PRIVATE_KEY_secp521r1 \
-    "0045d2d1439435fab333b1c6c8b534" \
-    "f0969396ad64d5f535d65f68f2a160" \
-    "6590bb15fd5322fc97a416c395745e" \
-    "72c7c85198c0921ab3b8e92dd901b5" \
-    "a42159adac6d"
-
-/*
  * Public function, see t_cose_make_test_pub_key.h
  */
 /*
@@ -80,29 +30,21 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
 {
     enum t_cose_err_t  return_value;
     int                ossl_result;
-    int                nid;
-    const char        *public_key;
-    const char        *private_key;
+    int                ossl_nid;
     EVP_PKEY          *pkey = NULL;
     EVP_PKEY_CTX      *ctx;
 
     switch (cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
-        nid         = NID_X9_62_prime256v1;
-        public_key  = PUBLIC_KEY_prime256v1;
-        private_key =  PRIVATE_KEY_prime256v1 ;
+        ossl_nid  = NID_X9_62_prime256v1;
         break;
 
     case T_COSE_ALGORITHM_ES384:
-        nid         = NID_secp384r1;
-        public_key  = PUBLIC_KEY_secp384r1;
-        private_key = PRIVATE_KEY_secp384r1;
+        ossl_nid = NID_secp384r1;
         break;
 
     case T_COSE_ALGORITHM_ES512:
-        nid         = NID_secp521r1;
-        public_key  = PUBLIC_KEY_secp521r1;
-        private_key = PRIVATE_KEY_secp521r1;
+        ossl_nid = NID_secp521r1;
         break;
 
     default:
@@ -111,18 +53,18 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
 
     ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
     if(ctx == NULL) {
-        return_value = 99;
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
     }
 
     if (EVP_PKEY_keygen_init(ctx) <= 0) {
-        return_value = 99;
+        return_value = T_COSE_ERR_FAIL;
         goto Done;
     }
 
-    ossl_result = EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid);
+    ossl_result = EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, ossl_nid);
     if(ossl_result != 1) {
-        return_value = 98;
+        return_value = T_COSE_ERR_FAIL;
         goto Done;
     }
 
@@ -131,11 +73,9 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
     ossl_result = EVP_PKEY_keygen(ctx, &pkey);
 
     if(ossl_result != 1) {
-        return_value = 98;
+        return_value = T_COSE_ERR_FAIL;
         goto Done;
     }
-
-    size_t key_len_bits = (size_t)EVP_PKEY_bits(pkey);
 
     key_pair->k.key_ptr  = pkey;
     key_pair->crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;

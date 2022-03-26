@@ -1,7 +1,7 @@
 /*
  * t_cose_crypto.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -234,7 +234,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
  * \param[in] verification_key  The verification key to use.
  * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] hash_to_verify    The data or hash that is to be verified.
- * \param[in] signature         The signature.
+ * \param[in] signature         The COSE-format signature.
  *
  * This verifies that the \c signature passed in was over the \c
  * hash_to_verify passed in.
