@@ -352,7 +352,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
                            struct q_useful_buf_c *signature)
 {
     /* This is the overhead for the DER encoding of an EC signature as
-     * described by ECDSA-Sig-Value in RFC 3279.  It at max 3 * (1
+     * described by ECDSA-Sig-Value in RFC 3279.  It is at max 3 * (1
      * type byte and 2 length bytes) + 2 zero pad bytes = 11
      * bytes. Make it 16 to have a little extra. It is expected that
      * EVP_DigestSign() will not over write the buffer so there will
