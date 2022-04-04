@@ -3,7 +3,7 @@
 
 *t_cose* implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)  
 and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
-This is the COSE_Sign1 part of [COSE, RFC 8152](https://tools.ietf.org/html/rfc8152). 
+This is the COSE_Sign1 part of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052). 
 
 **Implemented in C with minimal dependency** – There are three main 
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
@@ -15,7 +15,7 @@ compiler options need to be set for it to run correctly.
 
 **Crypto Library Integration Layer** – Works with different cryptographic
 libraries via a simple integration layer. The integration layer is kept small and simple, 
-just enough for the use cases, so that integration is simpler. An integration layer for 
+just enough for the use cases, so that integration is simpler. Integration layers for 
 the OpenSSL and ARM Mbed TLS (PSA Cryptography API) cryptographic libraries 
 are included.
 
@@ -47,14 +47,14 @@ t_cose 1.0 only supports COSE Sign1, signing with one recipeint.
 
 ## Future Work
 
-As of March 2022, work is underway to support encryption, MAC and other
-COSE features. When a good set of these are complete to commercial quality,
-a 2.0 version of t_cose will be released.
+As of March 2022, work is underway to support encryption, MAC and
+other COSE features. When a good set of these are complete to
+commercial quality, a 2.0 version of t_cose will be released.
 
-Note that there is no commited time line to complete t_cose
+Note that there is no committed time line to complete t_cose
 2.0. t_cose is mostly implemented on a volunteer basis. You can
-volunteer if you want :-). Work like adding support for more
-algorithms is not too difficult and is nicely framed up.
+volunteer. Work like adding support for more algorithms is not too
+difficult and is nicely framed up.
 
 
 
@@ -122,7 +122,7 @@ crypto library less suitable for embedded use.
 No deprecated or to-be-deprecated APIs are used.
 
 There are several different sets of APIs in OpenSSL that can be used
-to implement ECDSA and hashing. The ones choosen are the most official
+to implement ECDSA and hashing. The ones chosen are the most official
 and well-supported, however others might suit particular uses cases
 better.  An older t_cose used some to-be-deprecated APIs and is a more
 efficient than this one.  It is unfortunate that these APIs
@@ -130,7 +130,7 @@ efficient than this one.  It is unfortunate that these APIs
 there is no supported alternative to those that work with DER-encoded
 signatures.
 
-There are no known problems with the code and test coverages for the
+There are no known problems with the code and test coverage for the
 adaptor is reasonably good with the exception of the fan out of all
 the possible memory allocation failures. (Ideally there would be a
 test case for the failure of every single memory allocation, but this
@@ -208,10 +208,10 @@ Here are code sizes on 64-bit x86 optimized for size
 
      |                           | smallest | largest |  
      |---------------------------|----------|---------|
-     | signing only              |     1400 |    2300 |
-     | verification only         |     2200 |    3300 |
+     | signing only              |     1500 |    2300 |
+     | verification only         |     2500 |    3300 |
      | common to sign and verify |     (500)|    (800)|
-     | combined                  |     3000 |    4800 |
+     | combined                  |     3500 |    4800 |
      
 Things that make the code smaller:
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
