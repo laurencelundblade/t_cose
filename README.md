@@ -116,7 +116,7 @@ t_cose is regularly tested against OpenSSL 1.1.1 and 3.0.
 The crypto adaptor for OpenSSL is about twice the size of that for
 Mbed TLS because the API doesn't line up well with the needs for COSE
 (OpenSSL is ASN.1/DER oriented). Memory allocation is performed inside
-OpenSSL and in the crypto adaptaion layer. This makes the OpenSSL
+OpenSSL and in the crypto adaptation layer. This makes the OpenSSL
 crypto library less suitable for embedded use.
 
 No deprecated or to-be-deprecated APIs are used.
