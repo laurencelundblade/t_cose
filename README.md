@@ -309,7 +309,7 @@ just have different names.
 
 ## Credit
 
-* Maik Reichert for cmake, CI and other.
+* Maik Riechert for cmake, CI and other.
 * Ken Takayama for the bulk of the detached content implementation.
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
 * Rob Coombs, Shebu Varghese Kuriakose and other ARM folks for sponsorship.
