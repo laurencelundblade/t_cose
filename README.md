@@ -53,9 +53,8 @@ commercial quality, a 2.0 version of t_cose will be released.
 
 Note that there is no committed time line to complete t_cose
 2.0. t_cose is mostly implemented on a volunteer basis. You can
-volunteer. Work like adding support for more algorithms is not too
+volunteer! Work like adding support for more algorithms is not too
 difficult and is nicely framed up.
-
 
 
 ## Building and Dependencies
@@ -127,14 +126,13 @@ and well-supported, however others might suit particular uses cases
 better.  An older t_cose used some to-be-deprecated APIs and is a more
 efficient than this one.  It is unfortunate that these APIs
 (ECDSA_do_sign and ECDSA_do_verify) are slated for deprecation and
-there is no supported alternative to those that work with DER-encoded
+there is no supported alternative to those that work only with DER-encoded
 signatures.
 
 There are no known problems with the code and test coverage for the
-adaptor is reasonably good with the exception of the fan out of all
-the possible memory allocation failures. (Ideally there would be a
-test case for the failure of every single memory allocation, but this
-is difficult to implement. The code should handle them all correctly.
+adaptor is good. Not every single memory allocation failure has
+test coverage, but the code should handle them all correctly.
+
 
 #### PSA Crypto -- Makefile.psa
 
