@@ -118,7 +118,7 @@ extern "C" {
  * 7. The t_cose_encrypt_set_encryption_key() is used to
  *    configure the CEK with the encryption context, which
  *    will subsequently be used to encrypt the plaintext.
- * 8. The t_cose_encrypt_enc_detached() or the 
+ * 8. The t_cose_encrypt_enc_detached() or the
  *    t_cose_encrypt_enc() functions will be used to
  *    encrypted the plaintext.
  * 9  The t_cose_encrypt_add_recipient() finalizes the
@@ -142,7 +142,7 @@ extern "C" {
 /**
  * An \c option_flag for t_cose_encrypt_enc_init() to use COSE_Encrypt0.
  */
-#define T_COSE_OPT_COSE_ENCRYPT0 0x00000001
+#define T_COSE_OPT_COSE_ENCRYPT0          0x00000001
 
 /**
  * This is the context for creating \c COSE_Encrypt and \c COSE_Encrypt0 structures.
@@ -153,7 +153,7 @@ struct t_cose_encrypt_enc_ctx {
     /* Private data structure */
     struct q_useful_buf_c protected_parameters;
     int32_t               cose_algorithm_id;
-    uint8_t*              key;
+    uint8_t              *key;
     size_t                key_len;
     uint32_t              option_flags;
     struct q_useful_buf_c kid;
@@ -170,7 +170,7 @@ struct t_cose_encrypt_recipient_hpke_ctx {
     /* Private data structure */
     int32_t               cose_algorithm_id;
     struct q_useful_buf_c kid;
-    uint8_t*              cek;
+    uint8_t              *cek;
     size_t                cek_len;
     uint32_t              option_flags;
     struct t_cose_key     ephemeral_key;
@@ -198,14 +198,14 @@ struct t_cose_encrypt_recipient_hpke_ctx {
  * cryptographic library that t_cose is integrated with.
  */
 static void
-t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx* context,
-                         uint32_t                       option_flags,
-                         int32_t                        cose_algorithm_id);
+t_cose_encrypt_enc_init(struct t_cose_encrypt_enc_ctx *context,
+                        uint32_t                       option_flags,
+                        int32_t                        cose_algorithm_id);
 
 /**
  * \brief  Initialize to start creating a \c COSE_Encrypt0 structure.
  *
- * \param[in,out] context            The t_cose_encrypt_enc_ctx context.
+ * \param[in] context                The t_cose_encrypt_enc_ctx context.
  * \param[in] option_flags           One of \c T_COSE_OPT_XXXX.
  * \param[in] cose_algorithm_id      The algorithm to use for encrypting
  *                                   data, for example
@@ -224,102 +224,101 @@ t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx* context,
  * cryptographic library that t_cose is integrated with.
  */
 static void
-t_cose_encrypt_enc0_init( struct t_cose_encrypt_enc_ctx* context,
-                          uint32_t                       option_flags,
-                          int32_t                        cose_algorithm_id,
-                          struct q_useful_buf_c          kid);
+t_cose_encrypt_enc0_init(struct t_cose_encrypt_enc_ctx *context,
+                         uint32_t                       option_flags,
+                         int32_t                        cose_algorithm_id,
+                         struct q_useful_buf_c          kid);
 
 /**
  * \brief  Initialize a recipient structure for use with HPKE.
  *
- * \param[in, out] context       The t_cose_encrypt_recipient_hpke_ctx context.
+ * \param[in] context           The t_cose_encrypt_recipient_hpke_ctx context.
  * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
  * \param[in] cose_algorithm_id  the HPKE algorithm, for example
  *                               \ref COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM.
  *
  */
 static void
-t_cose_encrypt_hpke_recipient_init( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                    uint32_t                                  option_flags,
-                                    int32_t                                   cose_algorithm_id);
+t_cose_encrypt_hpke_recipient_init(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                   uint32_t                                  option_flags,
+                                   int32_t                                   cose_algorithm_id);
 
 /**
  * \brief  Set the ephemeral public key for use with HPKE.
  *
- * \param[in, out] context  The t_cose_encrypt_recipient_hpke_ctx context.
+ * \param[in] context       The t_cose_encrypt_recipient_hpke_ctx context.
  * \param[in] t_cose_key    The ephemeral public key.
  */
 static void
-t_cose_encrypt_hpke_set_ephemeral_key( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                       struct t_cose_key                         ephemeral_key);
+t_cose_encrypt_hpke_set_ephemeral_key(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                      struct t_cose_key                         ephemeral_key);
 
 /**
  * \brief  Set the recipient public key for use with HPKE.
  *
- * \param[in,out] context      The t_cose_encrypt_recipient_hpke_ctx context.
+ * \param[in] context          The t_cose_encrypt_recipient_hpke_ctx context.
  * \param[in] t_cose_key       The ephemeral public key.
  * \param[in] kid              The key identifier.
  */
 static void
-t_cose_encrypt_hpke_set_recipient_key( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                       struct t_cose_key                         recipient_key,
-                                       struct q_useful_buf_c                     kid);
+t_cose_encrypt_hpke_set_recipient_key(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                      struct t_cose_key                         recipient_key,
+                                      struct q_useful_buf_c                     kid);
 
 /**
  * \brief  Set the content encryption key (CEK). For use with this implementation, the
  * CEK is the plaintext input to the HPKE algorithm. More details can be found at
  * https://datatracker.ietf.org/doc/draft-ietf-cose-hpke/.
  *
- * \param[in, out] context   The t_cose_encrypt_recipient_hpke_ctx context.
+ * \param[in] context        The t_cose_encrypt_recipient_hpke_ctx context.
  * \param[in] cek            The CEK.
  * \param[in] cek_len        The length of the CEK.
  */
 static void
-t_cose_encrypt_hpke_set_encryption_key( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                        uint8_t*                                  cek,
-                                        size_t                                    cek_len);
+t_cose_encrypt_hpke_set_encryption_key(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                       uint8_t                                  *cek,
+                                       size_t                                    cek_len);
 
 /**
  * \brief Creates a COSE recipient structure by populating the fields following the
  *  COSE HPKE specification, see https://datatracker.ietf.org/doc/draft-ietf-cose-hpke/.
  *
- * \param[in, out] context      The t_cose_encrypt_recipient_hpke_ctx context.
- * \param[in, out] EC           The COSE-coded recpient structure.
+ * \param[in] context      The t_cose_encrypt_recipient_hpke_ctx context.
+ * \param[in] EC           The COSE-coded recipient structure.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  */
 enum t_cose_err_t
-t_cose_encrypt_hpke_create_recipient( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                      QCBOREncodeContext*                       EC);
+t_cose_encrypt_hpke_create_recipient(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                     QCBOREncodeContext                       *EC);
 
 /**
- * \brief Adds recipient structure to COSE_Encrypt.
+ * \brief Adds recipient structure to COSE_Encrypt to the
+ * t_cose_encrypt_enc_ctx structure.
  *
- * \param[in, out] context        The t_cose_encrypt_enc_ctx context.
+ * \param[in] context             The t_cose_encrypt_enc_ctx context.
  * \param[in] encrypt_ctx         The COSE_Encrypt structure.
- * \param[in] recipient_ctx       The COSE-coded recpient structure.
+ * \param[in] recipient_ctx       The COSE-coded recipient structure.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  */
 enum t_cose_err_t
-t_cose_encrypt_add_recipient( struct t_cose_encrypt_enc_ctx* context,
-                              QCBOREncodeContext*            encrypt_ctx,
-                              UsefulBufC*                    recipient_ctx);
+t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx *context,
+                             QCBOREncodeContext            *encrypt_ctx,
+                             UsefulBufC                    *recipient_ctx);
 
 /**
- * \brief Sets the content encryption key (CEK)
+ * \brief Sets the content encryption key (CEK) in the
+ * t_cose_encrypt_enc_ctx structure.
  *
- * \param[in,out] context    The t_cose_encrypt_enc_ctx context.
+ * \param[in] context        The t_cose_encrypt_enc_ctx context.
  * \param[in] cek            The CEK.
  * \param[in] cek_len        The CEK length.
- *
- * Note: When applied to a COSE_Encrypt0 structure this call will lead
- * to an error since COSE_Encrypt0 does not contain recipient information.
  */
 static void
-t_cose_encrypt_set_encryption_key( struct t_cose_encrypt_enc_ctx* context,
-                                   uint8_t*                       cek,
-                                   size_t                         cek_len);
+t_cose_encrypt_set_encryption_key(struct t_cose_encrypt_enc_ctx *context,
+                                  uint8_t                       *cek,
+                                  size_t                         cek_len);
 
 /**
  * \brief  Create a \c COSE_Encrypt or \c COSE_Encrypt0 structure,
@@ -327,19 +326,17 @@ t_cose_encrypt_set_encryption_key( struct t_cose_encrypt_enc_ctx* context,
 *  the resulting COSE structure.
  *
  * \param[in] context             The t_cose_encrypt_enc_ctx context.
- * \param[in,out] encrypt_ctx     COSE encryption structure.
+ * \param[in] encrypt_ctx         COSE encryption structure.
  * \param[in] payload             Plaintext.
- * \param[out] encrypted_payload  Ciphertext.
+ * \param[in] encrypted_payload   Ciphertext.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  */
 enum t_cose_err_t
-t_cose_encrypt_enc( struct t_cose_encrypt_enc_ctx*            context,
-                    QCBOREncodeContext*                       encrypt_ctx,
-                    struct q_useful_buf_c                     payload,
-                    struct q_useful_buf_c                     encrypted_payload
-                  );
-
+t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx            *context,
+                   QCBOREncodeContext                       *encrypt_ctx,
+                   struct q_useful_buf_c                     payload,
+                   struct q_useful_buf                       encrypted_payload);
 
 /**
  * \brief  Create a \c COSE_Encrypt or \c COSE_Encrypt0 structure
@@ -347,42 +344,41 @@ t_cose_encrypt_enc( struct t_cose_encrypt_enc_ctx*            context,
  *  in the resulting COSE structure but has to be conveyed separately.
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
- * \param[in,out] encrypt_ctx          COSE encryption structure.
+ * \param[in] encrypt_ctx              COSE encryption structure.
  * \param[in] detached_payload         Plaintext.
- * \param[out] encrypted_payload       Ciphertext.
+ * \param[in] encrypted_payload        Ciphertext.
  * \param[out] encrypted_payload_size  Ciphertext length.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  */
 enum t_cose_err_t
-t_cose_encrypt_enc_detached( struct t_cose_encrypt_enc_ctx*            context,
-                             QCBOREncodeContext*                       encrypt_ctx,
-                             struct q_useful_buf_c                     detached_payload,
-                             struct q_useful_buf_c                     encrypted_payload,
-                             size_t*                                   encrypted_payload_size
-                           );
+t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc_ctx            *context,
+                            QCBOREncodeContext                       *encrypt_ctx,
+                            struct q_useful_buf_c                     detached_payload,
+                            struct q_useful_buf                       encrypted_payload,
+                            size_t                                   *encrypted_payload_size);
 
 /**
  * \brief  Finishes the computation of the \c COSE_Encrypt or
- * \c COSE_Encrypt0 structure.
+ * \c COSE_Encrypt0 structure. The result is stored in the
+ * encrypt_ctx variable.
  *
  * \param[in] context                   The t_cose_encrypt_enc_ctx context.
- * \param[in,out] encrypt_ctx           COSE encryption structure.
+ * \param[in] encrypt_ctx               COSE encryption structure.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  */
 enum t_cose_err_t
-t_cose_encrypt_enc_finish( struct t_cose_encrypt_enc_ctx* context,
-                           QCBOREncodeContext*            encrypt_ctx);
+t_cose_encrypt_enc_finish(struct t_cose_encrypt_enc_ctx *context,
+                          QCBOREncodeContext            *encrypt_ctx);
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
 static inline void
-t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx* context,
-                         uint32_t                       option_flags,
-                         int32_t                        cose_algorithm_id
-                       )
+t_cose_encrypt_enc_init(struct t_cose_encrypt_enc_ctx *context,
+                        uint32_t                       option_flags,
+                        int32_t                        cose_algorithm_id)
 {
     memset(context, 0, sizeof(*context));
     context->cose_algorithm_id = cose_algorithm_id;
@@ -391,11 +387,10 @@ t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx* context,
 }
 
 static void
-t_cose_encrypt_enc0_init( struct t_cose_encrypt_enc_ctx* context,
-                          uint32_t                       option_flags,
-                          int32_t                        cose_algorithm_id,
-                          struct q_useful_buf_c          kid
-                        )
+t_cose_encrypt_enc0_init(struct t_cose_encrypt_enc_ctx *context,
+                         uint32_t                       option_flags,
+                         int32_t                        cose_algorithm_id,
+                         struct q_useful_buf_c          kid)
 {
 
     memset(context, 0, sizeof(*context));
@@ -406,10 +401,9 @@ t_cose_encrypt_enc0_init( struct t_cose_encrypt_enc_ctx* context,
 }
 
 static inline void
-t_cose_encrypt_hpke_recipient_init( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                    uint32_t                                  option_flags,
-                                    int32_t                                   cose_algorithm_id
-                                  )
+t_cose_encrypt_hpke_recipient_init(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                   uint32_t                                  option_flags,
+                                   int32_t                                   cose_algorithm_id)
 {
     memset(context, 0, sizeof(*context));
     context->cose_algorithm_id = cose_algorithm_id;
@@ -417,38 +411,34 @@ t_cose_encrypt_hpke_recipient_init( struct t_cose_encrypt_recipient_hpke_ctx* co
 }
 
 static inline void
-t_cose_encrypt_hpke_set_ephemeral_key( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                       struct t_cose_key                         ephemeral_key
-                                     )
+t_cose_encrypt_hpke_set_ephemeral_key(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                      struct t_cose_key                         ephemeral_key)
 {
     context->ephemeral_key = ephemeral_key;
 }
 
 static inline void
-t_cose_encrypt_hpke_set_recipient_key( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                       struct t_cose_key                         recipient_key,
-                                       struct q_useful_buf_c                     kid
-                                     )
+t_cose_encrypt_hpke_set_recipient_key(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                      struct t_cose_key                         recipient_key,
+                                      struct q_useful_buf_c                     kid)
 {
     context->recipient_key = recipient_key;
     context->kid = kid;
 }
 
 static inline void
-t_cose_encrypt_hpke_set_encryption_key( struct t_cose_encrypt_recipient_hpke_ctx* context,
-                                        uint8_t*                                  cek,
-                                        size_t                                    cek_len
-                                      )
+t_cose_encrypt_hpke_set_encryption_key(struct t_cose_encrypt_recipient_hpke_ctx *context,
+                                       uint8_t                                  *cek,
+                                       size_t                                    cek_len)
 {
     context->cek = cek;
     context->cek_len = cek_len;
 }
 
 static inline void
-t_cose_encrypt_set_encryption_key( struct t_cose_encrypt_enc_ctx*            context,
-                                   uint8_t*                                  cek,
-                                   size_t                                    cek_len
-                                 )
+t_cose_encrypt_set_encryption_key(struct t_cose_encrypt_enc_ctx            *context,
+                                  uint8_t                                  *cek,
+                                  size_t                                    cek_len)
 {
     context->key = cek;
     context->key_len = cek_len;

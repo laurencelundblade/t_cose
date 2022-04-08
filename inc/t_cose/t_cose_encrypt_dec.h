@@ -112,22 +112,22 @@ struct t_cose_encrypt_dec_ctx {
  * \brief Initialize context for \c COSE_Encrypt and \c COSE_Encrypt0
  * decryption.
  *
- * \param[in,out]  context           The context to initialize.
+ * \param[in]      context           The context to initialize.
  * \param[in]      option_flags      Options controlling the encryption.
  *                                   Currently none.
  * \param[in]      key_distribution  Key distribution setting
  */
 static void
-t_cose_encrypt_dec_init( struct t_cose_encrypt_dec_ctx* context,
-                         uint32_t                       option_flags,
-                         uint32_t                       key_distribution);
+t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *context,
+                        uint32_t                       option_flags,
+                        uint32_t                       key_distribution);
 
 
 /**
  * \brief Set private key for decryption of \c COSE_Encrypt and
  * \c COSE_Encrypt0.
  *
- * \param[in,out] context   The t_cose_encrypt_dec_ctx context.
+ * \param[in] context       The t_cose_encrypt_dec_ctx context.
  * \param[in] key           The private key.
  * \param[in] kid           The key identifier.
  *
@@ -138,9 +138,9 @@ t_cose_encrypt_dec_init( struct t_cose_encrypt_dec_ctx* context,
  * \c COSE_Encrypt structure is assumed.
  */
 static void
-t_cose_encrypt_dec_set_private_key( struct t_cose_encrypt_dec_ctx* context,
-                                    struct t_cose_key              key,
-                                    struct q_useful_buf_c          kid);
+t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx *context,
+                                   struct t_cose_key              key,
+                                   struct q_useful_buf_c          kid);
 
 
 /**
@@ -152,7 +152,7 @@ t_cose_encrypt_dec_set_private_key( struct t_cose_encrypt_dec_ctx* context,
  * \param[in] cose_len                  The COSE payload length.
  * \param[in] detached_ciphertext       The detached ciphertext.
  * \param[in] detached_ciphertext_len   The detached ciphertext length.
- * \param[out] plaintext                A buffer for plaintext 
+ * \param[out] plaintext                A buffer for plaintext.
  * \param[in] plaintext_len             The length of the plaintext buffer.
  * \param[out] plaintext_output_len     The true plaintext length after
  *                                      decryption.
@@ -164,7 +164,7 @@ t_cose_encrypt_dec_set_private_key( struct t_cose_encrypt_dec_ctx* context,
  * detached_ciphertext to 0.
  */
 enum t_cose_err_t
-t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* context,
+t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
                    uint8_t *cose, size_t cose_len,
                    uint8_t *detached_ciphertext, size_t detached_ciphertext_len,
                    uint8_t *plaintext, size_t plaintext_len,
@@ -175,22 +175,22 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* context,
  * Inline implementations of public functions defined above.
  */
 static inline void
-t_cose_encrypt_dec_init( struct t_cose_encrypt_dec_ctx* context,
-                         uint32_t                       option_flags,
-                         uint32_t                       key_distribution)
+t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *context,
+                        uint32_t                       option_flags,
+                        uint32_t                       key_distribution)
 {
-    memset(context,0,sizeof(*context));
-    context->option_flags=option_flags;
-    context->key_distribution=key_distribution;
+    memset(context, 0, sizeof(*context));
+    context->option_flags = option_flags;
+    context->key_distribution = key_distribution;
 }
 
 static inline void
-t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx* context,
+t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx *context,
                                    struct t_cose_key              recipient_key,
                                    struct q_useful_buf_c          kid)
 {
-    memcpy(&context->recipient_key,&recipient_key,sizeof(struct t_cose_key));
-    memcpy(&context->kid,&kid,sizeof(struct q_useful_buf_c));
+    memcpy(&context->recipient_key, &recipient_key, sizeof(struct t_cose_key));
+    memcpy(&context->kid, &kid, sizeof(struct q_useful_buf_c));
 }
 
 #ifdef __cplusplus
