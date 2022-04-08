@@ -3,6 +3,8 @@
  *
  * Copyright 2019-2020, Laurence Lundblade
  *
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
+ *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * See BSD-3-Clause license in README.md
@@ -88,6 +90,14 @@ extern "C" {
  */
 #define T_COSE_ALGORITHM_ES512 -36
 
+/*!
+ * \brief HPKE ciphersuite
+ */
+struct t_cose_crypto_hpke_suite_t {
+    uint16_t    kem_id;  // Key Encryption Method id
+    uint16_t    kdf_id;  // Key Derivation Function id
+    uint16_t    aead_id; // Authenticated Encryption with Associated Data id
+};
 
 
 
@@ -154,6 +164,12 @@ struct t_cose_key {
  */
 #define T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS (1+1+5+17)
 
+
+enum t_cose_key_usage_flags {
+    T_COSE_KEY_USAGE_FLAG_NONE = 0,
+    T_COSE_KEY_USAGE_FLAG_DECRYPT = 1,
+    T_COSE_KEY_USAGE_FLAG_ENCRYPT = 2
+};
 
 /**
  * Error codes return by t_cose.
@@ -234,7 +250,7 @@ enum t_cose_err_t {
     /** General unspecific failure. */
     T_COSE_ERR_FAIL = 17,
 
-    /** Equivalent to \c PSA_ERROR_TAMPERING_DETECTED. */
+    /** Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED. */
     T_COSE_ERR_TAMPERING_DETECTED = 18,
 
     /** The key identified by a \ref t_cose_key or a key ID was not
@@ -286,10 +302,11 @@ enum t_cose_err_t {
      * cryptographic library used by this integration of t_cose.
      */
     T_COSE_ERR_INCORRECT_KEY_FOR_LIB = 29,
+
     /** This implementation only handles integer COSE algorithm IDs with
      * values less than \c INT32_MAX. */
-
     T_COSE_ERR_NON_INTEGER_ALG_ID = 30,
+
     /** The content type parameter contains a content type that is
      * neither integer or text string or it is an integer not in the
      * range of 0 to \c UINT16_MAX. */
@@ -320,6 +337,59 @@ enum t_cose_err_t {
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when
      * verifying a signature. */
     T_COSE_ERR_TOO_MANY_TAGS = 37,
+
+    /** The requested key exchange algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG = 38,
+
+    /** The requested encryption algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 39,
+
+    /** The requested key length is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEY_LENGTH = 40,
+
+    /** Adding a recipient to the COSE_Encrypt0 structure is not allowed.  */
+    T_COSE_ERR_RECIPIENT_CANNOT_BE_ADDED = 41,
+
+    /** The requested cipher algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_CIPHER_ALG = 42,
+
+    /** Something went wrong in the crypto adaptor when
+      * encrypting data. */
+    T_COSE_ERR_ENCRYPT_FAIL = 43,
+
+    /** Something went wrong in the crypto adaptor when
+      * decrypting data. */
+    T_COSE_ERR_DECRYPT_FAIL = 44,
+
+    /** Something went wrong in the crypto adaptor when
+      * invoking HPKE to encrypt data. */
+    T_COSE_ERR_HPKE_ENCRYPT_FAIL = 45,
+
+    /** Something went wrong in the crypto adaptor when
+      * invoking HPKE to decrypt data. */
+    T_COSE_ERR_HPKE_DECRYPT_FAIL = 46,
+
+    /** When decoding a CBOR structure, a mandatory field
+     *  was not found. */
+    T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING = 47,
+
+    /** When decoding the ephemeral key structure, the included
+     * public key is of incorrect or unexpected size. */
+    T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT = 48,
+
+    /** Cryptographic operations may require a key usage flags
+     * to be indicated. If the provided flags are unsupported,
+     * this error is returned. */
+    T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS = 49,
+
+    /** The key import failed. */
+    T_COSE_ERR_KEY_IMPORT_FAILED = 50,
+
+    /** Obtaining random bytes failed. */
+    T_COSE_ERR_RNG_FAILED = 51,
+
+    /** Export of the public key failed. */
+    T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED = 52,
 };
 
 

@@ -3,6 +3,8 @@
  *
  * Copyright 2019, Laurence Lundblade
  *
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
+ *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * See BSD-3-Clause license in README.md
@@ -36,6 +38,7 @@
 
 #include "t_cose_crypto.h"  /* The interface this implements */
 #include <psa/crypto.h>     /* PSA Crypto Interface to mbed crypto or such */
+#include "mbedtls/hpke.h"   /* HPKE Interface */
 
 
 /* Here's the auto-detect and manual override logic for managing PSA
@@ -99,10 +102,84 @@ static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
            err == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
            err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
            err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
-           err == PSA_ERROR_TAMPERING_DETECTED  ? T_COSE_ERR_TAMPERING_DETECTED :
+           err == PSA_ERROR_CORRUPTION_DETECTED ? T_COSE_ERR_TAMPERING_DETECTED :
                                                   T_COSE_ERR_SIG_FAIL;
 }
 
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_convert_hpke_algorithms(
+                int32_t                           hpke_cose_algorithm_id,
+                struct t_cose_crypto_hpke_suite_t *hpke_suite,
+                size_t                            *key_bitlen,
+                int64_t                           *cose_algorithm_id)
+{
+
+    switch (hpke_cose_algorithm_id) {
+    case COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
+        *key_bitlen = 128;
+        *cose_algorithm_id = COSE_ALGORITHM_A128GCM;
+        hpke_suite->kem_id = HPKE_KEM_ID_P256;
+        hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA256;
+        hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_128;
+        break;
+    case COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
+        *key_bitlen = 256;
+        *cose_algorithm_id = COSE_ALGORITHM_A256GCM;
+        hpke_suite->kem_id = HPKE_KEM_ID_P521;
+        hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA512;
+        hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_256;
+        break;
+    default:
+        return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
+    }
+
+    return(T_COSE_SUCCESS);
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_get_random(struct q_useful_buf    buffer)
+{
+    psa_status_t status;
+
+    /* Generate buffer.len bytes of random values */
+    status = psa_generate_random(buffer.ptr, buffer.len);
+
+    if (status != PSA_SUCCESS) {
+        return(T_COSE_ERR_RNG_FAILED);
+    }
+
+    return(T_COSE_SUCCESS);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_export_public_key(struct t_cose_key      key,
+                                struct q_useful_buf    pk_buffer,
+                                size_t                *pk_len)
+{
+    psa_status_t      status;
+
+    /* Export public key */
+    status = psa_export_public_key(key.k.key_handle,
+                                   pk_buffer.ptr, /* PK buffer */
+                                   pk_buffer.len, /* PK buffer size */
+                                   pk_len);       /* Result length */
+
+    if (status != PSA_SUCCESS) {
+        return(T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED);
+    }
+
+    return(T_COSE_SUCCESS);
+}
 
 /*
  * See documentation in t_cose_crypto.h
@@ -152,12 +229,12 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
      * Crypto ceases providing backwards compatibility then this code
      * has to be changed to use psa_verify_hash().
      */
-    psa_result = psa_asymmetric_verify(verification_key_psa,
-                                       psa_alg_id,
-                                       hash_to_verify.ptr,
-                                       hash_to_verify.len,
-                                       signature.ptr,
-                                       signature.len);
+    psa_result = psa_verify_hash(verification_key_psa,
+                                 psa_alg_id,
+                                 hash_to_verify.ptr,
+                                 hash_to_verify.len,
+                                 signature.ptr,
+                                 signature.len);
 
     return_value = psa_status_to_t_cose_error_signing(psa_result);
 
@@ -165,6 +242,294 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
     return return_value;
 }
 
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
+                      struct q_useful_buf_c  key,
+                      struct q_useful_buf_c  nonce,
+                      struct q_useful_buf_c  add_data,
+                      struct q_useful_buf_c  plaintext,
+                      struct q_useful_buf    ciphertext_buffer,
+                      size_t                 *ciphertext_output_len)
+{
+    psa_status_t           status;
+    psa_algorithm_t        psa_algorithm;
+    psa_key_type_t         psa_keytype;
+    size_t                 key_bitlen;
+    psa_key_handle_t       cek_handle = 0;
+    psa_key_attributes_t   attributes = PSA_KEY_ATTRIBUTES_INIT;
+
+    /* Set encryption algorithm information */
+    switch (cose_algorithm_id) {
+    case COSE_ALGORITHM_A128GCM:
+        psa_algorithm = PSA_ALG_GCM;
+        psa_keytype = PSA_KEY_TYPE_AES;
+        key_bitlen = 128;
+        break;
+
+    case COSE_ALGORITHM_A256GCM:
+        psa_algorithm = PSA_ALG_GCM;
+        psa_keytype = PSA_KEY_TYPE_AES;
+        key_bitlen = 256;
+        break;
+
+    default:
+        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
+    }
+
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT);
+    psa_set_key_algorithm(&attributes, psa_algorithm);
+    psa_set_key_type(&attributes, psa_keytype);
+    psa_set_key_bits(&attributes, key_bitlen);
+
+    status = psa_import_key(&attributes,
+                            key.ptr,
+                            key.len,
+                            &cek_handle);
+
+    if (status != PSA_SUCCESS) {
+        return(T_COSE_ERR_KEY_IMPORT_FAILED);
+    }
+
+    status = psa_aead_encrypt(
+              cek_handle,                     // key
+              psa_algorithm,                  // algorithm
+              nonce.ptr, nonce.len,           // nonce
+              (const uint8_t *)
+                add_data.ptr,                 // additional data
+              add_data.len,                   // additional data length
+              plaintext.ptr, plaintext.len,   // plaintext
+              ciphertext_buffer.ptr,          // ciphertext
+              ciphertext_buffer.len,          // ciphertext length
+              ciphertext_output_len );        // length of output
+
+
+    if (status != PSA_SUCCESS) {
+        return(T_COSE_ERR_ENCRYPT_FAIL);
+    }
+
+    return(T_COSE_SUCCESS);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
+                           struct q_useful_buf_c              pkE,
+                           struct t_cose_key                  pkR,
+                           struct q_useful_buf_c              ciphertext,
+                           struct q_useful_buf                plaintext,
+                           size_t                             *plaintext_len)
+{
+    hpke_suite_t           suite;
+    psa_algorithm_t        psa_algorithm;
+    psa_key_type_t         psa_keytype;
+    size_t                 key_bitlen;
+    int                    ret;
+
+    /* Setting key distribution parameters. */
+    switch(cose_algorithm_id) {
+    case COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
+        key_bitlen = 128;
+        suite.kem_id = HPKE_KEM_ID_P256;
+        suite.kdf_id = HPKE_KDF_ID_HKDF_SHA256;
+        suite.aead_id = HPKE_AEAD_ID_AES_GCM_128;
+        psa_algorithm = PSA_ALG_GCM;
+        psa_keytype = PSA_KEY_TYPE_AES;
+        break;
+
+    case COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
+        key_bitlen = 256;
+        suite.kem_id = HPKE_KEM_ID_P521;
+        suite.kdf_id = HPKE_KDF_ID_HKDF_SHA512;
+        suite.aead_id = HPKE_AEAD_ID_AES_GCM_256;
+        psa_algorithm = PSA_ALG_GCM;
+        psa_keytype = PSA_KEY_TYPE_AES;
+        break;
+
+    default:
+        return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
+    }
+
+    /* Execute HPKE */
+    *plaintext_len = plaintext.len;
+
+    ret = mbedtls_hpke_decrypt(
+            HPKE_MODE_BASE,                  // HPKE mode
+            suite,                           // ciphersuite
+            NULL, 0, NULL,                   // PSK for authentication
+            0, NULL,                         // pkS
+            pkR.k.key_handle,                // skR handle
+            pkE.len,                         // pkE_len
+            (unsigned char *) pkE.ptr,       // pkE
+            ciphertext.len,                  // Ciphertext length
+            (unsigned char *)
+                ciphertext.ptr,              // Ciphertext
+            0, NULL,                         // Additional data
+            0, NULL,                         // Info
+            plaintext_len,                   // Plaintext length
+            plaintext.ptr                    // Plaintext
+        );
+
+    if (ret != 0) {
+        return(T_COSE_ERR_HPKE_DECRYPT_FAIL);
+    }
+
+    return(T_COSE_SUCCESS);
+}
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
+                           struct q_useful_buf_c              pkR,
+                           struct t_cose_key                  pkE,
+                           struct q_useful_buf_c              plaintext,
+                           struct q_useful_buf                ciphertext,
+                           size_t                             *ciphertext_len)
+{
+    int             ret;
+    hpke_suite_t    hpke_suite;
+
+    hpke_suite.aead_id = suite.aead_id;
+    hpke_suite.kdf_id = suite.kdf_id;
+    hpke_suite.kem_id = suite.kem_id;
+
+    ret = mbedtls_hpke_encrypt(
+            HPKE_MODE_BASE,                     // HPKE mode
+            hpke_suite,                         // ciphersuite
+            NULL, 0, NULL,                      // PSK
+            pkR.len,                            // pkR length
+            (uint8_t *) pkR.ptr,                // pkR
+            0,                                  // skI
+            plaintext.len,                      // plaintext length
+            (uint8_t *) plaintext.ptr,          // plaintext
+            0, NULL,                            // Additional data
+            0, NULL,                            // Info
+            pkE.k.key_handle,                   // skE handle
+            0, NULL,                            // pkE
+            ciphertext_len, ciphertext.ptr);   // ciphertext
+
+    if (ret != 0) {
+        return(T_COSE_ERR_HPKE_ENCRYPT_FAIL);
+    }
+
+    return(T_COSE_SUCCESS);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
+                           uint8_t              *cek,
+                           size_t               cek_len,
+                           uint8_t              flags,
+                           struct t_cose_key    *key)
+{
+    psa_key_attributes_t   attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_status_t           status;
+    psa_algorithm_t        psa_algorithm;
+    psa_key_type_t         psa_keytype;
+    size_t                 key_bitlen;
+    psa_key_usage_t        usage_flags = T_COSE_KEY_USAGE_FLAG_NONE;
+
+    if (flags == T_COSE_KEY_USAGE_FLAG_DECRYPT) {
+        usage_flags = PSA_KEY_USAGE_DECRYPT;
+    } else if (flags == T_COSE_KEY_USAGE_FLAG_ENCRYPT) {
+        usage_flags = PSA_KEY_USAGE_ENCRYPT;
+    } else {
+        return(T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS);
+    }
+
+    /* Set algorithm information */
+    switch (cose_algorithm_id) {
+    case COSE_ALGORITHM_A128GCM:
+        key_bitlen = 128;
+        psa_algorithm = PSA_ALG_GCM;
+        psa_keytype = PSA_KEY_TYPE_AES;
+        break;
+
+    case COSE_ALGORITHM_A256GCM:
+        key_bitlen = 256;
+        psa_algorithm = PSA_ALG_GCM;
+        psa_keytype = PSA_KEY_TYPE_AES;
+        break;
+
+    default:
+        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
+    }
+
+    psa_set_key_usage_flags(&attributes, usage_flags);
+    psa_set_key_algorithm(&attributes, psa_algorithm);
+    psa_set_key_type(&attributes, psa_keytype);
+    psa_set_key_bits(&attributes, key_bitlen);
+
+    status = psa_import_key(&attributes,
+                            cek,
+                            cek_len,
+                            (mbedtls_svc_key_id_t *) &key->k.key_handle);
+
+    if (status != PSA_SUCCESS) {
+        return(T_COSE_ERR_UNKNOWN_KEY);
+    }
+
+    key->crypto_lib = T_COSE_CRYPTO_LIB_PSA;
+
+    return(T_COSE_SUCCESS);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
+                      struct t_cose_key      key,
+                      struct q_useful_buf_c  nonce,
+                      struct q_useful_buf_c  add_data,
+                      struct q_useful_buf_c  ciphertext,
+                      struct q_useful_buf    plaintext_buffer,
+                      size_t *plaintext_output_len)
+{
+    psa_status_t           status;
+    psa_algorithm_t        psa_algorithm;
+    psa_key_type_t         psa_keytype;
+
+    /* Set decryption algorithm information */
+    switch (cose_algorithm_id) {
+    case COSE_ALGORITHM_A128GCM:
+        psa_algorithm = PSA_ALG_GCM;
+        break;
+
+    case COSE_ALGORITHM_A256GCM:
+        psa_algorithm = PSA_ALG_GCM;
+        break;
+
+    default:
+        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
+    }
+
+    status = psa_aead_decrypt(
+              key.k.key_handle,               // key
+              psa_algorithm,                  // algorithm
+              nonce.ptr, nonce.len,           // nonce
+              (const uint8_t *)
+                add_data.ptr,                 // additional data
+              add_data.len,                   // additional data length
+              ciphertext.ptr, ciphertext.len, // ciphertext
+              plaintext_buffer.ptr,           // plaintext
+              plaintext_buffer.len,           // plaintext length
+              plaintext_output_len );         // length of output
+
+    if (status != PSA_SUCCESS) {
+        return(T_COSE_ERR_DECRYPT_FAIL);
+    }
+
+    return(T_COSE_SUCCESS);
+}
 
 /*
  * See documentation in t_cose_crypto.h
@@ -212,17 +577,17 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
      * providing backwards compatibility then this code has to be
      * changed to use psa_sign_hash().
      */
-    psa_result = psa_asymmetric_sign(signing_key_psa,
-                                     psa_alg_id,
-                                     hash_to_sign.ptr,
-                                     hash_to_sign.len,
-                                     signature_buffer.ptr, /* Sig buf */
-                                     signature_buffer.len, /* Sig buf size */
-                                    &signature_len);       /* Sig length */
+    psa_result = psa_sign_hash(signing_key_psa,
+                               psa_alg_id,
+                               hash_to_sign.ptr,
+                               hash_to_sign.len,
+                               signature_buffer.ptr,  /* Sig buf */
+                               signature_buffer.len,  /* Sig buf size */
+                               &signature_len);       /* Sig length */
 
     return_value = psa_status_to_t_cose_error_signing(psa_result);
 
-    if(return_value == T_COSE_SUCCESS) {
+    if (return_value == T_COSE_SUCCESS) {
         /* Success, fill in the return useful_buf */
         signature->ptr = signature_buffer.ptr;
         signature->len = signature_len;
@@ -253,7 +618,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
      * will save 100 bytes or so of obejct code.
      */
 
-    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+    if (!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
@@ -291,11 +656,11 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 #endif /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
 
     return_value = psa_status_to_t_cose_error_signing(status);
-    if(return_value == T_COSE_SUCCESS) {
+    if (return_value == T_COSE_SUCCESS) {
         /* Calculation of size per RFC 8152 section 8.1 -- round up to
          * number of bytes. */
         key_len_bytes = key_len_bits / 8;
-        if(key_len_bits % 8) {
+        if (key_len_bits % 8) {
             key_len_bytes++;
         }
         /* Double because signature is made of up r and s values */
@@ -381,12 +746,12 @@ enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
 void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
                                struct q_useful_buf_c      data_to_hash)
 {
-    if(hash_ctx->status != PSA_SUCCESS) {
+    if (hash_ctx->status != PSA_SUCCESS) {
         /* In error state. Nothing to do. */
         return;
     }
 
-    if(data_to_hash.ptr == NULL) {
+    if (data_to_hash.ptr == NULL) {
         /* This allows for NULL buffers to be passed in all the way at
          * the top of signer or message creator when all that is
          * happening is the size of the result is being computed.
@@ -409,7 +774,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
                           struct q_useful_buf        buffer_to_hold_result,
                           struct q_useful_buf_c     *hash_result)
 {
-    if(hash_ctx->status != PSA_SUCCESS) {
+    if (hash_ctx->status != PSA_SUCCESS) {
         /* Error state. Nothing to do */
         goto Done;
     }

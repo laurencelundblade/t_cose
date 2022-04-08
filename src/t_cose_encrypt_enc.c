@@ -9,22 +9,17 @@
  */
 #include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose_standard_constants.h"
-#include "psa/crypto.h"
 #include "qcbor/qcbor.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "qcbor/qcbor_spiffy_decode.h"
-#include <mbedtls/aes.h>
-#include <mbedtls/nist_kw.h>
-#include <mbedtls/hkdf.h>
 #include "t_cose_crypto.h"
-#include "mbedtls/hpke.h"
 
 enum t_cose_err_t
 t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc_ctx* context,
                             QCBOREncodeContext* encrypt_ctx,
                             struct q_useful_buf_c detached_payload,
-                            struct q_useful_buf_c encrypted_payload,
+                            struct q_useful_buf   encrypted_payload,
                             size_t* encrypted_payload_size
                            )
 {
@@ -32,8 +27,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc_ctx* context,
     QCBOREncodeContext     additional_data;
     UsefulBufC             scratch;
     QCBORError             ret;
-    psa_key_attributes_t   attributes=PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t       cek_handle=0;
+    struct q_useful_buf    nonce;
 
     /* Additional data buffer */
     UsefulBufC             add_data_buf;
@@ -43,22 +37,19 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc_ctx* context,
 
     size_t                 ciphertext_length;
     size_t                 key_bitlen;
+    enum t_cose_err_t      cose_result;
 
     /* Determine algorithm parameters */
     switch(context->cose_algorithm_id) {
     case COSE_ALGORITHM_A128GCM:
-        psa_algorithm=PSA_ALG_GCM;
-        psa_keytype=PSA_KEY_TYPE_AES;
-        key_bitlen=128;
+        key_bitlen = 128;
         break;
     case COSE_ALGORITHM_A256GCM:
-        psa_algorithm=PSA_ALG_GCM;
-        psa_keytype=PSA_KEY_TYPE_AES;
-        key_bitlen=256;
+        key_bitlen = 256;
         break;
     default:
         /* Unsupported algorithm */
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
     }
 
     if (context->option_flags == T_COSE_OPT_COSE_ENCRYPT0) {
@@ -89,10 +80,13 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc_ctx* context,
     QCBOREncode_OpenMap(encrypt_ctx);
 
     /* Generate random nonce */
-    status=psa_generate_random(context->nonce,key_bitlen/8);
+    nonce.len = key_bitlen / 8;
+    nonce.ptr = context->nonce;
 
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
+    cose_result = t_cose_crypto_get_random(nonce);
+
+    if (cose_result != T_COSE_SUCCESS) {
+        return(cose_result);
     }
 
     QCBOREncode_AddBytesToMapN(encrypt_ctx,
@@ -171,40 +165,29 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc_ctx* context,
     ret = QCBOREncode_Finish(&additional_data, &add_data_buf);
 
     if (ret != QCBOR_SUCCESS) {
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
-    psa_set_key_usage_flags(&attributes,PSA_KEY_USAGE_ENCRYPT);
-    psa_set_key_algorithm(&attributes,psa_algorithm);
-    psa_set_key_type(&attributes,psa_keytype);
-    psa_set_key_bits(&attributes,key_bitlen);
+    cose_result = t_cose_crypto_encrypt(
+                       context->cose_algorithm_id,
+                       (struct q_useful_buf_c)
+                       {
+                          .ptr = context->key,
+                          .len = context->key_len
+                       },
+                       (struct q_useful_buf_c)
+                       {
+                          .ptr = context->nonce,
+                          .len = key_bitlen / 8
+                       },
+                       add_data_buf,
+                       detached_payload,
+                       encrypted_payload,
+                       encrypted_payload_size);
 
-    status=psa_import_key(&attributes,
-                          context->key,
-                          context->key_len,
-                          &cek_handle);
-
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
+    if (cose_result != T_COSE_SUCCESS) {
+        return(cose_result);
     }
-
-    status=psa_aead_encrypt(
-             cek_handle,                             // key
-             psa_algorithm,                          // algorithm
-             (const uint8_t *) context->nonce,       // nonce
-             key_bitlen/8,                           // nonce length
-             (const uint8_t *) add_data_buf.ptr,     // additional data
-             add_data_buf.len,                       // additional data length
-             (const uint8_t *) detached_payload.ptr, // plaintext
-             detached_payload.len,                   // plaintext length
-             (uint8_t *) encrypted_payload.ptr,      // ciphertext
-             encrypted_payload.len,                  // ciphertext length
-             encrypted_payload_size );               // length of output
-
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
-    }
-
     return(T_COSE_SUCCESS);
 }
 
@@ -212,19 +195,18 @@ enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx* context,
                    QCBOREncodeContext* encrypt_ctx,
                    struct q_useful_buf_c payload,
-                   struct q_useful_buf_c encrypted_payload
+                   struct q_useful_buf encrypted_payload
                   )
 {
     psa_status_t           status;
     QCBOREncodeContext     additional_data;
     UsefulBufC             scratch;
     size_t                 ciphertext_length;
-    psa_key_attributes_t   attributes=PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t       cek_handle=0;
+    size_t                 cek_verification_len;
     QCBORError             ret;
-    psa_algorithm_t        psa_algorithm;
-    psa_key_type_t         psa_keytype;
     size_t                 key_bitlen;
+    enum t_cose_err_t      cose_result;
+    struct q_useful_buf    nonce;
 
     /* Additional data buffer */
     UsefulBufC             add_data_buf;
@@ -235,25 +217,20 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx* context,
     /* Determine algorithm parameters */
     switch(context->cose_algorithm_id) {
     case COSE_ALGORITHM_A128GCM:
-        psa_algorithm=PSA_ALG_GCM;
-        psa_keytype=PSA_KEY_TYPE_AES;
-        key_bitlen=128;
+        key_bitlen = 128;
         break;
     case COSE_ALGORITHM_A256GCM:
-        psa_algorithm=PSA_ALG_GCM;
-        psa_keytype=PSA_KEY_TYPE_AES;
-        key_bitlen=256;
+        key_bitlen = 256;
         break;
     default:
-        /* Unsupported algorithm */
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
     }
 
     /* Add the CBOR tag */
-    if (context->option_flags==T_COSE_OPT_COSE_ENCRYPT0) {
-        QCBOREncode_AddTag(encrypt_ctx,CBOR_TAG_ENCRYPT0);
+    if (context->option_flags == T_COSE_OPT_COSE_ENCRYPT0) {
+        QCBOREncode_AddTag(encrypt_ctx, CBOR_TAG_COSE_ENCRYPT0);
     } else {
-        QCBOREncode_AddTag(encrypt_ctx,CBOR_TAG_ENCRYPT);
+        QCBOREncode_AddTag(encrypt_ctx, CBOR_TAG_COSE_ENCRYPT);
     }
 
     /* Open COSE_Encrypt array */
@@ -275,11 +252,14 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx* context,
     /* Add unprotected Header with IV/nonce parameter */
     QCBOREncode_OpenMap(encrypt_ctx);
 
-    /* Generate random nonce */
-    status=psa_generate_random(context->nonce,key_bitlen/8);
+    /* Generate nonce */
+    nonce.len = key_bitlen / 8;
+    nonce.ptr = context->nonce;
 
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
+    cose_result = t_cose_crypto_get_random(nonce);
+
+    if (cose_result != T_COSE_SUCCESS) {
+        return(cose_result);
     }
 
     QCBOREncode_AddBytesToMapN(encrypt_ctx,
@@ -304,7 +284,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx* context,
     /* Create Additional Data Structure
     *
     *  Enc_structure = [
-    *    context : "Encrypt",
+    *    context : "Encrypt" or "Encrypt0",
     *    protected : empty_or_serialized_map,
     *    external_aad : bstr
     *  ]
@@ -360,38 +340,28 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx* context,
     ret = QCBOREncode_Finish(&additional_data, &add_data_buf);
 
     if (ret != QCBOR_SUCCESS) {
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
-    psa_set_key_usage_flags(&attributes,PSA_KEY_USAGE_ENCRYPT);
-    psa_set_key_algorithm(&attributes,psa_algorithm);
-    psa_set_key_type(&attributes,psa_keytype);
-    psa_set_key_bits(&attributes,key_bitlen);
+    cose_result = t_cose_crypto_encrypt(
+                       context->cose_algorithm_id,
+                       (struct q_useful_buf_c)
+                       {
+                          .ptr = context->key,
+                          .len = context->key_len
+                       },
+                       (struct q_useful_buf_c)
+                       {
+                          .ptr = context->nonce,
+                          .len = key_bitlen / 8
+                       },
+                       add_data_buf,
+                       payload,
+                       encrypted_payload,
+                       &ciphertext_length);
 
-    status = psa_import_key(&attributes,
-                            context->key,
-                            context->key_len,
-                            &cek_handle);
-
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
-    }
-
-    status=psa_aead_encrypt(
-             cek_handle,                          // key
-             psa_algorithm,                       // algorithm
-             (const uint8_t *) context->nonce,    // nonce
-             key_bitlen / 8,                      // nonce length
-             (const uint8_t *) add_data_buf.ptr,  // additional data
-             add_data_buf.len,                    // additional data length
-             (const uint8_t *) payload.ptr,       // plaintext
-             payload.len,                         // plaintext length
-             (uint8_t *) encrypted_payload.ptr,   // ciphertext
-             encrypted_payload.len,               // ciphertext length
-             &ciphertext_length);                 // length of output
-
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
+    if (cose_result != T_COSE_SUCCESS) {
+        return(cose_result);
     }
 
     QCBOREncode_AddBytes(encrypt_ctx,
@@ -428,15 +398,12 @@ t_cose_encrypt_hpke_create_recipient(struct t_cose_encrypt_recipient_hpke_ctx* c
 {
     size_t                 key_bitlen;
     size_t                 x_len;
-    psa_algorithm_t        psa_algorithm;
     int64_t                algorithm_id;
-    psa_status_t           status;
-    QCBORError             ret=QCBOR_SUCCESS;
+    QCBORError             ret = QCBOR_SUCCESS;
     UsefulBufC             scratch;
     QCBOREncodeContext     ephemeral_key;
-    uint8_t                ephemeral_buf[100]={0};
-    struct q_useful_buf    e_buf={ephemeral_buf,sizeof(ephemeral_buf)};
-    hpke_suite_t           suite;
+    uint8_t                ephemeral_buf[100] = {0};
+    struct q_useful_buf    e_buf = {ephemeral_buf, sizeof(ephemeral_buf)};
     uint8_t                encrypted_cek[PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH)];
     size_t                 encrypted_cek_len = PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
     UsefulBufC             cek_encrypted_cbor;
@@ -444,71 +411,53 @@ t_cose_encrypt_hpke_create_recipient(struct t_cose_encrypt_recipient_hpke_ctx* c
     uint8_t                pkR[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     size_t                 pkE_len = PSA_EXPORT_PUBLIC_KEY_MAX_SIZE;
     uint8_t                pkE[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
+    enum t_cose_err_t      return_value;
+    struct t_cose_crypto_hpke_suite_t hpke_suite;
 
     if (context == NULL || EC == NULL) {
         return(T_COSE_ERR_INVALID_ARGUMENT);
     }
 
-    /* Sanity check on the input */
-    switch (context->cose_algorithm_id) {
-        case COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
-            psa_algorithm=PSA_ALG_GCM;
-            key_bitlen=128;
-            algorithm_id=COSE_ALGORITHM_A128GCM;
-            suite.kem_id=HPKE_KEM_ID_P256;
-            suite.kdf_id=HPKE_KDF_ID_HKDF_SHA256;
-            suite.aead_id=HPKE_AEAD_ID_AES_GCM_128;
-            break;
-        case COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
-            psa_algorithm=PSA_ALG_GCM;
-            key_bitlen=256;
-            algorithm_id=COSE_ALGORITHM_A256GCM;
-            suite.kem_id=HPKE_KEM_ID_P521;
-            suite.kdf_id=HPKE_KDF_ID_HKDF_SHA512;
-            suite.aead_id=HPKE_AEAD_ID_AES_GCM_256;
-            break;
+    return_value = t_cose_crypto_convert_hpke_algorithms(context->cose_algorithm_id,
+                                                         &hpke_suite,
+                                                         &key_bitlen,
+                                                         &algorithm_id);
 
-        default:
-            return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
     }
 
-    status=psa_export_public_key(context->recipient_key.k.key_handle,
-                                 pkR,
-                                 pkR_len,
-                                 &pkR_len
-                                );
+    /* Export pkR */
+    return_value = t_cose_crypto_export_public_key(
+                         context->recipient_key,
+                         (struct q_useful_buf) {.ptr=pkR, .len=pkR_len},
+                         &pkR_len);
 
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
     }
 
     /* Export pkE */
-    status = psa_export_public_key(context->ephemeral_key.k.key_handle,
-                                   pkE,
-                                   pkE_len,
-                                   &pkE_len
-                                  );
+    return_value = t_cose_crypto_export_public_key(
+                         context->ephemeral_key,
+                         (struct q_useful_buf) {.ptr=pkE, .len=pkE_len},
+                         &pkE_len);
 
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
     }
 
     /* HPKE encryption */
-    ret = mbedtls_hpke_encrypt(
-            HPKE_MODE_BASE,                     // HPKE mode
-            suite,                              // ciphersuite
-            NULL, 0, NULL,                      // PSK
-            pkR_len, pkR,                       // pkR
-            0,                                  // skI
-            context->cek_len, context->cek,     // plaintext
-            0, NULL,                            // Additional data
-            0, NULL,                            // Info
-            context->ephemeral_key.k.key_handle,// skE hadle
-            NULL, NULL,                         // pkE
-            &encrypted_cek_len, encrypted_cek); // ciphertext
+    return_value = t_cose_crypto_hpke_encrypt(
+                        hpke_suite,
+                        (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len},
+                        context->ephemeral_key,
+                        (struct q_useful_buf_c) {.ptr = context->cek, .len = context->cek_len},
+                        (struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
+                        &encrypted_cek_len);
 
-    if (ret!=0) {
-        return(EXIT_FAILURE);
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
     }
 
     /* Create recipient array */
@@ -584,7 +533,7 @@ t_cose_encrypt_hpke_create_recipient(struct t_cose_encrypt_recipient_hpke_ctx* c
     ret = QCBOREncode_Finish(&ephemeral_key, &scratch);
 
     if (ret != QCBOR_SUCCESS) {
-        return(T_COSE_ERR_FAIL);
+        return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
     /* Add ephemeral parameter to unprotected map */
@@ -626,6 +575,5 @@ t_cose_encrypt_enc_finish(struct t_cose_encrypt_enc_ctx* context,
      /* Close COSE_Encrypt array */
     QCBOREncode_CloseArray(encrypt_ctx);
 
-    // TBD: Maybe close some PSA calls or so.
     return(T_COSE_SUCCESS);
 }

@@ -3,6 +3,8 @@
  *
  * Copyright 2019, Laurence Lundblade
  *
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
+ *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * See BSD-3-Clause license in README.md
@@ -100,7 +102,6 @@ extern "C" {
 /* Constant for the maximum key size with encryption algorithms */
 #define T_COSE_ENCRYPTION_MAX_KEY_LENGTH 32
 
-
 #define T_COSE_EC_P256_SIG_SIZE 64  /* size for secp256r1 */
 #define T_COSE_EC_P384_SIG_SIZE 96  /* size for secp384r1 */
 #define T_COSE_EC_P512_SIG_SIZE 132 /* size for secp521r1 */
@@ -155,6 +156,137 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
                        struct t_cose_key  signing_key,
                        size_t            *sig_size);
 
+/**
+ * \brief Returns the requested number of random bytes.
+ *
+ * \param[in] buffer             Pointer and length of buffer into which
+ *                               the resulting random bytes are put.
+ *
+ * This function will either return the requested number of random bytes,
+ * or produce an error.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully returned the requested number of random bytes.
+ * \retval T_COSE_ERR_RNG_FAILED
+ *         The random number generator failed to return the requested
+ *         number of bytes.
+ */
+enum t_cose_err_t
+t_cose_crypto_get_random(struct q_useful_buf buffer);
+
+/**
+ * \brief Given a COSE HPKE algorithm id this function returns the
+ *        HPKE algorithm structure, the key length (in bits) and
+ *        the COSE algorithm ID.
+ *
+ * \param[in] buffer             Pointer and length of buffer into which
+ *                               the resulting random bytes are put.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully produced the HPKE algorithm structure.
+ * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
+ *         The supported key exchange algorithm is not supported.
+ */
+
+enum t_cose_err_t
+t_cose_crypto_convert_hpke_algorithms(
+                int32_t                           hpke_cose_algorithm_id,
+                struct t_cose_crypto_hpke_suite_t *hpke_suite,
+                size_t                            *key_bitlen,
+                int64_t                           *cose_algorithm_id);
+
+/**
+ * \brief Exports the public key
+ *
+ * \param[in] key               Handle to key
+ * \param[in] pk_buffer         Pointer and length of buffer into which
+ *                              the resulting public key is put.
+ * \param[out] pk               Public Key
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully exported the public key.
+ * \retval T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED
+ *         The public key export operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_export_public_key(struct t_cose_key      key,
+                                struct q_useful_buf    pk_buffer,
+                                size_t                *pk_len);
+
+/**
+ * \brief HPKE Encrypt Wrapper
+ *
+ * \param[in] suite               HPKE ciphersuite
+ * \param[in] pkR                 pkR buffer
+ * \param[in] pkE                 pkE buffer
+ * \param[in] plaintext           Plaintext buffer
+ * \param[in] ciphertext          Ciphertext buffer
+ * \param[out] ciphertext_len     Length of the produced ciphertext
+ *
+ * \retval T_COSE_SUCCESS
+ *         HPKE encrypt operation was successful.
+ * \retval T_COSE_ERR_HPKE_ENCRYPT_FAIL
+ *         Encrypt operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
+                           struct q_useful_buf_c              pkR,
+                           struct t_cose_key                  pkE,
+                           struct q_useful_buf_c              plaintext,
+                           struct q_useful_buf                ciphertext,
+                           size_t                             *ciphertext_len);
+
+
+/**
+ * \brief HPKE Decrypt Wrapper
+ *
+ * \param[in] cose_algorithm_id   COSE algorithm id
+ * \param[in] pkE                 pkE buffer
+ * \param[in] pkR                 pkR key
+ * \param[in] ciphertext          Ciphertext buffer
+ * \param[in] plaintext           Plaintext buffer
+ * \param[out] plaintext_len      Length of the returned plaintext
+ *
+ * \retval T_COSE_SUCCESS
+ *         HPKE decrypt operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
+ *         An unsupported algorithm was supplied to the function call.
+ * \retval T_COSE_ERR_HPKE_DECRYPT_FAIL
+ *         Decrypt operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
+                           struct q_useful_buf_c              pkE,
+                           struct t_cose_key                  pkR,
+                           struct q_useful_buf_c              ciphertext,
+                           struct q_useful_buf                plaintext,
+                           size_t                             *plaintext_len);
+
+/**
+ * \brief Returns the t_cose_key given an algorithm.and a symmetric key
+ *
+ * \param[in] cose_algorithm_id  COSE algorithm id
+ * \param[in] cek                Symmetric key
+ * \param[in] cek_len            Symmetric key length
+ * \param[in] flags              Key usage flags
+ * \param[out] key               Key in t_cose_key structure.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The key was successfully imported and is returned in the
+ *         t_cose_key format.
+ * \retval T_COSE_ERR_UNKNOWN_KEY
+ *         The provided symmetric key could not be imported.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported COSE algorithm was provided.
+ * \retval T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS
+ *         The provided key usage flags are unsupported.
+ */
+enum t_cose_err_t
+t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
+                           uint8_t              *cek,
+                           size_t               cek_len,
+                           uint8_t              flags,
+                           struct t_cose_key    *key);
 
 /**
  * \brief Perform public key signing. Part of the t_cose crypto
@@ -278,7 +410,77 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
                              struct q_useful_buf_c signature);
 
 
+/**
+ * \brief Decrypt a ciphertext using an AEAD cipher. Part of the
+ * t_cose crypto adaptation layer.
+ *
+ * \param[in] cose_algorithm_id      The algorithm to use for decryption.
+ *                                   The IDs are defined in [COSE (RFC 8152)]
+ *                                   (https://tools.ietf.org/html/rfc8152)
+ *                                    or in the [IANA COSE Registry]
+ *                                   (https://www.iana.org/assignments/cose/cose.xhtml).
+ * \param[in] key                    The decryption key to use.
+ * \param[in] nonce                  The nonce used as input to the decryption operation.
+ * \param[in] add_data               Additional data used for decryption.
+ * \param[in] ciphertext             The ciphertext to decrypt.
+ * \param[in] plaintext_buffer       Buffer where the plaintext will be put.
+ * \param[out] plaintext_output_len  The size of the plaintext.
+ *
+ * The key provided must be a symmetric key of the correct type for
+ * \c cose_algorithm_id.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The decryption operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported cipher algorithm was provided.
+ * \retval T_COSE_ERR_DECRYPT_FAIL
+ *         The decryption operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
+                      struct t_cose_key      key,
+                      struct q_useful_buf_c  nonce,
+                      struct q_useful_buf_c  add_data,
+                      struct q_useful_buf_c  ciphertext,
+                      struct q_useful_buf    plaintext_buffer,
+                      size_t                 *plaintext_output_len);
 
+/**
+ * \brief Encrypt plaintext using an AEAD cipher. Part of the
+ * t_cose crypto adaptation layer.
+ *
+ * \param[in] cose_algorithm_id      The algorithm to use for encryption.
+ *                                   The IDs are defined in [COSE (RFC 8152)]
+ *                                   (https://tools.ietf.org/html/rfc8152)
+ *                                    or in the [IANA COSE Registry]
+ *                                   (https://www.iana.org/assignments/cose/cose.xhtml).
+ * \param[in] key                    The encryption key to use.
+ * \param[in] nonce                  The nonce used as input to the encryption operation.
+ * \param[in] add_data               Additional data used for encryption.
+ * \param[in] plaintext              The plaintext to encrypt.
+ * \param[in] ciphertext_buffer      Buffer where the ciphertext will be put.
+ * \param[out] ciphertext_output_len The size of the ciphertext.
+ *
+ * The key provided must be a symmetric key of the correct type for
+ * \c cose_algorithm_id.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The decryption operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported cipher algorithm was provided.
+ * \retval T_COSE_ERR_KEY_IMPORT_FAILED
+ *         The provided key could not be imported.
+ * \retval T_COSE_ERR_ENCRYPT_FAIL
+ *         The encryption operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
+                      struct q_useful_buf_c  key,
+                      struct q_useful_buf_c  nonce,
+                      struct q_useful_buf_c  add_data,
+                      struct q_useful_buf_c  plaintext,
+                      struct q_useful_buf    ciphertext_buffer,
+                      size_t                 *ciphertext_output_len);
 
 #ifdef T_COSE_USE_PSA_CRYPTO
 #include "psa/crypto.h"
@@ -370,6 +572,16 @@ struct t_cose_crypto_hash {
         int64_t status;
    #endif
 
+};
+
+struct t_cose_crypto_encryption {
+
+    #ifdef T_COSE_USE_PSA_CRYPTO
+        /* --- The context for PSA Crypto (MBed Crypto) --- */
+
+        psa_hash_operation_t ctx;
+        psa_status_t         status;
+   #endif
 };
 
 

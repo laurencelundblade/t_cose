@@ -9,16 +9,11 @@
  */
 #include "t_cose/t_cose_encrypt_dec.h"
 #include "t_cose_standard_constants.h"
-#include "psa/crypto.h"
 #include "qcbor/qcbor.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "qcbor/qcbor_spiffy_decode.h"
-#include <mbedtls/aes.h>
-#include <mbedtls/nist_kw.h>
-#include <mbedtls/hkdf.h>
 #include "t_cose_crypto.h"
-#include "mbedtls/hpke.h"
 
 enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
@@ -39,6 +34,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     QCBORItem              Item;
     QCBORItem              Cipher;
     QCBORError             result;
+    enum t_cose_err_t      cose_result;
     size_t                 key_bitlen;
     int64_t                alg = 0;
     uint8_t               *ciphertext;
@@ -59,21 +55,17 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     /*  Temporary storge area for encrypted cek. */
     uint8_t                peer_key_buf[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0x04};
     int                    hpke_mode;
-    psa_status_t           status;
+
     int                    ret;
     uint8_t                add_data[20];
     size_t                 add_data_len = sizeof(add_data);
     struct q_useful_buf    add_data_struct = {add_data, add_data_len};
     UsefulBufC             add_data_buf;
     QCBOREncodeContext     additional_data;
-    hpke_suite_t           suite;
-    psa_algorithm_t        psa_algorithm;
-    psa_key_type_t         psa_keytype;
     bool                   detached_mode;
     uint8_t                cek[PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH)];
-    size_t                 cek_len=PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
-    psa_key_attributes_t   attributes=PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t       key_handle=0;
+    size_t                 cek_len = PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    struct t_cose_key      cek_key;
 
     /* Initialize decoder */
     QCBORDecode_Init(&DC,
@@ -83,21 +75,21 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
    /* Make sure the first item is a tag */
     result = QCBORDecode_GetNext(&DC, &Item);
 
-    /* Check whether tag is CBOR_TAG_ENCRYPT or CBOR_TAG_ENCRYPT0 */
-    if (QCBORDecode_IsTagged(&DC,&Item,CBOR_TAG_ENCRYPT)==false &&
-        QCBORDecode_IsTagged(&DC,&Item,CBOR_TAG_ENCRYPT0)==false) {
-        return(EXIT_FAILURE);
+    /* Check whether tag is CBOR_TAG_COSE_ENCRYPT or CBOR_TAG_COSE_ENCRYPT0 */
+    if (QCBORDecode_IsTagged(&DC, &Item, CBOR_TAG_COSE_ENCRYPT) == false &&
+        QCBORDecode_IsTagged(&DC, &Item, CBOR_TAG_COSE_ENCRYPT0) == false) {
+        return(T_COSE_ERR_INCORRECTLY_TAGGED);
     }
 
     /* protected header */
     result = QCBORDecode_GetNext(&DC, &protected_hdr);
 
     if (result != QCBOR_SUCCESS) {
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
     if (protected_hdr.uDataType != QCBOR_TYPE_BYTE_STRING) {
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_PARAMETER_CBOR);
     }
 
     /* Re-initialize to parse protected header */
@@ -118,7 +110,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     result = QCBORDecode_Finish(&DC2);
 
     if (result != QCBOR_SUCCESS) {
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
     /* unprotected header */
@@ -126,15 +118,15 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
 
     QCBORDecode_GetByteStringInMapN(&DC, COSE_HEADER_PARAM_IV, &nonce_cbor);
 
-    if (QCBORDecode_GetError(&DC)!=0) {
-         return(EXIT_FAILURE);
+    if (QCBORDecode_GetError(&DC) !=0 ) {
+         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
-    if (me->key_distribution==T_COSE_KEY_DISTRIBUTION_DIRECT) {
-        QCBORDecode_GetByteStringInMapN(&DC,COSE_HEADER_PARAM_KID,&kid_cbor);
+    if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_DIRECT) {
+        QCBORDecode_GetByteStringInMapN(&DC, COSE_HEADER_PARAM_KID, &kid_cbor);
 
-        if (QCBORDecode_GetError(&DC)!=0) {
-             return(EXIT_FAILURE);
+        if (QCBORDecode_GetError(&DC) !=0 ) {
+             return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
     }
 
@@ -144,7 +136,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     result = QCBORDecode_GetNext(&DC, &Cipher);
 
     if (result != QCBOR_SUCCESS) {
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
     if (Cipher.val.string.len != 0) {
@@ -165,7 +157,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         if (kid_cbor.len == 0 ||
             strncmp(me->kid.ptr, kid_cbor.ptr, me->kid.len) != 0
            ) {
-                return( EXIT_FAILURE );
+                return(T_COSE_ERR_UNKNOWN_KEY);
         }
     } else {
         /* Recipients */
@@ -175,15 +167,15 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetNext(&DC, &Item);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_FORMATTING);
         }
 
         if (Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-             return(EXIT_FAILURE);
+             return(T_COSE_ERR_PARAMETER_CBOR);
         }
 
         if (protected_hdr.uDataType != QCBOR_TYPE_BYTE_STRING) {
-             return( EXIT_FAILURE);
+             return(T_COSE_ERR_PARAMETER_CBOR);
         }
 
         /* Re-initialize to parse protected header */
@@ -203,7 +195,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetError(&DC2);
 
         if (result != QCBOR_SUCCESS) {
-             return(EXIT_FAILURE);
+             return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
 
         QCBORDecode_ExitMap(&DC2);
@@ -211,28 +203,18 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_Finish(&DC2);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_FORMATTING);
         }
 
         /* Setting key distribution parameters. */
         switch(alg) {
         case COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
-            key_bitlen=128;
-            suite.kem_id=HPKE_KEM_ID_P256;
-            suite.kdf_id=HPKE_KDF_ID_HKDF_SHA256;
-            suite.aead_id=HPKE_AEAD_ID_AES_GCM_128;
-            psa_algorithm=PSA_ALG_GCM;
-            psa_keytype=PSA_KEY_TYPE_AES;
+            key_bitlen = 128;
             break;
 
         case COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
-            key_bitlen=256;
-            suite.kem_id=HPKE_KEM_ID_P521;
-            suite.kdf_id=HPKE_KDF_ID_HKDF_SHA512;
-            suite.aead_id=HPKE_AEAD_ID_AES_GCM_256;
-            psa_algorithm=PSA_ALG_GCM;
-            psa_keytype=PSA_KEY_TYPE_AES;
-            break;
+            key_bitlen = 256;
+           break;
 
         default:
             return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
@@ -249,7 +231,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetError(&DC);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
 
         /* Decode ephemeral */
@@ -271,7 +253,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetError(&DC2);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
 
         QCBORDecode_GetInt64InMapN(&DC2,
@@ -281,7 +263,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetError(&DC2);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
 
         /* -- get x parameter */
@@ -292,17 +274,17 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetError(&DC2);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
 
         /* Check whether the key size is expected */
-        if (peer_key_x.len!=key_bitlen/4) {
-            return(EXIT_FAILURE);
+        if (peer_key_x.len != key_bitlen / 4) {
+            return(T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT);
         }
 
         /* Copy the x-part of the key into the peer key buffer */
-        if (peer_key_x.len>PSA_EXPORT_PUBLIC_KEY_MAX_SIZE/2) {
-            return(EXIT_FAILURE);
+        if (peer_key_x.len > PSA_EXPORT_PUBLIC_KEY_MAX_SIZE / 2) {
+            return(T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT);
         }
 
         memcpy(peer_key_buf+1, peer_key_x.ptr, peer_key_x.len);
@@ -316,17 +298,17 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetError(&DC2);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
 
         /* Check whether the key size is expected */
-        if (peer_key_y.len!=key_bitlen/4) {
-            return(EXIT_FAILURE);
+        if (peer_key_y.len != key_bitlen / 4) {
+            return(T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT);
         }
 
         /* Copy the y-part of the key into the peer key buffer */
-        if (peer_key_x.len>PSA_EXPORT_PUBLIC_KEY_MAX_SIZE/2) {
-            return(EXIT_FAILURE);
+        if (peer_key_x.len > PSA_EXPORT_PUBLIC_KEY_MAX_SIZE / 2) {
+            return(T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT);
         }
 
         memcpy(peer_key_buf+1+peer_key_x.len, peer_key_y.ptr, peer_key_y.len);
@@ -342,13 +324,13 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetError(&DC);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
 
         if (kid_cbor.len == 0 ||
             strncmp(me->kid.ptr, kid_cbor.ptr, me->kid.len) != 0
            ) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_UNKNOWN_KEY);
         }
 
         QCBORDecode_ExitMap(&DC);
@@ -359,29 +341,27 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         result = QCBORDecode_GetError(&DC);
 
         if (result != QCBOR_SUCCESS) {
-            return(EXIT_FAILURE);
+            return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
 
         /* Execute HPKE */
-        ret=mbedtls_hpke_decrypt(
-              HPKE_MODE_BASE,                  // HPKE mode
-              suite,                           // ciphersuite
-              NULL, 0, NULL,                   // PSK for authentication
-              0, NULL,                         // pkS
-              me->recipient_key.k.key_handle,  // skR handle
-              peer_key_buf_len,                // pkE_len
-              peer_key_buf,                    // pkE
-              cek_encrypted.len,               // Ciphertext length
-              (unsigned char *)
-                 cek_encrypted.ptr,            // Ciphertext
-              0, NULL,                         // Additional data
-              0, NULL,                         // Info
-              &cek_len,                        // Plaintext length
-              cek                              // Plaintext
-            );
+        cose_result = t_cose_crypto_hpke_decrypt(alg,
+                                                 (struct q_useful_buf_c)
+                                                 {
+                                                     .len = peer_key_buf_len,
+                                                     .ptr = peer_key_buf
+                                                 },
+                                                 me->recipient_key,
+                                                 cek_encrypted,
+                                                 (struct q_useful_buf)
+                                                 {
+                                                     .len = cek_len,
+                                                     .ptr = cek
+                                                 },
+                                                 &cek_len);
 
-        if (ret!=0) {
-            return(EXIT_FAILURE);
+        if (cose_result != T_COSE_SUCCESS) {
+            return(cose_result);
         }
     }
 
@@ -447,66 +427,40 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                                 &add_data_buf);
 
     if (result != QCBOR_SUCCESS) {
-        return(EXIT_FAILURE);
+        return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
-    /* Set decryption algorithm information */
-    switch (algorithm_id) {
-    case COSE_ALGORITHM_A128GCM:
-        key_bitlen=128;
-        psa_algorithm=PSA_ALG_GCM;
-        psa_keytype=PSA_KEY_TYPE_AES;
-        break;
+    if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_HPKE) {
 
-    case COSE_ALGORITHM_A256GCM:
-        key_bitlen=256;
-        psa_algorithm=PSA_ALG_GCM;
-        psa_keytype=PSA_KEY_TYPE_AES;
-        break;
+        cose_result = t_cose_crypto_get_cose_key(algorithm_id,
+                                                 cek,
+                                                 cek_len,
+                                                 T_COSE_KEY_USAGE_FLAG_DECRYPT,
+                                                 &cek_key);
 
-    default:
-        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
-    }
-
-    if (me->key_distribution==T_COSE_KEY_DISTRIBUTION_HPKE) {
-        psa_set_key_usage_flags(&attributes,PSA_KEY_USAGE_DECRYPT);
-        psa_set_key_algorithm(&attributes,psa_algorithm);
-        psa_set_key_type(&attributes,psa_keytype);
-        psa_set_key_bits(&attributes,key_bitlen);
-
-        status=psa_import_key(&attributes,cek,cek_len,&key_handle);
-
-        if (status!=PSA_SUCCESS) {
-            printf("psa_import_key failed\n");
-            return(EXIT_FAILURE);
+        if (cose_result != T_COSE_SUCCESS) {
+            return(cose_result);
         }
 
-        status=psa_aead_decrypt(
-                  key_handle,                     // key
-                  psa_algorithm,                  // algorithm
-                  nonce_cbor.ptr, nonce_cbor.len, // nonce
-                  (const uint8_t *)
-                    add_data_buf.ptr,             // additional data
-                  add_data_buf.len,               // additional data length
-                  ciphertext, ciphertext_len,     // ciphertext
-                  plaintext, plaintext_len,       // plaintext
-                  plaintext_output_len );         // length of output
-
+        cose_result = t_cose_crypto_decrypt(algorithm_id,
+                                            cek_key,
+                                            nonce_cbor,
+                                            add_data_buf,
+            (struct q_useful_buf_c) {.ptr = ciphertext, .len = ciphertext_len},
+            (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
+                                            plaintext_output_len);
     } else {
-        status = psa_aead_decrypt(
-                  me->recipient_key.k.key_handle, // key
-                  psa_algorithm,                  // algorithm
-                  nonce_cbor.ptr, nonce_cbor.len, // nonce
-                  (const uint8_t *)
-                    add_data_buf.ptr,             // additional data
-                  add_data_buf.len,               // additional data length
-                  ciphertext, ciphertext_len,     // ciphertext
-                  plaintext, plaintext_len,       // plaintext
-                  plaintext_output_len );         // length of output
+        cose_result = t_cose_crypto_decrypt(algorithm_id,
+                                            me->recipient_key,
+                                            nonce_cbor,
+                                            add_data_buf,
+            (struct q_useful_buf_c) {.ptr = ciphertext, .len = ciphertext_len},
+            (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
+                                            plaintext_output_len);
     }
 
-    if (status!=PSA_SUCCESS) {
-        return(EXIT_FAILURE);
+    if (cose_result != T_COSE_SUCCESS) {
+        return(cose_result);
     }
 
     return(T_COSE_SUCCESS);
