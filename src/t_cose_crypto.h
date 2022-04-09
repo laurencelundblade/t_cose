@@ -42,8 +42,8 @@ extern "C" {
  * for the various cryptographic libraries that are used on
  * various platforms and OSs. The functions are:
  *   - t_cose_t_crypto_sig_size()
- *   - t_cose_crypto_pub_key_sign()
- *   - t_cose_crypto_pub_key_verify()
+ *   - t_cose_crypto_sign()
+ *   - t_cose_crypto_verify()
  *   - t_cose_crypto_hash_start()
  *   - t_cose_crypto_hash_update()
  *   - t_cose_crypto_hash_finish()
