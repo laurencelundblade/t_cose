@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020, Michael Eckel
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,6 +18,7 @@
 #include "qcbor/qcbor.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_crypto_public.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,6 +79,7 @@ struct t_cose_sign1_sign_ctx {
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
 #endif
+    struct t_cose_crypto_backend_ctx     *crypto_ctx;
 };
 
 
@@ -146,6 +149,21 @@ static void
 t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
                        uint32_t                      option_flags,
                        int32_t                       cose_algorithm_id);
+
+/**
+ * \brief  Set the crypto backend specfic context for the signing operation.
+ *
+ * \param[in] context            The t_cose signing context.
+ * \param[in] crypto_ctx         Crypto backend context.
+ *
+ * See the documentation/declaration of \ref t_cose_crypto_backend_ctx in
+ * inc/t_cose/t_cose_crypto_public.h. If the structure is empty for the selected
+ * crypto backend (with the selected compile conditions) then this function
+ * doesn't have to be called.
+ */
+static void
+t_cose_sign1_set_crypto_context(struct t_cose_sign1_sign_ctx     *context,
+                                struct t_cose_crypto_backend_ctx *crypto_ctx);
 
 
 /**
@@ -432,6 +450,14 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
 
     me->cose_algorithm_id = cose_algorithm_id;
     me->option_flags      = option_flags;
+}
+
+
+static inline void
+t_cose_sign1_set_crypto_context(struct t_cose_sign1_sign_ctx     *me,
+                                struct t_cose_crypto_backend_ctx *crypto_ctx)
+{
+    me->crypto_ctx = crypto_ctx;
 }
 
 

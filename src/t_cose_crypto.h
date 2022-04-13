@@ -2,6 +2,7 @@
  * t_cose_crypto.h
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -15,6 +16,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_crypto_public.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_standard_constants.h"
 
@@ -174,6 +176,11 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *                              the resulting signature is put.
  * \param[in] signature         Pointer and length of the signature
  *                              returned.
+ * \param[in] crypto_ctx        Pointer to a crypto backend specfic context or
+ *                              NULL. It depends on the crypto backend whether
+ *                              it is needed or not. The initialization of the
+ *                              data items is a shared responsibility between
+ *                              the caller and crypto adapter implementation.
  *
  * \retval T_COSE_SUCCESS
  *         Successfully created the signature.
@@ -216,7 +223,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct t_cose_key      signing_key,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
-                   struct q_useful_buf_c *signature);
+                   struct q_useful_buf_c *signature,
+                   struct t_cose_crypto_backend_ctx *crypto_ctx);
 
 
 /**

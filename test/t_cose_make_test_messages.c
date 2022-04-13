@@ -2,6 +2,7 @@
  * t_cose_make_test_messages.c
  *
  * Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -570,7 +571,8 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
                                           me->signing_key,
                                           tbs_hash,
                                           buffer_for_signature,
-                                         &signature);
+                                         &signature,
+                                          me->crypto_ctx);
     } else {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         return_value = short_circuit_sign(me->cose_algorithm_id,

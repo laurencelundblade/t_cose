@@ -2,6 +2,7 @@
  * t_cose_sign1_sign.c
  *
  * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -382,7 +383,8 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
                                                me->signing_key,
                                                tbs_hash,
                                                buffer_for_signature,
-                                              &signature);
+                                              &signature,
+                                               me->crypto_ctx);
         }
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN

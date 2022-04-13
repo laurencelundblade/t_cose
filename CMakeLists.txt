@@ -89,9 +89,13 @@ if (BUILD_EXAMPLES)
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
         add_executable(t_cose_basic_example_psa examples/t_cose_basic_example_psa.c)
         target_link_libraries(t_cose_basic_example_psa PRIVATE t_cose ${CRYPTO_LIBRARY})
+        # Crypto defs are needed because the tests include headers from src/
+        target_compile_definitions(t_cose_basic_example_psa PRIVATE ${CRYPTO_COMPILE_DEFS})
     elseif (CRYPTO_PROVIDER STREQUAL "OpenSSL")
         add_executable(t_cose_basic_example_ossl examples/t_cose_basic_example_ossl.c)
         target_link_libraries(t_cose_basic_example_ossl PRIVATE t_cose ${CRYPTO_LIBRARY})
+        # Crypto defs are needed because the tests include headers from src/
+        target_compile_definitions(t_cose_basic_example_ossl PRIVATE ${CRYPTO_COMPILE_DEFS})
     endif()
 
 endif()

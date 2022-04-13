@@ -2,6 +2,7 @@
  *  t_cose_test_crypto.c
  *
  * Copyright 2019-2020, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -71,13 +72,15 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct t_cose_key      signing_key,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
-                   struct q_useful_buf_c *signature)
+                   struct q_useful_buf_c *signature,
+                   struct t_cose_crypto_backend_ctx *crypto_ctx)
 {
     (void)cose_algorithm_id;
     (void)signing_key;
     (void)hash_to_sign;
     (void)signature_buffer;
     (void)signature;
+    (void)crypto_ctx;
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 

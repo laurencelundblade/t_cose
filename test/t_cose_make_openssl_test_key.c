@@ -2,6 +2,7 @@
  *  t_cose_make_openssl_test_key.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -163,4 +164,9 @@ int check_for_key_pair_leaks()
        some coverage of the code even though there is no check here.
      */
     return 0;
+}
+
+void t_cose_test_set_crypto_context(struct t_cose_sign1_sign_ctx *sign1_ctx)
+{
+    (void)sign1_ctx;
 }

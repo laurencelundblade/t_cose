@@ -2,6 +2,7 @@
  *  t_cose_sign_verify_test.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -41,6 +42,7 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
         return 1000 + (int32_t)result;
     }
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_test_set_crypto_context(&sign_ctx);
 
     result = t_cose_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
@@ -143,6 +145,7 @@ int_fast32_t sign_verify_sig_fail_test()
 
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_test_set_crypto_context(&sign_ctx);
 
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(result) {
@@ -233,6 +236,7 @@ int_fast32_t sign_verify_make_cwt_test()
     t_cose_sign1_set_signing_key(&sign_ctx,
                                   key_pair,
                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256"));
+    t_cose_test_set_crypto_context(&sign_ctx);
 
 
     /* -- Encoding context and output of parameters -- */
@@ -367,6 +371,7 @@ static int size_test(int32_t               cose_algorithm_id,
 
     t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_test_set_crypto_context(&sign_ctx);
 
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
@@ -399,6 +404,7 @@ static int size_test(int32_t               cose_algorithm_id,
 
     t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_test_set_crypto_context(&sign_ctx);
 
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
@@ -420,6 +426,7 @@ static int size_test(int32_t               cose_algorithm_id,
     /* ---- Again with one-call API to make COSE_Sign1 ---- */\
     t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_test_set_crypto_context(&sign_ctx);
     return_value = t_cose_sign1_sign(&sign_ctx,
                                      payload,
                                      signed_cose_buffer,

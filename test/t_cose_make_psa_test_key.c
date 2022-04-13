@@ -2,6 +2,7 @@
  *  t_cose_make_psa_test_key.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -190,4 +191,9 @@ int check_for_key_pair_leaks()
            stats.MBEDTLS_PRIVATE(external_slots) +
            stats.MBEDTLS_PRIVATE(half_filled_slots) +
            stats.MBEDTLS_PRIVATE(cache_slots));
+}
+
+void t_cose_test_set_crypto_context(struct t_cose_sign1_sign_ctx *sign1_ctx)
+{
+    (void)sign1_ctx;
 }
