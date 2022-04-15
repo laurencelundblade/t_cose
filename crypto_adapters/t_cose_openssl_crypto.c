@@ -360,7 +360,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     #define DER_SIG_ENCODE_OVER_HEAD 16
 
     enum t_cose_err_t      return_value;
-    EVP_MD_CTX            *sign_context;
+    EVP_PKEY_CTX          *sign_context;
     EVP_PKEY              *signing_key_evp;
     int                    ossl_result;
     unsigned               key_size_bytes;
@@ -410,30 +410,26 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
      * the signature. RSA signature schemes like PSS need this. ECDSA
      * doesn't so they are both NULL.
      */
-    sign_context = EVP_MD_CTX_new();
+    sign_context = EVP_PKEY_CTX_new(signing_key_evp, NULL);
     if(sign_context == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
     }
-    ossl_result = EVP_DigestSignInit(sign_context,
-                                     NULL, /* pctx */
-                                     NULL, /* type */
-                                     NULL, /* Engine */
-                                     signing_key_evp /* The private key */);
-    if(!ossl_result) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-
-    /* Actually do the signature operation.  */
-    ossl_result = EVP_DigestSign(sign_context,
-                                 der_format_signature.ptr, &der_format_signature.len,
-                                 hash_to_sign.ptr, hash_to_sign.len);
+    ossl_result = EVP_PKEY_sign_init(sign_context);
     if(ossl_result != 1) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
+
+    /* Actually do the signature operation.  */
+    ossl_result = EVP_PKEY_sign(sign_context,
+                                der_format_signature.ptr, &der_format_signature.len,
+                                hash_to_sign.ptr, hash_to_sign.len);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
 
     /* The signature produced by OpenSSL is DER-encoded. That encoding
      * has to be removed and turned into the serialization format used
@@ -442,8 +438,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
      * deprecation.
      */
     *signature = signature_der_to_cose((unsigned)key_size_bytes,
-                                          q_usefulbuf_const(der_format_signature),
-                                          signature_buffer);
+                                       q_usefulbuf_const(der_format_signature),
+                                       signature_buffer);
     if(q_useful_buf_c_is_null(*signature)) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
@@ -456,7 +452,7 @@ Done:
     /* This (is assumed to) checks for NULL before free, so it is not
      * necessary to check for NULL here.
      */
-    EVP_MD_CTX_free(sign_context);
+    EVP_PKEY_CTX_free(sign_context);
 
 Done2:
     return return_value;
@@ -476,7 +472,7 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
 {
     int                    ossl_result;
     enum t_cose_err_t      return_value;
-    EVP_MD_CTX            *verify_context = NULL;
+    EVP_PKEY_CTX          *verify_context = NULL;
     EVP_PKEY              *verification_key_evp;
     unsigned               key_size;
     MakeUsefulBufOnStack(  der_format_buffer, T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
@@ -518,28 +514,24 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
     /* Create the verification context and set it up with the
      * necessary verification key.
      */
-    verify_context = EVP_MD_CTX_new();
+    verify_context = EVP_PKEY_CTX_new(verification_key_evp, NULL);
     if(verify_context == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
     }
-    ossl_result = EVP_DigestVerifyInit(verify_context,
-                                       NULL, /* ppctx */
-                                       NULL, /* type */
-                                       NULL, /* e */
-                                       verification_key_evp);
-    if(!ossl_result) {
+
+    ossl_result = EVP_PKEY_verify_init(verify_context);
+    if(ossl_result != 1) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
 
-
     /* Actually do the signature verification */
-    ossl_result =  EVP_DigestVerify(verify_context,
-                                    der_format_signature.ptr,
-                                    der_format_signature.len,
-                                    hash_to_verify.ptr,
-                                    hash_to_verify.len);
+    ossl_result =  EVP_PKEY_verify(verify_context,
+                                   der_format_signature.ptr,
+                                   der_format_signature.len,
+                                   hash_to_verify.ptr,
+                                   hash_to_verify.len);
 
 
     if(ossl_result == 0) {
@@ -556,7 +548,7 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done:
-    EVP_MD_CTX_free(verify_context);
+    EVP_PKEY_CTX_free(verify_context);
 
     return return_value;
 }
