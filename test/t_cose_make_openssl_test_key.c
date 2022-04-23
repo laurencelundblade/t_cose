@@ -26,6 +26,12 @@
  * xxd -i to turn it into a C variable
  *
  * RFC 5915 format EC private key
+ *
+ * See also:
+ *  https://stackoverflow.com/
+ *  questions/71890050/
+ *  set-an-evp-pkey-from-ec-raw-points-pem-or-der-in-both-openssl-1-1-1-and-3-0-x/
+ *  71896633#71896633
  */
 
 static const unsigned char ec256_key_pair[] = {
@@ -94,7 +100,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair)
 {
     enum t_cose_err_t  return_value;
-    EVP_PKEY          *pkey = NULL;
+    EVP_PKEY          *pkey;
     const uint8_t     *rfc5915_key;
     long               rfc5915_key_len;
 
@@ -119,6 +125,10 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
     }
 
     pkey = d2i_PrivateKey(EVP_PKEY_EC, NULL, &rfc5915_key, rfc5915_key_len);
+    if(pkey == NULL) {
+        return_value = T_COSE_ERR_FAIL;
+        goto Done;
+    }
 
     key_pair->k.key_ptr  = pkey;
     key_pair->crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;

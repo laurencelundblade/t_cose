@@ -157,7 +157,7 @@ Done:
  * OpenSSL has a preference for DER-encoded signatures.
  *
  * This uses an ECDSA_SIG as an intermediary to convert
- * between the two. 
+ * between the two.
  */
 static enum t_cose_err_t
 signature_cose_to_der(unsigned                key_len,
@@ -354,8 +354,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     /* This is the overhead for the DER encoding of an EC signature as
      * described by ECDSA-Sig-Value in RFC 3279.  It is at max 3 * (1
      * type byte and 2 length bytes) + 2 zero pad bytes = 11
-     * bytes. Make it 16 to have a little extra. It is expected that
-     * EVP_DigestSign() will not over write the buffer so there will
+     * bytes. We make it 16 to have a little extra. It is expected that
+     * EVP_PKEY_sign() will not over write the buffer so there will
      * be no security problem if this is too short. */
     #define DER_SIG_ENCODE_OVER_HEAD 16
 
@@ -366,16 +366,14 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     unsigned               key_size_bytes;
     MakeUsefulBufOnStack(  der_format_signature, T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
 
-    /* This implementation supports ECDSA and only ECDSA. The
+    /* This implementation supports only ECDSA so far. The
      * interface allows it to support other, but none are implemented.
-     * This implementation works for different keys lengths and
-     * curves. That is, the curve and key length as associated with
-     * the \c signing_key passed in, not the \c cose_algorithm_id This
+     *
+     * This implementation works for different key lengths and
+     * curves. That is, the curve and key length is associated with
+     * the signing_key passed in, not the cose_algorithm_id This
      * check looks for ECDSA signing as indicated by COSE and rejects
      * what is not since it only supports ECDSA.
-     *
-     * If RSA or such is to be added, it would be added here and
-     * switch based on the cose_algorithm_id would select it.
      */
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
@@ -389,27 +387,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
         goto Done2;
     }
 
-
-    /*
-     * Initialize the signing context and set up with the signing key.
-     *
-     * EVP_DigestSignInit_ex() is what the OpenSSL 3.0 examples use,
-     * but OpenSSL 1.1.1 doesn't have it, so try to figure out what
-     * EVP_DigestSignInit() does since the documentation is terrible
-     * (seems to be written for people that already know how it
-     * works).
-     *
-     * int EVP_DigestSignInit(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
-     *                        const EVP_MD *type, ENGINE *e, EVP_PKEY *pkey);
-     *
-     * pctx is NULL because that seems to be some way to return a copy
-     * of the signing context that is not needed here.
-     *
-     * type and e should be named digest_type and digest_engine so
-     * it's clear they are for a hash function that may be needed in
-     * the signature. RSA signature schemes like PSS need this. ECDSA
-     * doesn't so they are both NULL.
-     */
+    /* Create and initialize the OpenSSL EVP_PKEY_CTX that is the
+     * signing context. */
     sign_context = EVP_PKEY_CTX_new(signing_key_evp, NULL);
     if(sign_context == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
@@ -434,7 +413,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     /* The signature produced by OpenSSL is DER-encoded. That encoding
      * has to be removed and turned into the serialization format used
      * by COSE. It is unfortunate that the OpenSSL APIs that create
-     * signature that are non in DER-format are slated for
+     * signatures that are not in DER-format are slated for
      * deprecation.
      */
     *signature = signature_der_to_cose((unsigned)key_size_bytes,

@@ -500,13 +500,13 @@ int_fast32_t sign_verify_get_size_test()
     return 0;
 }
 
-/* These are complete known-good COSE messages. for a verification
- * test. The key used to verify them is made by
- * make_ecdsa_key_pair(). It always makes the same key for both
- * MbedTLS and OpenSSL.
+/* These are complete known-good COSE messages for a verification
+ * test. The key used to verify them is made by make_ecdsa_key_pair().
+ * It always makes the same key for both MbedTLS and OpenSSL.
  *
- * These were made by breaking point sign_verify_basic_test() can
- * copying the output of the signing. */
+ * These were made by setting a break point in sign_verify_basic_test()
+ * and copying the output of the signing.
+ */
 static const uint8_t signed_cose_made_by_ossl_crypto_256[] = {
     0xD2, 0x84, 0x43, 0xA1, 0x01, 0x26, 0xA0, 0x47,
     0x70, 0x61, 0x79, 0x6C, 0x6F, 0x61, 0x64, 0x58,
@@ -519,6 +519,8 @@ static const uint8_t signed_cose_made_by_ossl_crypto_256[] = {
     0xDE, 0xFD, 0x2D, 0xB9, 0xF3, 0x6C, 0xD7, 0xCB,
     0x69, 0x53, 0xCB, 0x05, 0xE3, 0x60, 0xAC, 0x98,
     0xE6};
+
+#ifndef T_COSE_DISABLE_ES384
 
 static const uint8_t signed_cose_made_by_psa_crypto_384[] = {
     0xD2, 0x84, 0x44, 0xA1, 0x01, 0x38, 0x22, 0xA0,
@@ -536,7 +538,10 @@ static const uint8_t signed_cose_made_by_psa_crypto_384[] = {
     0x74, 0x1B, 0x5C, 0xCD, 0xD5, 0x11, 0xC1, 0x07,
     0xE2, 0xD9, 0x3B, 0x16, 0x31, 0x5A, 0x55, 0x58,
     0x6C, 0xC9};
+#endif /* T_COSE_DISABLE_ES384 */
 
+
+#ifndef T_COSE_DISABLE_ES512
 static const uint8_t signed_cose_made_by_openssl_crypto_521[] = {
     0xD2, 0x84, 0x44, 0xA1, 0x01, 0x38, 0x23, 0xA0,
     0x47, 0x70, 0x61, 0x79, 0x6C, 0x6F, 0x61, 0x64,
@@ -557,6 +562,8 @@ static const uint8_t signed_cose_made_by_openssl_crypto_521[] = {
     0x11, 0x22, 0x48, 0x09, 0xA2, 0x95, 0x6C, 0x9B,
     0x97, 0xA9, 0xE9, 0xBF, 0xA8, 0x63, 0x73, 0x88,
     0x24, 0xB0, 0x84, 0x46, 0xA8, 0x90};
+#endif /* T_COSE_DISABLE_ES512 */
+
 
 int_fast32_t known_good_test(void)
 {
@@ -595,6 +602,7 @@ int_fast32_t known_good_test(void)
 
     free_ecdsa_key_pair(key_pair);
 
+#ifndef T_COSE_DISABLE_ES384
 
     result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
     if(result) {
@@ -618,7 +626,10 @@ int_fast32_t known_good_test(void)
     }
 
     free_ecdsa_key_pair(key_pair);
+#endif /* T_COSE_DISABLE_ES384 */
 
+
+#ifndef T_COSE_DISABLE_ES512
     result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
     if(result) {
         return_value = 1200 + (int32_t)result;
@@ -641,6 +652,7 @@ int_fast32_t known_good_test(void)
     }
 
     free_ecdsa_key_pair(key_pair);
+#endif /* T_COSE_DISABLE_ES512 */
 
     /* Can't make signed messages and compare them to a known good
      * value because ECDSA signature have a random component. They are
