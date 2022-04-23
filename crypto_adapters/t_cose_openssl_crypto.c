@@ -589,7 +589,7 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
 
-    message_digest = EVP_get_digestbynid(NID_sha256);
+    message_digest = EVP_get_digestbynid(nid);
     if(message_digest == NULL){
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
