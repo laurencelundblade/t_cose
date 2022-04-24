@@ -34,8 +34,8 @@
  * against OpenSSL and with the T_COSE_USE_OPENSSL_CRYPTO preprocessor
  * define set for the build.
  *
- * This works with OpenSSL 1.1.1 and 3.0. It uses the API common
- * to these two and that is not marked for future deprecation.
+ * This works with OpenSSL 1.1.1 and 3.0. It uses the APIs common
+ * to these two and that are not marked for future deprecation.
  *
  * A few complaints about OpenSSL in comparison to Mbed TLS:
  *
@@ -44,7 +44,7 @@
  * failures are necessary.
  *
  * There's a lot of APIs in OpenSSL, but there's a needle to thread to
- * get the APIS that are in 1.1.1, 3.0 and no slated for future
+ * get the APIS that are in 1.1.1, 3.0 and not slated for future
  * deprecation.
  *
  * The APIs that fit the above only work for DER-encoded signatures.
@@ -56,7 +56,8 @@
  * An older version of t_cose (anything from 2021) uses simpler
  * OpenSSL APIs. They still work but may be deprecated in the
  * future. They could be used in use cases where a particular version
- * of the OpenSSL library is selected.
+ * of the OpenSSL library is selected and reduce code size
+ * a llittle.
  */
 
 
@@ -345,11 +346,11 @@ Done:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_sign(int32_t                cose_algorithm_id,
-                   struct t_cose_key      signing_key,
-                   struct q_useful_buf_c  hash_to_sign,
-                   struct q_useful_buf    signature_buffer,
-                   struct q_useful_buf_c *signature)
+t_cose_crypto_sign(const int32_t                cose_algorithm_id,
+                   const struct t_cose_key      signing_key,
+                   const struct q_useful_buf_c  hash_to_sign,
+                   const struct q_useful_buf    signature_buffer,
+                   struct q_useful_buf_c       *signature)
 {
     /* This is the overhead for the DER encoding of an EC signature as
      * described by ECDSA-Sig-Value in RFC 3279.  It is at max 3 * (1
@@ -380,8 +381,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
         goto Done2;
     }
 
-    /* Pull the pointer of the OpenSSL-format key out of the
-     * t_cose key structure. */
+    /* Pull the pointer to the OpenSSL-format EVP_PKEY out of the
+     * t_cose key structure and get the key size. */
     return_value = key_convert_and_size(signing_key, &signing_key_evp, &key_size_bytes);
     if(return_value != T_COSE_SUCCESS) {
         goto Done2;
@@ -428,7 +429,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done:
-    /* This (is assumed to) checks for NULL before free, so it is not
+    /* This checks for NULL before free, so it is not
      * necessary to check for NULL here.
      */
     EVP_PKEY_CTX_free(sign_context);
@@ -443,11 +444,11 @@ Done2:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_verify(int32_t                cose_algorithm_id,
-                     struct t_cose_key      verification_key,
-                     struct q_useful_buf_c  kid,
-                     struct q_useful_buf_c  hash_to_verify,
-                     struct q_useful_buf_c  cose_signature)
+t_cose_crypto_verify(const int32_t                cose_algorithm_id,
+                     const struct t_cose_key      verification_key,
+                     const struct q_useful_buf_c  kid,
+                     const struct q_useful_buf_c  hash_to_verify,
+                     const struct q_useful_buf_c  cose_signature)
 {
     int                    ossl_result;
     enum t_cose_err_t      return_value;
