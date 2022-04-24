@@ -500,6 +500,7 @@ int_fast32_t sign_verify_get_size_test()
     return 0;
 }
 
+
 /* These are complete known-good COSE messages for a verification
  * test. The key used to verify them is made by make_ecdsa_key_pair().
  * It always makes the same key for both MbedTLS and OpenSSL.
@@ -521,7 +522,6 @@ static const uint8_t signed_cose_made_by_ossl_crypto_256[] = {
     0xE6};
 
 #ifndef T_COSE_DISABLE_ES384
-
 static const uint8_t signed_cose_made_by_psa_crypto_384[] = {
     0xD2, 0x84, 0x44, 0xA1, 0x01, 0x38, 0x22, 0xA0,
     0x47, 0x70, 0x61, 0x79, 0x6C, 0x6F, 0x61, 0x64,
@@ -603,7 +603,6 @@ int_fast32_t known_good_test(void)
     free_ecdsa_key_pair(key_pair);
 
 #ifndef T_COSE_DISABLE_ES384
-
     result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
     if(result) {
         return_value = 1100 + (int32_t)result;

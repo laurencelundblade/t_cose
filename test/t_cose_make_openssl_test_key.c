@@ -17,15 +17,19 @@
 
 
 /*
- * openssl ecparam -genkey -name prime256v1 -noout -out ec256-key-pair.pem
+ * RFC 5915 format EC private key, including the public key. These
+ * are the same key as in t_cose_make_psa_test_key.c
  *
- * Edit the PEM headers off so it is just b64
+ * They are made by:
  *
- * base64 --decode to get the pure DER
+ *   openssl ecparam -genkey -name prime256v1 -noout -out ec256-key-pair.pem
  *
- * xxd -i to turn it into a C variable
+ *   Edit the PEM headers off so it is just b64
  *
- * RFC 5915 format EC private key
+ *   base64 --decode to get the pure DER
+ *
+ *   xxd -i to turn it into a C variable
+ *
  *
  * See also:
  *  https://stackoverflow.com/
@@ -94,7 +98,7 @@ static const unsigned char ec521_key_pair[] = {
 /*
  * The key object returned by this is malloced and has to be freed by
  * by calling free_ecdsa_key_pair(). This heap use is a part of
- * OpenSSL and not t_cose which does not use the heap
+ * OpenSSL and not t_cose which does not use the heap.
  */
 enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair)
@@ -124,6 +128,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
+    /* This imports the public key too */
     pkey = d2i_PrivateKey(EVP_PKEY_EC, NULL, &rfc5915_key, rfc5915_key_len);
     if(pkey == NULL) {
         return_value = T_COSE_ERR_FAIL;
