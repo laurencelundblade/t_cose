@@ -21,7 +21,7 @@
  * 
  */
 enum t_cose_err_t
-t_cose_austere_sign(struct q_useful_buf_c  payload,
+t_cose_mini_sign(struct q_useful_buf_c  payload,
                     struct t_cose_key      signing_key,
                     struct q_useful_buf    output_buffer,
                     struct q_useful_buf_c *output);

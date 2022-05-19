@@ -9,7 +9,7 @@
 #include "t_cose_austere_test.h"
 #include "t_cose_make_test_pub_key.h"
 
-#include "t_cose/t_cose_austere_sign.h"
+#include "t_cose/t_cose_mini_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
 
 const uint8_t payload[] = {
@@ -43,7 +43,7 @@ int32_t austere_test(void) {
     err = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
 
 
-    err = t_cose_austere_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
+    err = t_cose_mini_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
                               key_pair,
                               output,
                               &cose_sign1);
