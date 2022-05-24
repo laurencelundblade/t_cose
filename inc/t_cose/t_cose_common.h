@@ -91,6 +91,7 @@ extern "C" {
 #define T_COSE_ALGORITHM_ES512 -36
 
 
+#define T_COSE_ALGORITHM_NONE 0
 
 
 /**

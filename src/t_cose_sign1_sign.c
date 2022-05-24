@@ -13,6 +13,7 @@
 #include "t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
+#include "t_cose/t_cose_signer.h"
 
 
 /**
@@ -146,7 +147,7 @@ Done:
  * different from the unprotected parameters which are not handled this
  * way.
  */
-static inline struct q_useful_buf_c
+struct q_useful_buf_c
 encode_protected_parameters(int32_t             cose_algorithm_id,
                             QCBOREncodeContext *cbor_encode_ctx)
 {
@@ -159,13 +160,14 @@ encode_protected_parameters(int32_t             cose_algorithm_id,
     struct q_useful_buf_c protected_parameters;
 
     QCBOREncode_BstrWrap(cbor_encode_ctx);
-    QCBOREncode_OpenMap(cbor_encode_ctx);
-    QCBOREncode_AddInt64ToMapN(cbor_encode_ctx,
-                               COSE_HEADER_PARAM_ALG,
-                               cose_algorithm_id);
-    QCBOREncode_CloseMap(cbor_encode_ctx);
+    if(cose_algorithm_id != T_COSE_ALGORITHM_NONE) {
+        QCBOREncode_OpenMap(cbor_encode_ctx);
+        QCBOREncode_AddInt64ToMapN(cbor_encode_ctx,
+                                   COSE_HEADER_PARAM_ALG,
+                                   cose_algorithm_id);
+        QCBOREncode_CloseMap(cbor_encode_ctx);
+    }
     QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &protected_parameters);
-
     return protected_parameters;
 }
 
@@ -377,12 +379,26 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
                                                    me->signing_key,
                                                   &signature.len);
         } else {
-            /* Perform the public key signing */
-             return_value = t_cose_crypto_sign(me->cose_algorithm_id,
-                                               me->signing_key,
-                                               tbs_hash,
-                                               buffer_for_signature,
-                                              &signature);
+            if(me->option_flags & T_COSE_MULTIPLE_SIGNERS) {
+                struct t_cose_signer *signer = me->signers;
+                QCBOREncode_OpenArray(cbor_encode_ctx);
+                while(signer != NULL) {
+                    return_value = (signer->callback)(signer,
+                                                      tbs_hash,
+                                                      cbor_encode_ctx);
+                    signer = signer->next_in_list;
+                }
+                QCBOREncode_CloseArray(cbor_encode_ctx);
+
+            } else {
+                /* Perform the public key signing */
+                 return_value = t_cose_crypto_sign(me->cose_algorithm_id,
+                                                   me->signing_key,
+                                                   tbs_hash,
+                                                   buffer_for_signature,
+                                                  &signature);
+                QCBOREncode_AddBytes(cbor_encode_ctx, signature);
+            }
         }
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
@@ -407,8 +423,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
     }
 
 
-    /* Add signature to CBOR and close out the array */
-    QCBOREncode_AddBytes(cbor_encode_ctx, signature);
+    /* Close out the array */
     QCBOREncode_CloseArray(cbor_encode_ctx);
 
     /* The layer above this must check for and handle CBOR encoding
@@ -492,3 +507,16 @@ Done:
     return return_value;
 }
 
+
+void
+t_cose_sign1_add_signer(struct t_cose_sign1_sign_ctx *context,
+                        struct t_cose_signer         *signer)
+{
+    if(context->signers == NULL) {
+        context->signers = signer;
+    } else {
+        struct t_cose_signer *t;
+        for(t = context->signers; t->next_in_list != NULL; t = t->next_in_list);
+        t->next_in_list = signer;
+    }
+}

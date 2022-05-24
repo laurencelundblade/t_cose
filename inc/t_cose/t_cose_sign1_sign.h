@@ -17,6 +17,7 @@
 #include "qcbor/qcbor.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_signer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,6 +78,7 @@ struct t_cose_sign1_sign_ctx {
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
 #endif
+    void                 *signers; // TODO make this the proper type
 };
 
 
@@ -116,6 +118,10 @@ struct t_cose_sign1_sign_ctx {
  * set.  The only difference between these two is the CBOR tag.
  */
 #define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
+
+
+/* Produces a COSE_Signature, not COSE_Signature 1. TODO: lots to complete this */
+#define T_COSE_MULTIPLE_SIGNERS 0x004
 
 
 /**
@@ -170,6 +176,13 @@ static void
 t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
                              struct t_cose_key             signing_key,
                              struct q_useful_buf_c         kid);
+
+
+
+void
+t_cose_sign1_add_signer(struct t_cose_sign1_sign_ctx *context,
+                        struct t_cose_signer         *signer);
+
 
 
 
@@ -530,6 +543,14 @@ t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *context,
                                struct q_useful_buf_c         payload,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result);
+
+
+
+
+/* Needed by signer implementations */
+struct q_useful_buf_c
+encode_protected_parameters(int32_t             cose_algorithm_id,
+                            QCBOREncodeContext *cbor_encode_ctx);
 
 
 static inline enum t_cose_err_t

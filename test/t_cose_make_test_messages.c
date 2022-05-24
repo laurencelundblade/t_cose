@@ -120,7 +120,7 @@ Done:
  * \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
  */
 static inline struct q_useful_buf_c
-encode_protected_parameters(uint32_t            test_message_options,
+encode_protected_parameters_test(uint32_t            test_message_options,
                             int32_t             cose_algorithm_id,
                             struct q_useful_buf buffer_for_protected_parameters)
 {
@@ -458,7 +458,7 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
     if( ! (test_mess_options & T_COSE_TEST_NO_PROTECTED_PARAMETERS)) {
         buffer_for_protected_parameters = Q_USEFUL_BUF_FROM_BYTE_ARRAY(s_protected_params);
 
-        me->protected_parameters = encode_protected_parameters(test_mess_options,
+        me->protected_parameters = encode_protected_parameters_test(test_mess_options,
                                                                me->cose_algorithm_id,
                                                                buffer_for_protected_parameters);
         QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_parameters);

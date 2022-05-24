@@ -60,6 +60,7 @@
 		E772027C23CAEC84006E966E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E7B226CB8400040613B /* main.c */; };
 		E772027D23CAEC84006E966E /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E772027E23CAEC84006E966E /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
+		E7752A1D283C1E0300EF47C2 /* t_cose_ecdsa_signer.c in Sources */ = {isa = PBXBuildFile; fileRef = E7752A1C283C1E0300EF47C2 /* t_cose_ecdsa_signer.c */; };
 		E7C960A627F7569E00FB537C /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7C960A527F7569500FB537C /* libqcbor.a */; };
 		E7C960A727F7569F00FB537C /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7C960A527F7569500FB537C /* libqcbor.a */; };
 		E7C960A827F756A000FB537C /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7C960A527F7569500FB537C /* libqcbor.a */; };
@@ -187,6 +188,9 @@
 		E751F9EE27E1F85000EBA5FA /* crypto_values.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypto_values.h; path = ../../../../../usr/local/include/psa/crypto_values.h; sourceTree = "<group>"; };
 		E751F9F027E1F90F00EBA5FA /* libmbedcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmbedcrypto.a; path = ../../../../../usr/local/lib/libmbedcrypto.a; sourceTree = "<group>"; };
 		E772028523CAEC84006E966E /* t_cose_psa_noss */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_psa_noss; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7752A1A283C17BF00EF47C2 /* t_cose_signer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_signer.h; path = t_cose/t_cose_signer.h; sourceTree = "<group>"; };
+		E7752A1C283C1E0300EF47C2 /* t_cose_ecdsa_signer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_ecdsa_signer.c; sourceTree = "<group>"; };
+		E7752A1E283CA3A600EF47C2 /* t_cose_ecdsa_signer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_ecdsa_signer.h; path = t_cose/t_cose_ecdsa_signer.h; sourceTree = "<group>"; };
 		E7C960A527F7569500FB537C /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
 		E7E36E78226CB8400040613B /* t_cose_openssl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7E36E7B226CB8400040613B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
@@ -336,10 +340,12 @@
 		E7E36E82226CB9460040613B /* inc */ = {
 			isa = PBXGroup;
 			children = (
+				E7752A1E283CA3A600EF47C2 /* t_cose_ecdsa_signer.h */,
 				E72EC9EF242E74EE006D3DD3 /* q_useful_buf.h */,
 				E72EC9ED242E74EE006D3DD3 /* t_cose_common.h */,
 				E72EC9EC242E74EE006D3DD3 /* t_cose_sign1_sign.h */,
 				E72EC9EE242E74EE006D3DD3 /* t_cose_sign1_verify.h */,
+				E7752A1A283C17BF00EF47C2 /* t_cose_signer.h */,
 			);
 			path = inc;
 			sourceTree = "<group>";
@@ -355,6 +361,7 @@
 				E7E36E8C226CB9460040613B /* t_cose_util.h */,
 				E7E36E8D226CB9460040613B /* t_cose_crypto.h */,
 				E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */,
+				E7752A1C283C1E0300EF47C2 /* t_cose_ecdsa_signer.c */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -554,6 +561,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E7752A1D283C1E0300EF47C2 /* t_cose_ecdsa_signer.c in Sources */,
 				E730E60B23612DAB00175CE0 /* t_cose_sign1_verify.c in Sources */,
 				E730E60C23612DAB00175CE0 /* run_tests.c in Sources */,
 				E730E62123612E3900175CE0 /* t_cose_test_crypto.c in Sources */,

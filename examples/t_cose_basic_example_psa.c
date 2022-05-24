@@ -13,6 +13,8 @@
 #include "t_cose/t_cose_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
+#include "t_cose/t_cose_signer.h"
+#include "t_cose/t_cose_ecdsa_signer.h"
 
 #include "psa/crypto.h"
 
@@ -76,6 +78,7 @@ enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
     const uint8_t        *private_key;
     size_t                private_key_len;
     psa_key_attributes_t  key_attributes;
+    struct t_cose_signer  signer; // TODO: make this an ECDSA signer
 
 
     static const uint8_t private_key_256[] = {PRIVATE_KEY_prime256v1};
@@ -408,10 +411,14 @@ int two_step_sign_example()
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
     struct q_useful_buf_c          payload;
-    struct t_cose_key              key_pair;
+    struct t_cose_key              ecdsa256_key_pair;
+    struct t_cose_key              ecdsa512_key_pair;
     QCBOREncodeContext             cbor_encode;
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
+
+    struct t_cose_ecdsa_signer     ecdsa256_signer;
+    struct t_cose_ecdsa_signer     ecdsa512_signer;
 
 
 
@@ -426,7 +433,15 @@ int two_step_sign_example()
      * The making and destroying of the key pair is the only code
      * dependent on the crypto library in this file.
      */
-    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &ecdsa256_key_pair);
+
+    printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, return_value ? "fail" : "success");
+    if(return_value) {
+        goto Done;
+    }
+
+
+    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &ecdsa512_key_pair);
 
     printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
@@ -454,9 +469,24 @@ int two_step_sign_example()
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_MULTIPLE_SIGNERS, T_COSE_ALGORITHM_NONE);
 
-    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
+    /* ----- Initialize first ECDSA signer ------ */
+    t_cose_ecdsa_signer_init(&ecdsa_signer, T_COSE_ALGORITHM_ES256);
+
+    t_cose_ecdsa_signer_set_signing_key(&ecdsa256_signer, key_pair, NULL_Q_USEFUL_BUF_C);
+
+    t_cose_sign1_add_signer(&sign_ctx, t_cose_signer_from_ecdsa_signer(&ecdsa256_signer));
+
+
+    /* ----- Initialize second ECDSA signer ------ */
+    t_cose_ecdsa_signer_init(&ecdsa_signer, T_COSE_ALGORITHM_ES512);
+
+    t_cose_ecdsa_signer_set_signing_key(&ecdsa512_signer, key_pair, NULL_Q_USEFUL_BUF_C);
+
+    t_cose_sign1_add_signer(&sign_ctx, t_cose_signer_from_ecdsa_signer(&ecdsa512_signer));
+
 
     printf("Initialized QCBOR, t_cose and configured signing key\n");
 
@@ -513,7 +543,8 @@ int two_step_sign_example()
     /* ------   Sign    ------
      *
      * This call signals the end payload construction, causes the actual
-     * signing to run.
+     * signing to run. This is where the individual signers that were
+     * added above are called back for each to output their signature.
      */
     return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
 
