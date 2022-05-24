@@ -443,7 +443,7 @@ int two_step_sign_example()
 
     return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &ecdsa512_key_pair);
 
-    printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, return_value ? "fail" : "success");
+    printf("Made EC key with curve secp521r1: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
         goto Done;
     }

@@ -191,6 +191,7 @@
 		E7752A1A283C17BF00EF47C2 /* t_cose_signer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_signer.h; path = t_cose/t_cose_signer.h; sourceTree = "<group>"; };
 		E7752A1C283C1E0300EF47C2 /* t_cose_ecdsa_signer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_ecdsa_signer.c; sourceTree = "<group>"; };
 		E7752A1E283CA3A600EF47C2 /* t_cose_ecdsa_signer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_ecdsa_signer.h; path = t_cose/t_cose_ecdsa_signer.h; sourceTree = "<group>"; };
+		E7752A1F283D5C0200EF47C2 /* t_cose_verifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_verifier.h; sourceTree = "<group>"; };
 		E7C960A527F7569500FB537C /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
 		E7E36E78226CB8400040613B /* t_cose_openssl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7E36E7B226CB8400040613B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
@@ -346,6 +347,7 @@
 				E72EC9EC242E74EE006D3DD3 /* t_cose_sign1_sign.h */,
 				E72EC9EE242E74EE006D3DD3 /* t_cose_sign1_verify.h */,
 				E7752A1A283C17BF00EF47C2 /* t_cose_signer.h */,
+				E7752A1F283D5C0200EF47C2 /* t_cose_verifier.h */,
 			);
 			path = inc;
 			sourceTree = "<group>";
