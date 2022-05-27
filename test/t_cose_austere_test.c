@@ -1,10 +1,12 @@
-//
-//  t_cose_austere_test.c
-//  t_cose
-//
-//  Created by Laurence Lundblade on 5/2/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+*  t_cose_mini_sign_test.c
+*
+* Copyright 2022, Laurence Lundblade
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*
+* See BSD-3-Clause license in README.md
+*/
 
 #include "t_cose_austere_test.h"
 #include "t_cose_make_test_pub_key.h"
@@ -34,30 +36,39 @@ const uint8_t payload[] = {
 
 int32_t austere_test(void) {
 
-    enum t_cose_err_t err;
-    MakeUsefulBufOnStack(output, 250);
-    struct q_useful_buf_c cose_sign1;
+    enum t_cose_err_t               err;
+    MakeUsefulBufOnStack(           output, sizeof(payload) + T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES256);
+    struct q_useful_buf_c           cose_sign1;
+    struct t_cose_key               key_pair;
+    struct t_cose_sign1_verify_ctx  verify_ctx;
+    struct q_useful_buf_c           verified_payload;
 
-    struct t_cose_key key_pair;
 
-    err = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
-
+    err = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    if(err) {
+        return 10;
+    }
 
     err = t_cose_mini_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
-                              key_pair,
-                              output,
-                              &cose_sign1);
+                           key_pair,
+                           output,
+                          &cose_sign1);
+    if(err) {
+        return 20;
+    }
 
 
-    struct t_cose_sign1_verify_ctx verify_ctx;
+    t_cose_sign1_verify_init(&verify_ctx, 0);
 
-       t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
-       t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
-
-    struct q_useful_buf_c  xx;
-    err = t_cose_sign1_verify(&verify_ctx, cose_sign1,
-                        &xx, NULL);
+    err = t_cose_sign1_verify(&verify_ctx, cose_sign1, &verified_payload, NULL);
+    if(err) {
+        return 30;
+    }
 
     return 0;
 }
+
+
+// TODO: test for output buffer too small

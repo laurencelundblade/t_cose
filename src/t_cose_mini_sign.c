@@ -1,10 +1,12 @@
-//
-//  t_cose_mini_sign.c
-//  t_cose
-//
-//  Created by Laurence Lundblade on 5/2/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ *  t_cose_mini_sign.c
+ *
+ * Copyright 2022, Laurence Lundblade
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
 
 #include "t_cose/t_cose_mini_sign.h"
 #include "t_cose/t_cose_common.h"
@@ -12,10 +14,14 @@
 
 #include "qcbor/UsefulBuf.h"
 
+/*
+Define one of these to configure the algorithm
 
+#define T_COSE_MINI_SIGN_SELECT_ES256
 #define T_COSE_MINI_SIGN_SELECT_ES384
-
-
+#define T_COSE_MINI_SIGN_SELECT_ES512
+*/
+#define T_COSE_MINI_SIGN_SELECT_ES256
 
 
 #if defined(T_COSE_MINI_SIGN_SELECT_ES256)
@@ -44,53 +50,86 @@
 
 #endif
 
-/* This has all sort of stuff packed in and hard coded, including the payload length.
 
-     * Sig_structure = [
-     *    context : "Signature" / "Signature1" / "CounterSignature",
-     *    body_protected : empty_or_serialized_map,
-     *    ? sign_protected : empty_or_serialized_map,
-     *    external_aad : bstr,
-     *    payload : bstr
-     * ]
+#if defined(T_COSE_MINI_SIGN_SELECT_ES256)
+#define PROT_HEADER_START 0x43
+#else
+#define PROT_HEADER_START 0x44
+#endif
 
+#define PROT_HEADERS \
+    PROT_HEADER_START, \
+    0xA1, 0x01, \
+    MINI_SIGN_ALG_ID_BYTES
+
+/*
+ * This is hard-coded bytes for the start of the CBOR for the following
+ * CBOR that are the to-be-signed bytes. Hard coding like this saves
+ * writing code to create it.
+ *
+ * Sig_structure = [
+ *    context : "Signature" / "Signature1" / "CounterSignature",
+ *    body_protected : empty_or_serialized_map,
+ *    ? sign_protected : empty_or_serialized_map,
+ *    external_aad : bstr,
+ *    payload : bstr
+ * ]
  */
-
 static uint8_t start_sig_struct[] = {
     0x84,
     0x6A,'S', 'i', 'g', 'n', 'a', 't', 'u', 'r', 'e', '1',
-    0x44, 0xA1, 0x01, MINI_SIGN_ALG_ID_BYTES, // bstr wrapped protected header wtih algorithm ID
-    0x40, // Empty bstr for aad
+    PROT_HEADERS, // bstr wrapped protected header wtih algorithm ID
+    0x40, /* Empty bstr for aad */
 };
 
+/* The first part of a COSE_Sign1: the opening array,
+ * the protected parameters and the unproteced parameters.
+ */
 static uint8_t start_cose_sign1[] = {
     0x84,
-    0x44, 0xA1, 0x01, MINI_SIGN_ALG_ID_BYTES, // bstr wrapped protected header wtih algorithm ID
-    0xa0, // no unprotected headers, put some here if you want
+    PROT_HEADERS, // bstr wrapped protected header wtih algorithm ID
+    0xa0, /* no unprotected headers, put some here if you want */
 };
 
+/* The Hard coded bytes for the CBOR head for the signature. It is less
+ * code to hard code than to encode using encode_bstr_head() */
 static uint8_t cose_sign1_sig_start[] = {
     0x58, MINI_SIGN_SIG_LEN
 };
 
-
+#if MINI_SIGN_SIG_LEN > 255
+#error signature length is too long
+#endif
 
 
 /* This maximum is for a CBOR head for a byte string no longer than
  * UINT16_MAX, not the general case for a CBOR head. */
 #define MAX_CBOR_HEAD 3
 
-/* Len < 65355 */
-static inline struct q_useful_buf_c
-encode_bstr_head(struct q_useful_buf b, size_t len)
-{
-    uint8_t *bb = b.ptr;
 
-    if(b.len < MAX_CBOR_HEAD) {
-        return NULLUsefulBufC;
+/*
+ * @brief Encode a CBOR head for a byte string of given length
+ *
+ * @param[in] len         The length to encode.
+ * @param[in] out_buffer  Pointer and length to write to.
+ *
+ * @return   The pointer and length of the encoded CBOR head
+ *           or \c NULL_Q_USEFUL_BUF_C if @c len is
+ *           greater than 65355.
+ *
+ * This is a scaled-down specific version of QCBOREncode_EncodeHead()
+ * in QCBOR.
+ */
+static inline struct q_useful_buf_c
+encode_bstr_head(const size_t len, const struct q_useful_buf out_buffer)
+{
+    uint8_t *bb = out_buffer.ptr;
+
+    if(out_buffer.len < MAX_CBOR_HEAD) {
+        return NULL_Q_USEFUL_BUF_C;
     }
 
-    if(len < 24 ) {
+    if(len < 24) { /* 24 is a special number in CBOR */
         bb[0] = 0x40 + (uint8_t)len;
         return (struct q_useful_buf_c){bb, 1};
     } else if(len < 256) {
@@ -103,13 +142,14 @@ encode_bstr_head(struct q_useful_buf b, size_t len)
         bb[2] = (uint8_t)(len % 256);
         return (struct q_useful_buf_c){bb, 3};
     } else {
-        return NULLUsefulBufC;
+        return NULL_Q_USEFUL_BUF_C;
     }
 }
 
 
-
-
+/*
+ * Public function.
+ */
 enum t_cose_err_t
 t_cose_mini_sign(const struct q_useful_buf_c payload,
                  struct t_cose_key           signing_key,
@@ -123,12 +163,17 @@ t_cose_mini_sign(const struct q_useful_buf_c payload,
     MakeUsefulBufOnStack(      hash_output, MINI_SIGN_HASH_LEN);
     MakeUsefulBufOnStack(      payload_head_buffer, MAX_CBOR_HEAD);
     struct q_useful_buf_c      payload_head;
-    struct q_useful_buf        tmp;
+    struct q_useful_buf        signature_buffer;
+    uint8_t                   *copy_ptr;
 
-    payload_head = encode_bstr_head(payload_head_buffer, payload.len);
+    /* --- Create a CBOR head for the payload ---- */
+    payload_head = encode_bstr_head(payload.len, payload_head_buffer);
 
     if(payload_head.ptr == NULL) {
-        return 99; // TODO: error code
+        /* The payload is too large (the only reason encode_bstr_head()
+         * errors out.
+         */
+        return T_COSE_ERR_TOO_LONG;
     }
 
 
@@ -136,54 +181,74 @@ t_cose_mini_sign(const struct q_useful_buf_c payload,
     /* Don't actually have to create the Sig_structure fully in
      * memory. Just have to compute the hash of it. */
     err = t_cose_crypto_hash_start(&hash_ctx, MINI_SIGN_HASH);
+    if(err != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     t_cose_crypto_hash_update(&hash_ctx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(start_sig_struct));
     t_cose_crypto_hash_update(&hash_ctx, payload_head);
     t_cose_crypto_hash_update(&hash_ctx, payload);
 
     err = t_cose_crypto_hash_finish(&hash_ctx, hash_output, &computed_hash);
-
-
-    const size_t required_len = payload.len +
-                                MAX_CBOR_HEAD +
-                                sizeof(start_cose_sign1) +
-                                sizeof(cose_sign1_sig_start);
-
-    if(output_buffer.len < required_len) {
-        return 0;
+    if(err != T_COSE_SUCCESS) {
+        goto Done;
     }
 
-    uint8_t *p;
+    /* ---- Size check ---- */
+    /* Calculate the length of the output buffer required. It is
+     * just the payload plus a constant. This one check covers
+     * all the memcpy() calls below.
+     */
+    const size_t required_len = sizeof(start_cose_sign1) +
+                                MAX_CBOR_HEAD +
+                                payload.len +
+                                sizeof(cose_sign1_sig_start) +
+                                MINI_SIGN_SIG_LEN;
 
-    p = output_buffer.ptr;
+    if(output_buffer.len < required_len) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
 
-    memcpy(p, start_cose_sign1, sizeof(start_cose_sign1));
-    p += sizeof(start_cose_sign1);
+    /* ---- Output the COSE_Sign1 ---- */
+    copy_ptr = output_buffer.ptr;
 
-    memcpy(p, payload_head.ptr, payload_head.len);
-    p += payload_head.len;
+    memcpy(copy_ptr, start_cose_sign1, sizeof(start_cose_sign1));
+    copy_ptr += sizeof(start_cose_sign1);
 
-    memcpy(p, payload_head.ptr, payload.len);
-    p += payload.len;
+    memcpy(copy_ptr, payload_head.ptr, payload_head.len);
+    copy_ptr += payload_head.len;
 
-    memcpy(p, cose_sign1_sig_start, sizeof(cose_sign1_sig_start));
-    p += payload.len;
+    memcpy(copy_ptr, payload.ptr, payload.len);
+    copy_ptr += payload.len;
 
-    struct q_useful_buf tmp2;
-    tmp2.len = p - (uint8_t *)output_buffer.ptr ;
-    tmp.ptr = p;
+    memcpy(copy_ptr, cose_sign1_sig_start, sizeof(cose_sign1_sig_start));
+    copy_ptr += sizeof(cose_sign1_sig_start);
+
+    const size_t u_len = (size_t)(copy_ptr - (uint8_t *)output_buffer.ptr);
 
 
-    t_cose_crypto_sign(MINI_SIGN_ALG,
-                       signing_key,
-                       computed_hash,
-                       tmp,
-                       &signature);
+    /* This won't go negative because of the check against required_len above
+     * so the cast is safe.
+     */
+    signature_buffer.len = output_buffer.len - u_len;
+    signature_buffer.ptr = copy_ptr;
+
+
+    err = t_cose_crypto_sign(MINI_SIGN_ALG,
+                             signing_key,
+                             computed_hash,
+                             signature_buffer,
+                            &signature);
 
     output->ptr = output_buffer.ptr;
-    output->len = tmp2.len + MINI_SIGN_SIG_LEN;
+    output->len = u_len + signature.len;
 
+    /* I wrote this code without using UsefulBuf to save object code.
+     * It works and I saved object code, but I made about three
+     * mistakes with pointer math that I wouldn't have made
+     * with UsefulBuf that took a few hours of debugging to find.
+     */
 
-    return 0;
+Done:
+    return err;
 }
-

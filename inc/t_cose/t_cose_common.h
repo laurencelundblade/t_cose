@@ -341,6 +341,10 @@ enum t_cose_err_t {
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when
      * verifying a signature. */
     T_COSE_ERR_TOO_MANY_TAGS = 37,
+
+    /** The size or length is larger than can be handled. */
+    T_COSE_ERR_TOO_LONG = 38,
+
 };
 
 
