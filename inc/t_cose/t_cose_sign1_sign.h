@@ -1,7 +1,7 @@
 /*
  * t_cose_sign1_sign.h
  *
- * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020, Michael Eckel
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -73,6 +73,7 @@ struct t_cose_sign1_sign_ctx {
     struct t_cose_key     signing_key;
     uint32_t              option_flags;
     struct q_useful_buf_c kid;
+    void                 *crypto_context;
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
@@ -215,6 +216,33 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 
+/**
+ * \brief  Set the crypto adapter context.
+ *
+ * \param[in] context            The t_cose signing context.
+ * \param[in] crypto_context            The crypto adapter context.
+ *
+ * The context pointer set here is passed to the signing operation called
+ * by t_cose. It is just passed through. t_cose does nothing with it.
+ *
+ * This can have many uses. It can provide configuration to the
+ * crypto adapter. It can provide memory or a context structure
+ * for the crypto adapter and algorithm implementation.
+ *
+ * Use of this is always specific to the cryptographic adapter.
+ * The caller must know which adapter is used, what the crypto
+ * context has in it and what can be done with it. The crypto
+ * adapter may provide some methods to initialize this context.
+ *
+ * One example use is for restartarble crypto, crypto that is called
+ * multiple times until it completes. The crypto context can
+ * contain anything that must be retained across calls to the
+ * sign function. It can also contain configuration to turn on
+ * or off the restartable crypto.
+ */
+static inline void
+t_cose_sign1_set_crypto_context(struct t_cose_sign1_sign_ctx *context,
+                                void                         *crypto_context);
 
 /**
  * \brief  Create and sign a \c COSE_Sign1 message with a payload in one call.
@@ -618,6 +646,15 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
     me->content_type_tstr = content_type;
 }
 #endif
+
+
+static inline void
+t_cose_sign1_set_crypto_context(struct t_cose_sign1_sign_ctx *me,
+                                 void                         *crypto_context)
+{
+    me->crypto_context = crypto_context;
+}
+
 
 #ifdef __cplusplus
 }

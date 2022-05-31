@@ -145,6 +145,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct t_cose_key      signing_key,
+                   void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature)
@@ -154,6 +155,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     psa_algorithm_t       psa_alg_id;
     mbedtls_svc_key_id_t  signing_key_psa;
     size_t                signature_len;
+
+    (void)crypto_context; /* Crypto context not used */
 
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);
 

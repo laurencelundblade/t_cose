@@ -89,6 +89,8 @@ struct t_cose_parameters {
      * parameter is not present */
     struct q_useful_buf_c partial_iv;
 
+    void                  *crypto_context;
+
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     /** The content type as a MIME type like
      * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
@@ -195,6 +197,7 @@ struct t_cose_sign1_verify_ctx {
     struct t_cose_key     verification_key;
     uint32_t              option_flags;
     uint64_t              auTags[T_COSE_MAX_TAGS_TO_RETURN];
+    void                 *crypto_context;
 };
 
 

@@ -346,6 +346,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     /* -- Verify the signature (if it wasn't short-circuit) -- */
     return_value = t_cose_crypto_verify(parameters.cose_algorithm_id,
                                         me->verification_key,
+                                        me->crypto_context,
                                         parameters.kid,
                                         tbs_hash,
                                         signature);

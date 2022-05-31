@@ -13,6 +13,8 @@
 
 #include "t_cose_crypto.h"
 
+#include "t_cose_test_crypto.h"
+
 
 /*
  * This file is stub crypto for initial bring up and test of t_cose.
@@ -69,16 +71,34 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct t_cose_key      signing_key,
+                   void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature)
 {
+    struct t_cose_test_crypto_context *me;
+
+    me = (struct t_cose_test_crypto_context *)crypto_context;
+
     (void)cose_algorithm_id;
     (void)signing_key;
     (void)hash_to_sign;
     (void)signature_buffer;
     (void)signature;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+
+    // TODO: turn this into short-circuit signing so it actually does something
+    
+    if(me != NULL && me->enable_restart) {
+
+        if(me->iteration_counter) {
+            me->iteration_counter--;
+            return T_COSE_ERR_SIG_IN_PROGRESS;
+        } else {
+            return T_COSE_SUCCESS;
+        }
+    } else {
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
 }
 
 
@@ -88,6 +108,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_verify(int32_t                cose_algorithm_id,
                      struct t_cose_key      verification_key,
+                     void                  *crypto_context,
                      struct q_useful_buf_c  kid,
                      struct q_useful_buf_c  hash_to_verify,
                      struct q_useful_buf_c  signature)

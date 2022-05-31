@@ -214,6 +214,7 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct t_cose_key      signing_key,
+                   void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature);
@@ -272,6 +273,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct t_cose_key     verification_key,
+                     void                  *crypto_context,
                      struct q_useful_buf_c kid,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature);

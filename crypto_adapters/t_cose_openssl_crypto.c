@@ -348,6 +348,7 @@ Done:
 enum t_cose_err_t
 t_cose_crypto_sign(const int32_t                cose_algorithm_id,
                    const struct t_cose_key      signing_key,
+                   void                        *crypto_context,
                    const struct q_useful_buf_c  hash_to_sign,
                    const struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c       *signature)
@@ -366,6 +367,8 @@ t_cose_crypto_sign(const int32_t                cose_algorithm_id,
     int                    ossl_result;
     unsigned               key_size_bytes;
     MakeUsefulBufOnStack(  der_format_signature, T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
+
+    (void)crypto_context; /* Crypto context not used */
 
     /* This implementation supports only ECDSA so far. The
      * interface allows it to support other, but none are implemented.

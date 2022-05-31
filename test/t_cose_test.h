@@ -155,4 +155,9 @@ int32_t get_size_test(void);
 int32_t indef_array_and_map_test(void);
 
 
+/*
+ *
+ */
+int32_t restart_test(void);
+
 #endif /* t_cose_test_h */

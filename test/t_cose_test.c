@@ -1656,3 +1656,64 @@ int32_t indef_array_and_map_test()
 
     return 0;
 }
+
+#include "t_cose_test_crypto.h"
+
+
+int32_t restart_test(void)
+{
+    struct t_cose_test_crypto_context r_context;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    enum t_cose_err_t               result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
+    struct q_useful_buf_c           signed_cose;
+    //struct t_cose_sign1_verify_ctx  verify_ctx;
+    //struct q_useful_buf_c           payload;
+    int                             counter;
+
+    t_cose_test_crypto_restart_init(&r_context, true, 5);
+
+    /* --- Make COSE Sign1 object --- */
+     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+
+     /* No key necessary because short-circuit test mode is used */
+
+    t_cose_sign1_set_crypto_context(&sign_ctx, & r_context);
+
+    counter = 0;
+    do {
+        result = t_cose_sign1_sign(&sign_ctx,
+                                    s_input_payload,
+                                    signed_cose_buffer,
+                                   &signed_cose);
+        counter++;
+    } while(result == T_COSE_ERR_SIG_IN_PROGRESS);
+
+     if(result) {
+         return 1000 + (int32_t)result;
+     }
+     /* --- Done making COSE Sign1 object  --- */
+
+#if 0
+     /* --- Start verifying the COSE Sign1 object  --- */
+     /* Select short circuit signing */
+     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+     /* No key necessary with short circuit */
+
+     /* Run the signature verification */
+     result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+     if(result) {
+         return 2000 + (int32_t)result;
+     }
+
+#endif
+
+    return 0;
+}

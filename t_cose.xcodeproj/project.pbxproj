@@ -187,6 +187,7 @@
 		E751F9EE27E1F85000EBA5FA /* crypto_values.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypto_values.h; path = ../../../../../usr/local/include/psa/crypto_values.h; sourceTree = "<group>"; };
 		E751F9F027E1F90F00EBA5FA /* libmbedcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmbedcrypto.a; path = ../../../../../usr/local/lib/libmbedcrypto.a; sourceTree = "<group>"; };
 		E772028523CAEC84006E966E /* t_cose_psa_noss */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_psa_noss; sourceTree = BUILT_PRODUCTS_DIR; };
+		E77BE9F52845847500571583 /* t_cose_test_crypto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_test_crypto.h; sourceTree = "<group>"; };
 		E7C960A527F7569500FB537C /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
 		E7E36E78226CB8400040613B /* t_cose_openssl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7E36E7B226CB8400040613B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
@@ -363,6 +364,7 @@
 			isa = PBXGroup;
 			children = (
 				E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */,
+				E77BE9F52845847500571583 /* t_cose_test_crypto.h */,
 				E7E36EA4226CBB570040613B /* t_cose_test_crypto.c */,
 				E7E36EA3226CBB570040613B /* t_cose_openssl_crypto.c */,
 				E7F70AAC2270D650007CE07F /* b_con_hash */,

@@ -87,6 +87,8 @@ static test_entry s_tests[] = {
     TEST_ENTRY(tags_test),
     TEST_ENTRY(get_size_test),
     TEST_ENTRY(indef_array_and_map_test),
+    TEST_ENTRY(restart_test),
+
 
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),

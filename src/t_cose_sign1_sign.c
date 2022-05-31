@@ -1,7 +1,7 @@
 /*
  * t_cose_sign1_sign.c
  *
- * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -380,6 +380,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
             /* Perform the public key signing */
              return_value = t_cose_crypto_sign(me->cose_algorithm_id,
                                                me->signing_key,
+                                               me->crypto_context,
                                                tbs_hash,
                                                buffer_for_signature,
                                               &signature);
