@@ -19,13 +19,11 @@
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_standard_constants.h"
+#include "qcbor/qcbor.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-
 
 /**
  * \file t_cose_crypto.h
@@ -106,7 +104,6 @@ extern "C" {
 #define T_COSE_EC_P384_SIG_SIZE 96  /* size for secp384r1 */
 #define T_COSE_EC_P512_SIG_SIZE 132 /* size for secp521r1 */
 
-
 /**
  * There is a stack variable to hold the output of the signing
  * operation.  This sets the maximum signature size this code can
@@ -130,8 +127,6 @@ extern "C" {
         #define T_COSE_MAX_SIG_SIZE T_COSE_EC_P256_SIG_SIZE
     #endif
 #endif
-
-
 
 
 /**
@@ -161,7 +156,8 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *
  * \param[in] buffer             Pointer and length of buffer into which
  *                               the resulting random bytes are put.
- *
+ * TBD:
+ * 
  * This function will either return the requested number of random bytes,
  * or produce an error.
  *
@@ -171,29 +167,16 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *         The random number generator failed to return the requested
  *         number of bytes.
  */
-enum t_cose_err_t
-t_cose_crypto_get_random(struct q_useful_buf buffer);
-
-/**
- * \brief Given a COSE HPKE algorithm id this function returns the
- *        HPKE algorithm structure, the key length (in bits) and
- *        the COSE algorithm ID.
- *
- * \param[in] buffer             Pointer and length of buffer into which
- *                               the resulting random bytes are put.
- *
- * \retval T_COSE_SUCCESS
- *         Successfully produced the HPKE algorithm structure.
- * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
- *         The supported key exchange algorithm is not supported.
- */
 
 enum t_cose_err_t
-t_cose_crypto_convert_hpke_algorithms(
-                int32_t                           hpke_cose_algorithm_id,
-                struct t_cose_crypto_hpke_suite_t *hpke_suite,
-                size_t                            *key_bitlen,
-                int64_t                           *cose_algorithm_id);
+t_cose_crypto_get_random(struct q_useful_buf    buffer,
+                         size_t                 number,
+                         struct q_useful_buf_c *random);
+
+/* TBD: Generate key */
+enum t_cose_err_t
+t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
+                           int32_t               cose_algorithm_id);
 
 /**
  * \brief Exports the public key
@@ -213,29 +196,19 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
                                 struct q_useful_buf    pk_buffer,
                                 size_t                *pk_len);
 
-/**
- * \brief HPKE Encrypt Wrapper
- *
- * \param[in] suite               HPKE ciphersuite
- * \param[in] pkR                 pkR buffer
- * \param[in] pkE                 pkE buffer
- * \param[in] plaintext           Plaintext buffer
- * \param[in] ciphertext          Ciphertext buffer
- * \param[out] ciphertext_len     Length of the produced ciphertext
- *
- * \retval T_COSE_SUCCESS
- *         HPKE encrypt operation was successful.
- * \retval T_COSE_ERR_HPKE_ENCRYPT_FAIL
- *         Encrypt operation failed.
- */
+/* TBD */
 enum t_cose_err_t
-t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
-                           struct q_useful_buf_c              pkR,
-                           struct t_cose_key                  pkE,
-                           struct q_useful_buf_c              plaintext,
-                           struct q_useful_buf                ciphertext,
-                           size_t                             *ciphertext_len);
+t_cose_crypto_export_key(struct t_cose_key      key,
+                         struct q_useful_buf    key_buffer,
+                         size_t                *key_len);
 
+/* TBD */
+enum t_cose_err_t
+t_cose_crypto_aes_kw(int32_t                  algorithm_id,
+                      struct q_useful_buf_c   kek,
+                      struct q_useful_buf_c   plaintext,
+                      struct q_useful_buf     ciphertext_buffer,
+                      struct q_useful_buf_c  *ciphertext_result);
 
 /**
  * \brief HPKE Decrypt Wrapper

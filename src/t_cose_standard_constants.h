@@ -227,6 +227,27 @@
 #define COSE_ALGORITHM_SHA_512 -44
 
 /**
+ * \def COSE_ALGORITHM_A256KW
+ *
+ * \brief AES Key Wrap w/ 256-bit key
+ */
+#define COSE_ALGORITHM_A256KW -5
+
+/**
+ * \def COSE_ALGORITHM_A192KW
+ *
+ * \brief AES Key Wrap w/ 192-bit key
+ */
+#define COSE_ALGORITHM_A192KW -4
+
+ /**
+ * \def COSE_ALGORITHM_A128KW
+ *
+ * \brief AES Key Wrap w/ 128-bit key
+ */
+#define COSE_ALGORITHM_A128KW -3
+
+/**
  * \def COSE_ALGORITHM_A128GCM
  *
  * \brief AES-GCM mode w/ 128-bit key, 128-bit tag

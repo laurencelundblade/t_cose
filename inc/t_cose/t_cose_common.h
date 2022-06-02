@@ -390,6 +390,9 @@ enum t_cose_err_t {
 
     /** Export of the public key failed. */
     T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED = 52,
+
+    /** Generating asymmetric key pair failed. */
+    T_COSE_ERR_KEY_GENERATION_FAILED = 53,
 };
 
 
