@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020, Michael Eckel
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -123,6 +124,7 @@ struct t_cose_sign1_sign_ctx {
  * \brief  Initialize to start creating a \c COSE_Sign1.
  *
  * \param[in] context            The t_cose signing context.
+ * \param[in] crypto_context     The crypto adapter context. May be NULL.
  * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
  * \param[in] cose_algorithm_id  The algorithm to sign with, for example
  *                               \ref T_COSE_ALGORITHM_ES256.
@@ -131,6 +133,24 @@ struct t_cose_sign1_sign_ctx {
  * \c option_flags are needed and 0 can be passed. A \c cose_algorithm_id
  * must always be given. See \ref T_COSE_OPT_SHORT_CIRCUIT_SIG and
  * related for possible option flags.
+ *
+ * The crypto_context pointer set here is passed to the signing operation called
+ * by t_cose. It is just passed through. t_cose does nothing with it.
+ *
+ * This can have many uses. It can provide configuration to the
+ * crypto adapter. It can provide memory or a context structure
+ * for the crypto adapter and algorithm implementation.
+ *
+ * Use of this is always specific to the cryptographic adapter.
+ * The caller must know which adapter is used, what the crypto
+ * context has in it and what can be done with it. The crypto
+ * adapter may provide some methods to initialize this context.
+ *
+ * One example use is for restartarble crypto, crypto that is called
+ * multiple times until it completes. The crypto context can
+ * contain anything that must be retained across calls to the
+ * sign function. It can also contain configuration to turn on
+ * or off the restartable crypto.
  *
  * The algorithm ID space is from
  * [COSE (RFC8152)](https://tools.ietf.org/html/rfc8152) and the
@@ -145,6 +165,7 @@ struct t_cose_sign1_sign_ctx {
  */
 static void
 t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
+                       void                         *crypto_context,
                        uint32_t                      option_flags,
                        int32_t                       cose_algorithm_id);
 
@@ -215,34 +236,6 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
                                    const char                   *content_type);
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
-
-/**
- * \brief  Set the crypto adapter context.
- *
- * \param[in] context            The t_cose signing context.
- * \param[in] crypto_context            The crypto adapter context.
- *
- * The context pointer set here is passed to the signing operation called
- * by t_cose. It is just passed through. t_cose does nothing with it.
- *
- * This can have many uses. It can provide configuration to the
- * crypto adapter. It can provide memory or a context structure
- * for the crypto adapter and algorithm implementation.
- *
- * Use of this is always specific to the cryptographic adapter.
- * The caller must know which adapter is used, what the crypto
- * context has in it and what can be done with it. The crypto
- * adapter may provide some methods to initialize this context.
- *
- * One example use is for restartarble crypto, crypto that is called
- * multiple times until it completes. The crypto context can
- * contain anything that must be retained across calls to the
- * sign function. It can also contain configuration to turn on
- * or off the restartable crypto.
- */
-static inline void
-t_cose_sign1_set_crypto_context(struct t_cose_sign1_sign_ctx *context,
-                                void                         *crypto_context);
 
 /**
  * \brief  Create and sign a \c COSE_Sign1 message with a payload in one call.
@@ -449,6 +442,7 @@ t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *context,
  */
 static inline void
 t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
+                       void                         *crypto_context,
                        uint32_t                      option_flags,
                        int32_t                       cose_algorithm_id)
 {
@@ -458,6 +452,7 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
     me->content_type_uint = T_COSE_EMPTY_UINT_CONTENT_TYPE;
 #endif
 
+    me->crypto_context    = crypto_context;
     me->cose_algorithm_id = cose_algorithm_id;
     me->option_flags      = option_flags;
 }
@@ -646,14 +641,6 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
     me->content_type_tstr = content_type;
 }
 #endif
-
-
-static inline void
-t_cose_sign1_set_crypto_context(struct t_cose_sign1_sign_ctx *me,
-                                 void                         *crypto_context)
-{
-    me->crypto_context = crypto_context;
-}
 
 
 #ifdef __cplusplus

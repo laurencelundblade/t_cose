@@ -2,6 +2,7 @@
  run_tests.c -- test aggregator and results reporting
 
  Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2022, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -89,6 +90,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(indef_array_and_map_test),
 #ifdef T_COSE_USE_B_CON_SHA256
     TEST_ENTRY(restart_test),
+    TEST_ENTRY(restart_test_2_step),
 #endif /* T_COSE_USE_B_CON_SHA256 */
 
 
@@ -307,9 +309,6 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_signing_key)",
               (uint32_t)sizeof(struct t_cose_key),
-              pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_crypto_hash)",
-              (uint32_t)sizeof(struct t_cose_crypto_hash),
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_parameters)",
               (uint32_t)sizeof(struct t_cose_parameters),

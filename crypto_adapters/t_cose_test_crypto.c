@@ -15,6 +15,8 @@
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
 
+#include "../crypto_adapters/t_cose_test_crypto.h"
+
 #include "t_cose_test_crypto.h"
 
 
@@ -149,9 +151,12 @@ int check_for_key_pair_leaks()
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
+t_cose_crypto_hash_start(void    *crypto_context,
                          int32_t cose_hash_alg_id)
 {
+    struct t_cose_test_crypto_context *me = crypto_context;
+
+
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     if(hash_test_mode == 1) {
         return T_COSE_ERR_HASH_GENERAL_FAIL;
@@ -162,18 +167,20 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
 
-    sha256_init(&(hash_ctx->b_con_hash_context));
+    sha256_init(&(me->b_con_hash_context));
     return 0;
 }
 
 /*
  * See documentation in t_cose_crypto.h
  */
-void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
+void t_cose_crypto_hash_update(void   *crypto_context,
                                struct q_useful_buf_c data_to_hash)
 {
+    struct t_cose_test_crypto_context *me = crypto_context;
+
     if(data_to_hash.ptr) {
-        sha256_update(&(hash_ctx->b_con_hash_context),
+        sha256_update(&(me->b_con_hash_context),
                       data_to_hash.ptr,
                       data_to_hash.len);
     }
@@ -183,17 +190,19 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
+t_cose_crypto_hash_finish(void   *crypto_context,
                           struct q_useful_buf buffer_to_hold_result,
                           struct q_useful_buf_c *hash_result)
 {
+    struct t_cose_test_crypto_context *me = crypto_context;
+
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     if(hash_test_mode == 2) {
         return T_COSE_ERR_HASH_GENERAL_FAIL;
     }
 #endif
 
-    sha256_final(&(hash_ctx->b_con_hash_context), buffer_to_hold_result.ptr);
+    sha256_final(&(me->b_con_hash_context), buffer_to_hold_result.ptr);
     *hash_result = (UsefulBufC){buffer_to_hold_result.ptr, 32};
 
     return 0;

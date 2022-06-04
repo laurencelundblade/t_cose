@@ -9,6 +9,8 @@
  * See BSD-3-Clause license in README.md
  */
 
+#include "qcbor/qcbor_encode.h"
+
 #include "t_cose_test.h"
 #include "t_cose/t_cose_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
@@ -17,6 +19,27 @@
 #include "t_cose_crypto.h" /* For signature size constant */
 #include "t_cose_util.h" /* for get_short_circuit_kid */
 
+#ifndef DECLARE_CRYPTO_CONTEXT
+    #ifdef T_COSE_USE_PSA_CRYPTO
+        #include "../crypto_adapters/t_cose_psa_crypto.h"
+        #define DECLARE_CRYPTO_CONTEXT() \
+            struct t_cose_psa_crypto_context psa_crypto_context; \
+            void* crypto_context = &psa_crypto_context
+    #elif T_COSE_USE_OPENSSL_CRYPTO
+        #include "../crypto_adapters/t_cose_openssl_crypto.h"
+        #define DECLARE_CRYPTO_CONTEXT() \
+            struct t_cose_openssl_crypto_context openssl_crypto_context; \
+            void* crypto_context = &openssl_crypto_context
+    #elif T_COSE_USE_B_CON_SHA256
+        #include "../crypto_adapters/t_cose_test_crypto.h"
+        #define DECLARE_CRYPTO_CONTEXT() \
+            struct t_cose_test_crypto_context test_crypto_context; \
+            t_cose_test_crypto_context_init(&test_crypto_context, true, 5);\
+            void* crypto_context = &test_crypto_context
+    #else
+        #error "DECLARE_CRYPTO_CONTEXT is not defined"
+    #endif
+#endif /* DECLARE_CRYPTO_CONTEXT */
 
 /* String used by RFC 8152 and C-COSE tests and examples for payload */
 #define SZ_CONTENT "This is the content."
@@ -33,10 +56,12 @@ int_fast32_t short_circuit_self_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
+    DECLARE_CRYPTO_CONTEXT();
 
 
     /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -54,7 +79,7 @@ int_fast32_t short_circuit_self_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Select short circuit signing */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -101,6 +126,7 @@ int_fast32_t short_circuit_self_test()
 
    /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -119,7 +145,7 @@ int_fast32_t short_circuit_self_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Select short circuit signing */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -155,10 +181,12 @@ int_fast32_t short_circuit_self_detached_content_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
+    DECLARE_CRYPTO_CONTEXT();
 
 
     /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -177,7 +205,7 @@ int_fast32_t short_circuit_self_detached_content_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Select short circuit signing */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -244,9 +272,11 @@ int_fast32_t short_circuit_verify_fail_test()
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
     size_t                          payload_offset;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* --- Start making COSE Sign1 object  --- */
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -277,7 +307,7 @@ int_fast32_t short_circuit_verify_fail_test()
     /* --- Start verifying the COSE Sign1 object  --- */
 
     /* Select short circuit signing */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -298,6 +328,7 @@ int_fast32_t short_circuit_verify_fail_test()
     /* === AAD Verification Failure Test === */
     /* --- Start making COSE Sign1 object  --- */
     t_cose_sign1_sign_init(&sign_ctx,
+                            crypto_context,
                             T_COSE_OPT_SHORT_CIRCUIT_SIG,
                             T_COSE_ALGORITHM_ES256);
 
@@ -316,7 +347,7 @@ int_fast32_t short_circuit_verify_fail_test()
     /* --- Start verifying the COSE Sign1 object  --- */
 
     /* Select short circuit signing */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -350,11 +381,12 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
     Q_USEFUL_BUF_MAKE_STACK_UB(  small_signed_cose_buffer, 15);
     struct q_useful_buf_c        signed_cose;
+    DECLARE_CRYPTO_CONTEXT();
 
 
     /* -- Test bad algorithm ID 0 -- */
     /* Use reserved alg ID 0 to cause error. */
-    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, 0);
+    t_cose_sign1_sign_init(&sign_ctx, crypto_context, T_COSE_OPT_SHORT_CIRCUIT_SIG, 0);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
@@ -367,7 +399,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
     /* -- Test bad algorithm ID -4444444 -- */
     /* Use unassigned alg ID -4444444 to cause error. */
-    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, -4444444);
+    t_cose_sign1_sign_init(&sign_ctx, crypto_context, T_COSE_OPT_SHORT_CIRCUIT_SIG, -4444444);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
@@ -383,6 +415,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -401,6 +434,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
     /* -- Tests the output buffer being too small -- */
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -430,6 +464,7 @@ int_fast32_t short_circuit_make_cwt_test()
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
     QCBORError                      cbor_error;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -437,6 +472,7 @@ int_fast32_t short_circuit_make_cwt_test()
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -515,7 +551,7 @@ int_fast32_t short_circuit_make_cwt_test()
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -558,6 +594,7 @@ int_fast32_t short_circuit_decode_only_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(     expected_payload_buffer, 10);
     struct q_useful_buf_c           expected_payload;
     QCBORError                      cbor_error;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -565,6 +602,7 @@ int_fast32_t short_circuit_decode_only_test()
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -603,7 +641,7 @@ int_fast32_t short_circuit_decode_only_test()
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_DECODE_ONLY);
 
     /* Decode-only mode so no key and no signature check. */
 
@@ -681,8 +719,10 @@ int_fast32_t cose_example_test()
     struct t_cose_sign1_sign_ctx  sign_ctx;
     struct q_useful_buf_c         head_actual;
     struct q_useful_buf_c         head_exp;
+    DECLARE_CRYPTO_CONTEXT();
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -724,6 +764,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -731,6 +772,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -747,7 +789,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -775,9 +817,11 @@ int_fast32_t all_header_parameters_test()
     struct t_cose_parameters        parameters;
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+    DECLARE_CRYPTO_CONTEXT();
 
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -795,7 +839,7 @@ int_fast32_t all_header_parameters_test()
         return 1;
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -964,10 +1008,12 @@ int_fast32_t content_type_test()
     struct q_useful_buf_c           payload;
     enum t_cose_err_t               result;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+    DECLARE_CRYPTO_CONTEXT();
 
 
     /* -- integer content type -- */
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -981,7 +1027,7 @@ int_fast32_t content_type_test()
         return 1;
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     result = t_cose_sign1_verify(&verify_ctx,
                                         output,
@@ -998,6 +1044,7 @@ int_fast32_t content_type_test()
 
     /* -- string content type -- */
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1011,7 +1058,7 @@ int_fast32_t content_type_test()
         return 1;
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     result = t_cose_sign1_verify(&verify_ctx,
                                        output,
@@ -1028,6 +1075,7 @@ int_fast32_t content_type_test()
 
     /* -- content type in error -- */
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1087,10 +1135,11 @@ int_fast32_t sign1_structure_decode_test(void)
     struct q_useful_buf_c           payload;
     enum t_cose_err_t               result;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+    DECLARE_CRYPTO_CONTEXT();
 
 
     for(sample = sign1_sample_inputs; !q_useful_buf_c_is_null(sample->CBOR); sample++) {
-        t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
+        t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_DECODE_ONLY);
 
         result = t_cose_sign1_verify(&verify_ctx,
                                       sample->CBOR,
@@ -1127,6 +1176,7 @@ int_fast32_t short_circuit_hash_fail_test()
     enum t_cose_err_t            result;
     struct q_useful_buf_c        wrapped_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 200);
+    DECLARE_CRYPTO_CONTEXT();
 
     /* See test description in t_cose_test.h for a full description of
      * what this does and what it needs to run.
@@ -1139,6 +1189,7 @@ int_fast32_t short_circuit_hash_fail_test()
     hash_test_mode = 1;
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1160,6 +1211,7 @@ int_fast32_t short_circuit_hash_fail_test()
     hash_test_mode = 2;
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1194,6 +1246,7 @@ int_fast32_t tags_test()
     struct q_useful_buf_c           payload;
     QCBORError                      cbor_error;
     uint64_t                        tag;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* --- Start making COSE Sign1 object tagged 900(901(18())) --- */
 
@@ -1205,6 +1258,7 @@ int_fast32_t tags_test()
     QCBOREncode_AddTag(&cbor_encode, 901);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1283,7 +1337,7 @@ int_fast32_t tags_test()
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -1323,6 +1377,7 @@ int_fast32_t tags_test()
 
     /* --- Start verifying the COSE Sign1 object, requiring tag--- */
     t_cose_sign1_verify_init(&verify_ctx,
+                             crypto_context,
                              T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_REQUIRED);
 
     /* No key necessary with short circuit */
@@ -1345,6 +1400,7 @@ int_fast32_t tags_test()
 
     /* --- Start verifying the COSE Sign1 object, prohibiting tag--- */
     t_cose_sign1_verify_init(&verify_ctx,
+                             crypto_context,
                              T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_PROHIBITED);
 
     /* No key necessary with short circuit */
@@ -1377,6 +1433,7 @@ int_fast32_t tags_test()
     QCBOREncode_AddTag(&cbor_encode, 904);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1406,7 +1463,7 @@ int_fast32_t tags_test()
     /* --- Done making COSE Sign1 object  --- */
 
     /* --- Start verifying the COSE Sign1 object  --- */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
     /* No key necessary with short circuit */
 
@@ -1434,6 +1491,7 @@ int_fast32_t tags_test()
     QCBOREncode_AddTag(&cbor_encode, 901);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_OPT_OMIT_CBOR_TAG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1482,6 +1540,7 @@ int_fast32_t tags_test()
 
     /* --- Start verifying the COSE Sign1 object, requiring tag--- */
     t_cose_sign1_verify_init(&verify_ctx,
+                             crypto_context,
                              T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_REQUIRED);
 
     /* No key necessary with short circuit */
@@ -1501,6 +1560,7 @@ int_fast32_t tags_test()
 
     /* --- Start verifying the COSE Sign1 object, prohibiting tag--- */
     t_cose_sign1_verify_init(&verify_ctx,
+                             crypto_context,
                              T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_PROHIBITED);
 
     /* No key necessary with short circuit */
@@ -1534,6 +1594,7 @@ int_fast32_t get_size_test()
     struct q_useful_buf_c          actual_signed_cose;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          payload;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
@@ -1543,6 +1604,7 @@ int_fast32_t get_size_test()
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1576,6 +1638,7 @@ int_fast32_t get_size_test()
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
@@ -1598,6 +1661,7 @@ int_fast32_t get_size_test()
 
     /* ---- Again with one-call API to make COSE_Sign1 ---- */\
     t_cose_sign1_sign_init(&sign_ctx,
+                           crypto_context,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
     return_value = t_cose_sign1_sign(&sign_ctx,
@@ -1674,14 +1738,12 @@ int_fast32_t restart_test(void)
     const int                       iteration_count = 5;
     int                             counter;
 
-    t_cose_test_crypto_restart_init(&r_context, true, iteration_count);
+    t_cose_test_crypto_context_init(&r_context, true, iteration_count);
 
     /* --- Make COSE Sign1 object --- */
-     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, &r_context, 0, T_COSE_ALGORITHM_ES256);
 
     /* No key necessary because short-circuit test mode is used */
-
-    t_cose_sign1_set_crypto_context(&sign_ctx, &r_context);
 
     counter = 0;
     do {
@@ -1692,33 +1754,106 @@ int_fast32_t restart_test(void)
         counter++;
     } while(result == T_COSE_ERR_SIG_IN_PROGRESS);
 
-     if(result) {
-         return 1000 + (int32_t)result;
-     }
-     if(counter!= iteration_count) {
-         return 2000;
-     }
-     /* --- Done making COSE Sign1 object  --- */
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+    if(counter!= iteration_count) {
+        return 2000;
+    }
+    /* --- Done making COSE Sign1 object  --- */
 
-     /* --- Start verifying the COSE Sign1 object  --- */
-     /* Select short circuit signing */
-     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    /* --- Start verifying the COSE Sign1 object  --- */
+    /* Select short circuit signing */
+    t_cose_sign1_verify_init(&verify_ctx, &r_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
-     /* No key necessary with short circuit */
+    /* No key necessary with short circuit */
 
-     /* Run the signature verification */
-     result = t_cose_sign1_verify(&verify_ctx,
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                /* COSE to verify */
+                                signed_cose,
+                                /* The returned payload */
+                                &payload,
+                                /* Don't return parameters */
+                                NULL);
+    if(result) {
+        return 3000 + (int32_t)result;
+    }
+
+
+    return 0;
+}
+
+int_fast32_t restart_test_2_step(void)
+{
+    QCBOREncodeContext             cbor_encode;
+    QCBORError                     qcbor_result;
+    struct t_cose_test_crypto_context r_context;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    enum t_cose_err_t               result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
+    struct q_useful_buf_c           signed_cose;
+    struct t_cose_sign1_verify_ctx  verify_ctx;
+    struct q_useful_buf_c           payload;
+    const int                       iteration_count = 5;
+    int                             counter;
+
+    t_cose_test_crypto_context_init(&r_context, true, iteration_count);
+
+    /* --- Make COSE Sign1 object --- */
+    t_cose_sign1_sign_init(&sign_ctx, &r_context, 0, T_COSE_ALGORITHM_ES256);
+
+    /* No key necessary because short-circuit test mode is used */
+
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+
+    QCBOREncode_AddText(&cbor_encode, s_input_payload);
+
+    counter = 0;
+    do {
+        result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+        counter++;
+    } while(result == T_COSE_ERR_SIG_IN_PROGRESS);
+
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+    if(counter!= iteration_count) {
+        return 3000;
+    }
+
+    qcbor_result = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(qcbor_result) {
+        return 4000 + (int32_t)qcbor_result;
+    }
+
+    /* --- Done making COSE Sign1 object  --- */
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    /* Select short circuit signing */
+    t_cose_sign1_verify_init(&verify_ctx, &r_context, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
                                  /* COSE to verify */
                                  signed_cose,
                                  /* The returned payload */
                                  &payload,
                                  /* Don't return parameters */
                                  NULL);
-     if(result) {
-         return 3000 + (int32_t)result;
-     }
+    if(result) {
+        return 5000 + (int32_t)result;
+    }
 
 
     return 0;
 }
+
 #endif /* T_COSE_USE_B_CON_SHA256 */

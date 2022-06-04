@@ -2,6 +2,7 @@
  * t_cose_make_test_messages.c
  *
  * Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -471,7 +472,8 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      * cose_algorithm_id was checked in t_cose_sign1_init() so it
      * doesn't need to be checked here.
      */
-    return_value = create_tbs_hash(me->cose_algorithm_id,
+    return_value = create_tbs_hash(me->crypto_context,
+                                   me->cose_algorithm_id,
                                    me->protected_parameters,
                                    NULL_Q_USEFUL_BUF_C,
                                    signed_payload,

@@ -2,6 +2,7 @@
  *  t_cose_basic_example_psa.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -15,6 +16,8 @@
 #include "t_cose/q_useful_buf.h"
 
 #include "psa/crypto.h"
+
+#include "../crypto_adapters/t_cose_psa_crypto.h"
 
 #include <stdio.h>
 
@@ -230,6 +233,7 @@ int32_t one_step_sign_example()
     struct t_cose_sign1_verify_ctx verify_ctx;
     QCBOREncodeContext             cbor_encode;
     QCBORError                     qcbor_result;
+    struct t_cose_psa_crypto_context crypto_context;
 
 
     /* ------   Construct the payload    ------
@@ -293,7 +297,7 @@ int32_t one_step_sign_example()
      * hence the NULL_Q_USEFUL_BUF_C.
      */
 
-    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, &crypto_context, 0, T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);
 
@@ -348,7 +352,7 @@ int32_t one_step_sign_example()
      * key. Internally it must be in the format for the crypto library
      * used. It is passed straight through t_cose.
      */
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_init(&verify_ctx, &crypto_context, 0);
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
@@ -412,6 +416,7 @@ int two_step_sign_example()
     QCBOREncodeContext             cbor_encode;
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
+    struct t_cose_psa_crypto_context crypto_context;
 
 
 
@@ -454,7 +459,7 @@ int two_step_sign_example()
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, &crypto_context, 0, T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
@@ -552,7 +557,7 @@ int two_step_sign_example()
      * key. Internally it must be in the format for the crypto library
      * used. It is passed straight through t_cose.
      */
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_init(&verify_ctx, &crypto_context, 0);
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 

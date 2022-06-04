@@ -2,6 +2,7 @@
  *  t_cose_openssl_crypto.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,6 +13,7 @@
 
 
 #include "t_cose_crypto.h" /* The interface this code implements */
+#include "../crypto_adapters/t_cose_openssl_crypto.h"
 
 #include <openssl/ecdsa.h> /* Needed for signature format conversion */
 #include <openssl/evp.h>
@@ -545,12 +547,17 @@ Done:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
+t_cose_crypto_hash_start(void                      *crypto_context,
                          int32_t                    cose_hash_alg_id)
 {
     int           ossl_result;
     int           nid;
     const EVP_MD *message_digest;
+    struct t_cose_openssl_crypto_context *me = crypto_context;
+
+    if (!me) {
+        return T_COSE_ERR_INVALID_ARGUMENT;
+    }
 
     switch(cose_hash_alg_id) {
 
@@ -579,19 +586,19 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
 
-    hash_ctx->evp_ctx = EVP_MD_CTX_new();
-    if(hash_ctx->evp_ctx == NULL) {
+    me->evp_ctx = EVP_MD_CTX_new();
+    if(me->evp_ctx == NULL) {
         return T_COSE_ERR_INSUFFICIENT_MEMORY;
     }
 
-    ossl_result = EVP_DigestInit_ex(hash_ctx->evp_ctx, message_digest, NULL);
+    ossl_result = EVP_DigestInit_ex(me->evp_ctx, message_digest, NULL);
     if(ossl_result == 0) {
-        EVP_MD_CTX_free(hash_ctx->evp_ctx);
+        EVP_MD_CTX_free(me->evp_ctx);
         return T_COSE_ERR_HASH_GENERAL_FAIL;
     }
 
-    hash_ctx->cose_hash_alg_id = cose_hash_alg_id;
-    hash_ctx->update_error = 1; /* 1 is success in OpenSSL */
+    me->cose_hash_alg_id = cose_hash_alg_id;
+    me->update_error = 1; /* 1 is success in OpenSSL */
 
     return T_COSE_SUCCESS;
 }
@@ -601,12 +608,17 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
  * See documentation in t_cose_crypto.h
  */
 void
-t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
-                          struct q_useful_buf_c data_to_hash)
+t_cose_crypto_hash_update(void                  *crypto_context,
+                          struct q_useful_buf_c  data_to_hash)
 {
-    if(hash_ctx->update_error) { /* 1 is no error, 0 means error for OpenSSL */
+    struct t_cose_openssl_crypto_context *me = crypto_context;
+
+    if (!me) {
+        return;
+    }
+    if(me->update_error) { /* 1 is no error, 0 means error for OpenSSL */
         if(data_to_hash.ptr) {
-            hash_ctx->update_error = EVP_DigestUpdate(hash_ctx->evp_ctx,
+            me->update_error = EVP_DigestUpdate(me->evp_ctx,
                                                       data_to_hash.ptr,
                                                       data_to_hash.len);
         }
@@ -618,25 +630,29 @@ t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
+t_cose_crypto_hash_finish(void                      *crypto_context,
                           struct q_useful_buf        buffer_to_hold_result,
                           struct q_useful_buf_c     *hash_result)
 {
     int          ossl_result;
     unsigned int hash_result_len;
+    struct t_cose_openssl_crypto_context *me = crypto_context;
 
-    if(!hash_ctx->update_error) {
+    if (!me) {
+        return T_COSE_ERR_INVALID_ARGUMENT;
+    }
+    if(!me->update_error) {
         return T_COSE_ERR_HASH_GENERAL_FAIL;
     }
 
     hash_result_len = (unsigned int)buffer_to_hold_result.len;
-    ossl_result = EVP_DigestFinal_ex(hash_ctx->evp_ctx,
+    ossl_result = EVP_DigestFinal_ex(me->evp_ctx,
                                      buffer_to_hold_result.ptr,
                                      &hash_result_len);
 
     *hash_result = (UsefulBufC){buffer_to_hold_result.ptr, hash_result_len};
 
-    EVP_MD_CTX_free(hash_ctx->evp_ctx);
+    EVP_MD_CTX_free(me->evp_ctx);
 
     /* OpenSSL returns 1 for success, not 0 */
     return ossl_result ? T_COSE_SUCCESS : T_COSE_ERR_HASH_GENERAL_FAIL;

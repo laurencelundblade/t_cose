@@ -2,6 +2,7 @@
  * t_cose_psa_crypto.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -36,6 +37,8 @@
 
 #include "t_cose_crypto.h"  /* The interface this implements */
 #include <psa/crypto.h>     /* PSA Crypto Interface to mbed crypto or such */
+
+#include "../crypto_adapters/t_cose_psa_crypto.h"
 
 
 
@@ -303,32 +306,35 @@ psa_status_to_t_cose_error_hash(psa_status_t status)
 /*
  * See documentation in t_cose_crypto.h
  */
-enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
+enum t_cose_err_t t_cose_crypto_hash_start(void    *crypto_context,
                                            int32_t cose_hash_alg_id)
 {
     psa_algorithm_t      psa_alg;
+    struct t_cose_psa_crypto_context *me = crypto_context;
 
     /* Map the algorithm ID */
     psa_alg = cose_hash_alg_id_to_psa(cose_hash_alg_id);
 
     /* initialize PSA hash context */
-    hash_ctx->ctx = psa_hash_operation_init();
+    me->ctx = psa_hash_operation_init();
 
     /* Actually do the hash set up */
-    hash_ctx->status = psa_hash_setup(&(hash_ctx->ctx), psa_alg);
+    me->status = psa_hash_setup(&(me->ctx), psa_alg);
 
     /* Map errors and return */
-    return psa_status_to_t_cose_error_hash((psa_status_t)hash_ctx->status);
+    return psa_status_to_t_cose_error_hash((psa_status_t)me->status);
 }
 
 
 /*
  * See documentation in t_cose_crypto.h
  */
-void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
+void t_cose_crypto_hash_update(void                      *crypto_context,
                                struct q_useful_buf_c      data_to_hash)
 {
-    if(hash_ctx->status != PSA_SUCCESS) {
+    struct t_cose_psa_crypto_context *me = crypto_context;
+
+    if(me->status != PSA_SUCCESS) {
         /* In error state. Nothing to do. */
         return;
     }
@@ -342,9 +348,9 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
     }
 
     /* Actually hash the data */
-    hash_ctx->status = psa_hash_update(&(hash_ctx->ctx),
-                                       data_to_hash.ptr,
-                                       data_to_hash.len);
+    me->status = psa_hash_update(&(me->ctx),
+                                 data_to_hash.ptr,
+                                 data_to_hash.len);
 }
 
 
@@ -352,23 +358,25 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
+t_cose_crypto_hash_finish(void                      *crypto_context,
                           struct q_useful_buf        buffer_to_hold_result,
                           struct q_useful_buf_c     *hash_result)
 {
-    if(hash_ctx->status != PSA_SUCCESS) {
+    struct t_cose_psa_crypto_context *me = crypto_context;
+
+    if(me->status != PSA_SUCCESS) {
         /* Error state. Nothing to do */
         goto Done;
     }
 
     /* Actually finish up the hash */
-    hash_ctx->status = psa_hash_finish(&(hash_ctx->ctx),
-                                         buffer_to_hold_result.ptr,
-                                         buffer_to_hold_result.len,
-                                       &(hash_result->len));
+    me->status = psa_hash_finish(&(me->ctx),
+                                 buffer_to_hold_result.ptr,
+                                 buffer_to_hold_result.len,
+                                 &(hash_result->len));
 
     hash_result->ptr = buffer_to_hold_result.ptr;
 
 Done:
-    return psa_status_to_t_cose_error_hash(hash_ctx->status);
+    return psa_status_to_t_cose_error_hash(me->status);
 }

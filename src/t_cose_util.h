@@ -2,6 +2,7 @@
  *  t_cose_util.h
  *
  * Copyright 2019-2021, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -98,7 +99,8 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  *
  * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
-enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
+enum t_cose_err_t create_tbs_hash(void                       *crypto_context,
+                                  int32_t                     cose_algorithm_id,
                                   struct q_useful_buf_c       protected_parameters,
                                   struct q_useful_buf_c       aad,
                                   struct q_useful_buf_c       payload,

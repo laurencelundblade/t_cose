@@ -2,6 +2,7 @@
  *  t_cose_sign1_verify.c
  *
  * Copyright 2019-2021, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -273,7 +274,8 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
 
 
     /* -- Compute the TBS bytes -- */
-    return_value = create_tbs_hash(parameters.cose_algorithm_id,
+    return_value = create_tbs_hash(me->crypto_context,
+                                   parameters.cose_algorithm_id,
                                    protected_parameters,
                                    aad,
                                    *payload,

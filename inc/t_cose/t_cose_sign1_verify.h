@@ -2,6 +2,7 @@
  *  t_cose_sign1_verify.h
  *
  * Copyright 2019-2021, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -204,13 +205,15 @@ struct t_cose_sign1_verify_ctx {
 /**
  * \brief Initialize for \c COSE_Sign1 message verification.
  *
- * \param[in,out]  context       The context to initialize.
- * \param[in]      option_flags  Options controlling the verification.
+ * \param[in,out]  context        The context to initialize.
+ * \param[in]      crypto_context The crypto adapter context.
+ * \param[in]      option_flags   Options controlling the verification.
  *
  * This must be called before using the verification context.
  */
 static void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
+                         void                           *crypto_context,
                          uint32_t                        option_flags);
 
 
@@ -420,8 +423,10 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
  */
 static inline void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
+                         void                           *crypto_context,
                          uint32_t                        option_flags)
 {
+    me->crypto_context = crypto_context;
     me->option_flags = option_flags;
     me->verification_key = T_COSE_NULL_KEY;
 }

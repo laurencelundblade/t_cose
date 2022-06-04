@@ -2,6 +2,7 @@
  * t_cose_crypto.h
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -279,91 +280,6 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c signature);
 
 
-
-
-#ifdef T_COSE_USE_PSA_CRYPTO
-#include "psa/crypto.h"
-
-#elif T_COSE_USE_OPENSSL_CRYPTO
-#include "openssl/evp.h"
-
-#elif T_COSE_USE_B_CON_SHA256
-/* This is code for use with Brad Conte's crypto.  See
- * https://github.com/B-Con/crypto-algorithms and see the description
- * of t_cose_crypto_hash
- */
-#include "sha256.h"
-#endif
-
-
-/**
- * The context for use with the hash adaptation layer here.
- *
- * Hash implementations for this porting layer are put into two
- * different categories.
- *
- * The first can be supported generically without any dependency on
- * the actual hash implementation in this header. These only need a
- * pointer or handle for the hash context.  Usually these are
- * implemented by a service, system API or crypto HW that runs in a
- * separate context or process. They probably allocate memory
- * internally. These can use context.ptr or context.handle to hold the
- * pointer or handle to the hash context.
- *
- * The second sort of hash implementations need more than just a
- * pointer or handle. Typically these are libraries that are linked
- * with this code and run in the same process / context / thread as
- * this code. These can be efficient requiring no context switches or
- * memory allocations. These type require this header be modified for
- * the #include which defines the hash context and so this struct
- * includes that context as a member. This context is allocated on the
- * stack, so any members added here should be small enough to go on
- * the stack. USE_B_CON_SHA256 is an example of this type.
- *
- * The actual implementation of the hash is in a separate .c file
- * that will be specific to the particular platform, library,
- * service or such used.
- */
-struct t_cose_crypto_hash {
-
-    #ifdef T_COSE_USE_PSA_CRYPTO
-        /* --- The context for PSA Crypto (MBed Crypto) --- */
-
-        /* psa_hash_operation_t actually varied by the implementation of
-         * the crypto library. Sometimes the implementation is inline and
-         * thus the context is a few hundred bytes, sometimes it is not.
-         * This varies by what is in crypto_struct.h (which is not quite
-         * a public interface).
-         *
-         * This can be made smaller for PSA implementations that work inline
-         * by disabling the larger algorithms using PSA / MBed configuration.
-         */
-        psa_hash_operation_t ctx;
-        psa_status_t         status;
-
-    #elif T_COSE_USE_OPENSSL_CRYPTO
-        /* --- The context for OpenSSL crypto --- */
-        EVP_MD_CTX  *evp_ctx;
-        int          update_error; /* Used to track error return by SHAXXX_Update() */
-        int32_t      cose_hash_alg_id; /* COSE integer ID for the hash alg */
-
-   #elif T_COSE_USE_B_CON_SHA256
-        /* --- Specific context for Brad Conte's sha256.c --- */
-        SHA256_CTX b_con_hash_context;
-
-   #else
-    /* --- Default: generic pointer / handle --- */
-
-        union {
-            void    *ptr;
-            uint64_t handle;
-        } context;
-        int64_t status;
-   #endif
-
-};
-
-
 /**
  * The size of the output of SHA-256.
  *
@@ -431,7 +347,7 @@ struct t_cose_crypto_hash {
  * object code size for mapping errors).
  */
 enum t_cose_err_t
-t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
+t_cose_crypto_hash_start(void                      *crypto_context,
                          int32_t                    cose_hash_alg_id);
 
 
@@ -455,7 +371,7 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
  * produce the real hash to be used to return a length of the would-be
  * hash for encoded data structure size calculations.
  */
-void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
+void t_cose_crypto_hash_update(void                      *crypto_context,
                                struct q_useful_buf_c      data_to_hash);
 
 
@@ -490,7 +406,7 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  * to reduce object code size for mapping errors).
  */
 enum t_cose_err_t
-t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
+t_cose_crypto_hash_finish(void                      *crypto_context,
                           struct q_useful_buf        buffer_to_hold_result,
                           struct q_useful_buf_c     *hash_result);
 

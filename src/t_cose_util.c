@@ -2,6 +2,7 @@
  *  t_cose_util.c
  *
  * Copyright 2019-2021, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -60,7 +61,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
  * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
  * hashed into the output.
  */
-static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
+static void hash_bstr(void                      *crypto_context,
                       struct q_useful_buf_c      bstr)
 {
     /* Aproximate stack usage
@@ -81,8 +82,8 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
                                           bstr.len);
 
     /* An encoded bstr is the CBOR head with its length followed by the bytes */
-    t_cose_crypto_hash_update(hash_ctx, encoded_head);
-    t_cose_crypto_hash_update(hash_ctx, bstr);
+    t_cose_crypto_hash_update(crypto_context, encoded_head);
+    t_cose_crypto_hash_update(crypto_context, bstr);
 }
 
 
@@ -106,7 +107,8 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
  * COSE_Sign1 structure. This is a little hard to to understand in the
  * spec.
  */
-enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
+enum t_cose_err_t create_tbs_hash(void                  *crypto_context,
+                                  int32_t                cose_algorithm_id,
                                   struct q_useful_buf_c  protected_parameters,
                                   struct q_useful_buf_c  aad,
                                   struct q_useful_buf_c  payload,
@@ -121,7 +123,6 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
      *   TOTAL                                     32-748      30-746
      */
     enum t_cose_err_t           return_value;
-    struct t_cose_crypto_hash   hash_ctx;
     int32_t                     hash_alg_id;
 
     /* Start the hashing */
@@ -129,7 +130,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
     /* Don't check hash_alg_id for failure. t_cose_crypto_hash_start()
      * will handle error properly. It was also checked earlier.
      */
-    return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
+    return_value = t_cose_crypto_hash_start(crypto_context, hash_alg_id);
     if(return_value) {
         goto Done;
     }
@@ -161,19 +162,19 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
 
     /* Hand-constructed CBOR for the array of 4 and the context string.
      * \x84 is an array of 4. \x6A is a text string of 10 bytes. */
-    t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+    t_cose_crypto_hash_update(crypto_context, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
 
     /* body_protected */
-    hash_bstr(&hash_ctx, protected_parameters);
+    hash_bstr(crypto_context, protected_parameters);
 
     /* external_aad */
-    hash_bstr(&hash_ctx, aad);
+    hash_bstr(crypto_context, aad);
 
     /* payload */
-    hash_bstr(&hash_ctx, payload);
+    hash_bstr(crypto_context, payload);
 
     /* Finish the hash and set up to return it */
-    return_value = t_cose_crypto_hash_finish(&hash_ctx,
+    return_value = t_cose_crypto_hash_finish(crypto_context,
                                              buffer_for_hash,
                                              hash);
 Done:

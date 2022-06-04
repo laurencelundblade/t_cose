@@ -2,6 +2,7 @@
  *  t_cose_sign_verify_test.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,6 +15,24 @@
 #include "t_cose_make_test_pub_key.h"
 
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
+
+#ifndef DECLARE_CRYPTO_CONTEXT
+    #ifdef T_COSE_USE_PSA_CRYPTO
+        #include "../crypto_adapters/t_cose_psa_crypto.h"
+        #define DECLARE_CRYPTO_CONTEXT() \
+            struct t_cose_psa_crypto_context psa_crypto_context; \
+            void* crypto_context = &psa_crypto_context
+    #elif T_COSE_USE_OPENSSL_CRYPTO
+        #include "../crypto_adapters/t_cose_openssl_crypto.h"
+        #define DECLARE_CRYPTO_CONTEXT() \
+            struct t_cose_openssl_crypto_context openssl_crypto_context; \
+            void* crypto_context = &openssl_crypto_context
+    #elif T_COSE_USE_B_CON_SHA256
+    #else
+        #error "DECLARE_CRYPTO_CONTEXT is not defined"
+    #endif
+#endif /* DECLARE_CRYPTO_CONTEXT */
+
 
 
 /*
@@ -29,9 +48,10 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     struct t_cose_key              key_pair;
     struct q_useful_buf_c          payload;
     struct t_cose_sign1_verify_ctx verify_ctx;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* -- Get started with context initialization, selecting the alg -- */
-    t_cose_sign1_sign_init(&sign_ctx, 0, cose_alg);
+    t_cose_sign1_sign_init(&sign_ctx, crypto_context, 0, cose_alg);
 
     /* Make an ECDSA key pair that will be used for both signing and
      * verification.
@@ -52,7 +72,7 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     }
 
     /* Verification */
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, 0);
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
@@ -129,6 +149,7 @@ int_fast32_t sign_verify_sig_fail_test()
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
     size_t                         tamper_offset;
+    DECLARE_CRYPTO_CONTEXT();
 
 
     /* Make an ECDSA key pair that will be used for both signing and
@@ -141,7 +162,7 @@ int_fast32_t sign_verify_sig_fail_test()
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, crypto_context, 0, T_COSE_ALGORITHM_ES256);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -175,7 +196,7 @@ int_fast32_t sign_verify_sig_fail_test()
     struct q_useful_buf temp_unconst = q_useful_buf_unconst(signed_cose);
     ((char *)temp_unconst.ptr)[tamper_offset] = 'h';
 
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, 0);
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
@@ -215,11 +236,12 @@ int_fast32_t sign_verify_make_cwt_test()
     struct q_useful_buf_c          expected_rfc8392_first_part;
     struct q_useful_buf_c          expected_payload;
     struct q_useful_buf_c          actual_rfc8392_first_part;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* -- initialize for signing --
      *  No special options selected
      */
-    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, crypto_context, 0, T_COSE_ALGORITHM_ES256);
 
 
     /* -- Key and kid --
@@ -298,7 +320,7 @@ int_fast32_t sign_verify_make_cwt_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Run the signature verification */
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, 0);
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
@@ -356,6 +378,7 @@ static int size_test(int32_t               cose_algorithm_id,
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          payload;
     size_t                         sig_size;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
@@ -365,7 +388,7 @@ static int size_test(int32_t               cose_algorithm_id,
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
-    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_sign_init(&sign_ctx,  crypto_context,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
 
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -397,7 +420,7 @@ static int size_test(int32_t               cose_algorithm_id,
     /* ---- Now make a real COSE_Sign1 and compare the size ---- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_sign_init(&sign_ctx,  crypto_context,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
 
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -418,7 +441,7 @@ static int size_test(int32_t               cose_algorithm_id,
     }
 
     /* ---- Again with one-call API to make COSE_Sign1 ---- */\
-    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_sign_init(&sign_ctx, crypto_context, 0, cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
     return_value = t_cose_sign1_sign(&sign_ctx,
                                      payload,
@@ -573,6 +596,7 @@ int_fast32_t known_good_test(void)
     struct q_useful_buf_c          payload;
     struct t_cose_sign1_verify_ctx verify_ctx;
     struct q_useful_buf_c          valid_message;
+    DECLARE_CRYPTO_CONTEXT();
 
     /* Improvement: rewrite this to fetch the algorithm header and
      * look up the key from it, so the generalizes to all sorts of
@@ -586,7 +610,7 @@ int_fast32_t known_good_test(void)
         goto Done;
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, 0);
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
@@ -609,7 +633,7 @@ int_fast32_t known_good_test(void)
         goto Done;
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, 0);
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
@@ -635,7 +659,7 @@ int_fast32_t known_good_test(void)
         goto Done;
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_init(&verify_ctx, crypto_context, 0);
 
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 

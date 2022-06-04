@@ -9,16 +9,21 @@
 #ifndef t_cose_test_crypto_h
 #define t_cose_test_crypto_h
 
+/* This is code for use with Brad Conte's crypto.  See
+ * https://github.com/B-Con/crypto-algorithms and see the description
+ * of t_cose_crypto_hash
+ */
+#include "sha256.h"
 
 struct t_cose_test_crypto_context {
     bool       enable_restart;
     int32_t    iteration_counter;
+
+    SHA256_CTX b_con_hash_context;
 };
 
-
-
 static inline void
-t_cose_test_crypto_restart_init(struct t_cose_test_crypto_context *me,
+t_cose_test_crypto_context_init(struct t_cose_test_crypto_context *me,
                                 bool                               enable_restart,
                                 int32_t                            restart_test_iterations)
 {
