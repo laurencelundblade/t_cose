@@ -1,7 +1,7 @@
 /*
  * t_cose_encrypt_enc.h
  *
- * Copyright (c) 2022 - Hannes Tschofenig. All rights reserved.
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -29,7 +29,7 @@ extern "C" {
 /**
  * \file t_cose_encrypt_enc.h
  *
- * \brief Encrypt plaintext and encode it in a CBOR-based structure referred to as 
+ * \brief Encrypt plaintext and encode it in a CBOR-based structure referred to as
  * COSE_Encrypt0 or COSE_Encrypt.
  *
  * The functions defined encrypt plaintext with a symmetric cryptographic algorithm.
@@ -48,10 +48,10 @@ extern "C" {
  * 
  * 1) Direct: The CEK is pre-negotiated between the involved communication parties.
  * Hence, no CEK is transported in the COSE message. For this approach the COSE_Encrypt0
- * message is used. 
+ * message is used.
  *
  * 2) Key agreement: This approach requires utilizes an algorithm for establishing
- * a shared secret, which then serves as a CEK. Therefore, a recipient structure 
+ * a shared secret, which then serves as a CEK. Therefore, a recipient structure
  * must be included in the COSE message and the COSE_Encrypt message carries such
  * a recipient structure(while \c COSE_Encrypt0 does not). The key agreement
  * algorithm used in this implementation is based on Hybrid Public Key Encryption
@@ -110,7 +110,7 @@ extern "C" {
  *    and assigned to the recipient context via
  *    t_cose_encrypt_set_recipient_key().
  * 5. Now, the recipient structure can be created with
- *    t_cose_encrypt_create_recipient(). Using 
+ *    t_cose_encrypt_create_recipient(). Using
  *    QCBOREncode_Finish() the recipient structure is
  *    seralized as a byte string.
  * 6. Now an encrypt context is needed, which must be
@@ -118,7 +118,7 @@ extern "C" {
  * 7. The t_cose_encrypt_set_encryption_key() is used to
  *    configure the CEK with the encryption context, which
  *    will subsequently be used to encrypt the plaintext.
- * 8. The t_cose_encrypt_enc_detached() or the 
+ * 8. The t_cose_encrypt_enc_detached() or the
  *    t_cose_encrypt_enc() functions will be used to
  *    encrypted the plaintext.
  * 9  The t_cose_encrypt_add_recipient() finalizes the
@@ -172,15 +172,15 @@ typedef enum t_cose_err_t t_cose_create_recipient(
  */
 struct t_cose_encrypt_recipient_ctx {
     /* Private data structure */
-    int32_t               cose_algorithm_id;
-    struct q_useful_buf_c kid;
-    //struct q_useful_buf   cek;
-    struct t_cose_key     cek;
-    uint32_t              option_flags;
-    struct t_cose_key     ephemeral_key;
-    struct t_cose_key     recipient_key;
-    t_cose_create_recipient *recipient_func;
+    int32_t                   cose_algorithm_id;
+    struct q_useful_buf_c     kid;
+    struct t_cose_key         cek;
+    uint32_t                  option_flags;
+    struct t_cose_key         ephemeral_key;
+    struct t_cose_key         recipient_key;
+    t_cose_create_recipient  *recipient_func;
 };
+
 
 /**
  * This is the context for creating \c COSE_Encrypt and \c COSE_Encrypt0 structures.
@@ -189,19 +189,32 @@ struct t_cose_encrypt_recipient_ctx {
  */
 struct t_cose_encrypt_enc_ctx {
     /* Private data structure */
-    struct q_useful_buf_c protected_parameters;
-    int32_t               cose_algorithm_id;
-    uint8_t*              key;
-    size_t                key_len;
-    uint32_t              option_flags;
-    struct q_useful_buf_c kid;
-//    uint8_t               nonce[T_COSE_ENCRYPTION_MAX_KEY_LENGTH];
-    uint8_t               recipients;
+    struct q_useful_buf_c               protected_parameters;
+    int32_t                             cose_algorithm_id;
+    uint8_t                            *key;
+    size_t                              key_len;
+    uint32_t                            option_flags;
+    struct q_useful_buf_c               kid;
+    uint8_t                             recipients;
     struct t_cose_encrypt_recipient_ctx recipient_ctx;
 };
 
 
-/* NEW */
+/**
+ * \brief  Add a recipient to an existing COSE encrypt context.
+ *         Information about a recipient needs to be provided.
+ *
+ *         Note: This implementation currently supports a single
+ *         recipient only. It will be extended later to supports
+ *         multiple recipients.
+ *
+ * \param[in] context                  The t_cose_encrypt_enc_ctx context.
+ * \param[in] cose_algorithm_id        COSE algorithm id.
+ * \param[in] recipient_key            Key used with the recipient.
+ * \param[in] kid                      Key identifier.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ */
 enum t_cose_err_t
 t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx*   context,
                              int32_t                          cose_algorithm_id,
@@ -259,7 +272,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
  * cryptographic library that t_cose is integrated with.
  */
 static inline void
-t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx* context,
+t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx *context,
                          uint32_t                       option_flags,
                          int32_t                        cose_algorithm_id
                        )
@@ -276,7 +289,7 @@ t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx* context,
  *
  * \param[in,out] context            The t_cose_encrypt_enc_ctx context.
  * \param[in] option_flags           One of \c T_COSE_OPT_XXXX.
- * \param[in] cose_algorithm_id      The algorithm to use for encrypting 
+ * \param[in] cose_algorithm_id      The algorithm to use for encrypting
  *                                   data, for example
  *                                   \ref COSE_ALGORITHM_A128GCM.
  * \param[in] kid                    The key identifier.
@@ -293,7 +306,7 @@ t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx* context,
  * cryptographic library that t_cose is integrated with.
  */
 static void
-t_cose_encrypt_enc0_init( struct t_cose_encrypt_enc_ctx* context,
+t_cose_encrypt_enc0_init( struct t_cose_encrypt_enc_ctx *context,
                           uint32_t                       option_flags,
                           int32_t                        cose_algorithm_id,
                           struct q_useful_buf_c          kid

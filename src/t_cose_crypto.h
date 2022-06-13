@@ -196,19 +196,45 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
                                 struct q_useful_buf    pk_buffer,
                                 size_t                *pk_len);
 
-/* TBD */
+/**
+ * \brief Exports key
+ *
+ * \param[in] key               Handle to key
+ * \param[in] key_buffer        Pointer and length of buffer into which
+ *                              the resulting key is put.
+ * \param[out] key_len          Length of the returned key.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully exported the key.
+ * \retval T_COSE_ERR_KEY_EXPORT_FAILED
+ *         The key export operation failed.
+ */
 enum t_cose_err_t
 t_cose_crypto_export_key(struct t_cose_key      key,
                          struct q_useful_buf    key_buffer,
                          size_t                *key_len);
 
-/* TBD */
+/**
+ * \brief Uses the AES key wrap algorithm defined in RFC 3394 to
+ *        encrypt the CEK. 
+ *
+ * \param[in] algorithm_id        Algorithm id
+ * \param[in] kek                 Key Encryption Key
+ * \param[in] plaintext           Plaintext
+ * \param[in] ciphertext_buffer   Ciphertext buffer
+ * \param[out] ciphertext_result  Resulting ciphertext
+ *
+ * \retval T_COSE_SUCCESS
+ *         Operation was successful.
+ * \retval T_COSE_ERR_AES_KW_FAILED
+ *         AES key wrap operation failed.
+ */
 enum t_cose_err_t
-t_cose_crypto_aes_kw(int32_t                  algorithm_id,
-                      struct q_useful_buf_c   kek,
-                      struct q_useful_buf_c   plaintext,
-                      struct q_useful_buf     ciphertext_buffer,
-                      struct q_useful_buf_c  *ciphertext_result);
+t_cose_crypto_aes_kw(int32_t                 algorithm_id,
+                     struct q_useful_buf_c   kek,
+                     struct q_useful_buf_c   plaintext,
+                     struct q_useful_buf     ciphertext_buffer,
+                     struct q_useful_buf_c  *ciphertext_result);
 
 /**
  * \brief HPKE Decrypt Wrapper

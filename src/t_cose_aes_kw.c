@@ -30,12 +30,14 @@ enum t_cose_err_t t_cose_create_aes_kw_recipient(
                            QCBOREncodeContext                  *encrypt_ctx)
 {
     UsefulBufC             scratch;
-//    uint8_t                encrypted_cek[PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH)];
-//    size_t                 encrypted_cek_len = PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
     UsefulBufC             cek_encrypted_cbor;
     enum t_cose_err_t      return_value;
     enum t_cose_err_t      cose_result;
     size_t                 recipient_key_len;
+
+    /* TBD: Use a macro for the length of the recipient key buffer to
+     * accomodate for the different key lengths.
+     */
     Q_USEFUL_BUF_MAKE_STACK_UB(recipient_key_buf, 16);
     Q_USEFUL_BUF_MAKE_STACK_UB(encrypted_cek, PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH));
     struct q_useful_buf_c  recipient_key_result={NULL,0};
@@ -57,12 +59,12 @@ enum t_cose_err_t t_cose_create_aes_kw_recipient(
     recipient_key_result.ptr = recipient_key_buf.ptr;
     recipient_key_result.len = recipient_key_len;
 
-    /* AES-KW encryption */
+    /* AES key wrap encryption */
     return_value = t_cose_crypto_aes_kw(
                         0,
                         recipient_key_result,
                         plaintext,
-                        encrypted_cek, //(struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
+                        encrypted_cek,
                         &encrypted_cek_result);
 
     if (return_value != T_COSE_SUCCESS) {
@@ -71,22 +73,6 @@ enum t_cose_err_t t_cose_create_aes_kw_recipient(
 
     /* Create recipient array */
     QCBOREncode_OpenArray(encrypt_ctx);
-
-    /*
-    QCBOREncode_BstrWrap(encrypt_ctx);
-
-    QCBOREncode_OpenMap(encrypt_ctx);
-
-    QCBOREncode_AddInt64ToMapN(encrypt_ctx,
-                               COSE_HEADER_PARAM_ALG,
-                               context->cose_algorithm_id);
-
-    QCBOREncode_CloseMap(encrypt_ctx);
-
-    QCBOREncode_CloseBstrWrap2(encrypt_ctx,
-                               false,
-                               &scratch);
-    */
 
     /* Add empty protected map encoded as bstr */
     QCBOREncode_BstrWrap(encrypt_ctx);

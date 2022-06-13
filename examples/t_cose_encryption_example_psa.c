@@ -188,11 +188,11 @@ int main(void)
 
     struct t_cose_key t_cose_pkR_key;
     psa_key_attributes_t pkR_attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t pkR_handle = 0;
+    psa_key_handle_t pkR_handle = PSA_KEY_HANDLE_INIT;
 
     struct t_cose_key t_cose_skR_key;
     psa_key_attributes_t skR_attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t skR_handle = 0;
+    psa_key_handle_t skR_handle = PSA_KEY_HANDLE_INIT;
 
     /* -------------------------------------------------------------------------*/
 
@@ -306,7 +306,6 @@ int main(void)
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
     memset(plaintext, 0, plaintext_output_len);
-    //psa_destroy_key( key_handle );
 
     /* -------------------------------------------------------------------------*/
 
@@ -349,7 +348,6 @@ int main(void)
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
     memset(plaintext, 0, plaintext_output_len);
-    //psa_destroy_key(key_handle);
 
     /* -------------------------------------------------------------------------*/
 
@@ -427,27 +425,6 @@ int main(void)
     print_bytestr(encrypted_firmware, encrypted_firmware_result_len);
     printf("\n");
 
-    /*
-    printf("\n-- 4b. Process COSE_Encrypt0 structure with detached payload --\n\n");
-
-    t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_DIRECT);
-
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_psk_key, kid1);
-
-    ret = t_cose_encrypt_dec(&dec_ctx,
-                             buffer, sizeof(buffer),
-                             encrypted_firmware, encrypted_firmware_result_len,
-                             plaintext, sizeof(plaintext),
-                             &plaintext_output_len);
-
-    if (ret != T_COSE_SUCCESS) {
-        printf("\nDecryption failed!\n");
-        return(EXIT_FAILURE);
-    }
-
-    printf("\nPlaintext: ");
-    printf("%s\n", plaintext);
-    */
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
     memset(plaintext, 0, plaintext_output_len);

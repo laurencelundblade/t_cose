@@ -135,7 +135,7 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
     psa_set_key_usage_flags(&skE_attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_EXPORT);
     psa_set_key_algorithm(&skE_attributes, PSA_ALG_ECDH);
     psa_set_key_type(&skE_attributes, type);
-    psa_set_key_bits(&skE_attributes, 256);
+    psa_set_key_bits(&skE_attributes, key_bitlen);
 
     status = psa_generate_key(&skE_attributes, &skE_handle);
 
@@ -146,7 +146,7 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
     ephemeral_key->k.key_handle = skE_handle;
     ephemeral_key->crypto_lib = T_COSE_CRYPTO_LIB_PSA;
 
-    return T_COSE_SUCCESS;
+    return(T_COSE_SUCCESS);
 }
 
 /*
@@ -159,7 +159,7 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 {
     psa_status_t status;
 
-    if (number>buffer.len) {
+    if (number > buffer.len) {
         return(T_COSE_ERR_TOO_SMALL);
     }
 
@@ -189,8 +189,8 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
 {
     /* Mbed TLS AES-KW Variables */
     mbedtls_nist_kw_context ctx;
-    int                    ret;
-    uint32_t               res_len;
+    int                     ret;
+    uint32_t                res_len;
 
     mbedtls_nist_kw_init(&ctx);
 
@@ -203,7 +203,7 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
                                 );
 
     if (ret != 0) {
-        return(T_COSE_SUCCESS);
+        return(T_COSE_ERR_AES_KW_FAILED);
     }
 
     /* Encrypt CEK with the AES key wrap algorithm defined in RFC 3394. */
@@ -217,7 +217,7 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
                               );
 
     if (ret != 0) {
-        return(T_COSE_SUCCESS);
+        return(T_COSE_ERR_AES_KW_FAILED);
     }
 
     ciphertext_result->ptr = ciphertext_buffer.ptr;
@@ -239,11 +239,13 @@ t_cose_crypto_export_key(struct t_cose_key      key,
 {
     psa_status_t      status;
 
-    /* Direct encryption with recipient key */
-    status = psa_export_key(key.k.key_handle,(uint8_t *) key_buffer.ptr, (size_t) key_buffer.len, key_len);
+    status = psa_export_key(key.k.key_handle,
+                            (uint8_t *) key_buffer.ptr,
+                            (size_t) key_buffer.len,
+                            key_len);
 
     if (status != PSA_SUCCESS) {
-        return(T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED);
+        return(T_COSE_ERR_KEY_EXPORT_FAILED);
     }
 
     return(T_COSE_SUCCESS);

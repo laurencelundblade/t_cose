@@ -76,7 +76,6 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
     QCBOREncodeContext     additional_data;
     UsefulBufC             scratch;
     QCBORError             ret;
-    //struct q_useful_buf    nonce;
     QCBOREncodeContext     encrypt_ctx;
     struct q_useful_buf_c  nonce_result;
     struct q_useful_buf_c  random_result={NULL,0};
@@ -92,7 +91,6 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
     size_t                 key_bitlen;
     enum t_cose_err_t      cose_result;
     Q_USEFUL_BUF_MAKE_STACK_UB(random, 16);
-    //Q_USEFUL_BUF_MAKE_STACK_UB[T_COSE_ENCRYPTION_MAX_KEY_LENGTH];
     Q_USEFUL_BUF_MAKE_STACK_UB(nonce, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
 
     /* Determine algorithm parameters */
@@ -113,7 +111,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
     /* Should we use COSE_Encrypt or COSE_Encrypt0? */
     if ((context->option_flags & T_COSE_OPT_COSE_ENCRYPT0) > 0) {
-        /* Add the CBOR tag indicating COSE_Encrypt */
+        /* Add the CBOR tag indicating COSE_Encrypt0 */
         QCBOREncode_AddTag(&encrypt_ctx, CBOR_TAG_COSE_ENCRYPT0);
     } else {
         /* Add the CBOR tag indicating COSE_Encrypt */
@@ -136,26 +134,17 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
     QCBOREncode_CloseBstrWrap2(&encrypt_ctx, false, &scratch);
 
-    /* Add unprotected Header with IV parameter */
+    /* Add unprotected Header */
     QCBOREncode_OpenMap(&encrypt_ctx);
 
     /* Generate random nonce */
-//    nonce.len = key_bitlen / 8;
-//    nonce.ptr = nonce_buf; //context->nonce;
-        
     cose_result = t_cose_crypto_get_random(nonce, key_bitlen / 8, &nonce_result );
 
     if (cose_result != T_COSE_SUCCESS) {
         return(cose_result);
     }
-/*
-    QCBOREncode_AddBytesToMapN(&encrypt_ctx,
-                               COSE_HEADER_PARAM_IV,
-                               (struct q_useful_buf_c) {
-                                    .len = key_bitlen / 8,
-                                    .ptr = context->nonce}
-                              );
-*/
+
+    /* Add nonce */
     QCBOREncode_AddBytesToMapN(&encrypt_ctx,
                                COSE_HEADER_PARAM_IV,
                                nonce_result
@@ -259,8 +248,6 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
             return(cose_result);
         }
 
-//        status = psa_export_key((psa_key_id_t) context->recipient_ctx.recipient_key.k.key_handle,(uint8_t *) random.ptr, (size_t) random.len, &data_length);
-
         random_result.ptr = random.ptr;
         random_result.len = data_length;
     }
@@ -273,6 +260,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
                         payload,
                         encrypted_payload,
                         &encrypted_payload_final->len);
+
     if (cose_result != T_COSE_SUCCESS) {
         return(cose_result);
     }

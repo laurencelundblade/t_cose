@@ -10,7 +10,6 @@
  */
 
 #include "t_cose/t_cose_hpke.h"    /* The interface this implements */
-//#include <psa/crypto.h>     /* PSA Crypto Interface to mbed crypto or such */
 #include "mbedtls/hpke.h"   /* HPKE Interface */
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
@@ -36,28 +35,28 @@
  */
 enum t_cose_err_t
 t_cose_crypto_convert_hpke_algorithms(
-                int32_t                           hpke_cose_algorithm_id,
+                int32_t                            hpke_cose_algorithm_id,
                 struct t_cose_crypto_hpke_suite_t *hpke_suite,
                 size_t                            *key_bitlen,
                 int64_t                           *cose_algorithm_id)
 {
     switch (hpke_cose_algorithm_id) {
     case COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
-        *key_bitlen = 128;
-        *cose_algorithm_id = COSE_ALGORITHM_A128GCM;
-        hpke_suite->kem_id = HPKE_KEM_ID_P256;
-        hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA256;
-        hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_128;
-        break;
+         *key_bitlen = 128;
+         *cose_algorithm_id = COSE_ALGORITHM_A128GCM;
+         hpke_suite->kem_id = HPKE_KEM_ID_P256;
+         hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA256;
+         hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_128;
+         break;
     case COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
-        *key_bitlen = 256;
-        *cose_algorithm_id = COSE_ALGORITHM_A256GCM;
-        hpke_suite->kem_id = HPKE_KEM_ID_P521;
-        hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA512;
-        hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_256;
-        break;
+         *key_bitlen = 256;
+         *cose_algorithm_id = COSE_ALGORITHM_A256GCM;
+         hpke_suite->kem_id = HPKE_KEM_ID_P521;
+         hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA512;
+         hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_256;
+         break;
     default:
-        return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
+         return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
     }
 
     return(T_COSE_SUCCESS);
@@ -88,11 +87,9 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
                            struct t_cose_key                  pkR,
                            struct q_useful_buf_c              ciphertext,
                            struct q_useful_buf                plaintext,
-                           size_t                             *plaintext_len)
+                           size_t                            *plaintext_len)
 {
     hpke_suite_t           suite;
-//    psa_algorithm_t        psa_algorithm;
-//    psa_key_type_t         psa_keytype;
     size_t                 key_bitlen;
     int                    ret;
 
@@ -103,8 +100,6 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
         suite.kem_id = HPKE_KEM_ID_P256;
         suite.kdf_id = HPKE_KDF_ID_HKDF_SHA256;
         suite.aead_id = HPKE_AEAD_ID_AES_GCM_128;
-//        psa_algorithm = PSA_ALG_GCM;
-//        psa_keytype = PSA_KEY_TYPE_AES;
         break;
 
     case COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
@@ -112,8 +107,6 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
         suite.kem_id = HPKE_KEM_ID_P521;
         suite.kdf_id = HPKE_KDF_ID_HKDF_SHA512;
         suite.aead_id = HPKE_AEAD_ID_AES_GCM_256;
-//        psa_algorithm = PSA_ALG_GCM;
-//        psa_keytype = PSA_KEY_TYPE_AES;
         break;
 
     default:

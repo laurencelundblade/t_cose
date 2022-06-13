@@ -393,6 +393,12 @@ enum t_cose_err_t {
 
     /** Generating asymmetric key pair failed. */
     T_COSE_ERR_KEY_GENERATION_FAILED = 53,
+
+    /** Export of the key failed. */
+    T_COSE_ERR_KEY_EXPORT_FAILED = 54,
+
+    /** Something went wrong with AES Key Wrap. */
+    T_COSE_ERR_AES_KW_FAILED = 55,
 };
 
 
