@@ -18,7 +18,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
-#include "t_cose_parameters.h"
+#include "t_cose/t_cose_parameters.h"
 
 
 
@@ -187,12 +187,14 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error)
 }
 
 
+
+
 enum t_cose_err_t
 t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c          *payload,
-                             struct t_cose_parameters       *returned_parameters,
+                             const struct t_cose_header_param     **returned_parameters,
                              bool                            is_dc)
 {
     /* Aproximate stack usage
@@ -214,23 +216,18 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c         tbs_hash;
     struct q_useful_buf_c         signature;
-    struct t_cose_label_list      critical_parameter_labels;
-    struct t_cose_label_list      unknown_parameter_labels;
     struct t_cose_parameters      parameters;
+    struct header_param_storage   param_storage;
     QCBORError                    qcbor_error;
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     struct q_useful_buf_c         short_circuit_kid;
 #endif
 
-    clear_label_list(&unknown_parameter_labels);
-    clear_label_list(&critical_parameter_labels);
-    clear_cose_parameters(&parameters);
 
-
-    /* === Decoding of the array of four starts here === */
+    /* === Decoding of the array-of-four starts here === */
     QCBORDecode_Init(&decode_context, cose_sign1, QCBOR_DECODE_MODE_NORMAL);
 
-    /* --- The array of 4 and tags --- */
+    /* --- The array-of-four and tags --- */
     QCBORDecode_EnterArray(&decode_context, NULL);
     return_value = qcbor_decode_error_to_t_cose_error(QCBORDecode_GetError(&decode_context));
     if(return_value != T_COSE_SUCCESS) {
@@ -241,27 +238,28 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 
-    /* --- The protected parameters --- */
-    QCBORDecode_EnterBstrWrapped(&decode_context, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &protected_parameters);
-    if(protected_parameters.len) {
-        return_value = parse_cose_header_parameters(&decode_context,
-                                                    &parameters,
-                                                    &critical_parameter_labels,
-                                                    &unknown_parameter_labels);
-        if(return_value != T_COSE_SUCCESS) {
-            goto Done;
-        }
+    /* --- The headers --- */
+    if(me->storage.storage_size) {
+        param_storage = me->storage;
+    } else {
+        param_storage.storage = me->params;
+        param_storage.storage_size = sizeof(me->params);
     }
-    QCBORDecode_ExitBstrWrapped(&decode_context);
 
-    /* ---  The unprotected parameters --- */
-    return_value = parse_cose_header_parameters(&decode_context,
-                                                &parameters,
-                                                 NULL,
-                                                &unknown_parameter_labels);
+    struct header_location body = {0, 0};
+
+    return_value = t_cose_decode_headers(&decode_context,
+                  body,
+                  me->header_cb,
+                  me->header_cb_context,
+                  param_storage,
+                 &protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
+
+
+
 
     /* --- The payload --- */
     if(is_dc) {
@@ -272,7 +270,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
             goto Done;
         }
         /* In detached content mode, the payload should be set by
-         * function caller, so there is no need to set tye payload.
+         * function caller, so there is no need to set the payload.
          */
     } else {
         QCBORDecode_GetByteString(&decode_context, payload);
@@ -302,22 +300,17 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 
-    return_value = check_critical_labels(&critical_parameter_labels,
-                                         &unknown_parameter_labels);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-
     /* -- Skip signature verification if requested --*/
     if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
 
+    int32_t cose_algorithm_id = t_cose_find_parameter_alg_id(param_storage.storage);
+    // TODO: error out if no algorithm ID.
 
     /* -- Compute the TBS bytes -- */
-    return_value = create_tbs_hash(parameters.cose_algorithm_id,
+    return_value = create_tbs_hash(cose_algorithm_id,
                                    protected_parameters,
                                    aad,
                                    *payload,
@@ -344,7 +337,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
 
 
     /* -- Verify the signature (if it wasn't short-circuit) -- */
-    return_value = t_cose_crypto_verify(parameters.cose_algorithm_id,
+    return_value = t_cose_crypto_verify(cose_algorithm_id,
                                         me->verification_key,
                                         parameters.kid,
                                         tbs_hash,
@@ -352,10 +345,9 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
 
 Done:
     if(returned_parameters != NULL) {
-        *returned_parameters = parameters;
+        *returned_parameters = param_storage.storage;
     }
 
     return return_value;
 
 }
-

@@ -17,6 +17,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "qcbor/qcbor_common.h"
+#include "t_cose/t_cose_parameters.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,6 +100,9 @@ struct t_cose_parameters {
      * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
     uint32_t              content_type_uint;
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
+
+
 };
 
 
@@ -195,6 +199,15 @@ struct t_cose_sign1_verify_ctx {
     struct t_cose_key     verification_key;
     uint32_t              option_flags;
     uint64_t              auTags[T_COSE_MAX_TAGS_TO_RETURN];
+
+    t_cose_header_reader *header_cb;
+    void                 *header_cb_context;
+
+    /* Internal storage used by default */
+    struct t_cose_header_param   params[T_COSE_PARAMETER_LIST_MAX];
+
+    /* External storage tif the internal storage is too small */
+    struct header_param_storage storage;
 };
 
 
@@ -264,6 +277,28 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
                                   struct t_cose_key               verification_key);
 
 
+
+
+/* Set the custom header call back context
+ *
+ * This will be called back t_cose_sign1_verify() is
+ * processing header parameters.
+ *
+ * Probably this most useful when T_COSE_OPT_DECODE_ONLY
+ * is set to get all the headers parameters before the
+ * verification is run.
+ */
+static void
+t_cose_sign1_set_header_cb(struct t_cose_sign1_verify_ctx *context,
+                           t_cose_header_reader            cb,
+                           void                           *cb_context);
+
+
+static void
+t_cose_sign1_add_parameter_storage(struct t_cose_sign1_verify_ctx *context,
+                                   struct header_param_storage    storage);
+
+
 /**
  * \brief Verify a \c COSE_Sign1.
  *
@@ -312,12 +347,21 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * they are in the input \c COSE_Sign1 messages. For example, if the
  * payload is an indefinite-length byte string, this error will be
  * returned.
+ *
+ *
+ * TODO: This returns all the header parameters for
+ * the body and all the signatures including cose algortihm ID which is
+ * processed internally.  The critical headers parameter is not returned
+ * as it is processed internally and the parameters returned here
+ * are labeled. Headers whose value is not an integer, string or boolean
+ * are NOT returned here. A header call back must be registered to
+ * process them.
  */
 static enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                     struct q_useful_buf_c           sign1,
                     struct q_useful_buf_c          *payload,
-                    struct t_cose_parameters       *parameters);
+                    const struct t_cose_header_param     **parameters);
 
 
 /**
@@ -352,7 +396,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
                         struct q_useful_buf_c           sign1,
                         struct q_useful_buf_c           aad,
                         struct q_useful_buf_c          *payload,
-                        struct t_cose_parameters       *parameters);
+                        const struct t_cose_header_param     **parameters);
 
 
 /**
@@ -384,7 +428,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *context,
                              struct q_useful_buf_c           cose_sign1,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c           detached_payload,
-                             struct t_cose_parameters       *parameters);
+                             const struct t_cose_header_param     **parameters);
 
 
 /**
@@ -432,6 +476,16 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
 }
 
 
+static inline void
+t_cose_sign1_set_header_cb(struct t_cose_sign1_verify_ctx *me,
+                           t_cose_header_reader            cb,
+                           void                           *cb_context)
+{
+    me->header_cb = cb;
+    me->header_cb_context = cb;
+}
+
+
 static inline uint64_t
 t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
                          size_t                                n)
@@ -462,19 +516,19 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
  * so it should not to call it directly.
  */
 enum t_cose_err_t
-t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
-                             struct q_useful_buf_c           sign1,
-                             struct q_useful_buf_c           aad,
-                             struct q_useful_buf_c          *payload,
-                             struct t_cose_parameters       *parameters,
-                             bool                            is_detached);
+t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx   *me,
+                             struct q_useful_buf_c             sign1,
+                             struct q_useful_buf_c             aad,
+                             struct q_useful_buf_c             *payload,
+                             const struct t_cose_header_param **parameters,
+                             bool                               is_detached);
 
 
 static inline enum t_cose_err_t
-t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
-                    struct q_useful_buf_c           sign1,
-                    struct q_useful_buf_c          *payload,
-                    struct t_cose_parameters       *parameters)
+t_cose_sign1_verify(struct t_cose_sign1_verify_ctx    *me,
+                    struct q_useful_buf_c              sign1,
+                    struct q_useful_buf_c              *payload,
+                    const struct t_cose_header_param  **parameters)
 {
     return t_cose_sign1_verify_internal(me,
                                         sign1,
@@ -490,7 +544,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                         struct q_useful_buf_c           cose_sign1,
                         struct q_useful_buf_c           aad,
                         struct q_useful_buf_c          *payload,
-                        struct t_cose_parameters       *parameters)
+                        const struct t_cose_header_param **parameters)
 {
      return t_cose_sign1_verify_internal(me,
                                          cose_sign1,
@@ -506,7 +560,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c           detached_payload,
-                             struct t_cose_parameters       *parameters)
+                             const struct t_cose_header_param **parameters)
 {
      return t_cose_sign1_verify_internal(me,
                                          cose_sign1,
@@ -515,6 +569,16 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                                          parameters,
                                          true);
 }
+
+
+
+static inline void
+t_cose_sign1_add_parameter_storage(struct t_cose_sign1_verify_ctx *me,
+                                   struct header_param_storage storage)
+{
+    me->storage = storage;
+}
+
 
 #ifdef __cplusplus
 }

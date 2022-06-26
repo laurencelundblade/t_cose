@@ -19,6 +19,9 @@
 #include "t_cose_sign_verify_test.h"
 
 
+// TODO: revamp content type tests
+#define T_COSE_DISABLE_CONTENT_TYPE
+
 /*
  Test configuration
  */

@@ -34,17 +34,17 @@
  * an ECDSA signature and an HSS/LMS signature.
  *
  * What's really going on here is a bit of doing object orientation
- * with C. This is an abstract base class, an object that
+ * implementned in C. This is an abstract base class, an object that
  * has no implementation of it's own. Each signer type, e.g.,
- * the ECDSA signer, inherits from this and provides and
+ * the ECDSA signer, inherits from this and provides an
  * implementation. The structure defined here holds
- * the vtable for the methods for the object. There is
- * only one. It's called a "callback" here, but it could
+ * the vtable for the methods for the object. Only one method
+ * happens to be needed. It's called a "callback" here, but it could
  * also be called the abstract sign method.
  *
  * Since C doesn't support object orientation there's a few
  * tricks to make this fly. The concrete instantiation
- * (e.g., an ECDSA signer) must make t_cose_signer the first
+ * (e.g., an ECDSA signer) must make struct t_cose_signer the first
  * part of it's context and there will be casts back and
  * forth between this abstraction and the real instantion
  * of the signer. The other trick is that struct here
@@ -55,27 +55,29 @@
 /* A declaration (not definition) of the generic structure for a signer.
  * See https://stackoverflow.com/questions/888386/resolve-circular-typedef-dependency
  */
-typedef struct t_cose_signer t_cose_signer_d;
-
+struct t_cose_signer;
 
 /* The main method / callback used to perform the signing and output
  * the COSE format signature.
+ * If the qcbor_encoder buffer is NULL, then this should just
+ * compute the size and add the size to qcbor_encoder because it
+ * is being called in size calculation mode.
  */
-// TODO: this needs to have a few more parameters added to be able
-// to produce correct signatures that cover the protected parameters
-// and AAD, but that is not a change in the general design.
 typedef enum t_cose_err_t
-(* t_cose_signer_callback)(t_cose_signer_d             *me,
-                           const struct q_useful_buf_c  hash,
+(* t_cose_signer_callback)(struct t_cose_signer        *me,
+                           const struct q_useful_buf_c  protected_body_headers,
+                           const struct q_useful_buf_c  payload,
+                           const struct q_useful_buf_c  aad,
                            QCBOREncodeContext          *qcbor_encoder);
 
 
+
 /* The definition (not declaration) of the context that every
- * signiner implemtnation has.
+ * signer implemtnation has.
  */
 struct t_cose_signer {
-    t_cose_signer_callback  callback; /* some will call this a vtable with one entry */
-    struct t_cose_signer   *next_in_list; /* Linked list of signers */
+    t_cose_signer_callback   callback; /* some will call this a vtable with one entry */
+    struct t_cose_signer    *next_in_list; /* Linked list of signers */
 };
 
 

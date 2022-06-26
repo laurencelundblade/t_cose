@@ -18,6 +18,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_signer.h"
+#include "t_cose/t_cose_parameters.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,11 +75,8 @@ struct t_cose_sign1_sign_ctx {
     struct t_cose_key     signing_key;
     uint32_t              option_flags;
     struct q_useful_buf_c kid;
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    uint32_t              content_type_uint;
-    const char *          content_type_tstr;
-#endif
     void                 *signers; // TODO make this the proper type
+    const struct t_cose_header_param  *added_body_parameters;
 };
 
 
@@ -178,54 +176,46 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
                              struct q_useful_buf_c         kid);
 
 
-
+/* Call this one or more times for COSE_Sign. If this has been
+ * called you can't call t_cose_sign1_add_1_signer(). */
 void
 t_cose_sign1_add_signer(struct t_cose_sign1_sign_ctx *context,
                         struct t_cose_signer         *signer);
 
 
+/* Call this once for COSE_Sign1. If this has been called you
+ * can't call t_cose_sign1_add_signer() */
+void
+t_cose_sign1_add_1_signer(struct t_cose_sign1_sign_ctx *context,
+                          struct t_cose_signer         *signer);
 
+/*
+ Add an array of header parameters to the body. It is an array terminated
+ by a parameter with type NONE.
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-/**
- * \brief Set the payload content type using CoAP content types.
- *
- * \param[in] context      The t_cose signing context.
- * \param[in] content_type The content type of the payload as defined
- *                         in the IANA CoAP Content-Formats registry.
- *
- * It is not allowed to have both a CoAP and MIME content type. This
- * error will show up when t_cose_sign1_sign() or
- * t_cose_sign1_encode_parameters() is called as no error is returned by
- * this function.
- *
- * The IANA CoAP Content-Formats registry is found
- * [here](https://www.iana.org/assignments/core-parameters/core-parameters.xhtml#content-formats).
+ All the parameters have a label and a value.
+
+ The "value" may be a callback and pointer in which case the
+ callback will be called when it is time to output the CBOR for
+ the custom header.
+
+ This supports only integer labels. (String labels could be added
+ but would increase object code size).
+
+ All parameters must be added at once. (TODO: should this change to
+ a linked list so they can be added one at at time?)
  */
-static inline void
-t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
-                                   uint16_t                      content_type);
+static void
+t_cose_sign1_add_body_header_parameters(struct t_cose_sign1_sign_ctx *context,
+                                        const struct t_cose_header_param *parameters);
 
-/**
- * \brief Set the payload content type using MIME content types.
- *
- * \param[in] context      The t_cose signing context.
- * \param[in] content_type The content type of the payload as defined
- *                         in the IANA Media Types registry.
 
- *
- * It is not allowed to have both a CoAP and MIME content type. This
- * error will show up when t_cose_sign1_sign() or
- * t_cose_sign1_encode_parameters() is called.
- *
- * The IANA Media Types registry can be found
- * [here](https://www.iana.org/assignments/media-types/media-types.xhtml).
- * These have been known as MIME types in the past.
+/*
+ t_cose_sign1_set_content_type_uint and t_cose_sign1_set_content_type_tstr
+ are replaced with t_cose_sign1_add_body_header_parameters.
+ See xxx. TODO: fill this in more
  */
-static inline void
-t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
-                                   const char                   *content_type);
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
 
 
 
@@ -438,11 +428,6 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
                        int32_t                       cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    /* Only member for which 0 is not the empty state */
-    me->content_type_uint = T_COSE_EMPTY_UINT_CONTENT_TYPE;
-#endif
-
     me->cose_algorithm_id = cose_algorithm_id;
     me->option_flags      = option_flags;
 }
@@ -474,18 +459,18 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
  * t_cose_sign1_encode_parameters() instead of this.
  */
 enum t_cose_err_t
-t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *context,
-                                        bool                          payload_is_detached,
-                                        QCBOREncodeContext           *cbor_encode_ctx);
+t_cose_sign_encode_first_part(struct t_cose_sign1_sign_ctx *context,
+                              bool                          payload_is_detached,
+                              QCBOREncodeContext           *cbor_encode_ctx);
 
 
 static inline enum t_cose_err_t
 t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
                                QCBOREncodeContext           *cbor_encode_ctx)
 {
-    return t_cose_sign1_encode_parameters_internal(context,
-                                                   false,
-                                                   cbor_encode_ctx);
+    return t_cose_sign_encode_first_part(context,
+                                         false,
+                                         cbor_encode_ctx);
 }
 
 
@@ -510,7 +495,7 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
  * after the call to t_cose_sign1_encode_parameters().
  */
 enum t_cose_err_t
-t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *context,
+t_cose_sign_encode_second_part(struct t_cose_sign1_sign_ctx *context,
                                            struct q_useful_buf_c         aad,
                                            struct q_useful_buf_c         detached_payload,
                                            QCBOREncodeContext           *cbor_encode_ctx);
@@ -537,7 +522,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *context
  * t_cose_sign1_sign_aad() instead of this.
  */
 enum t_cose_err_t
-t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *context,
+t_cose_sign_one_short(struct t_cose_sign1_sign_ctx *context,
                                bool                          payload_is_detached,
                                struct q_useful_buf_c         aad,
                                struct q_useful_buf_c         payload,
@@ -560,7 +545,7 @@ t_cose_sign1_sign_aad(struct t_cose_sign1_sign_ctx *me,
                       struct q_useful_buf           out_buf,
                       struct q_useful_buf_c        *result)
 {
-    return t_cose_sign1_sign_aad_internal(me,
+    return t_cose_sign_one_short(me,
                                           false,
                                           aad,
                                           payload,
@@ -575,7 +560,7 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
                   struct q_useful_buf           out_buf,
                   struct q_useful_buf_c        *result)
 {
-    return t_cose_sign1_sign_aad_internal(me,
+    return t_cose_sign_one_short(me,
                                           false,
                                           payload,
                                           NULL_Q_USEFUL_BUF_C,
@@ -591,7 +576,7 @@ t_cose_sign1_sign_detached(struct t_cose_sign1_sign_ctx *me,
                            struct q_useful_buf           out_buf,
                            struct q_useful_buf_c        *result)
 {
-    return t_cose_sign1_sign_aad_internal(me,
+    return t_cose_sign_one_short(me,
                                           true,
                                           detached_payload,
                                           aad,
@@ -605,7 +590,7 @@ t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *me,
                                   struct q_useful_buf_c         aad,
                                   QCBOREncodeContext           *cbor_encode_ctx)
 {
-    return t_cose_sign1_encode_signature_aad_internal(me,
+    return t_cose_sign_encode_second_part(me,
                                                       aad,
                                                       NULL_Q_USEFUL_BUF_C,
                                                       cbor_encode_ctx);
@@ -616,29 +601,21 @@ static inline enum t_cose_err_t
 t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
                               QCBOREncodeContext           *cbor_encode_ctx)
 {
-    return t_cose_sign1_encode_signature_aad_internal(me,
+    return t_cose_sign_encode_second_part(me,
                                                       NULL_Q_USEFUL_BUF_C,
                                                       NULL_Q_USEFUL_BUF_C,
                                                       cbor_encode_ctx);
 }
 
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-static inline void
-t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *me,
-                                   uint16_t                     content_type)
-{
-    me->content_type_uint = content_type;
-}
-
 
 static inline void
-t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
-                                   const char                   *content_type)
+t_cose_sign1_add_body_header_parameters(struct t_cose_sign1_sign_ctx *me,
+                                        const struct t_cose_header_param *parameters)
 {
-    me->content_type_tstr = content_type;
+    me->added_body_parameters = parameters;
 }
-#endif
+
 
 #ifdef __cplusplus
 }

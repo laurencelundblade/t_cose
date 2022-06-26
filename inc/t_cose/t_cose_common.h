@@ -18,7 +18,8 @@
 extern "C" {
 #endif
 
-
+// TODO: revamp content type tests
+#define T_COSE_DISABLE_CONTENT_TYPE
 
 /**
  * \file t_cose_common.h
