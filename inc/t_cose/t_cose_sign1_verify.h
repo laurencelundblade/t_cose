@@ -463,8 +463,9 @@ static inline void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
                          uint32_t                        option_flags)
 {
-    me->option_flags = option_flags;
-    me->verification_key = T_COSE_NULL_KEY;
+    me->option_flags         = option_flags;
+    me->verification_key     = T_COSE_NULL_KEY;
+    me->storage.storage_size = 0;
 }
 
 
@@ -481,8 +482,8 @@ t_cose_sign1_set_header_cb(struct t_cose_sign1_verify_ctx *me,
                            t_cose_header_reader            cb,
                            void                           *cb_context)
 {
-    me->header_cb = cb;
-    me->header_cb_context = cb;
+    me->header_cb         = cb;
+    me->header_cb_context = cb_context;
 }
 
 

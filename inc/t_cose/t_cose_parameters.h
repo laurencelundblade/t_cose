@@ -163,7 +163,8 @@ struct header_location {
     /* 0 means the body, 1 means the first level of signer/recipient, 2,
      * the second level.*/
     uint8_t  nesting;
-    /* For signers and recipienets, the index within the level. */
+    /* For signers and recipienets, the index within the nesting level
+     * starting from 0. */
     uint8_t  index;
 };
 
@@ -171,23 +172,26 @@ struct header_location {
 
 /*
  * This holds one header parameter such as an algorithm ID
- * or kid. It also holds a callback for encoding header parameters
- * more complicated than can be represented here.
+ * or kid. When that one header parameter is not an
+ * integer, string or boolean, this holds a callback to
+ * output it. It typically takes up 32 bytes.
  */
 struct t_cose_header_param {
-    /* One of T_COSE_PARAMETER_TYPE_INT64, ... This is the selector
-     * for the contents of the value union. */
-    uint8_t parameter_type;
     /* Label indicating which parameter it is. One of COSE_HEADER_PARAM_ALG,
      * ...
      */
     int64_t label;
+    /* One of T_COSE_PARAMETER_TYPE_INT64, ... This is the selector
+     * for the contents of the value union. */
+    uint8_t parameter_type;
+
     /* Indicates parameter is to be encoded in the protected header
      * bucket was decoded from the protected header bucket. */
     bool    prot;
     /* Indicates parameter should be listed in the critical headers
      * when encoding. Not used while decoding.*/
     bool    critical;
+    /* When decoding the location. Ignored when encoding. */
     struct header_location location;
     /* The value of the parameter. */
     union {
@@ -202,30 +206,50 @@ struct t_cose_header_param {
     } value;
 };
 
+/* 2 int64, 3, uint64, bytestrig 6, text string 7
+ */
 
 #define T_COSE_PARAMETER_TYPE_NONE 0
 
-#define T_COSE_PARAMETER_TYPE_INT64       1
-#define T_COSE_PARAMETER_TYPE_UINT64      2
-#define T_COSE_PARAMETER_TYPE_TEXT_STRING 3
-#define T_COSE_PARAMETER_TYPE_BYTE_STRING 4
-#define T_COSE_PARAMETER_TYPE_BOOL       10 // TODO: fit this in with CBOR type
+#define T_COSE_PARAMETER_TYPE_INT64       2
+#define T_COSE_PARAMETER_TYPE_UINT64      3
+#define T_COSE_PARAMETER_TYPE_BYTE_STRING 6
+#define T_COSE_PARAMETER_TYPE_TEXT_STRING 7
+#define T_COSE_PARAMETER_TYPE_BOOL       21 // TODO: fit this in with CBOR type
 
 #define T_COSE_PARAMETER_TYPE_CALLBACK 100
 
 #define T_COSE_FIRST_NON_AGGREGATE  T_COSE_PARAMETER_TYPE_INT64
-#define T_COSE_LAST_NON_AGGREGATE   T_COSE_PARAMETER_TYPE_BYTE_STRING
+#define T_COSE_LAST_NON_AGGREGATE   T_COSE_PARAMETER_TYPE_BOOL
 
 
-// TODO: rename these
-// TODO: make COSE_HEADER_PARAM_XXX public
-#define ALG_ID_PARAM(x) (struct t_cose_header_param){T_COSE_PARAMETER_TYPE_INT64, true, false, COSE_HEADER_PARAM_ALG, .value.i64 = x }
+/* These are struct t_cose_header_parameter inializers for the standard
+ * header parameters. They set the type and typical protection level.
+ */
+#define T_COSE_MAKE_ALG_ID_PARAM(x) \
+   (struct t_cose_header_param){COSE_HEADER_PARAM_ALG, \
+                                T_COSE_PARAMETER_TYPE_INT64,\
+                                true,\
+                                false,\
+                                {0,0},\
+                                .value.i64 = x }
 
-#define CT_INT_PARAM(x) (struct t_cose_header_param){T_COSE_PARAMETER_TYPE_INT64, false, false, COSE_HEADER_PARAM_CONTENT_TYPE, .value.i64 = x }
+#define T_COSE_CT_INT_PARAM(x) (struct t_cose_header_param){T_COSE_PARAMETER_TYPE_INT64, false, false, COSE_HEADER_PARAM_CONTENT_TYPE, .value.i64 = x }
 
-#define KID_PARAM(x) (struct t_cose_header_param){T_COSE_PARAMETER_TYPE_BYTE_STRING, false, false, COSE_HEADER_PARAM_KID, .value.string = x }
+#define T_COSE_KID_PARAM(kid) \
+   (struct t_cose_header_param){COSE_HEADER_PARAM_KID, \
+                                T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                                false, \
+                                false, \
+                                {0,0},\
+                                .value.string = kid }
 
-#define END_PARAM  (struct t_cose_header_param){ T_COSE_PARAMETER_TYPE_NONE, true, false, 0 }
+#define T_COSE_END_PARAM  \
+    (struct t_cose_header_param){0,\
+                                T_COSE_PARAMETER_TYPE_NONE,\
+                                false, \
+                                false, \
+                                0 }
 
 
 /* Find a parameter by label in array of parameters returned by verify */
@@ -294,12 +318,12 @@ struct header_param_storage {
 
  */
 enum t_cose_err_t
-t_cose_decode_headers(QCBORDecodeContext      *decode_context,
-                      struct header_location   location,
-                      t_cose_header_reader    *cb,
-                      void                    *cb_context,
+t_cose_decode_headers(QCBORDecodeContext         *decode_context,
+                      struct header_location      location,
+                      t_cose_header_reader       *cb,
+                      void                       *cb_context,
                       struct header_param_storage params,
-                      struct q_useful_buf_c   *protected_parameters);
+                      struct q_useful_buf_c      *protected_parameters);
 
 
 

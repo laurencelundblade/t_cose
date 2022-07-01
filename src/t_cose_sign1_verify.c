@@ -194,7 +194,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c          *payload,
-                             const struct t_cose_header_param     **returned_parameters,
+                             const struct t_cose_header_param **returned_parameters,
                              bool                            is_dc)
 {
     /* Aproximate stack usage
@@ -259,8 +259,6 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     }
 
 
-
-
     /* --- The payload --- */
     if(is_dc) {
         QCBORItem tmp;
@@ -312,6 +310,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     /* -- Compute the TBS bytes -- */
     return_value = create_tbs_hash(cose_algorithm_id,
                                    protected_parameters,
+                                   NULLUsefulBufC,
                                    aad,
                                    *payload,
                                    buffer_for_tbs_hash,

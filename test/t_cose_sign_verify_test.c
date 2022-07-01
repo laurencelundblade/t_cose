@@ -12,6 +12,7 @@
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_make_test_pub_key.h"
+#include "t_cose/t_cose_ecdsa_signer.h"
 
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
@@ -29,6 +30,7 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     struct t_cose_key              key_pair;
     struct q_useful_buf_c          payload;
     struct t_cose_sign1_verify_ctx verify_ctx;
+    struct t_cose_ecdsa_signer     signer;
 
     /* -- Get started with context initialization, selecting the alg -- */
     t_cose_sign1_sign_init(&sign_ctx, 0, cose_alg);
@@ -40,7 +42,9 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     if(result) {
         return 1000 + (int32_t)result;
     }
-    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_ecdsa_signer_init(&signer, cose_alg);
+    t_cose_ecdsa_signer_set_signing_key(&signer, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_sign1_add_1_signer(&sign_ctx, &signer);
 
     result = t_cose_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),

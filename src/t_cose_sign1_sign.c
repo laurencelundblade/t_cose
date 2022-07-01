@@ -35,10 +35,10 @@ t_cose_sign_encode_first_part(struct t_cose_sign1_sign_ctx *me,
                               bool                          payload_is_detached,
                               QCBOREncodeContext           *cbor_encode_ctx)
 {
-    enum t_cose_err_t          return_value;
-    struct q_useful_buf_c      kid;
+    enum t_cose_err_t                 return_value;
+    struct q_useful_buf_c             kid;
     const struct t_cose_header_param *params_vector[3];
-    struct t_cose_header_param        alg_id_param[3];
+    struct t_cose_header_param        local_params[3];
 
     /* --- Gather up & check the parameters before starting to encode --- */
     /* Check the cose_algorithm_id now by getting the hash alg as an
@@ -64,10 +64,14 @@ t_cose_sign_encode_first_part(struct t_cose_sign1_sign_ctx *me,
 #endif
     }
 
-    alg_id_param[0]  = ALG_ID_PARAM(me->cose_algorithm_id);
-    alg_id_param[1]  = KID_PARAM(kid);
-    alg_id_param[2]  = END_PARAM;
-    params_vector[0] = alg_id_param;
+    local_params[0]  = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
+    int x = 1;
+    if(!q_useful_buf_c_is_null(kid)) {
+        local_params[x] = T_COSE_KID_PARAM(kid);
+        x++;
+    }
+    local_params[x]  = T_COSE_END_PARAM;
+    params_vector[0] = local_params;
     params_vector[1] = me->added_body_parameters;
     params_vector[2] = NULL;
 
@@ -112,9 +116,9 @@ t_cose_sign_encode_second_part(struct t_cose_sign1_sign_ctx *me,
                                struct q_useful_buf_c         detached_payload,
                                QCBOREncodeContext           *cbor_encode_ctx)
 {
-    enum t_cose_err_t            return_value;
-    QCBORError                   cbor_err;
-    struct q_useful_buf_c        signed_payload;
+    enum t_cose_err_t     return_value;
+    QCBORError            cbor_err;
+    struct q_useful_buf_c signed_payload;
 
     /* --- Close off the payload --- */
     if(q_useful_buf_c_is_null(detached_payload)) {
@@ -140,7 +144,7 @@ t_cose_sign_encode_second_part(struct t_cose_sign1_sign_ctx *me,
 
 
     /* --- Create the signature --- */
-    /* Compute the signature using public key crypto. The key and
+    /* TODO: this comment is wrong. Compute the signature using public key crypto. The key and
      * algorithm ID are passed in to know how and what to sign
      * with. The hash of the TBS bytes is what is signed. A buffer
      * in which to place the signature is passed in and the
@@ -149,13 +153,22 @@ t_cose_sign_encode_second_part(struct t_cose_sign1_sign_ctx *me,
      * That or just compute the length of the signature if this
      * is only an output length computation.
      */
-    if(me->option_flags & T_COSE_MULTIPLE_SIGNERS) { // TODO: this is not right
+    if(me->message_type == error || me->message_type == undecided) {
+        return_value = 88; // TODO: better error code
+        goto Done;
+    }
+    if(me->message_type == do_sign) {
+        /* What is needed here is to output an arrray of signers, each
+         * of which is an array of Headers and signature. The surround
+         * array is handed here.
+         */
         struct t_cose_signer *signer = me->signers;
         QCBOREncode_OpenArray(cbor_encode_ctx);
         return_value = 99; // TODO: error code
         while(signer != NULL) {
             return_value = (signer->callback)(signer,
-                                              NULL_Q_USEFUL_BUF_C,
+                                              false,
+                                              me->protected_parameters,
                                               signed_payload,
                                               aad,
                                               cbor_encode_ctx);
@@ -164,9 +177,11 @@ t_cose_sign_encode_second_part(struct t_cose_sign1_sign_ctx *me,
         QCBOREncode_CloseArray(cbor_encode_ctx);
 
     } else {
+        /* All that is needed here is to ouptput on signature bstr */
         struct t_cose_signer *signer = me->signers;
 
         return_value = (signer->callback)(signer,
+                                          true,
                                           me->protected_parameters,
                                           signed_payload,
                                           aad,
@@ -224,9 +239,9 @@ t_cose_sign_one_short(struct t_cose_sign1_sign_ctx *me,
     }
 
     if(payload_is_detached) {
-        /* -- Output NULL but the payload -- */
+        /* -- Output NULL for the payload -- */
         /* In detached content mode, the output COSE binary does not
-         * contain the target payload, and it should be derivered
+         * contain the payload and it is be delivered
          * in another channel.
          */
         QCBOREncode_AddNULL(&encode_context);
@@ -272,5 +287,39 @@ t_cose_sign_add_signer(struct t_cose_sign1_sign_ctx *context,
         struct t_cose_signer *t;
         for(t = context->signers; t->next_in_list != NULL; t = t->next_in_list);
         t->next_in_list = signer;
+    }
+}
+
+
+/* Call this one or more times for COSE_Sign. If this has been
+ * called you can't call t_cose_sign1_add_1_signer(). */
+void
+t_cose_sign1_add_signer(struct t_cose_sign1_sign_ctx *me,
+                        struct t_cose_signer         *signer)
+{
+    if(me->message_type == do_sign) {
+        me->message_type = error;
+    } else {
+        me->message_type = do_sign;
+        if(me->signers != NULL) {
+            struct t_cose_signer *s;
+            for(s = me->signers; s->next_in_list != NULL; s = s->next_in_list);
+            s->next_in_list = signer;
+        }
+    }
+}
+
+
+/* Call this once for COSE_Sign1. If this has been called you
+ * can't call t_cose_sign1_add_signer() */
+void
+t_cose_sign1_add_1_signer(struct t_cose_sign1_sign_ctx *me,
+                          struct t_cose_signer         *signer)
+{
+    if(me->message_type != undecided) {
+        me->message_type = error;
+    } else {
+        me->message_type = do_sign1;
+        me->signers = signer;
     }
 }

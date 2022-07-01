@@ -316,5 +316,9 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
     PrintSize("sizeof(struct t_cose_sign1_verify_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_verify_ctx),
               pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_header_param)",
+              (uint32_t)sizeof(struct t_cose_header_param),
+              pfOutput, pOutCtx);
+    
     (*pfOutput)("", pOutCtx, 1);
 }

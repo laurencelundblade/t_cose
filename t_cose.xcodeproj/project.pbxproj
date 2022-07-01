@@ -48,6 +48,8 @@
 		E73CDABF23A7316700D262E0 /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
 		E73CDAD423AD4F3900D262E0 /* t_cose_psa_crypto.c in Sources */ = {isa = PBXBuildFile; fileRef = E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */; };
 		E74F5A372859ABAE0092D141 /* t_cose_test_signer.c in Sources */ = {isa = PBXBuildFile; fileRef = E74F5A362859ABAE0092D141 /* t_cose_test_signer.c */; };
+		E74F5A39286A736E0092D141 /* t_cose_ecdsa_signer.c in Sources */ = {isa = PBXBuildFile; fileRef = E7752A1C283C1E0300EF47C2 /* t_cose_ecdsa_signer.c */; };
+		E74F5A3A286A736F0092D141 /* t_cose_ecdsa_signer.c in Sources */ = {isa = PBXBuildFile; fileRef = E7752A1C283C1E0300EF47C2 /* t_cose_ecdsa_signer.c */; };
 		E74FFBBA263BAB38003B66FF /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E74FFBB8263BAB0D003B66FF /* libcrypto.a */; };
 		E772026F23CAEC84006E966E /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
 		E772027123CAEC84006E966E /* t_cose_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7F70AC52270DFAE007CE07F /* t_cose_test.c */; };
@@ -618,6 +620,7 @@
 				E73CDAB023A7316700D262E0 /* t_cose_test.c in Sources */,
 				E73CDAD423AD4F3900D262E0 /* t_cose_psa_crypto.c in Sources */,
 				E73CDAB223A7316700D262E0 /* t_cose_util.c in Sources */,
+				E74F5A3A286A736F0092D141 /* t_cose_ecdsa_signer.c in Sources */,
 				E73CDAB623A7316700D262E0 /* t_cose_parameters.c in Sources */,
 				E73CDAB823A7316700D262E0 /* t_cose_sign_verify_test.c in Sources */,
 				E73CDAB923A7316700D262E0 /* t_cose_make_psa_test_key.c in Sources */,
@@ -661,6 +664,7 @@
 				E7E36E90226CB9460040613B /* t_cose_util.c in Sources */,
 				E721CB9B2362AC2A00C7FD56 /* t_cose_sign_verify_test.c in Sources */,
 				E7F70AC62270DFAE007CE07F /* t_cose_test.c in Sources */,
+				E74F5A39286A736E0092D141 /* t_cose_ecdsa_signer.c in Sources */,
 				E7E36E7C226CB8400040613B /* main.c in Sources */,
 				E7E36E93226CB9460040613B /* t_cose_sign1_sign.c in Sources */,
 			);

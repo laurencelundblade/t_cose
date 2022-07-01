@@ -9,7 +9,6 @@
 #ifndef t_cose_ecdsa_signer_h
 #define t_cose_ecdsa_signer_h
 
-#include "t_cose_ecdsa_signer.h"
 #include "t_cose/t_cose_signer.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_parameters.h"
@@ -29,7 +28,7 @@ struct t_cose_ecdsa_signer {
     struct t_cose_key     signing_key;
     uint32_t              option_flags;
     struct q_useful_buf_c kid;
-    const struct t_cose_header_param  *header_params;
+    const struct t_cose_header_param  *added_signer_params;
 };
 
 
@@ -95,7 +94,7 @@ static void
 t_cose_ecdsa_signer_set_header_parameter(struct t_cose_ecdsa_signer *me,
                                     const struct t_cose_header_param * header_parameters)
 {
-    me->header_params = header_parameters;
+    me->added_signer_params = header_parameters;
 }
 
 #endif /* t_cose_ecdsa_signer_h */

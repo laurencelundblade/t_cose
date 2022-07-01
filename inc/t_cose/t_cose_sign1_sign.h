@@ -71,11 +71,12 @@ extern "C" {
 struct t_cose_sign1_sign_ctx {
     /* Private data structure */
     struct q_useful_buf_c protected_parameters; /* Encoded protected paramssy */
-    int32_t               cose_algorithm_id;
-    struct t_cose_key     signing_key;
+    int32_t               cose_algorithm_id;  // TODO: get rid of this
+    struct t_cose_key     signing_key;  // TODO: get rid of this
     uint32_t              option_flags;
-    struct q_useful_buf_c kid;
-    void                 *signers; // TODO make this the proper type
+    struct q_useful_buf_c kid;          // TODO: get rid of this
+    enum {undecided = 0, do_sign1, do_sign, error} message_type;
+    struct t_cose_signer              *signers;
     const struct t_cose_header_param  *added_body_parameters;
 };
 
