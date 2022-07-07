@@ -1,7 +1,7 @@
 /*
  * t_cose_crypto.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
@@ -325,7 +325,7 @@ t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
  * \retval T_COSE_ERR_FAIL
  *         General unspecific failure.
  * \retval T_COSE_ERR_TAMPERING_DETECTED
- *         Equivalent to \c PSA_ERROR_TAMPERING_DETECTED.
+ *         Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED.
  *
  * This is called to do public key signing. The implementation will
  * vary from one platform / OS to another but should conform to the
@@ -344,11 +344,11 @@ t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
  * \c signature->len.
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
-                           struct t_cose_key      signing_key,
-                           struct q_useful_buf_c  hash_to_sign,
-                           struct q_useful_buf    signature_buffer,
-                           struct q_useful_buf_c *signature);
+t_cose_crypto_sign(int32_t                cose_algorithm_id,
+                   struct t_cose_key      signing_key,
+                   struct q_useful_buf_c  hash_to_sign,
+                   struct q_useful_buf    signature_buffer,
+                   struct q_useful_buf_c *signature);
 
 
 /**
@@ -366,7 +366,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
  * \param[in] verification_key  The verification key to use.
  * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] hash_to_verify    The data or hash that is to be verified.
- * \param[in] signature         The signature.
+ * \param[in] signature         The COSE-format signature.
  *
  * This verifies that the \c signature passed in was over the \c
  * hash_to_verify passed in.
@@ -399,14 +399,14 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
  * \retval T_COSE_ERR_FAIL
  *         General unspecific failure.
  * \retval T_COSE_ERR_TAMPERING_DETECTED
- *         Equivalent to \c PSA_ERROR_TAMPERING_DETECTED.
+ *         Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED.
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
-                             struct t_cose_key     verification_key,
-                             struct q_useful_buf_c kid,
-                             struct q_useful_buf_c hash_to_verify,
-                             struct q_useful_buf_c signature);
+t_cose_crypto_verify(int32_t               cose_algorithm_id,
+                     struct t_cose_key     verification_key,
+                     struct q_useful_buf_c kid,
+                     struct q_useful_buf_c hash_to_verify,
+                     struct q_useful_buf_c signature);
 
 
 /**
@@ -485,7 +485,7 @@ t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
 #include "psa/crypto.h"
 
 #elif T_COSE_USE_OPENSSL_CRYPTO
-#include "openssl/sha.h"
+#include "openssl/evp.h"
 
 #elif T_COSE_USE_B_CON_SHA256
 /* This is code for use with Brad Conte's crypto.  See
@@ -542,20 +542,10 @@ struct t_cose_crypto_hash {
         psa_status_t         status;
 
     #elif T_COSE_USE_OPENSSL_CRYPTO
-        /* --- The context for PSA Crypto (MBed Crypto) --- */
-
-        /* What is needed for a full proper integration of OpenSSL's hashes */
-        union {
-            SHA256_CTX sha_256;
-        #if !defined T_COSE_DISABLE_ES512 || !defined T_COSE_DISABLE_ES384
-            /* SHA 384 uses the sha_512 context
-             * This uses about 100 bytes above SHA-256  */
-            SHA512_CTX sha_512;
-        #endif
-        } ctx;
-
-        int     update_error; /* Used to track error return by SHAXXX_Update() */
-        int32_t cose_hash_alg_id; /* COSE integer ID for the hash alg */
+        /* --- The context for OpenSSL crypto --- */
+        EVP_MD_CTX  *evp_ctx;
+        int          update_error; /* Used to track error return by SHAXXX_Update() */
+        int32_t      cose_hash_alg_id; /* COSE integer ID for the hash alg */
 
    #elif T_COSE_USE_B_CON_SHA256
         /* --- Specific context for Brad Conte's sha256.c --- */
@@ -605,7 +595,7 @@ struct t_cose_crypto_encryption {
 
 
 /**
- * The maximum needed to hold a hash. It is smaller and less stack is used
+ * The maximum needed to hold a hash. It is smaller and less stack is needed
  * if the larger hashes are disabled.
  */
 #ifndef T_COSE_DISABLE_ES512
@@ -730,7 +720,8 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
  * (As other types of signing algorithms are added, RSA for example,
  * a similar function can be added for them.)
  */
-static bool t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
+static bool
+t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
 
 
 
@@ -767,7 +758,8 @@ t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list)
     return false;
 }
 
-static inline bool t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
+static inline bool
+t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 {
     /* The simple list of COSE alg IDs that use ECDSA */
     static const int32_t ecdsa_list[] = {

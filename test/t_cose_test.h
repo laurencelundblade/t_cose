@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.h
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -77,7 +77,7 @@ int_fast32_t short_circuit_make_cwt_test(void);
 
 /*
  * Test the decode only mode, the mode where the
- * headers are returned, but the signature is no
+ * headers are returned, but the signature is not
  * verified.
  */
 int_fast32_t short_circuit_decode_only_test(void);
@@ -129,7 +129,7 @@ int_fast32_t sign1_structure_decode_test(void);
  * by default because it needs a hacked version of a hash algorithm.
  * It is very hard to get hash algorithms to fail, so this hacked
  * version is necessary. This test will not run correctly with
- * OpenSSL or PSA hashes because they aren't (and shouldn't be) hacked.
+ * OpenSSL or Mbed TLS hashes because they aren't (and shouldn't be) hacked.
  * It works only with the b_con hash bundled and not intended for
  * commercial use (though it is a perfectly fine implementation).
  */
@@ -146,6 +146,13 @@ int_fast32_t tags_test(void);
 
 
 int32_t get_size_test(void);
+
+
+/*
+ * Test the decoding of COSE messages that use indefinite length
+ * maps and arrays instead of definite length.
+ */
+int32_t indef_array_and_map_test(void);
 
 
 #endif /* t_cose_test_h */

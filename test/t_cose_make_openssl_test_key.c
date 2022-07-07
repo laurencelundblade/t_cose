@@ -1,7 +1,7 @@
 /*
  *  t_cose_make_openssl_test_key.c
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -10,60 +10,87 @@
 
 #include "t_cose_make_test_pub_key.h" /* The interface implemented here */
 
-#include "openssl/ecdsa.h"
-#include "openssl/obj_mac.h" /* for NID for EC curve */
 #include "openssl/err.h"
+#include "openssl/evp.h"
+#include "openssl/x509.h"
+
 
 
 /*
- * Some hard coded keys for the test cases here.
+ * RFC 5915 format EC private key, including the public key. These
+ * are the same key as in t_cose_make_psa_test_key.c
+ *
+ * They are made by:
+ *
+ *   openssl ecparam -genkey -name prime256v1 -noout -out ec256-key-pair.pem
+ *
+ *   Edit the PEM headers off so it is just b64
+ *
+ *   base64 --decode to get the pure DER
+ *
+ *   xxd -i to turn it into a C variable
+ *
+ *
+ * See also:
+ *  https://stackoverflow.com/
+ *  questions/71890050/
+ *  set-an-evp-pkey-from-ec-raw-points-pem-or-der-in-both-openssl-1-1-1-and-3-0-x/
+ *  71896633#71896633
  */
-#define PUBLIC_KEY_prime256v1 \
-    "0437ab65955fae0466673c3a2934a3" \
-    "4f2f0ec2b3eec224198557998fc04b" \
-    "f4b2b495d9798f2539c90d7d102b3b" \
-    "bbda7fcbdb0e9b58d4e1ad2e61508d" \
-    "a75f84a67b"
 
-#define PRIVATE_KEY_prime256v1 \
-    "f1b7142343402f3b5de7315ea894f9" \
-    "da5cf503ff7938a37ca14eb0328698" \
-    "8450"
+static const unsigned char ec256_key_pair[] = {
+  0x30, 0x77, 0x02, 0x01, 0x01, 0x04, 0x20, 0xd9, 0xb5, 0xe7, 0x1f, 0x77,
+  0x28, 0xbf, 0xe5, 0x63, 0xa9, 0xdc, 0x93, 0x75, 0x62, 0x27, 0x7e, 0x32,
+  0x7d, 0x98, 0xd9, 0x94, 0x80, 0xf3, 0xdc, 0x92, 0x41, 0xe5, 0x74, 0x2a,
+  0xc4, 0x58, 0x89, 0xa0, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d,
+  0x03, 0x01, 0x07, 0xa1, 0x44, 0x03, 0x42, 0x00, 0x04, 0x40, 0x41, 0x6c,
+  0x8c, 0xda, 0xa0, 0xf7, 0xa1, 0x75, 0x69, 0x55, 0x53, 0xc3, 0x27, 0x9c,
+  0x10, 0x9c, 0xe9, 0x27, 0x7e, 0x53, 0xc5, 0x86, 0x2a, 0xa7, 0x15, 0xed,
+  0xc6, 0x36, 0xf1, 0x71, 0xca, 0x32, 0xf1, 0x76, 0x43, 0x54, 0x96, 0x15,
+  0xe5, 0xc8, 0x34, 0x0d, 0x43, 0x32, 0xdd, 0x13, 0x77, 0x8a, 0xec, 0x87,
+  0x15, 0x76, 0xa3, 0x3c, 0x26, 0x08, 0x6c, 0x32, 0x0c, 0x9f, 0xf3, 0x3f,
+  0xc7
+};
 
+static const unsigned char ec384_key_pair[] = {
+  0x30, 0x81, 0xa4, 0x02, 0x01, 0x01, 0x04, 0x30, 0x63, 0x88, 0x1c, 0xbf,
+  0x86, 0x65, 0xec, 0x39, 0x27, 0x33, 0x24, 0x2e, 0x5a, 0xae, 0x63, 0x3a,
+  0xf5, 0xb1, 0xb4, 0x54, 0xcf, 0x7a, 0x55, 0x7e, 0x44, 0xe5, 0x7c, 0xca,
+  0xfd, 0xb3, 0x59, 0xf9, 0x72, 0x66, 0xec, 0x48, 0x91, 0xdf, 0x27, 0x79,
+  0x99, 0xbd, 0x1a, 0xbc, 0x09, 0x36, 0x49, 0x9c, 0xa0, 0x07, 0x06, 0x05,
+  0x2b, 0x81, 0x04, 0x00, 0x22, 0xa1, 0x64, 0x03, 0x62, 0x00, 0x04, 0x14,
+  0x2a, 0x78, 0x91, 0x06, 0x9b, 0xbe, 0x43, 0xa9, 0xe8, 0xd2, 0xa7, 0xbd,
+  0x03, 0xdf, 0xc9, 0x12, 0x62, 0x66, 0xb7, 0x84, 0xe3, 0x33, 0x4a, 0xf2,
+  0xb5, 0xf9, 0x5e, 0xe0, 0x3f, 0xe5, 0xc7, 0xdc, 0x1d, 0x56, 0xb3, 0x9f,
+  0x30, 0x6f, 0x97, 0xba, 0x00, 0xd8, 0xcf, 0x41, 0xea, 0x95, 0x5f, 0xeb,
+  0x55, 0x62, 0xab, 0x7c, 0xb7, 0x58, 0xd0, 0xe8, 0xde, 0xcf, 0x64, 0x69,
+  0x32, 0x50, 0xb3, 0x06, 0x70, 0xb0, 0xbc, 0x84, 0xcb, 0xa7, 0x1f, 0x2f,
+  0x1b, 0xf6, 0xad, 0x54, 0x56, 0x0a, 0x75, 0x83, 0xe1, 0xcf, 0xb6, 0x12,
+  0x2e, 0x0a, 0xde, 0xf9, 0xaa, 0x37, 0x64, 0x1a, 0x51, 0x1c, 0x27
+};
 
-#define PUBLIC_KEY_secp384r1 \
-    "04bdd9c3f818c9cef3e11e2d40e775" \
-    "beb37bc376698d71967f93337a4e03" \
-    "2dffb11b505067dddb4214b56d9bce" \
-    "c59177eccd8ab05f50975933b9a738" \
-    "d90c0b07eb9519567ef9075807cf77" \
-    "139fc1fe85608851361136806123ed" \
-    "c735ce5a03e8e4"
+static const unsigned char ec521_key_pair[] = {
+  0x30, 0x81, 0xdc, 0x02, 0x01, 0x01, 0x04, 0x42, 0x00, 0x4b, 0x35, 0x4d,
+  0xa4, 0xab, 0xf7, 0xa5, 0x4f, 0xac, 0xee, 0x06, 0x49, 0x4a, 0x97, 0x0e,
+  0xa6, 0x5f, 0x85, 0xf0, 0x6a, 0x2e, 0xfb, 0xf8, 0xdd, 0x60, 0x9a, 0xf1,
+  0x0b, 0x7a, 0x13, 0xf7, 0x90, 0xf8, 0x9f, 0x49, 0x02, 0xbf, 0x5d, 0x5d,
+  0x71, 0xa0, 0x90, 0x93, 0x11, 0xfd, 0x0c, 0xda, 0x7b, 0x6a, 0x5f, 0x7b,
+  0x82, 0x9d, 0x79, 0x61, 0xe1, 0x6b, 0x31, 0x0a, 0x30, 0x6f, 0x4d, 0xf3,
+  0x8b, 0xe3, 0xa0, 0x07, 0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x23, 0xa1,
+  0x81, 0x89, 0x03, 0x81, 0x86, 0x00, 0x04, 0x00, 0x64, 0x27, 0x45, 0x07,
+  0x38, 0xbd, 0xd7, 0x1a, 0x87, 0xea, 0x20, 0xfb, 0x93, 0x6f, 0x1c, 0xde,
+  0xb3, 0x42, 0xcc, 0xf4, 0x58, 0x87, 0x79, 0x0f, 0x69, 0xaf, 0x5b, 0xff,
+  0x72, 0x96, 0x35, 0xb9, 0x6e, 0x8a, 0x55, 0x64, 0x00, 0x44, 0xfe, 0x63,
+  0x20, 0x4f, 0x65, 0x3a, 0x3a, 0x47, 0xcf, 0x3a, 0x7f, 0x60, 0x5d, 0xcb,
+  0xe6, 0xb4, 0x5a, 0x57, 0x2f, 0xc8, 0x74, 0x62, 0xcf, 0x98, 0x58, 0x33,
+  0x59, 0x00, 0xb9, 0xd0, 0xbc, 0x76, 0x2a, 0x37, 0x15, 0x3b, 0x9d, 0x3c,
+  0x62, 0xe9, 0xcc, 0x63, 0x00, 0xab, 0x7b, 0x01, 0xb1, 0x00, 0x77, 0x02,
+  0x14, 0xdb, 0x5e, 0xb8, 0xda, 0xac, 0x72, 0xf1, 0xd4, 0xa6, 0x17, 0xc5,
+  0x12, 0x97, 0x95, 0x6b, 0x98, 0x0b, 0xe0, 0x19, 0xf1, 0xf6, 0xd1, 0x0c,
+  0x09, 0xec, 0x1e, 0x2f, 0x51, 0x7a, 0x87, 0x71, 0x3c, 0x63, 0x25, 0x01,
+  0x43, 0xc0, 0xa8, 0x52, 0x1f, 0xf9, 0x53
+};
 
-#define PRIVATE_KEY_secp384r1 \
-    "03df14f4b8a43fd8ab75a6046bd2b5" \
-    "eaa6fd10b2b203fd8a78d7916de20a" \
-    "a241eb37ec3d4c693d23ba2b4f6e5b" \
-    "66f57f"
-
-
-#define PUBLIC_KEY_secp521r1 \
-    "0400e4d253175a14311fc2dd487687" \
-    "70cb49b07bd15d327beb98aa33e60c" \
-    "d0181b17fb8f1cbf07dbc8652ff5b7" \
-    "b4452c082e0686c0fab8089071cbc5" \
-    "37101d344b94c201e6424f3a18da4f" \
-    "20ecabfbc84b8467c217cd67055fa5" \
-    "dec7fb1ae87082302c1813caa4b7b1" \
-    "cf28d94677e486fb4b317097e9307a" \
-    "bdb9d50187779a3d1e682c123c"
-
-#define PRIVATE_KEY_secp521r1 \
-    "0045d2d1439435fab333b1c6c8b534" \
-    "f0969396ad64d5f535d65f68f2a160" \
-    "6590bb15fd5322fc97a416c395745e" \
-    "72c7c85198c0921ab3b8e92dd901b5" \
-    "a42159adac6d"
 
 /*
  * Public function, see t_cose_make_test_pub_key.h
@@ -71,115 +98,44 @@
 /*
  * The key object returned by this is malloced and has to be freed by
  * by calling free_ecdsa_key_pair(). This heap use is a part of
- * OpenSSL and not t_cose which does not use the heap
+ * OpenSSL and not t_cose which does not use the heap.
  */
-enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
+enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair)
 {
-    EC_GROUP          *ossl_ec_group = NULL;
     enum t_cose_err_t  return_value;
-    BIGNUM            *ossl_private_key_bn = NULL;
-    EC_KEY            *ossl_ec_key = NULL;
-    int                ossl_result;
-    EC_POINT          *ossl_pub_key_point = NULL;
-    int                nid;
-    const char        *public_key;
-    const char        *private_key;
+    EVP_PKEY          *pkey;
+    const uint8_t     *rfc5915_key;
+    long               rfc5915_key_len;
 
     switch (cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
-        nid         = NID_X9_62_prime256v1;
-        public_key  = PUBLIC_KEY_prime256v1;
-        private_key =  PRIVATE_KEY_prime256v1 ;
+        rfc5915_key = ec256_key_pair;
+        rfc5915_key_len = sizeof(ec256_key_pair);
         break;
 
     case T_COSE_ALGORITHM_ES384:
-        nid         = NID_secp384r1;
-        public_key  = PUBLIC_KEY_secp384r1;
-        private_key = PRIVATE_KEY_secp384r1;
+        rfc5915_key = ec384_key_pair;
+        rfc5915_key_len = sizeof(ec384_key_pair);
         break;
 
     case T_COSE_ALGORITHM_ES512:
-        nid         = NID_secp521r1;
-        public_key  = PUBLIC_KEY_secp521r1;
-        private_key = PRIVATE_KEY_secp521r1;
+        rfc5915_key = ec521_key_pair;
+        rfc5915_key_len = sizeof(ec521_key_pair);
         break;
 
     default:
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
-    /* Make a group for the particular EC algorithm */
-    ossl_ec_group = EC_GROUP_new_by_curve_name(nid);
-    if(ossl_ec_group == NULL) {
-        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+    /* This imports the public key too */
+    pkey = d2i_PrivateKey(EVP_PKEY_EC, NULL, &rfc5915_key, rfc5915_key_len);
+    if(pkey == NULL) {
+        return_value = T_COSE_ERR_FAIL;
         goto Done;
     }
 
-    /* Make an empty EC key object */
-    ossl_ec_key = EC_KEY_new();
-    if(ossl_ec_key == NULL) {
-        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
-        goto Done;
-    }
-
-    /* Associate group with key object */
-    ossl_result = EC_KEY_set_group(ossl_ec_key, ossl_ec_group);
-    if (!ossl_result) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    /* Make an instance of a big number to store the private key */
-    ossl_private_key_bn = BN_new();
-    if(ossl_private_key_bn == NULL) {
-        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
-        goto Done;
-    }
-    BN_zero(ossl_private_key_bn);
-
-    /* Stuff the specific private key into the big num */
-    ossl_result = BN_hex2bn(&ossl_private_key_bn, private_key);
-    if(ossl_private_key_bn == 0) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    /* Now associate the big num with the key object so we finally
-     * have a key set up and ready for signing */
-    ossl_result = EC_KEY_set_private_key(ossl_ec_key, ossl_private_key_bn);
-    if (!ossl_result) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-
-    /* Make an empty EC point into which the public key gets loaded */
-    ossl_pub_key_point = EC_POINT_new(ossl_ec_group);
-    if(ossl_pub_key_point == NULL) {
-        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
-        goto Done;
-    }
-
-    /* Turn the serialized public key into an EC point */
-    ossl_pub_key_point = EC_POINT_hex2point(ossl_ec_group,
-                                            public_key,
-                                            ossl_pub_key_point,
-                                            NULL);
-    if(ossl_pub_key_point == NULL) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    /* Associate the EC point with key object */
-    /* The key object has both the public and private keys in it */
-    ossl_result = EC_KEY_set_public_key(ossl_ec_key, ossl_pub_key_point);
-    if(ossl_result == 0) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    key_pair->k.key_ptr  = ossl_ec_key;
+    key_pair->k.key_ptr  = pkey;
     key_pair->crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;
     return_value         = T_COSE_SUCCESS;
 
@@ -193,7 +149,7 @@ Done:
  */
 void free_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-    EC_KEY_free(key_pair.k.key_ptr);
+    EVP_PKEY_free(key_pair.k.key_ptr);
 }
 
 
@@ -208,6 +164,3 @@ int check_for_key_pair_leaks()
      */
     return 0;
 }
-
-
-
