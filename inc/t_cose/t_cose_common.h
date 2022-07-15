@@ -91,6 +91,8 @@ extern "C" {
 #define T_COSE_ALGORITHM_ES512 -36
 
 
+#define T_COSE_ALGORITHM_NONE 0
+
 
 
 /**
@@ -341,6 +343,22 @@ enum t_cose_err_t {
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when
      * verifying a signature. */
     T_COSE_ERR_TOO_MANY_TAGS = 37,
+
+    /** When decoding a header parameter that is not a string, integer or boolean
+     * was encountered with no callback set handle it. See t_cose_ignore_param_cb()
+     * and related. */
+    T_COSE_ERR_UNHANDLED_HEADER_PARAMETER = 38,
+
+    /* When encoding parameters, struct t_cose_header_parameter.parameter_type
+     * is not a valid type.
+     */
+    T_COSE_ERR_INVALID_PARAMETER_TYPE = 39,
+
+    /* Can't put critical parameters in the non-protected
+     * header bucket. */
+    T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
+
+    T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
 };
 
 
