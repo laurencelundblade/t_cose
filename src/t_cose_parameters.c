@@ -706,7 +706,7 @@ t_cose_ignore_param_cb(void *cb,
  * Public function. See t_cose_parameters.h
  */
 enum t_cose_err_t
-t_cose_decode_headers(QCBORDecodeContext          *decode_context,
+t_cose_headers_decode(QCBORDecodeContext          *decode_context,
                       struct header_location       location,
                       t_cose_header_reader        *cb,
                       void                        *cb_context,
