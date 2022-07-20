@@ -164,3 +164,8 @@ int check_for_key_pair_leaks()
      */
     return 0;
 }
+
+enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *res_key)
+{
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
