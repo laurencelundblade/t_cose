@@ -2,7 +2,7 @@
  * t_cose_psa_crypto.c
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -75,7 +75,7 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 /* Avoid compiler warning due to unused argument */
 #define ARG_UNUSED(arg) (void)(arg)
 
-
+#ifndef T_COSE_DISABLE_SIGN1
 /**
  * \brief Map a COSE signing algorithm ID to a PSA signing algorithm ID
  *
@@ -281,10 +281,11 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 Done:
     return return_value;
 }
+#endif /* !T_COSE_DISABLE_SIGN1 */
 
 
-
-
+#if !defined(T_COSE_DISABLE_SHORT_CIRCUIT_SIGN) || \
+    !defined(T_COSE_DISABLE_SIGN1)
 /**
  * \brief Convert COSE hash algorithm ID to a PSA hash algorithm ID
  *
@@ -400,6 +401,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 Done:
     return psa_status_to_t_cose_error_hash(hash_ctx->status);
 }
+#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN || !T_COSE_DISABLE_SIGN1 */
 
 #ifndef T_COSE_DISABLE_MAC0
 /**
