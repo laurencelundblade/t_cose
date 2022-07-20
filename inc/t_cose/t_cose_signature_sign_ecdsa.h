@@ -96,7 +96,7 @@ t_cose_signature_sign_from_ecdsa(struct t_cose_signature_sign_ecdsa *me)
 }
 
 
-static void
+static inline void
 t_cose_signature_sign_ecdsa_set_header_parameter(struct t_cose_signature_sign_ecdsa *me,
                                                  const struct t_cose_header_param   *header_parameters)
 {
