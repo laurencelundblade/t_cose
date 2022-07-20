@@ -1,6 +1,5 @@
 //
 //  t_cose_signature_sign_ecdsa.c
-//  t_cose_test
 //
 //  Created by Laurence Lundblade on 5/23/22.
 //  Copyright © 2022 Laurence Lundblade. All rights reserved.
@@ -20,10 +19,14 @@ t_cose_ecdsa_headers(struct t_cose_signature_sign  *me_x,
 {
     struct t_cose_signature_sign_ecdsa *me = (struct t_cose_signature_sign_ecdsa *)me_x;
 
-    /* TODO: what if there is no kid */
     me->local_params[0]  = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
-    me->local_params[1]  = T_COSE_KID_PARAM(me->kid);
-    me->local_params[2]  = T_COSE_END_PARAM;
+    if(!q_useful_buf_c_is_null(me->kid)) {
+        // TODO: optimize this if possible
+        me->local_params[1]  = T_COSE_KID_PARAM(me->kid);
+        me->local_params[2]  = T_COSE_END_PARAM;
+    } else  {
+        me->local_params[1]  = T_COSE_END_PARAM;
+    }
     *params = me->local_params;
 }
 
@@ -114,6 +117,7 @@ void
 t_cose_signature_sign_ecdsa_init(struct t_cose_signature_sign_ecdsa *me,
                          int32_t                     cose_algorithm_id)
 {
+    memset(me, 0, sizeof(*me));
     me->s.callback        = t_cose_ecdsa_sign;
     me->s.h_callback      = t_cose_ecdsa_headers;
     me->cose_algorithm_id = cose_algorithm_id;

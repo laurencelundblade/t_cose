@@ -157,7 +157,7 @@ t_cose_sign_encode_second_part(struct t_cose_sign_sign_ctx *me,
         QCBOREncode_OpenArray(cbor_encode_ctx);
         while(signer != NULL) {
             return_value = (signer->callback)(signer,
-                                              false,
+                                              true,
                                               me->protected_parameters,
                                               signed_payload,
                                               aad,
@@ -172,7 +172,7 @@ t_cose_sign_encode_second_part(struct t_cose_sign_sign_ctx *me,
     } else {
         /* All that is needed here is to ouptput one signature bstr */
         return_value = (signer->callback)(signer,
-                                          true,
+                                          false,
                                           me->protected_parameters,
                                           signed_payload,
                                           aad,
