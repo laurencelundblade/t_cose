@@ -16,7 +16,6 @@
 extern "C" {
 #endif
 
-
 /**
  * This selects a test mode called _short_ _circuit_ _tagging_.
  * This mode is useful when the symmetric key is unavailable
@@ -58,6 +57,54 @@ struct t_cose_mac0_sign_ctx {
 #endif
 };
 
+/**
+ * \brief  Create and sign a \c COSE_Mac0 message with a payload in one call.
+ *
+ * \param[in] context  The t_cose signing context.
+ * \param[in] payload  Pointer and length of payload to sign.
+ * \param[in] out_buf  Pointer and length of buffer to output to.
+ * \param[out] result  Pointer and length of the resulting \c COSE_Mac0.
+ *
+ * The \c context must have been initialized with
+ * t_cose_mac0_sign_init() and the key set with
+ * t_cose_mac0_set_signing_key() before this is called.
+ *
+ * This creates the COSE header parameter, hashes and signs the
+ * payload and creates the signature all in one go. \c out_buf gives
+ * the pointer and length of the memory into which the output is
+ * written. The pointer and length of the completed \c COSE_Mac0 is
+ * returned in \c result.  (\c out_buf and \c result are used instead
+ * of the usual in/out parameter for length because it is the
+ * convention for q_useful_buf and is more const correct.)
+ *
+ * The size of \c out_buf must be the size of the payload plus
+ * overhead for formating, the signature and the key id (if used).
+ *
+ * To compute the size of the buffer needed before it is allocated
+ * call this with \c out_buf containing a \c NULL pointer and large
+ * length like \c UINT32_MAX.  The algorithm and key, kid and such
+ * must be set up just as if the real \c COSE_Mac0 were to be created
+ * as these values are needed to compute the size correctly.  The
+ * contents of \c result will be a \c NULL pointer and the length of
+ * the \c COSE_Mac0. When this is run like this, the cryptographic
+ * functions will not actually run, but the size of their output will
+ * be taken into account to give an exact size.
+ *
+ * This function requires the payload be complete and formatted in a
+ * contiguous buffer. The resulting \c COSE_MAc0 message also
+ * contains the payload preceded by the header parameters and followed
+ * by the tags, all CBOR formatted. This function thus requires
+ * two copies of the payload to be in memory.  Alternatively
+ * t_cose_sign1_encode_parameters() and
+ * t_cose_sign1_encode_signature() can be used. They are more complex
+ * to use, but avoid the two copies of the payload and can reduce
+ * memory requirements by close to half.
+ */
+enum t_cose_err_t
+t_cose_mac0_sign(struct t_cose_mac0_sign_ctx *sign_ctx,
+                 struct q_useful_buf_c        payload,
+                 struct q_useful_buf          out_buf,
+                 struct q_useful_buf_c       *result);
 
 /**
  * \brief  Initialize to start creating a \c COSE_Mac0.
