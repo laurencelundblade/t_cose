@@ -2,6 +2,7 @@
  run_tests.c -- test aggregator and results reporting
 
  Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2022 Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +18,7 @@
 
 #include "t_cose_test.h"
 #include "t_cose_sign_verify_test.h"
+#include "t_cose_sign_verify_mac0_test.h"
 
 
 /*
@@ -62,6 +64,12 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_sig_fail_test),
     TEST_ENTRY(sign_verify_get_size_test),
     TEST_ENTRY(known_good_test),
+#ifndef T_COSE_DISABLE_MAC0
+    TEST_ENTRY(sign_verify_mac0_basic_test),
+    TEST_ENTRY(sign_verify_mac0_sig_fail_test),
+    TEST_ENTRY(sign_verify_get_size_mac0_test),
+#endif /* T_COSE_DISABLE_MAC0 */
+
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
