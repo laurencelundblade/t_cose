@@ -1,12 +1,12 @@
 /*
  * Copyright (c) 2019, Laurence Lundblade. All rights reserved.
- * Copyright (c) 2020 Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __T_COSE_MAC0_VERIFY_H_
-#define __T_COSE_MAC0_VERIFY_H_
+#ifndef __T_COSE_MAC_VERIFY_H_
+#define __T_COSE_MAC_VERIFY_H_
 
 #include <stdint.h>
 #include "qcbor/qcbor.h"
@@ -28,7 +28,7 @@ extern "C" {
  * Context for tag verification.  It is about 24 bytes on a
  * 64-bit machine and 12 bytes on a 32-bit machine.
  */
-struct t_cose_mac0_verify_ctx {
+struct t_cose_mac_verify_ctx {
     /* Private data structure */
     struct t_cose_key     verification_key;
     int32_t               option_flags;
@@ -45,8 +45,8 @@ struct t_cose_mac0_verify_ctx {
  * This must be called before using the verification context.
  */
 static void
-t_cose_mac0_verify_init(struct t_cose_mac0_verify_ctx *context,
-                        int32_t                        option_flags);
+t_cose_mac_verify_init(struct t_cose_mac_verify_ctx *context,
+                        int32_t                      option_flags);
 
 
 /**
@@ -59,14 +59,14 @@ t_cose_mac0_verify_init(struct t_cose_mac0_verify_ctx *context,
  * Setup the \ref verify_key structure and fill it in \ref context.
  */
 static void
-t_cose_mac0_set_verify_key(struct t_cose_mac0_verify_ctx *context,
-                           struct t_cose_key              verify_key);
+t_cose_mac_set_verify_key(struct t_cose_mac_verify_ctx *context,
+                           struct t_cose_key            verify_key);
 
 /**
  * \brief Verify a COSE_Mac0
  *
  * \param[in] context      The context of COSE_Mac0 verification
- * \param[in] cose_mac0    Pointer and length of CBOR encoded \c COSE_Mac0
+ * \param[in] cose_mac    Pointer and length of CBOR encoded \c COSE_Mac0
  *                         that is to be verified.
  * \param[out] payload     Pointer and length of the still CBOR encoded
  *                         payload
@@ -94,24 +94,24 @@ t_cose_mac0_set_verify_key(struct t_cose_mac0_verify_ctx *context,
  * If it is successful, the pointer of the CBOR-encoded payload is
  * returned.
  */
-enum t_cose_err_t t_cose_mac0_verify(struct t_cose_mac0_verify_ctx *context,
-                                     struct q_useful_buf_c          cose_mac0,
-                                     struct q_useful_buf_c         *payload);
+enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
+                                     struct q_useful_buf_c        cose_mac,
+                                     struct q_useful_buf_c       *payload);
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
 static inline void
-t_cose_mac0_verify_init(struct t_cose_mac0_verify_ctx *context,
-                        int32_t                        option_flags)
+t_cose_mac_verify_init(struct t_cose_mac_verify_ctx *context,
+                        int32_t                      option_flags)
 {
     context->option_flags = option_flags;
     context->verification_key = T_COSE_NULL_KEY;
 }
 
 static inline void
-t_cose_mac0_set_verify_key(struct t_cose_mac0_verify_ctx *context,
-                           struct t_cose_key              verify_key)
+t_cose_mac_set_verify_key(struct t_cose_mac_verify_ctx *context,
+                           struct t_cose_key            verify_key)
 {
     context->verification_key = verify_key;
 }
@@ -120,4 +120,4 @@ t_cose_mac0_set_verify_key(struct t_cose_mac0_verify_ctx *context,
 }
 #endif
 
-#endif /* __T_COSE_MAC0_VERIFY_H_ */
+#endif /* __T_COSE_MAC_VERIFY_H_ */

@@ -1,5 +1,5 @@
 /*
- *  t_cose_sign_verify_mac0_test.c
+ *  t_cose_sign_verify_mac_test.c
  *
  * Copyright 2019-2022, Laurence Lundblade
  * Copyright (c) 2022, Arm Limited. All rights reserved.
@@ -9,11 +9,11 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose/t_cose_mac0_sign.h"
-#include "t_cose/t_cose_mac0_verify.h"
+#include "t_cose/t_cose_mac_sign.h"
+#include "t_cose/t_cose_mac_verify.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_make_test_pub_key.h"
-#include "t_cose_sign_verify_mac0_test.h"
+#include "t_cose_sign_verify_mac_test.h"
 
 #include "psa/crypto.h"
 
@@ -22,22 +22,22 @@
 #ifndef T_COSE_DISABLE_MAC0
 
 /*
- * Public function, see t_cose_sign_verify_mac0_test.h
+ * Public function, see t_cose_sign_verify_mac_test.h
  */
 int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
 {
-    struct t_cose_mac0_sign_ctx     sign_ctx;
-    int32_t                    return_value;
-    enum t_cose_err_t          cose_res;
-    Q_USEFUL_BUF_MAKE_STACK_UB(signed_cose_buffer, 300);
-    struct q_useful_buf_c      signed_cose;
-    struct t_cose_key          key;
-    struct q_useful_buf_c      in_payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
-    struct q_useful_buf_c      out_payload;
-    struct t_cose_mac0_verify_ctx   verify_ctx;
+    struct t_cose_mac_sign_ctx   sign_ctx;
+    int32_t                      return_value;
+    enum t_cose_err_t            cose_res;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
+    struct q_useful_buf_c        signed_cose;
+    struct t_cose_key            key;
+    struct q_useful_buf_c        in_payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
+    struct q_useful_buf_c        out_payload;
+    struct t_cose_mac_verify_ctx verify_ctx;
 
     /* -- Get started with context initialization, selecting the alg -- */
-    t_cose_mac0_sign_init(&sign_ctx, 0, cose_alg);
+    t_cose_mac_sign_init(&sign_ctx, 0, cose_alg);
 
     /* Make an HMAC key that will be used for both signing and
      * verification.
@@ -46,22 +46,22 @@ int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
     if(cose_res != T_COSE_SUCCESS) {
         return 1000 + (int32_t)cose_res;
     }
-    t_cose_mac0_set_signing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
+    t_cose_mac_set_signing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
 
-    cose_res = t_cose_mac0_sign(&sign_ctx, in_payload, signed_cose_buffer, &signed_cose);
+    cose_res = t_cose_mac_sign(&sign_ctx, in_payload, signed_cose_buffer, &signed_cose);
     if(cose_res != T_COSE_SUCCESS) {
         return_value = 2000 + (int32_t)cose_res;
         goto Done;
     }
 
     /* Verification */
-    t_cose_mac0_verify_init(&verify_ctx, 0);
+    t_cose_mac_verify_init(&verify_ctx, 0);
 
-    t_cose_mac0_set_verify_key(&verify_ctx, key);
+    t_cose_mac_set_verify_key(&verify_ctx, key);
 
-    cose_res = t_cose_mac0_verify(&verify_ctx,
-                                   signed_cose, /* COSE to verify */
-                                  &out_payload); /* Payload from signed_cose */
+    cose_res = t_cose_mac_verify(&verify_ctx,
+                                  signed_cose, /* COSE to verify */
+                                 &out_payload); /* Payload from signed_cose */
     if(cose_res != T_COSE_SUCCESS) {
         return_value = 5000 + (int32_t)cose_res;
         goto Done;
@@ -84,9 +84,9 @@ Done:
 
 
 /*
- * Public function, see t_cose_sign_verify_mac0_test.h
+ * Public function, see t_cose_sign_verify_mac_test.h
  */
-int_fast32_t sign_verify_mac0_basic_test()
+int_fast32_t sign_verify_mac_basic_test()
 {
     int_fast32_t return_value;
 
@@ -110,21 +110,21 @@ int_fast32_t sign_verify_mac0_basic_test()
 
 
 /*
- * Public function, see t_cose_sign_verify_mac0_test.h
+ * Public function, see t_cose_sign_verify_mac_test.h
  */
-int_fast32_t sign_verify_mac0_sig_fail_test()
+int_fast32_t sign_verify_mac_sig_fail_test()
 {
-    struct t_cose_mac0_sign_ctx     sign_ctx;
-    QCBOREncodeContext         cbor_encode;
-    int32_t                    return_value;
-    enum t_cose_err_t          result;
-    Q_USEFUL_BUF_MAKE_STACK_UB(signed_cose_buffer, 300);
-    struct q_useful_buf_c      signed_cose;
-    struct t_cose_key          key_pair;
-    struct q_useful_buf_c      payload;
-    QCBORError                 cbor_error;
-    struct t_cose_mac0_verify_ctx   verify_ctx;
-    size_t                     tamper_offset;
+    struct t_cose_mac_sign_ctx   sign_ctx;
+    QCBOREncodeContext           cbor_encode;
+    int32_t                      return_value;
+    enum t_cose_err_t            result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
+    struct q_useful_buf_c        signed_cose;
+    struct t_cose_key            key_pair;
+    struct q_useful_buf_c        payload;
+    QCBORError                   cbor_error;
+    struct t_cose_mac_verify_ctx verify_ctx;
+    size_t                       tamper_offset;
 
 
     /* Make an HMAC key that will be used for both signing and
@@ -137,10 +137,10 @@ int_fast32_t sign_verify_mac0_sig_fail_test()
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_mac0_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_HMAC256);
-    t_cose_mac0_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_mac_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_HMAC256);
+    t_cose_mac_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
-    result = t_cose_mac0_encode_parameters(&sign_ctx, &cbor_encode);
+    result = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(result) {
         return_value = 2000 + (int32_t)result;
         goto Done;
@@ -148,7 +148,7 @@ int_fast32_t sign_verify_mac0_sig_fail_test()
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
-    result = t_cose_mac0_encode_tag(&sign_ctx, &cbor_encode);
+    result = t_cose_mac_encode_tag(&sign_ctx, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
@@ -170,13 +170,13 @@ int_fast32_t sign_verify_mac0_sig_fail_test()
     struct q_useful_buf temp_unconst = q_useful_buf_unconst(signed_cose);
     ((char *)temp_unconst.ptr)[tamper_offset] = 'h';
 
-    t_cose_mac0_verify_init(&verify_ctx, 0);
+    t_cose_mac_verify_init(&verify_ctx, 0);
 
-    t_cose_mac0_set_verify_key(&verify_ctx, key_pair);
+    t_cose_mac_set_verify_key(&verify_ctx, key_pair);
 
-    result = t_cose_mac0_verify(&verify_ctx,
-                                 signed_cose, /* COSE to verify */
-                                &payload      /* Payload from signed_cose */);
+    result = t_cose_mac_verify(&verify_ctx,
+                                signed_cose, /* COSE to verify */
+                               &payload      /* Payload from signed_cose */);
 
     if(result != T_COSE_ERR_SIG_VERIFY) {
         return_value = 5000 + (int32_t)result;
@@ -191,13 +191,13 @@ Done:
 }
 
 /*
- * Public function, see t_cose_sign_verify_mac0_test.h
+ * Public function, see t_cose_sign_verify_mac_test.h
  */
 static int size_test(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
                      struct t_cose_key     key_pair)
 {
-    struct t_cose_mac0_sign_ctx     sign_ctx;
+    struct t_cose_mac_sign_ctx sign_ctx;
     QCBOREncodeContext         cbor_encode;
     enum t_cose_err_t          return_value;
     struct q_useful_buf        nil_buf;
@@ -214,17 +214,17 @@ static int size_test(int32_t               cose_algorithm_id,
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
-    t_cose_mac0_sign_init(&sign_ctx,  0,  cose_algorithm_id);
-    t_cose_mac0_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_mac_sign_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_mac_set_signing_key(&sign_ctx, key_pair, kid);
 
-    return_value = t_cose_mac0_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
     }
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_mac0_encode_tag(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -240,17 +240,17 @@ static int size_test(int32_t               cose_algorithm_id,
     /* ---- Now make a real COSE_Mac0 and compare the size ---- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_mac0_sign_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac0_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_mac_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_signing_key(&sign_ctx, key_pair, kid);
 
-    return_value = t_cose_mac0_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
     }
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_mac0_encode_tag(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -261,12 +261,12 @@ static int size_test(int32_t               cose_algorithm_id,
     }
 
     /* ---- Again with one-call API to make COSE_Mac0 ---- */\
-    t_cose_mac0_sign_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac0_set_signing_key(&sign_ctx, key_pair, kid);
-    return_value = t_cose_mac0_sign(&sign_ctx,
-                                     payload,
-                                     signed_cose_buffer,
-                                    &actual_signed_cose);
+    t_cose_mac_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_signing_key(&sign_ctx, key_pair, kid);
+    return_value = t_cose_mac_sign(&sign_ctx,
+                                    payload,
+                                    signed_cose_buffer,
+                                   &actual_signed_cose);
     if(return_value) {
         return 7000 + (int32_t)return_value;
     }
@@ -280,9 +280,9 @@ static int size_test(int32_t               cose_algorithm_id,
 
 
 /*
- * Public function, see t_cose_sign_verify_mac0_test.h
+ * Public function, see t_cose_sign_verify_mac_test.h
  */
-int_fast32_t sign_verify_get_size_mac0_test()
+int_fast32_t sign_verify_get_size_mac_test()
 {
     enum t_cose_err_t return_value;
     struct t_cose_key key_pair;
