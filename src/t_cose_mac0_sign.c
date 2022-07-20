@@ -203,6 +203,42 @@ Done:
 }
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
+
+enum t_cose_err_t
+t_cose_mac0_sign(struct t_cose_mac0_sign_ctx *sign_ctx,
+                 struct q_useful_buf_c        payload,
+                 struct q_useful_buf          out_buf,
+                 struct q_useful_buf_c       *result)
+{
+    QCBOREncodeContext  encode_ctx;
+    enum t_cose_err_t   return_value;
+
+    /* -- Initialize CBOR encoder context with output buffer -- */
+    QCBOREncode_Init(&encode_ctx, out_buf);
+
+    /* -- Output the header parameters into the encoder context -- */
+    return_value = t_cose_mac0_encode_parameters(sign_ctx, &encode_ctx);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    QCBOREncode_AddEncoded(&encode_ctx, payload);
+
+    return_value = t_cose_mac0_encode_tag(sign_ctx,&encode_ctx);
+    if(return_value) {
+        goto Done;
+    }
+
+    /* -- Close off and get the resulting encoded CBOR -- */
+    if(QCBOREncode_Finish(&encode_ctx, result)) {
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        goto Done;
+    }
+
+Done:
+    return return_value;
+}
+
 /*
  * Public function. See t_cose_mac0.h
  */
