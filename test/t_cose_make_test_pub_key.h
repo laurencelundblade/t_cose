@@ -29,7 +29,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
 
 enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *key);
 
-void free_ecdsa_key_pair(struct t_cose_key key_pair);
+void free_key(struct t_cose_key key_pair);
 
 
 /**

@@ -77,7 +77,7 @@ int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
 
 Done:
     /* Many crypto libraries allocate memory, slots, etc for keys */
-    free_ecdsa_key_pair(key);
+    free_key(key);
 
     return return_value;
 }
@@ -185,7 +185,7 @@ int_fast32_t sign_verify_mac0_sig_fail_test()
     return_value = 0;
 
 Done:
-    free_ecdsa_key_pair(key_pair);
+    free_key(key_pair);
 
     return return_value;
 }
@@ -294,7 +294,7 @@ int_fast32_t sign_verify_get_size_mac0_test()
     }
 
     result = size_test(T_COSE_ALGORITHM_HMAC256, NULL_Q_USEFUL_BUF_C, key_pair);
-    free_ecdsa_key_pair(key_pair);
+    free_key(key_pair);
     if(result) {
         return 2000 + result;
     }
@@ -305,7 +305,7 @@ int_fast32_t sign_verify_get_size_mac0_test()
     }
 
     result = size_test(T_COSE_ALGORITHM_HMAC384, NULL_Q_USEFUL_BUF_C, key_pair);
-    free_ecdsa_key_pair(key_pair);
+    free_key(key_pair);
     if(result) {
         return 4000 + result;
     }
@@ -317,14 +317,14 @@ int_fast32_t sign_verify_get_size_mac0_test()
 
     result = size_test(T_COSE_ALGORITHM_HMAC512, NULL_Q_USEFUL_BUF_C, key_pair);
     if(result) {
-        free_ecdsa_key_pair(key_pair);
+        free_key(key_pair);
         return 6000 + result;
     }
 
     result = size_test(T_COSE_ALGORITHM_HMAC512,
                        Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
                        key_pair);
-    free_ecdsa_key_pair(key_pair);
+    free_key(key_pair);
     if(result) {
         return 7000 + result;
     }
