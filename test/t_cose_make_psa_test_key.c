@@ -268,7 +268,7 @@ enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *res_key)
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-void free_ecdsa_key_pair(struct t_cose_key key_pair)
+void free_key(struct t_cose_key key_pair)
 {
    psa_destroy_key((psa_key_handle_t)key_pair.k.key_handle);
 }
