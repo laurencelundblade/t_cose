@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -10,8 +10,8 @@
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose_crypto.h"
-#include "t_cose/t_cose_mac0_verify.h"
 #include "t_cose/t_cose_parameters.h"
+#include "t_cose/t_cose_mac_verify.h"
 #include "t_cose_util.h"
 
 #ifndef T_COSE_DISABLE_MAC0
@@ -35,7 +35,7 @@
  * at the level above COSE.
  */
 static inline enum t_cose_err_t
-process_tags(struct t_cose_mac0_verify_ctx *me, QCBORDecodeContext *decode_context)
+process_tags(struct t_cose_mac_verify_ctx *me, QCBORDecodeContext *decode_context)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -119,7 +119,7 @@ process_tags(struct t_cose_mac0_verify_ctx *me, QCBORDecodeContext *decode_conte
  * \return This returns one of the error codes defined by \ref
  *         t_cose_err_t.
  *
- * See short_circuit_tag() in t_cose_mac0_sign.c for description of
+ * See short_circuit_tag() in t_cose_mac_sign.c for description of
  * the short-circuit tag.
  */
 static inline enum t_cose_err_t
@@ -169,7 +169,7 @@ Done:
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 /**
- * \file t_cose_mac0_verify.c
+ * \file t_cose_mac_verify.c
  *
  * \brief This verifies t_cose Mac authentication structure without a recipient
  *        structure.
@@ -177,11 +177,11 @@ Done:
  */
 
 /*
- * Public function. See t_cose_mac0.h
+ * Public function. See t_cose_mac.h
  */
-enum t_cose_err_t t_cose_mac0_verify(struct t_cose_mac0_verify_ctx *context,
-                                     struct q_useful_buf_c     cose_mac0,
-                                     struct q_useful_buf_c    *payload)
+enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
+                                     struct q_useful_buf_c        cose_mac,
+                                     struct q_useful_buf_c       *payload)
 {
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
@@ -204,7 +204,7 @@ enum t_cose_err_t t_cose_mac0_verify(struct t_cose_mac0_verify_ctx *context,
     clear_label_list(&critical_parameter_labels);
     clear_cose_parameters(&parameters);
 
-    QCBORDecode_Init(&decode_context, cose_mac0, QCBOR_DECODE_MODE_NORMAL);
+    QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
 
     /* --- The array of 4 and tags --- */
     QCBORDecode_EnterArray(&decode_context, NULL);

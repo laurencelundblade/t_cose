@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -9,11 +9,11 @@
 
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
-#include "t_cose/t_cose_mac0_sign.h"
+#include "t_cose/t_cose_mac_sign.h"
 #include "t_cose_util.h"
 
 /**
- * \file t_cose_mac0_sign.c
+ * \file t_cose_mac_sign.c
  *
  * \brief This creates t_cose Mac authentication structure without a recipient
  *        structure.
@@ -89,9 +89,9 @@ encode_protected_parameters(int32_t             cose_algorithm_id,
  * The unprotected parameters added by this are the kid and content type.
  */
 static inline enum t_cose_err_t
-add_unprotected_parameters(const struct t_cose_mac0_sign_ctx *me,
-                           const struct q_useful_buf_c        kid,
-                           QCBOREncodeContext                *cbor_encode_ctx)
+add_unprotected_parameters(const struct t_cose_mac_sign_ctx *me,
+                           const struct q_useful_buf_c       kid,
+                           QCBOREncodeContext               *cbor_encode_ctx)
 {
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
@@ -205,10 +205,10 @@ Done:
 
 
 enum t_cose_err_t
-t_cose_mac0_sign(struct t_cose_mac0_sign_ctx *sign_ctx,
-                 struct q_useful_buf_c        payload,
-                 struct q_useful_buf          out_buf,
-                 struct q_useful_buf_c       *result)
+t_cose_mac_sign(struct t_cose_mac_sign_ctx *sign_ctx,
+                 struct q_useful_buf_c      payload,
+                 struct q_useful_buf        out_buf,
+                 struct q_useful_buf_c     *result)
 {
     QCBOREncodeContext  encode_ctx;
     enum t_cose_err_t   return_value;
@@ -217,14 +217,14 @@ t_cose_mac0_sign(struct t_cose_mac0_sign_ctx *sign_ctx,
     QCBOREncode_Init(&encode_ctx, out_buf);
 
     /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_mac0_encode_parameters(sign_ctx, &encode_ctx);
+    return_value = t_cose_mac_encode_parameters(sign_ctx, &encode_ctx);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
     QCBOREncode_AddEncoded(&encode_ctx, payload);
 
-    return_value = t_cose_mac0_encode_tag(sign_ctx,&encode_ctx);
+    return_value = t_cose_mac_encode_tag(sign_ctx,&encode_ctx);
     if(return_value) {
         goto Done;
     }
@@ -240,11 +240,11 @@ Done:
 }
 
 /*
- * Public function. See t_cose_mac0.h
+ * Public function. See t_cose_mac.h
  */
 enum t_cose_err_t
-t_cose_mac0_encode_parameters(struct t_cose_mac0_sign_ctx *me,
-                              QCBOREncodeContext          *cbor_encode_ctx)
+t_cose_mac_encode_parameters(struct t_cose_mac_sign_ctx *me,
+                              QCBOREncodeContext        *cbor_encode_ctx)
 
 {
     size_t                       tag_len;
@@ -320,11 +320,11 @@ Done:
 }
 
 /*
- * Public function. See t_cose_mac0.h
+ * Public function. See t_cose_mac.h
  */
 enum t_cose_err_t
-t_cose_mac0_encode_tag(struct t_cose_mac0_sign_ctx *me,
-                       QCBOREncodeContext          *cbor_encode_ctx)
+t_cose_mac_encode_tag(struct t_cose_mac_sign_ctx *me,
+                       QCBOREncodeContext        *cbor_encode_ctx)
 
 {
     enum t_cose_err_t            return_value;
