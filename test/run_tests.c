@@ -11,7 +11,7 @@
  =============================================================================*/
 
 #include "run_tests.h"
-#include "qcbor/UsefulBuf.h"
+#include "t_cose/q_useful_buf.h"
 #include <stdbool.h>
 #include <stddef.h>
 

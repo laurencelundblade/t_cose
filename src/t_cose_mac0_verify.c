@@ -1,77 +1,20 @@
 /*
- *  t_cose_sign1_verify.c
- *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * See BSD-3-Clause license in README.md
  */
 
-
 #include "qcbor/qcbor_decode.h"
-#ifndef QCBOR_SPIFFY_DECODE
-#error This t_cose requires a version of QCBOR that supports spiffy decode
-#endif
 #include "qcbor/qcbor_spiffy_decode.h"
-#include "t_cose/t_cose_sign1_verify.h"
-#include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h"
+#include "t_cose/t_cose_mac0_verify.h"
+#include "t_cose_parameters.h"
 #include "t_cose_util.h"
-#include "t_cose/t_cose_parameters.h"
 
-
-
-/**
- * \file t_cose_sign1_verify.c
- *
- * \brief \c COSE_Sign1 verification implementation.
- */
-
-
-
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/**
- * \brief Verify a short-circuit signature
- *
- * \param[in] hash_to_verify  Pointer and length of hash to verify.
- * \param[in] signature       Pointer and length of signature.
- *
- * \return This returns one of the error codes defined by \ref
- *         t_cose_err_t.
- *
- * See t_cose_sign1_sign_init() for description of the short-circuit
- * signature.
- */
-static inline enum t_cose_err_t
-t_cose_crypto_short_circuit_verify(struct q_useful_buf_c hash_to_verify,
-                                   struct q_useful_buf_c signature)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    24          12
-     *   TOTAL                                         24          12
-     */
-    struct q_useful_buf_c hash_from_sig;
-    enum t_cose_err_t     return_value;
-
-    hash_from_sig = q_useful_buf_head(signature, hash_to_verify.len);
-    if(q_useful_buf_c_is_null(hash_from_sig)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-        goto Done;
-    }
-
-    if(q_useful_buf_compare(hash_from_sig, hash_to_verify)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-    } else {
-        return_value = T_COSE_SUCCESS;
-    }
-
-Done:
-    return return_value;
-}
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
+#ifndef T_COSE_DISABLE_MAC0
 
 /**
  * \brief Check the tagging of the COSE about to be verified.
@@ -92,7 +35,7 @@ Done:
  * at the level above COSE.
  */
 static inline enum t_cose_err_t
-process_tags(struct t_cose_sign1_verify_ctx *me, QCBORDecodeContext *decode_context)
+process_tags(struct t_cose_mac0_verify_ctx *me, QCBORDecodeContext *decode_context)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -162,48 +105,106 @@ process_tags(struct t_cose_sign1_verify_ctx *me, QCBORDecodeContext *decode_cont
     return T_COSE_SUCCESS;
 }
 
-enum t_cose_err_t
-t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
-                             struct q_useful_buf_c           cose_sign1,
-                             struct q_useful_buf_c           aad,
-                             struct q_useful_buf_c          *payload,
-                             struct t_cose_parameters       *returned_parameters,
-                             bool                            is_dc)
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+/**
+ *  \brief Verify a short-circuit tag
+ *
+ * \param[in] cose_alg_id  Algorithm ID. This is used only to make
+ *                         the short-circuit signature the same size as the
+ *                         real tag would be for the particular algorithm.
+ * \param[in] header       The Header of COSE_Mac0.
+ * \param[in] payload      The payload of COSE_Mac0
+ * \param[in] tag          Pointer and length of tag to be verified
+ *
+ * \return This returns one of the error codes defined by \ref
+ *         t_cose_err_t.
+ *
+ * See short_circuit_tag() in t_cose_mac0_sign.c for description of
+ * the short-circuit tag.
+ */
+static inline enum t_cose_err_t
+short_circuit_verify(int32_t               cose_alg_id,
+                     struct q_useful_buf_c header,
+                     struct q_useful_buf_c payload,
+                     struct q_useful_buf_c tag_to_verify)
 {
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    80          40
-     *   Decode context                               312         256
-     *   Hash output                                32-64       32-64
-     *   header parameter lists                       244         176
-     *   MAX(parse_headers         768     628
-     *       process tags           20      16
-     *       check crit             24      12
-     *       create_tbs_hash     32-748  30-746
-     *       crypto lib verify  64-1024 64-1024) 768-1024    768-1024
-     *   TOTAL                                  1724-1436   1560-1272
-     */
+    /* approximate stack use on 32-bit machine: local use: 16 bytes */
+    enum t_cose_err_t         return_value;
+    struct t_cose_crypto_hash hash_ctx;
+    Q_USEFUL_BUF_MAKE_STACK_UB(tag_buffer, T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
+    struct q_useful_buf_c     tag;
+    int32_t                   hash_alg_id;
+
+    hash_alg_id = t_cose_hmac_to_hash_alg_id(cose_alg_id);
+    if (hash_alg_id == INT32_MAX) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
+    return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
+    if (return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* Hash the Header */
+    t_cose_crypto_hash_update(&hash_ctx, q_useful_buf_head(header, header.len));
+
+    /* Hash the payload */
+    t_cose_crypto_hash_update(&hash_ctx, payload);
+
+    return_value = t_cose_crypto_hash_finish(&hash_ctx, tag_buffer, &tag);
+    if (return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    if (q_useful_buf_compare(tag_to_verify, tag)) {
+        return_value = T_COSE_ERR_SIG_VERIFY;
+    } else {
+        return_value = T_COSE_SUCCESS;
+    }
+
+Done:
+    return return_value;
+}
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+
+/**
+ * \file t_cose_mac0_verify.c
+ *
+ * \brief This verifies t_cose Mac authentication structure without a recipient
+ *        structure.
+ *        Only HMAC is supported so far.
+ */
+
+/*
+ * Public function. See t_cose_mac0.h
+ */
+enum t_cose_err_t t_cose_mac0_verify(struct t_cose_mac0_verify_ctx *context,
+                                     struct q_useful_buf_c     cose_mac0,
+                                     struct q_useful_buf_c    *payload)
+{
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
-    enum t_cose_err_t             return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    struct q_useful_buf_c         tbs_hash;
-    struct q_useful_buf_c         signature;
+    struct t_cose_parameters      parameters;
     struct t_cose_label_list      critical_parameter_labels;
     struct t_cose_label_list      unknown_parameter_labels;
-    struct t_cose_parameters      parameters;
     QCBORError                    qcbor_error;
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    struct q_useful_buf_c         short_circuit_kid;
-#endif
+
+    enum t_cose_err_t             return_value;
+    struct q_useful_buf_c         tag = NULL_Q_USEFUL_BUF_C;
+    struct q_useful_buf_c         tbm_first_part;
+    /* Buffer for the ToBeMaced */
+    Q_USEFUL_BUF_MAKE_STACK_UB(   tbm_first_part_buf,
+                                  T_COSE_SIZE_OF_TBM);
+    struct t_cose_crypto_hmac     hmac_ctx;
+
+    *payload = NULL_Q_USEFUL_BUF_C;
 
     clear_label_list(&unknown_parameter_labels);
     clear_label_list(&critical_parameter_labels);
     clear_cose_parameters(&parameters);
 
-
-    /* === Decoding of the array of four starts here === */
-    QCBORDecode_Init(&decode_context, cose_sign1, QCBOR_DECODE_MODE_NORMAL);
+    QCBORDecode_Init(&decode_context, cose_mac0, QCBOR_DECODE_MODE_NORMAL);
 
     /* --- The array of 4 and tags --- */
     QCBORDecode_EnterArray(&decode_context, NULL);
@@ -211,7 +212,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    return_value = process_tags(me, &decode_context);
+    return_value = process_tags(context, &decode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -239,22 +240,10 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     }
 
     /* --- The payload --- */
-    if(is_dc) {
-        QCBORItem tmp;
-        QCBORDecode_GetNext(&decode_context, &tmp);
-        if (tmp.uDataType != QCBOR_TYPE_NULL) {
-            return_value = T_COSE_ERR_CBOR_FORMATTING;
-            goto Done;
-        }
-        /* In detached content mode, the payload should be set by
-         * function caller, so there is no need to set tye payload.
-         */
-    } else {
-        QCBORDecode_GetByteString(&decode_context, payload);
-    }
+    QCBORDecode_GetByteString(&decode_context, payload);
 
-    /* --- The signature --- */
-    QCBORDecode_GetByteString(&decode_context, &signature);
+    /* --- The tag --- */
+    QCBORDecode_GetByteString(&decode_context, &tag);
 
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);
@@ -270,9 +259,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     }
 
     /* === End of the decoding of the array of four === */
-
-
-    if((me->option_flags & T_COSE_OPT_REQUIRE_KID) && q_useful_buf_c_is_null(parameters.kid)) {
+    if((context->option_flags & T_COSE_OPT_REQUIRE_KID) && q_useful_buf_c_is_null(parameters.kid)) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
@@ -283,55 +270,66 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 
-
-    /* -- Skip signature verification if requested --*/
-    if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
+    /* -- Skip tag verification if requested --*/
+    if(context->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
 
-
-    /* -- Compute the TBS bytes -- */
-    return_value = create_tbs_hash(parameters.cose_algorithm_id,
-                                   protected_parameters,
-                                   NULL_Q_USEFUL_BUF_C,
-                                   aad,
-                                   *payload,
-                                   buffer_for_tbs_hash,
-                                   &tbs_hash);
+    /* -- Compute the ToBeMaced -- */
+    return_value = create_tbm(tbm_first_part_buf,
+                              protected_parameters,
+                              &tbm_first_part,
+                              T_COSE_TBM_BARE_PAYLOAD,
+                              *payload);
     if(return_value) {
         goto Done;
     }
 
-
-    /* -- Check for short-circuit signature and verify if it exists -- */
+    if (context->option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    short_circuit_kid = get_short_circuit_kid();
-    if(!q_useful_buf_compare(parameters.kid, short_circuit_kid)) {
-        if(!(me->option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT)) {
-            return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG;
-            goto Done;
-        }
+        /* Short-circuit tag. Hash is used to generated tag instead of HMAC */
+        return_value = short_circuit_verify(
+                                  parameters.cose_algorithm_id,
+                                  tbm_first_part,
+                                  *payload,
+                                  tag);
+#else
+        return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
+#endif
+        goto Done;
 
-        return_value = t_cose_crypto_short_circuit_verify(tbs_hash, signature);
+    }
+    /*
+     * Start the HMAC verification.
+     * Calculate the tag of the first part of ToBeMaced and the wrapped
+     * payload, to save a bigger buffer containing the entire ToBeMaced.
+     */
+    return_value = t_cose_crypto_hmac_verify_setup(&hmac_ctx,
+                                  parameters.cose_algorithm_id,
+                                  context->verification_key);
+    if(return_value) {
         goto Done;
     }
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
-
-    /* -- Verify the signature (if it wasn't short-circuit) -- */
-    return_value = t_cose_crypto_verify(parameters.cose_algorithm_id,
-                                        me->verification_key,
-                                        parameters.kid,
-                                        tbs_hash,
-                                        signature);
-
-Done:
-    if(returned_parameters != NULL) {
-        *returned_parameters = parameters;
+    /* Compute the tag of the first part. */
+    return_value = t_cose_crypto_hmac_update(&hmac_ctx,
+                                         q_useful_buf_head(tbm_first_part,
+                                                           tbm_first_part.len));
+    if(return_value) {
+        goto Done;
     }
 
-    return return_value;
+    return_value = t_cose_crypto_hmac_update(&hmac_ctx, *payload);
+    if(return_value) {
+        goto Done;
+    }
 
+    return_value = t_cose_crypto_hmac_verify_finish(&hmac_ctx, tag);
+
+Done:
+
+    return return_value;
 }
 
+#endif /* !T_COSE_DISABLE_MAC0 */

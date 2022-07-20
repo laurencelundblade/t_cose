@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
+# Copyright (c) 2022 Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -26,7 +27,7 @@ QCBOR_LIB= -l qcbor
 # Uses only the internal Brad Conte hash implementation that is bundled with t_cose
 CRYPTO_INC=-I crypto_adapters/b_con_hash
 CRYPTO_LIB=
-CRYPTO_CONFIG_OPTS=-DT_COSE_USE_B_CON_SHA256 
+CRYPTO_CONFIG_OPTS=-DT_COSE_USE_B_CON_SHA256
 CRYPTO_OBJ=crypto_adapters/t_cose_test_crypto.o crypto_adapters/b_con_hash/sha256.o
 CRYPTO_TEST_OBJ=
 
@@ -46,7 +47,12 @@ INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
-SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
+SRC_OBJ=src/t_cose_sign1_verify.o \
+	src/t_cose_sign1_sign.o \
+	src/t_cose_util.o \
+	src/t_cose_parameters.o \
+	src/t_cose_mac0_sign.o \
+	src/t_cose_mac0_verify.o
 
 .PHONY: all clean
 
@@ -59,7 +65,7 @@ libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 	cc $^ $(CFLAGS) -dead_strip -o $@ -shared $(QCBOR_LIB) $(CRYPTO_LIB)
 
-t_cose_test: main.o $(TEST_OBJ) libt_cose.a 
+t_cose_test: main.o $(TEST_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 
@@ -72,9 +78,11 @@ PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t
 
 # ---- source dependecies -----
 src/t_cose_util.o: src/t_cose_util.h src/t_cose_standard_constants.h inc/t_cose/t_cose_common.h src/t_cose_crypto.h
-src/t_cose_sign1_verify.o: inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_parameters.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h
-src/t_cose_parameters.o: inc/t_cose/t_cose_parameters.h src/t_cose_standard_constants.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_common.h
-src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_parameters.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h 
+src/t_cose_sign1_verify.o: inc/t_cose/t_cose_sign1_verify.h src/t_cose_crypto.h src/t_cose_util.h src/t_cose_parameters.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h
+src/t_cose_parameters.o: src/t_cose_parameters.h src/t_cose_standard_constants.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_common.h
+src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
+src/t_cose_mac0_verify.o: inc/t_cose/t_cose_mac0_verify.h src/t_cose_crypto.h src/t_cose_util.h src/t_cose_parameters.h inc/t_cose/t_cose_common.h
+src/t_cose_mac0_sign.o: inc/t_cose/t_cose_mac0_sign.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
 
 
 # ---- test dependencies -----
