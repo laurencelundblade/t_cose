@@ -99,7 +99,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
     psa_algorithm_t       psa_alg_id;
     psa_status_t          psa_result;
     enum t_cose_err_t     return_value;
-    mbedtls_svc_key_id_t  verification_key_psa;
+    psa_key_handle_t  verification_key_psa;
 
     /* This implementation does no look up keys by kid in the key
      * store */
@@ -123,7 +123,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
         goto Done;
     }
 
-    verification_key_psa = (mbedtls_svc_key_id_t)verification_key.k.key_handle;
+    verification_key_psa = (psa_key_handle_t)verification_key.k.key_handle;
 
     psa_result = psa_verify_hash(verification_key_psa,
                                  psa_alg_id,
@@ -152,7 +152,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     enum t_cose_err_t     return_value;
     psa_status_t          psa_result;
     psa_algorithm_t       psa_alg_id;
-    mbedtls_svc_key_id_t  signing_key_psa;
+    psa_key_handle_t  signing_key_psa;
     size_t                signature_len;
 
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);
@@ -172,7 +172,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
         goto Done;
     }
 
-    signing_key_psa = (mbedtls_svc_key_id_t)signing_key.k.key_handle;
+    signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
 
     /* It is assumed that this call is checking the signature_buffer
      * length and won't write off the end of it.
@@ -207,7 +207,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
                                          size_t           *sig_size)
 {
     enum t_cose_err_t     return_value;
-    mbedtls_svc_key_id_t  signing_key_psa;
+    psa_key_handle_t  signing_key_psa;
     size_t                key_len_bits;
     size_t                key_len_bytes;
     psa_key_attributes_t  key_attributes;
@@ -226,7 +226,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
         goto Done;
     }
 
-    signing_key_psa = (mbedtls_svc_key_id_t)signing_key.k.key_handle;
+    signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
     key_attributes = psa_key_attributes_init();
     status = psa_get_key_attributes(signing_key_psa, &key_attributes);
     key_len_bits = psa_get_key_bits(&key_attributes);
