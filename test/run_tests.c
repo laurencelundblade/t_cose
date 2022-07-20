@@ -51,9 +51,12 @@ static test_entry2 s_tests2[] = {
 #endif
 
 static test_entry s_tests[] = {
+#ifndef T_COSE_DISABLE_SIGN1
     TEST_ENTRY(sign1_structure_decode_test),
+#endif /* T_COSE_DISABLE_SIGN1 */
 
 #ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
+#ifndef T_COSE_DISABLE_SIGN1
     /* Many tests can be run without a crypto library integration and
      * provide good test coverage of everything but the signing and
      * verification. These tests can't be run with signing and
@@ -64,6 +67,8 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_sig_fail_test),
     TEST_ENTRY(sign_verify_get_size_test),
     TEST_ENTRY(known_good_test),
+#endif /* T_COSE_DISABLE_SIGN1 */
+
 #ifndef T_COSE_DISABLE_MAC0
     TEST_ENTRY(sign_verify_mac0_basic_test),
     TEST_ENTRY(sign_verify_mac0_sig_fail_test),
@@ -73,6 +78,7 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+#ifndef T_COSE_DISABLE_SIGN1
     /* These tests can't run if short-circuit signatures are disabled.
      * The most critical ones are replicated in the group of tests
      * that require a real crypto library. Typically short-circuit
@@ -99,6 +105,7 @@ static test_entry s_tests[] = {
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),
 #endif /* T_COSE_DISABLE_HASH_FAIL_TEST */
+#endif /* T_COSE_DISABLE_SIGN1 */
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
