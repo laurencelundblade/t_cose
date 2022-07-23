@@ -14,6 +14,9 @@
 
 //#define T_COSE_CRYPTO_MAX_HASH_SIZE 300 // TODO: fix this
 
+/* Warning: this is still early development. Documentation may be incorrect. */
+
+
 static enum t_cose_err_t
 t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
                                const struct q_useful_buf_c       protected_body_headers,
@@ -72,7 +75,7 @@ Done:
  */
 static enum t_cose_err_t
 t_cose_signature_verify_ecdsa(struct t_cose_signature_verify *me_x,
-                              const bool                            run_crypto,
+                              const bool                        run_crypto,
                               const struct header_location      loc,
                               const struct q_useful_buf_c       protected_body_headers,
                               const struct q_useful_buf_c       payload,

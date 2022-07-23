@@ -11,7 +11,14 @@
 
 #include "t_cose/t_cose_parameters.h"
 
+/* Warning: this is still early development. Documentation may be incorrect. */
+
+
 /*
+ * This is the abstract base class that t_cose_sign_verify
+ * calls to run signature verification. A concrete
+ * implementation of this is needed.
+ *
  * An instance of this may be used without any verification
  * key material to decode to get the key ID or such.
  *
@@ -26,11 +33,7 @@ struct t_cose_signature_verify;
 /*
  This is called on each signature to verify it or to decode the parameters.
 
- This needs to return parameters.
-
- This needs to handle decoding without verifying.
-
-Verify a COSE_Sign
+ Verify a COSE_Signature
 
  */
 typedef enum t_cose_err_t
@@ -46,7 +49,7 @@ typedef enum t_cose_err_t
 
 
 
-/* Verify a COSE_Sign1 */
+/* Verify the bare signature in COSE_Sign1 or a COSE_Signature. */
 typedef enum t_cose_err_t
 (t_cose_signature_verify1_callback)(struct t_cose_signature_verify   *me,
                                     const struct q_useful_buf_c       protected_body_headers,
@@ -59,11 +62,11 @@ typedef enum t_cose_err_t
 
 
 /* The definition (not declaration) of the context that every
- * signer implemtation has.
+ * t_cose_signature_verify implemtation has.
  */
 struct t_cose_signature_verify {
-    t_cose_signature_verify_callback  *callback; /* some will call this a vtable with one entry */
-    t_cose_signature_verify1_callback *callback1; /* some will call this a vtable with one entry */
+    t_cose_signature_verify_callback  *callback; /* some will call this a vtable with two entries */
+    t_cose_signature_verify1_callback *callback1;
     struct t_cose_signature_verify    *next_in_list; /* Linked list of signers */
 };
 

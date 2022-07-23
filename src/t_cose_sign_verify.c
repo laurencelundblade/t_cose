@@ -21,6 +21,7 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_signature_verify.h"
 
+/* Warning: this is still early development. Documentation may be incorrect. */
 
 
 /**
@@ -253,7 +254,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
                                                     me->params,
                                                    &decode_context);
                 if(return_value == T_COSE_SUCCESS) {
-                    if(me->option_flags & 0x10) { // TODO: correct flag value
+                    if(me->option_flags & T_COSE_VERIFY_ALL) { // TODO: correct flag value
                         continue;
                     } else {
                         break; /* successful decode. Don't need to try another verifier */
