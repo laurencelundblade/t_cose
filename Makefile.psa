@@ -214,7 +214,7 @@ src/t_cose_signature_verify_ecdsa.o: src/t_cose_signature_verify_ecdsa.c \
                                      inc/t_cose/t_cose_sign1_verify.h \
                                      src/t_cose_util.h \
                                      src/t_cose_crypto.h \
-                                     src/t_cose_standard_constants.h \
+                                     src/t_cose_standard_constants.h
 
 
 # ---- test dependencies -----
