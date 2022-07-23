@@ -79,7 +79,7 @@ static enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
                    struct q_useful_buf_c          sign,
                    struct q_useful_buf_c          aad,
-                   struct q_useful_buf_c          payload,
+                   struct q_useful_buf_c         *payload,
                    struct t_cose_header_param   **parameters);
 
 
@@ -90,7 +90,7 @@ static enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
                              struct q_useful_buf_c         sign,
                              struct q_useful_buf_c         aad,
-                             struct q_useful_buf_c        *payload,
+                             struct q_useful_buf_c         payload,
                              struct t_cose_header_param  **parameters);
 
 
@@ -132,13 +132,13 @@ static inline enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
                    struct q_useful_buf_c          sign,
                    struct q_useful_buf_c          aad,
-                   struct q_useful_buf_c          payload,
+                   struct q_useful_buf_c         *payload,
                    struct t_cose_header_param   **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       sign,
                                       aad,
-                                      &payload,
+                                      payload,
                                       parameters,
                                       false);
 }
@@ -148,13 +148,13 @@ static inline enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
                    struct q_useful_buf_c          sign,
                    struct q_useful_buf_c          aad,
-                   struct q_useful_buf_c         *payload,
+                   struct q_useful_buf_c          payload,
                    struct t_cose_header_param   **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       sign,
                                       aad,
-                                     &payload,
+                                      &payload,
                                       parameters,
                                       true);
 }
@@ -165,22 +165,22 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *me,
                         uint32_t                       option_flags)
 {
     memset(me, 0, sizeof(*me));
-    me->option_flags = option_flags;
-    me->params.storage = me->__params;
-    me->params.storage_size = sizeof(me->__params);
+    me->option_flags               = option_flags;
+    me->params.storage             = me->__params;
+    me->params.storage_size        = sizeof(me->__params);
     me->__params[0].parameter_type = T_COSE_PARAMETER_TYPE_NONE;
 }
 
 
 static inline void
 t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx *me,
-                              struct header_param_storage  param_storage)
+                              struct header_param_storage    param_storage)
 {
     me->params = param_storage;
 }
 
 
-static void
+static inline void
 t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx *me,
                               t_cose_header_reader          *reader,
                               void                          *reader_ctx)

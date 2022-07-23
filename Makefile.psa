@@ -64,7 +64,8 @@ INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
-SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o src/t_cose_sign_sign.o src/t_cose_signature_sign_ecdsa.o
+SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o src/t_cose_sign_sign.o src/t_cose_signature_sign_ecdsa.o \
+        src/t_cose_sign_verify.o src/t_cose_signature_verify_ecdsa.o
 
 .PHONY: all install install_headers install_so uninstall clean
 
@@ -120,7 +121,10 @@ clean:
 
 
 # ---- public headers -----
-PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_parameters.h inc/t_cose/t_cose_sign_sign.h inc/t_cose/t_cose_signature_sign.h inc/t_cose/t_cose_signature_sign_ecdsa.h inc/t_cose/t_cose_sign1_sign.h 
+PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_parameters.h inc/t_cose/t_cose_sign_sign.h inc/t_cose/t_cose_signature_sign.h inc/t_cose/t_cose_signature_sign_ecdsa.h inc/t_cose/t_cose_sign1_sign.h \
+ inc/t_cose/t_cose_sign_verify.h \
+ inc/t_cose/t_cose_signature_verify.h \
+ inc/t_cose/t_cose_signature_verify_ecdsa.h
 
 
 # ---- source dependecies -----

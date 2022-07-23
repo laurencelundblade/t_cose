@@ -8,14 +8,14 @@
 #include "t_cose/t_cose_signature_verify_ecdsa.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
-#include "qcbor_decode.h"
-#include "qcbor_spiffy_decode.h"
+#include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose_crypto.h"
 
 //#define T_COSE_CRYPTO_MAX_HASH_SIZE 300 // TODO: fix this
 
 static enum t_cose_err_t
-t_cose_signature_verify1_ecdsa(const struct t_cose_signature_verify *me_x,
+t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
                                const struct q_useful_buf_c       protected_body_headers,
                                const struct q_useful_buf_c       protected_signature_headers,
                                const struct q_useful_buf_c       payload,
@@ -26,7 +26,7 @@ t_cose_signature_verify1_ecdsa(const struct t_cose_signature_verify *me_x,
     int32_t                             alg_id;
     enum t_cose_err_t                   return_value;
     struct q_useful_buf_c               kid;
-    struct t_cose_signature_sign_ecdsa *me = (struct t_cose_signature_sign_ecdsa *)me_x;
+    const struct t_cose_signature_verify_ecdsa *me = (const struct t_cose_signature_verify_ecdsa *)me_x;
     Q_USEFUL_BUF_MAKE_STACK_UB(         buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c               tbs_hash;
 
@@ -70,8 +70,8 @@ Done:
           Signature validate
           Signature didn't validate
  */
-static  enum t_cose_err_t
-t_cose_signature_verify_ecdsa(const struct t_cose_signature_verify *me_x,
+static enum t_cose_err_t
+t_cose_signature_verify_ecdsa(struct t_cose_signature_verify *me_x,
                               const bool                            run_crypto,
                               const struct header_location      loc,
                               const struct q_useful_buf_c       protected_body_headers,
@@ -83,7 +83,7 @@ t_cose_signature_verify_ecdsa(const struct t_cose_signature_verify *me_x,
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  protected_parameters;
     struct q_useful_buf_c  signature;
-    struct t_cose_signature_sign_ecdsa *me = (struct t_cose_signature_sign_ecdsa *)me_x;
+    const struct t_cose_signature_verify_ecdsa *me = (const struct t_cose_signature_verify_ecdsa *)me_x;
 
     /* --- Decode the COSE_Signature ---*/
     QCBORDecode_EnterArray(qcbor_decoder, NULL);
@@ -125,9 +125,8 @@ Done:
 }
 
 
-
 void
-t_cose_signature_verify_ecdsa_init(struct t_cose_signature_sign_ecdsa *me)
+t_cose_signature_verify_ecdsa_init(struct t_cose_signature_verify_ecdsa *me)
 {
     memset(me, 0, sizeof(*me));
     me->s.callback  = t_cose_signature_verify_ecdsa;

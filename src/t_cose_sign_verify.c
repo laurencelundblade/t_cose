@@ -49,7 +49,7 @@
  * at the level above COSE.
  */
 static inline enum t_cose_err_t
-process_tags(struct t_cose_sign1_verify_ctx *me, QCBORDecodeContext *decode_context)
+process_tags(struct t_cose_sign_verify_ctx *me, QCBORDecodeContext *decode_context)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -214,7 +214,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
 
     /* --- The Signature or the COSE_Signatures --- */
     struct t_cose_signature_verify *verifier;
-    if(me->option_flags & 01) { // TODO: correct detection
+    if(me->option_flags & T_COSE_OPT_COSE_SIGN1) { // TODO: allow tag determination
         QCBORDecode_GetByteString(&decode_context, &signature);
         if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
             goto continue_decode;
