@@ -19,16 +19,25 @@ jobs:
         - os-image: ubuntu-latest
           container: ubuntu:22.04
           crypto-provider: OpenSSL
+          crypto-provider-extra: ''
         
         - os-image: ubuntu-latest
           container: ubuntu:20.04
           crypto-provider: MbedTLS
-          crypto-provider-version: '2.28.0'
+          crypto-provider-version: 'v2.28.0'
+          crypto-provider-extra: ''
         
         - os-image: ubuntu-latest
           container: ubuntu:20.04
           crypto-provider: MbedTLS
-          crypto-provider-version: '3.1.0'
+          crypto-provider-version: 'v3.1.0'
+          crypto-provider-extra: ''
+
+        - os-image: ubuntu-latest
+          container: ubuntu:20.04
+          crypto-provider: MbedTLS
+          crypto-provider-version: 'b489f1e6bcc54ba09730fb7487c2992e03a571a4'
+          crypto-provider-extra: '-DTEST_HPKE'
 
         - os-image: ubuntu-latest
           container: ubuntu:20.04
@@ -59,7 +68,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: ARMmbed/mbedtls
-        ref: v${{ matrix.config.crypto-provider-version }}
+        ref: ${{ matrix.config.crypto-provider-version }}
         path: mbedtls
 
     - name: Install MbedTLS
@@ -86,7 +95,9 @@ jobs:
         set -ex
         mkdir build
         cd build
-        cmake -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} ..
+        cmake -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
+          ${{ matrix.config.crypto-provider-extra }} \
+          ..
         make -j $(nproc)
 
     - name: Run OpenSSL example
