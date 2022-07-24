@@ -19,7 +19,6 @@ jobs:
         - os-image: ubuntu-latest
           container: ubuntu:22.04
           crypto-provider: OpenSSL
-          crypto-provider-extra: ''
         
         - os-image: ubuntu-latest
           container: ubuntu:20.04
@@ -72,7 +71,16 @@ jobs:
         path: mbedtls
 
     - name: Install MbedTLS
-      if: matrix.config.crypto-provider == 'MbedTLS'
+      if: matrix.config.crypto-provider == 'MbedTLS' &&
+          matrix.config.crypto-provider-extra == ''
+      run: |
+        cd mbedtls
+        make -j $(nproc)
+        make install
+
+    - name: Install MbedTLS
+      if: matrix.config.crypto-provider == 'MbedTLS' &&
+          matrix.config.crypto-provider-extra != ''
       run: |
         cd mbedtls
         make generated_files
