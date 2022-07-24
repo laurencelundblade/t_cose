@@ -68,6 +68,10 @@ set(T_COSE_SRC_COMMON
     src/t_cose_util.c
     src/t_cose_encrypt_enc.c
     src/t_cose_encrypt_dec.c
+    src/t_cose_sign_sign.c
+    src/t_cose_signature_sign_ecdsa.c
+    src/t_cose_sign_verify.c
+    src/t_cose_signature_verify_ecdsa.c
 )
 
 find_package(QCBOR REQUIRED)

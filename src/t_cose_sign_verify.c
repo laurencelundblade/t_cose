@@ -14,12 +14,14 @@
 #error This t_cose requires a version of QCBOR that supports spiffy decode
 #endif
 #include "qcbor/qcbor_spiffy_decode.h"
-#include "t_cose/t_cose_sign1_verify.h"
+#include "t_cose/t_cose_sign_verify.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
 #include "t_cose/t_cose_parameters.h"
+#include "t_cose/t_cose_signature_verify.h"
 
+/* Warning: this is still early development. Documentation may be incorrect. */
 
 
 /**
@@ -27,50 +29,6 @@
  *
  * \brief \c COSE_Sign1 verification implementation.
  */
-
-
-
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/**
- * \brief Verify a short-circuit signature
- *
- * \param[in] hash_to_verify  Pointer and length of hash to verify.
- * \param[in] signature       Pointer and length of signature.
- *
- * \return This returns one of the error codes defined by \ref
- *         t_cose_err_t.
- *
- * See t_cose_sign1_sign_init() for description of the short-circuit
- * signature.
- */
-static inline enum t_cose_err_t
-t_cose_crypto_short_circuit_verify(struct q_useful_buf_c hash_to_verify,
-                                   struct q_useful_buf_c signature)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    24          12
-     *   TOTAL                                         24          12
-     */
-    struct q_useful_buf_c hash_from_sig;
-    enum t_cose_err_t     return_value;
-
-    hash_from_sig = q_useful_buf_head(signature, hash_to_verify.len);
-    if(q_useful_buf_c_is_null(hash_from_sig)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-        goto Done;
-    }
-
-    if(q_useful_buf_compare(hash_from_sig, hash_to_verify)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-    } else {
-        return_value = T_COSE_SUCCESS;
-    }
-
-Done:
-    return return_value;
-}
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
 /**
@@ -92,7 +50,7 @@ Done:
  * at the level above COSE.
  */
 static inline enum t_cose_err_t
-process_tags(struct t_cose_sign1_verify_ctx *me, QCBORDecodeContext *decode_context)
+process_tags(struct t_cose_sign_verify_ctx *me, QCBORDecodeContext *decode_context)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -188,11 +146,11 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error)
 
 
 enum t_cose_err_t
-t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
+t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,
                              struct q_useful_buf_c           aad,
                              struct q_useful_buf_c          *payload,
-                             struct t_cose_parameters       *returned_parameters,
+                             struct t_cose_header_param    **returned_parameters,
                              bool                            is_dc)
 {
     /* Aproximate stack usage
@@ -211,20 +169,8 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     enum t_cose_err_t             return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    struct q_useful_buf_c         tbs_hash;
     struct q_useful_buf_c         signature;
-    struct t_cose_label_list      critical_parameter_labels;
-    struct t_cose_label_list      unknown_parameter_labels;
-    struct t_cose_parameters      parameters;
     QCBORError                    qcbor_error;
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    struct q_useful_buf_c         short_circuit_kid;
-#endif
-
-    clear_label_list(&unknown_parameter_labels);
-    clear_label_list(&critical_parameter_labels);
-    clear_cose_parameters(&parameters);
 
 
     /* === Decoding of the array of four starts here === */
@@ -241,27 +187,16 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 
-    /* --- The protected parameters --- */
-    QCBORDecode_EnterBstrWrapped(&decode_context, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &protected_parameters);
-    if(protected_parameters.len) {
-        return_value = parse_cose_header_parameters(&decode_context,
-                                                    &parameters,
-                                                    &critical_parameter_labels,
-                                                    &unknown_parameter_labels);
-        if(return_value != T_COSE_SUCCESS) {
-            goto Done;
-        }
-    }
-    QCBORDecode_ExitBstrWrapped(&decode_context);
+    const struct header_location l = {0,0}; // TODO: header location
 
-    /* ---  The unprotected parameters --- */
-    return_value = parse_cose_header_parameters(&decode_context,
-                                                &parameters,
-                                                 NULL,
-                                                &unknown_parameter_labels);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
+    /* --- The protected parameters --- */
+    t_cose_headers_decode(&decode_context,
+                          l,
+                          NULL,
+                          NULL,
+                          me->params,
+                          &protected_parameters);
+
 
     /* --- The payload --- */
     if(is_dc) {
@@ -278,9 +213,67 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
         QCBORDecode_GetByteString(&decode_context, payload);
     }
 
-    /* --- The signature --- */
-    QCBORDecode_GetByteString(&decode_context, &signature);
+    /* --- The Signature or the COSE_Signatures --- */
+    struct t_cose_signature_verify *verifier;
+    if(me->option_flags & T_COSE_OPT_COSE_SIGN1) { // TODO: allow tag determination
+        QCBORDecode_GetByteString(&decode_context, &signature);
+        if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
+            goto continue_decode;
+        }
+        verifier = me->verifiers;
+        // TODO: check that there is only one verifier?
+        /* Actually do the signature verification by calling
+         * the main method of the cose_signature_verify. This
+         * will compute the tbs value and call the crypto. */
+        return_value = (verifier->callback1)(verifier,
+                                            protected_parameters,
+                                            NULL_Q_USEFUL_BUF_C,
+                                            *payload,
+                                            aad,
+                                            me->params.storage,
+                                            signature);
 
+
+    } else {
+        QCBORDecode_EnterArray(&decode_context, NULL);
+        verifier = me->verifiers;
+        struct header_location header_loc = {1, 0};
+        bool decode_only = me->option_flags & T_COSE_OPT_DECODE_ONLY;
+        while(1) { /* loop over COSE_Signatures */
+            header_loc.index++;
+            for(verifier = me->verifiers; verifier != NULL; verifier = verifier->next_in_list) {
+
+                /* This call decodes one array entry containing a
+                 * COSE_Signature. */
+                return_value = (verifier->callback)(verifier,
+                                                    !decode_only,
+                                                    header_loc,
+                                                    protected_parameters,
+                                                   *payload,
+                                                    aad,
+                                                    me->params,
+                                                   &decode_context);
+                if(return_value == T_COSE_SUCCESS) {
+                    if(me->option_flags & T_COSE_VERIFY_ALL) { // TODO: correct flag value
+                        continue;
+                    } else {
+                        break; /* successful decode. Don't need to try another verifier */
+                    }
+                } else if(return_value == 98) {
+                    continue; /* Didn't know how to decode, try another verifier */
+                } else if(return_value == 88) {
+                    goto done_with_sigs; /* No more COSE_Signatures to be read */
+                } else {
+                    goto Done;
+                }
+            }
+        }
+
+    done_with_sigs:
+        QCBORDecode_ExitArray(&decode_context);
+    }
+
+  continue_decode:
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);
 
@@ -296,67 +289,28 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
 
     /* === End of the decoding of the array of four === */
 
-
-    if((me->option_flags & T_COSE_OPT_REQUIRE_KID) && q_useful_buf_c_is_null(parameters.kid)) {
-        return_value = T_COSE_ERR_NO_KID;
-        goto Done;
-    }
-
-    return_value = check_critical_labels(&critical_parameter_labels,
-                                         &unknown_parameter_labels);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-
-    /* -- Skip signature verification if requested --*/
-    if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
-        return_value = T_COSE_SUCCESS;
-        goto Done;
-    }
-
-
-    /* -- Compute the TBS bytes -- */
-    return_value = create_tbs_hash(parameters.cose_algorithm_id,
-                                   protected_parameters,
-                                   NULL_Q_USEFUL_BUF_C,
-                                   aad,
-                                   *payload,
-                                   buffer_for_tbs_hash,
-                                   &tbs_hash);
-    if(return_value) {
-        goto Done;
-    }
-
-
-    /* -- Check for short-circuit signature and verify if it exists -- */
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    short_circuit_kid = get_short_circuit_kid();
-    if(!q_useful_buf_compare(parameters.kid, short_circuit_kid)) {
-        if(!(me->option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT)) {
-            return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG;
-            goto Done;
-        }
-
-        return_value = t_cose_crypto_short_circuit_verify(tbs_hash, signature);
-        goto Done;
-    }
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
-
-    /* -- Verify the signature (if it wasn't short-circuit) -- */
-    return_value = t_cose_crypto_verify(parameters.cose_algorithm_id,
-                                        me->verification_key,
-                                        parameters.kid,
-                                        tbs_hash,
-                                        signature);
-
 Done:
     if(returned_parameters != NULL) {
-        *returned_parameters = parameters;
+        *returned_parameters = me->params.storage;
     }
 
     return return_value;
+}
 
+/*
+* Public function. See t_cose_sign_sign.h
+*/
+void
+t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx *context,
+                         struct t_cose_signature_verify *verifier)
+{
+    // TODO: for COSE_Sign1 this can be tiny and inline when DISABLE_COSE_SIGN is set
+    if(context->verifiers == NULL) {
+        context->verifiers = verifier;
+    } else {
+        struct t_cose_signature_verify *t;
+        for(t = context->verifiers; t->next_in_list != NULL; t = t->next_in_list);
+        t->next_in_list = verifier;
+    }
 }
 

@@ -21,7 +21,135 @@ extern "C" {
 #endif
 
 
+/*
+ * API Design Overview
+ * 
+ * t_cose is made up of a collection of objects (in the
+ * object-oriented programming sense) that correspond to the main
+ * objects defined in CDDL by the COSE standard (RFC 9052). These
+ * objects come in pairs, one for the sendi *ng/signing/encrypting
+ * side and the other for the receiving/verifying/decrypting
+ * side. Following is a high-level description of all of these and how
+ * they connect up to each other.
+ *
+ * Some of this is implemented and some of this is a design proposal,
+ * so it is subject to some change, renaming and such as the
+ * implementation completes.
+ *
+ *
+ * COSE_Sign and COSE_Sign1
+ *
+ * t_cose_sign_sign() and t_cose_sign_verify() are the pair that
+ * implements both COSE_Sign and COSE_Sign1 COSE messages.
+ *
+ * They rely on implementations of t_cose_signature_sign and
+ * t_cose_signature_verify to create and to verify the
+ * COSE_Signature(s) that are in a COSE_Sign. They are also used to
+ * create the signature for COSE_Sign1. These two are an abstract
+ * base class they are just an interface without an implementation.
+ *
+ * t_cose_headers_decode() and t_cose_headers_encode() are also used
+ * by the t_cose_sign pair. These process both the protected and
+ * unprotected header parameter buckets called Headers in COSE.
+ *
+ *
+ * COSE_Encrypt and COSE_Encrypt0
+ *
+ * t_cose_encrypt_enc() and t_cose_encrypt_dec() are the pair for
+ * COSE_Encrypt and COSE_Encrypt0.
+ *
+ * t_cose_headers_decode() and t_cose_headers_encode() are used for
+ * the header parameters.
+ *
+ * This makes use of implementations of t_cose_recipient_enc and
+ * t_cose_recipient_dec for COSE_recipient used by COSE_Encrypt. They
+ * are not needed for COSE_Encrypt0.
+ *
+ *
+ * COSE_Mac and COSE_Mac0
+ *
+ * t_cose_mac_auth() and t_cose_mac_check() are the pair for COSE_Mac
+ * and COSE_Mac0.
+ *
+ * t_cose_headers_decode() and t_cose_headers_encode() are used for
+ * the header parameters.
+ *
+ * For COSE_Mac, t_cose_recipient_enc() and t_cose_recipient_dec()
+ * implement COSE_recipient. (I’m pretty sure sharing t_cose_recipient
+ * between COSE_MAC and COSE_Encrypt can work, but this needs to be
+ * checked by actually de *signing and implementing it). These are not
+ * needed for COSE_Mac0.
+ *
+ * 
+ * COSE_Message
+ *
+ * t_cose_message_create() and t_cose_message_decode handle
+ * COSE_Message. This is for handling COSE messages that might signed,
+ * encrypted, MACed or some combination of these. In the simplest case
+ * they decode the CBOR tag n *umber and switch off to one of the
+ * above handlers. In more complicated cases they recursively handled
+ * nested signing, encrypting and MACing. (Lots of work to do on
+ * this…)
+ *
+ *
+ * Headers
+ *
+ * t_cose_headers_decode() and t_cose_headers_encode() handle the
+ * protected and unprotected header parameter buckets that are used by
+ * all the COSE messages.
+ *
+ * This also defines a data structure, t_cose_header_parameter that
+ * holds one single parameter, for example an algorithm ID or a
+ * kid. This structure is used to pass the parameters in and out of
+ * all the methods above. It fa *cilitates the general header
+ * parameter implementation and allows for custom and specialized
+ * headers.
+ *
+ *
+ * COSE_signature
+ *
+ * t_cose_signature_sign and t_cose_signature_verify are abstract
+ * bases classes for a set of implementations of COSE_Signature. This
+ * design is chosen because there are a variety of signature schemes
+ * to implement. Mostly th *ese correspond to different signing
+ * algorithms, but there is enough variation from algorithm to
+ * algorithm that the use of an abstract base class here makes sense.
+ *
+ * The concrete classes will generally correspond to groups of
+ * algorithms. For example, there will likely be one for ECDSA,
+ * t_cose_signature_sign_ecdsa, another for RSAPSS and a variety for
+ * PQ. Perhaps there will be one fo *r counter signatures of
+ * particular types.
+ *
+ * The user of t_cose will create instances of t_cose_signature and
+ * configure them into t_cose_sign_sign() and t_cose_sign_verify().
+ *
+ *
+ * COSE_recipient
+ *
+ * t_cose_recipient_enc and t_cose_recipient_dec are abstract base
+ * classes for the set of concrete implementations of
+ * COSE_recipient. Because the variation in one type of COSE_recipient
+ * to another is so varied, this is whe *re the abstract base class is
+ * necessary.
+ *
+ * Note that this use object-orientation here gives some very nice
+ * modularity and extensibility. New types of COSE_recipient can be
+ * added to COSE_Encrypt and COSE_Mac without changing their
+ * implementation at all. It is als *o possible to add new types of
+ * recipients without even modifying the main t_cose library.
+ *
+ * 
+ * COSE_Key 
+ *
+ * Some formats of COSE_recipient have parameters that are in the
+ * COSE_key format. It would be useful to have some library code to
+ * handle these, in particular to encode and decode from the key data
+ * structure used by the cr *ypto library (OpenSSL, PSA, …).
+ */
 
+
+  
 /**
  * \file t_cose_common.h
  *
@@ -100,6 +228,8 @@ struct t_cose_crypto_hpke_suite_t {
     uint16_t    kdf_id;  // Key Derivation Function id
     uint16_t    aead_id; // Authenticated Encryption with Associated Data id
 };
+
+#define T_COSE_ALGORITHM_NONE 0
 
 
 
@@ -359,67 +489,83 @@ enum t_cose_err_t {
      * verifying a signature. */
     T_COSE_ERR_TOO_MANY_TAGS = 37,
 
+    /** When decoding a header parameter that is not a string, integer or boolean
+     * was encountered with no callback set handle it. See t_cose_ignore_param_cb()
+     * and related. */
+    T_COSE_ERR_UNHANDLED_HEADER_PARAMETER = 38,
+
+    /* When encoding parameters, struct t_cose_header_parameter.parameter_type
+     * is not a valid type.
+     */
+    T_COSE_ERR_INVALID_PARAMETER_TYPE = 39,
+
+    /* Can't put critical parameters in the non-protected
+     * header bucket. */
+    T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
+
+    T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
+
     /** The requested key exchange algorithm is not supported.  */
-    T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG = 38,
+    T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG = 42,
 
     /** The requested encryption algorithm is not supported.  */
-    T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 39,
+    T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 43,
 
     /** The requested key length is not supported.  */
-    T_COSE_ERR_UNSUPPORTED_KEY_LENGTH = 40,
+    T_COSE_ERR_UNSUPPORTED_KEY_LENGTH = 44,
 
     /** Adding a recipient to the COSE_Encrypt0 structure is not allowed.  */
-    T_COSE_ERR_RECIPIENT_CANNOT_BE_ADDED = 41,
+    T_COSE_ERR_RECIPIENT_CANNOT_BE_ADDED = 45,
 
     /** The requested cipher algorithm is not supported.  */
-    T_COSE_ERR_UNSUPPORTED_CIPHER_ALG = 42,
+    T_COSE_ERR_UNSUPPORTED_CIPHER_ALG = 46,
 
     /** Something went wrong in the crypto adaptor when
-      * encrypting data. */
-    T_COSE_ERR_ENCRYPT_FAIL = 43,
+     * encrypting data. */
+    T_COSE_ERR_ENCRYPT_FAIL = 47,
 
     /** Something went wrong in the crypto adaptor when
-      * decrypting data. */
-    T_COSE_ERR_DECRYPT_FAIL = 44,
+     * decrypting data. */
+    T_COSE_ERR_DECRYPT_FAIL = 48,
 
     /** Something went wrong in the crypto adaptor when
-      * invoking HPKE to encrypt data. */
-    T_COSE_ERR_HPKE_ENCRYPT_FAIL = 45,
+     * invoking HPKE to encrypt data. */
+    T_COSE_ERR_HPKE_ENCRYPT_FAIL = 49,
 
     /** Something went wrong in the crypto adaptor when
-      * invoking HPKE to decrypt data. */
-    T_COSE_ERR_HPKE_DECRYPT_FAIL = 46,
+     * invoking HPKE to decrypt data. */
+    T_COSE_ERR_HPKE_DECRYPT_FAIL = 50,
 
     /** When decoding a CBOR structure, a mandatory field
      *  was not found. */
-    T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING = 47,
+    T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING = 51,
 
     /** When decoding the ephemeral key structure, the included
      * public key is of incorrect or unexpected size. */
-    T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT = 48,
+    T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT = 52,
 
     /** Cryptographic operations may require a key usage flags
      * to be indicated. If the provided flags are unsupported,
      * this error is returned. */
-    T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS = 49,
+    T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS = 53,
 
     /** The key import failed. */
-    T_COSE_ERR_KEY_IMPORT_FAILED = 50,
+    T_COSE_ERR_KEY_IMPORT_FAILED = 54,
 
     /** Obtaining random bytes failed. */
-    T_COSE_ERR_RNG_FAILED = 51,
+    T_COSE_ERR_RNG_FAILED = 55,
 
     /** Export of the public key failed. */
-    T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED = 52,
+    T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED = 56,
 
     /** Generating asymmetric key pair failed. */
-    T_COSE_ERR_KEY_GENERATION_FAILED = 53,
+    T_COSE_ERR_KEY_GENERATION_FAILED = 57,
 
     /** Export of the key failed. */
-    T_COSE_ERR_KEY_EXPORT_FAILED = 54,
+    T_COSE_ERR_KEY_EXPORT_FAILED = 58,
 
     /** Something went wrong with AES Key Wrap. */
-    T_COSE_ERR_AES_KW_FAILED = 55,
+    T_COSE_ERR_AES_KW_FAILED = 59,
 };
 
 
