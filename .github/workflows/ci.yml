@@ -75,6 +75,7 @@ jobs:
       if: matrix.config.crypto-provider == 'MbedTLS'
       run: |
         cd mbedtls
+        make generated_files
         make -j $(nproc)
         make install
 
