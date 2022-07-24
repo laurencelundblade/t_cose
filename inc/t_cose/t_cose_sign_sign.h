@@ -1,7 +1,7 @@
 /*
  * t_cose_sign_sign.h
  *
- * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020, Michael Eckel
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -203,15 +203,14 @@ t_cose_sign_add_body_header_parameters(struct t_cose_sign_sign_ctx      *context
  */
 
 
-
-
 /**
  * \brief  Create and sign a \c COSE_Sign1 message with a payload in one call.
  *
  * \param[in] context  The t_cose signing context.
+ * \param[in] aad      The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] payload  Pointer and length of payload to sign.
  * \param[in] out_buf  Pointer and length of buffer to output to.
- * \param[out] result  Pointer and length of the resulting \c COSE_Sign1.
+ * \param[out] result  Pointer and length of the resulting \c COSE_Sign1 or \c COSE_Sign.
  *
  * The \c context must have been initialized with
  * t_cose_sign_sign_init() and the key set with
@@ -250,44 +249,19 @@ t_cose_sign_add_body_header_parameters(struct t_cose_sign_sign_ctx      *context
  * to use, but avoid the two copies of the payload and can reduce
  * memory requirements by close to half.
  *
- * See also t_cose_sign_sign_aad() and t_cose_sign_sign_detached().
+ * See t_cose_sign_encode_signature_aad() for more details
+ * about AAD.  For many use cases there is no AAD and \c aad is \c NULL_Q_USEFUL_BUF_C.
  */
 static enum t_cose_err_t
 t_cose_sign_sign(struct t_cose_sign_sign_ctx *context,
-                 struct q_useful_buf_c         payload,
-                 struct q_useful_buf           out_buf,
-                 struct q_useful_buf_c        *result);
+                 struct q_useful_buf_c        aad,
+                 struct q_useful_buf_c        payload,
+                 struct q_useful_buf          out_buf,
+                 struct q_useful_buf_c       *result);
 
 
 /**
- * \brief  Create and sign a \c COSE_Sign1 message with a payload in one call.
- *
- * \param[in] context  The t_cose signing context.
- * \param[in] aad      The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] payload  Pointer and length of payload to sign.
- * \param[in] out_buf  Pointer and length of buffer to output to.
- * \param[out] result  Pointer and length of the resulting \c COSE_Sign1.
- *
- * This is the same as t_cose_sign_sign() additionally allowing AAD.
- * AAD (Additional Authenticated Data) is extra bytes to be covered by the
- * signature. See t_cose_sign_encode_signature_aad() for more details
- * about AAD.
- *
- * Calling this with \c aad as \c NULL_Q_USEFUL_BUF_C is equivalent to
- * t_cose_sign_sign().
- *
- * See also t_cose_sign_sign_detached().
- */
-static enum t_cose_err_t
-t_cose_sign_sign_aad(struct t_cose_sign_sign_ctx *context,
-                      struct q_useful_buf_c         aad,
-                      struct q_useful_buf_c         payload,
-                      struct q_useful_buf           out_buf,
-                      struct q_useful_buf_c        *result);
-
-
-/**
- * \brief  Create and sign a \c COSE_Sign1 message with detached payload in one call.
+ * \brief  Create and sign a \c COSE_Sign1 or \c COSE_Sign message with detached payload in one call.
  *
  * \param[in] context  The t_cose signing context.
  * \param[in] aad      The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
@@ -296,29 +270,27 @@ t_cose_sign_sign_aad(struct t_cose_sign_sign_ctx *context,
  * \param[out] result  Pointer and length of the resulting \c COSE_Sign1.
  *
  * This is similar to, but not the same as
- * t_cose_sign_sign_aad(). Here the payload is detached, not inside
+ * t_cose_sign_sign(). Here the payload is detached, not inside
  * the \c COSE_Sign1 and conveyed separately.  The signature is still
  * over the payload as with t_cose_sign_sign_aad(). They payload must
  * conveyed to recipient by some other means than by being inside the
  * \c COSE_Sign1. The recipient will be unable to verify the \c
  * COSE_Sign1 without it.
- *
- * This may be called with \c aad as \c NULL_Q_USEFUL_BUF_C if there is
- * no AAD.
  */
 static enum t_cose_err_t
 t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *context,
-                           struct q_useful_buf_c         aad,
-                           struct q_useful_buf_c         detached_payload,
-                           struct q_useful_buf           out_buf,
-                           struct q_useful_buf_c        *result);
-
+                          struct q_useful_buf_c        aad,
+                          struct q_useful_buf_c        detached_payload,
+                          struct q_useful_buf          out_buf,
+                          struct q_useful_buf_c       *result);
 
 
 /**
- * \brief  Output first part and parameters for a \c COSE_Sign1 message.
+ * \brief  Output first part and parameters for a \c COSE_Sign1 or \c COSE_Sign message.
  *
  * \param[in] context          The t_cose signing context.
+ * \param[in] payload_is_detached  If the payload is to be detached, this
+ *                                 is \c true.
  * \param[in] cbor_encode_ctx  Encoding context to output to.
  *
  * This is the more complex and more memory efficient alternative to
@@ -350,15 +322,18 @@ t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *context,
  * encoder context, then call t_cose_sign_encode_signature().
  * Finally call \c QCBOREncode_FinishGetSize() to get the length.
  */
-static enum t_cose_err_t
-t_cose_sign_encode_parameters(struct t_cose_sign_sign_ctx *context,
-                              QCBOREncodeContext           *cbor_encode_ctx);
+enum t_cose_err_t
+t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *context,
+                         bool                         payload_is_detached,
+                         QCBOREncodeContext          *cbor_encode_ctx);
 
 
 /**
  * \brief Finish a \c COSE_Sign1 message by outputting the signature.
  *
  * \param[in] context          The t_cose signing context.
+ * \param[in] aad              The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] detached_payload              The detached payload or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] cbor_encode_ctx  Encoding context to output to.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -368,40 +343,20 @@ t_cose_sign_encode_parameters(struct t_cose_sign_sign_ctx *context,
  *
  * This is when the cryptographic signature algorithm is run.
  *
- * The completed \c COSE_Sign1 message is retrieved from the
- * \c cbor_encode_ctx by calling \c QCBOREncode_Finish().
- */
-static enum t_cose_err_t
-t_cose_sign_encode_signature(struct t_cose_sign_sign_ctx *context,
-                              QCBOREncodeContext           *cbor_encode_ctx);
-
-
-/**
- * \brief Finish a \c COSE_Sign1 message with AAD by outputting the signature.
- *
- * \param[in] context          The t_cose signing context.
- * \param[in] aad              The Additional Authenticated Data.
- * \param[in] cbor_encode_ctx  Encoding context to output to.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * This is the same as t_cose_sign_encode_signature() and it allows
- * passing in AAD (Additional Authenticated Data) to be covered by the
- * signature.
- *
  * AAD is simply any data that should also be covered by the
  * signature.  The verifier of the \c COSE_Sign1 must also have exactly
  * this data to be able to successfully verify the signature. Often
  * this data is some parameters or fields in the protocol carrying the
  * COSE message.
+ *
+ * The completed \c COSE_Sign1 message is retrieved from the
+ * \c cbor_encode_ctx by calling \c QCBOREncode_Finish().
  */
-static inline enum t_cose_err_t
-t_cose_sign_encode_signature_aad(struct t_cose_sign_sign_ctx *context,
-                                  struct q_useful_buf_c         aad,
-                                  QCBOREncodeContext          *cbor_encode_ctx);
-
-
-
+enum t_cose_err_t
+t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *context,
+                          struct q_useful_buf_c        aad,
+                          struct q_useful_buf_c        detached_payload,
+                          QCBOREncodeContext          *cbor_encode_ctx);
 
 
 
@@ -410,71 +365,12 @@ t_cose_sign_encode_signature_aad(struct t_cose_sign_sign_ctx *context,
  */
 static inline void
 t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *me,
-                       uint32_t                      option_flags)
+                      uint32_t                     option_flags)
 {
     memset(me, 0, sizeof(*me));
     me->option_flags      = option_flags;
 }
 
-
-
-
-/**
- * \brief Semi-private function that ouputs the COSE parameters, startng a
- *        \c COSE_Sign1 message.
- *
- * \param[in] context              The t_cose signing context.
- * \param[in] payload_is_detached  If the payload is to be detached, this
- *                                 is \c true.
- * \param[in] cbor_encode_ctx      Encoding context to output to.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * This does the actual work for encoding the COSE parameters, but is
- * a private function inside the implementation. Call
- * t_cose_sign_encode_parameters() instead of this.
- */
-enum t_cose_err_t
-t_cose_sign_encode_first_part(struct t_cose_sign_sign_ctx *context,
-                              bool                          payload_is_detached,
-                              QCBOREncodeContext           *cbor_encode_ctx);
-
-
-static inline enum t_cose_err_t
-t_cose_sign_encode_parameters(struct t_cose_sign_sign_ctx *context,
-                               QCBOREncodeContext           *cbor_encode_ctx)
-{
-    return t_cose_sign_encode_first_part(context,
-                                         false,
-                                         cbor_encode_ctx);
-}
-
-
-/**
- * \brief  Semi-private function that ouputs the signature, finishing a
- *         \c COSE_Sign1 message.
- *
- * \param[in] context           The t_cose signing context.
- * \param[in] aad               The Additional Authenticated Data or
- *                              \c NULL_Q_USEFUL_BUF_C.
- * \param[in] detached_payload  The detached payload or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] cbor_encode_ctx   Encoding context to output to.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * This does the actual work for several public methods that output a
- * signature. It is internal to the implmentation and
- * t_cose_sign_encode_signature_aad() should be called instead.
- *
- * If \c detached_payload is \c NULL_Q_USEFUL_BUF_C then the payload
- * is to be inline and must have been added by calls to QCBOREncode
- * after the call to t_cose_sign_encode_parameters().
- */
-enum t_cose_err_t
-t_cose_sign_encode_second_part(struct t_cose_sign_sign_ctx *context,
-                                           struct q_useful_buf_c         aad,
-                                           struct q_useful_buf_c         detached_payload,
-                                           QCBOREncodeContext           *cbor_encode_ctx);
 
 /**
  * \brief Semi-private function that does a complete signing in one call.
@@ -499,95 +395,48 @@ t_cose_sign_encode_second_part(struct t_cose_sign_sign_ctx *context,
  */
 enum t_cose_err_t
 t_cose_sign_one_short(struct t_cose_sign_sign_ctx *context,
-                               bool                          payload_is_detached,
-                               struct q_useful_buf_c         aad,
-                               struct q_useful_buf_c         payload,
-                               struct q_useful_buf           out_buf,
-                               struct q_useful_buf_c        *result);
-
-
-
-
-/* Needed by signer implementations */
-struct q_useful_buf_c
-encode_protected_parameters(int32_t             cose_algorithm_id,
-                            QCBOREncodeContext *cbor_encode_ctx);
-
-
-static inline enum t_cose_err_t
-t_cose_sign_sign_aad(struct t_cose_sign_sign_ctx *me,
-                      struct q_useful_buf_c         aad,
-                      struct q_useful_buf_c         payload,
-                      struct q_useful_buf           out_buf,
-                      struct q_useful_buf_c        *result)
-{
-    return t_cose_sign_one_short(me,
-                                          false,
-                                          aad,
-                                          payload,
-                                          out_buf,
-                                          result);
-}
+                      bool                         payload_is_detached,
+                      struct q_useful_buf_c        aad,
+                      struct q_useful_buf_c        payload,
+                      struct q_useful_buf          out_buf,
+                      struct q_useful_buf_c       *result);
 
 
 static inline enum t_cose_err_t
 t_cose_sign_sign(struct t_cose_sign_sign_ctx *me,
-                  struct q_useful_buf_c         payload,
-                  struct q_useful_buf           out_buf,
-                  struct q_useful_buf_c        *result)
+                 struct q_useful_buf_c        aad,
+                 struct q_useful_buf_c        payload,
+                 struct q_useful_buf          out_buf,
+                 struct q_useful_buf_c       *result)
 {
     return t_cose_sign_one_short(me,
-                                          false,
-                                          payload,
-                                          NULL_Q_USEFUL_BUF_C,
-                                          out_buf,
-                                          result);
+                                 false,
+                                 payload,
+                                 aad,
+                                 out_buf,
+                                 result);
 }
 
 
 static inline enum t_cose_err_t
 t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *me,
-                           struct q_useful_buf_c         aad,
-                           struct q_useful_buf_c         detached_payload,
-                           struct q_useful_buf           out_buf,
-                           struct q_useful_buf_c        *result)
+                          struct q_useful_buf_c        aad,
+                          struct q_useful_buf_c        detached_payload,
+                          struct q_useful_buf          out_buf,
+                          struct q_useful_buf_c       *result)
 {
     return t_cose_sign_one_short(me,
-                                          true,
-                                          detached_payload,
-                                          aad,
-                                          out_buf,
-                                          result);
+                                 true,
+                                 detached_payload,
+                                 aad,
+                                 out_buf,
+                                 result);
 }
-
-
-static inline enum t_cose_err_t
-t_cose_sign_encode_signature_aad(struct t_cose_sign_sign_ctx *me,
-                                  struct q_useful_buf_c         aad,
-                                  QCBOREncodeContext           *cbor_encode_ctx)
-{
-    return t_cose_sign_encode_second_part(me,
-                                                      aad,
-                                                      NULL_Q_USEFUL_BUF_C,
-                                                      cbor_encode_ctx);
-}
-
-
-static inline enum t_cose_err_t
-t_cose_sign_encode_signature(struct t_cose_sign_sign_ctx *me,
-                              QCBOREncodeContext           *cbor_encode_ctx)
-{
-    return t_cose_sign_encode_second_part(me,
-                                                      NULL_Q_USEFUL_BUF_C,
-                                                      NULL_Q_USEFUL_BUF_C,
-                                                      cbor_encode_ctx);
-}
-
 
 
 static inline void
 t_cose_sign_add_body_header_parameters(struct t_cose_sign_sign_ctx *me,
-                                        const struct t_cose_header_param *parameters)
+                                       const struct t_cose_header_param *parameters)
 {
     me->added_body_parameters = parameters;
 }
