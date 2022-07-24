@@ -1,6 +1,6 @@
 # Makefile -- UNIX-style make for t_cose using OpenSSL crypto
 #
-# Copyright (c) 2019-2021, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 #
 # SPDX-License-Identifier: BSD-3-Clause
