@@ -206,31 +206,29 @@ the t_cose_crypto.h interface into the underlying crypto.
 
 Not all crypto libraries will support all algorithms that t_cose can
 make use of. For example, t_cose will likely be able to make use of PQ
-(post-quantum) algorithms, but that not all libraries will be support
-all of these algorithms.
+(post-quantum) algorithms, but that not all libraries will support all
+of these algorithms.
 
-Algorithm variability is handled in two layers: 1) compliation and
-linking solely in the crypto adaptor layer and 2) run-time indication
+Algorithm variability is handled in two layers: 1) compilation and
+linking in the t_cose crypto adaptor layer and 2) run-time indication
 in the public API. That is, there is no variability in the t_cose
-public API because of variation in algorithms available. The error
-code T_COSE_ERR_UNSUPPORTED_XXXX is returned in the public API when an
-algorithm is unavailable.  The public API
-t_cose_is_algorithm_supported() can be called for a direct query about
-a particular algorithm.
+public API because of variation in algorithms available. When an
+algorithm isn't available, it manifests by one of the standard public
+APIs returning T_COSE_ERR_UNSUPPORTED_XXXX.
 
 All algorithm identification in t_cose is by COSE integer algorithm
 IDs.
 
-To go into detail of how compilation and linking is handled, the
+To go into detail of how compilation and linking are handled, the
 crypto adaptation layer should rely on #defines in the crypto library
 headers to know what files it can include and what functions it can
-call. Hopefully, the crypto libraries provide the #defines. t_cose
-should always compile and link with the crypto libraries it supports
-no matter the version or configuration. For example if a version of
-Mbedtls that doesn't support HPKE is used, it should still compile and
-link with no user intervention. The user will find out that HPKE is
-missing when get and T_COSE_ERR_UNSUPPORTED_XXXX error in the public
-API.
+call. Hopefully, the crypto libraries provide the necessary
+#defines. t_cose should always compile and link successfully with any
+crypto libraries it supports no matter the version or
+configuration. For example, if a version of Mbed TLS that doesn't
+support HPKE is used, it should still compile and link with no user
+intervention. The user will find out that HPKE is missing when they
+get a T_COSE_ERR_UNSUPPORTED_XXXX error from the public API.
 
 If a crypto library doesn't provide #defines, then algorithms in it
 that are made use of should be disabled by default.  To enable them,
@@ -242,9 +240,13 @@ work.
 t_cose does assume some algorithms like SHA-2 will always be present
 because they are widely supported and generally necessary.
 
+If an implementation or test case wishes to query whether a particular
+t_cose build supports a particular algorithm the public API
+t_cose_is_algorithm_supported() is provided.
+
 In the automated tests, cases that use specific algorithms that are
-known to be not widely supported are enabled and disabled at run time
-by querying whether they are not supported through the run time public
+known to be not widely supported are enabled and disabled at runtime
+by querying whether they are not supported through the runtime public
 API. They are generally not handled by #ifdefs unless absolutely
 necessary.
 
