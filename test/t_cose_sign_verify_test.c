@@ -580,78 +580,78 @@ int_fast32_t known_good_test(void)
      * too...) But for now this accomplishes what is needed.
      */
 
-    result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
-    if(result) {
-        return_value = 1000 + (int32_t)result;
-        goto Done;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+        if(result) {
+            return_value = 1000 + (int32_t)result;
+            goto Done;
+        }
+
+        t_cose_sign1_verify_init(&verify_ctx, 0);
+
+        t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+
+        valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_ossl_crypto_256);
+        result = t_cose_sign1_verify(&verify_ctx,
+                                      valid_message, /* COSE to verify */
+                                     &payload,       /* Payload from signed_cose */
+                                      NULL);         /* Don't return parameters */
+         if(result) {
+             return_value = 5000 + (int32_t)result;
+             goto Done;
+         }
+
+        free_ecdsa_key_pair(key_pair);
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES384)) {
+        result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
+        if(result) {
+            return_value = 1100 + (int32_t)result;
+            goto Done;
+        }
 
-    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+        t_cose_sign1_verify_init(&verify_ctx, 0);
 
-    valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_ossl_crypto_256);
-    result = t_cose_sign1_verify(&verify_ctx,
-                                  valid_message, /* COSE to verify */
-                                 &payload,       /* Payload from signed_cose */
-                                  NULL);         /* Don't return parameters */
-     if(result) {
-         return_value = 5000 + (int32_t)result;
-         goto Done;
-     }
+        t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
-    free_ecdsa_key_pair(key_pair);
+        valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_psa_crypto_384);
 
-#ifndef T_COSE_DISABLE_ES384
-    result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
-    if(result) {
-        return_value = 1100 + (int32_t)result;
-        goto Done;
+        result = t_cose_sign1_verify(&verify_ctx,
+                                     valid_message, /* COSE to verify */
+                                    &payload,       /* Payload from signed_cose */
+                                     NULL);         /* Don't return parameters */
+        if(result) {
+            return_value = 5100 + (int32_t)result;
+            goto Done;
+        }
+        free_ecdsa_key_pair(key_pair);
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES512)) {
+        result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
+        if(result) {
+            return_value = 1200 + (int32_t)result;
+            goto Done;
+        }
 
-    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+        t_cose_sign1_verify_init(&verify_ctx, 0);
 
-    valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_psa_crypto_384);
+        t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
-    result = t_cose_sign1_verify(&verify_ctx,
-                                 valid_message, /* COSE to verify */
-                                &payload,       /* Payload from signed_cose */
-                                 NULL);         /* Don't return parameters */
-    if(result) {
-        return_value = 5100 + (int32_t)result;
-        goto Done;
+        valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_openssl_crypto_521);
+
+        result = t_cose_sign1_verify(&verify_ctx,
+                                     valid_message, /* COSE to verify */
+                                    &payload,       /* Payload from signed_cose */
+                                     NULL);         /* Don't return parameters */
+        if(result) {
+            return_value = 5200 + (int32_t)result;
+            goto Done;
+        }
+
+        free_ecdsa_key_pair(key_pair);
     }
-
-    free_ecdsa_key_pair(key_pair);
-#endif /* T_COSE_DISABLE_ES384 */
-
-
-#ifndef T_COSE_DISABLE_ES512
-    result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
-    if(result) {
-        return_value = 1200 + (int32_t)result;
-        goto Done;
-    }
-
-    t_cose_sign1_verify_init(&verify_ctx, 0);
-
-    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
-
-    valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_openssl_crypto_521);
-
-    result = t_cose_sign1_verify(&verify_ctx,
-                                 valid_message, /* COSE to verify */
-                                &payload,       /* Payload from signed_cose */
-                                 NULL);         /* Don't return parameters */
-    if(result) {
-        return_value = 5200 + (int32_t)result;
-        goto Done;
-    }
-
-    free_ecdsa_key_pair(key_pair);
-#endif /* T_COSE_DISABLE_ES512 */
 
     /* Can't make signed messages and compare them to a known good
      * value because ECDSA signature have a random component. They are
