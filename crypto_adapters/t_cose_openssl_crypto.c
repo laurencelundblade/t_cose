@@ -76,8 +76,12 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         COSE_ALGORITHM_SHA_384,
         COSE_ALGORITHM_SHA_512,
         COSE_ALGORITHM_ES256,
+#ifndef T_COSE_DISABLE_ES384 /* The t_cose 1.0 macro. TODO: keep this? */
         COSE_ALGORITHM_ES384,
-        COSE_ALGORITHM_ES512,
+#endif /* T_COSE_DISABLE_ES384 */
+#ifndef T_COSE_DISABLE_ES512
+        COSE_ALGORITHM_ES512, /* The t_cose 1.0 macro. TODO: keep this? */
+#endif /* T_COSE_DISABLE_ES512 */
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
