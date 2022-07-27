@@ -255,6 +255,31 @@ every algorithm, but every algorithm should be covered by at least one
 test. This may require configuring CI with some alternate versions of
 crypto libraries.
 
+### Omitting Algorithms to Reduce Code Size
+
+Previously, t_cose had #defines like T_COSE_DISABLE_ES512 to omit
+algorthms to reduce code size. A different strategy is used for t_cose
+2.0 that takes advantage of the dynamic linking of the signing,
+COSE_Signature and COSE_Recipient implementations.
+
+For t_cose 2.0, the bulk of the crypto algorithms are called by the
+implementations of the t_cose_signature and of t_cose_recipient.
+These are not hard-linked to the rest of the t_cose. Assuming dead
+stripping, paticular implementations for particular algorithms will
+not be linked in unless they are explicitly called. The dead stripping
+can take care of this through the t_cose_crypto layer, though some
+adjustments may be necessary for it to be most effective.
+
+For example, the ECDSA algorithm is only called from
+t_cose_signature_sign_ecdsa and t_cose_signature_verify_ecdsa. If a
+user of t_cose never calls these, for example, never calls
+t_cose_signature_sign_ecdsa_init() it won't be linked and the
+references to the of the algorithms won't be made.
+
+For this to work well, the t_cose_crypto layer needs to have separate
+functions for separate algorithms. This is something to be looked
+into.
+
 
 ## Memory Usage
 
