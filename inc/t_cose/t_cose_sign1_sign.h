@@ -18,7 +18,9 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_sign_sign.h"
-#include "t_cose/t_cose_signature_sign_ecdsa.h"
+#include "t_cose/t_cose_signature_sign_ecdsa.h" // TODO: why is this here?
+#include "t_cose/t_cose_signature_sign_short.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,17 +73,33 @@ extern "C" {
 struct t_cose_sign1_sign_ctx {
     struct t_cose_sign_sign_ctx  me2;
 
+    /* This is needed to implement backwards compatibility on the
+     * assumption that t_cose 1.0 primarily supported ECDSA. */
     struct t_cose_signature_sign_ecdsa signer;
+
+    /* For compatibility implementation with t_cose_sign_sign.
+     * Storage lifetime must be that of the t_cose_sign1_sign_ctx
+     * because the user of t_cose_sign1_sign won't allocate a
+     * t_cose_header_param. They don't know about it. */
+    struct t_cose_header_param content_id_param[2];
+
 
     /* Private data structure */
     struct q_useful_buf_c protected_parameters; /* Encoded protected paramssy */
     int32_t               cose_algorithm_id;
-    struct t_cose_key     signing_key;
+    struct t_cose_key     signing_key; // Used by make_test_message
     uint32_t              option_flags;
     struct q_useful_buf_c kid;
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
+#endif
+
+    /* This is needed to implement the backwards compatibility
+     * based on t_cose_sign_sign.
+     */
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    struct t_cose_signature_sign_short short_circuit_signer;
 #endif
 };
 
@@ -172,7 +190,7 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
  * will not be used and this \c COSE_Sign1 message can not be verified
  * by t_cose_sign1_verify().
  */
-static void
+void
 t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
                              struct t_cose_key             signing_key,
                              struct q_useful_buf_c         kid);
@@ -437,28 +455,20 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
 #endif
 
     me->cose_algorithm_id = cose_algorithm_id;
+    me->option_flags = option_flags;  // Used by t_cose_make_test_messages.c
 
-    // TODO: Translate any options flags?
+    // TODO: Translate any more options flags?
     t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_COSE_SIGN1);
+
+    if(option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
+        t_cose_signature_sign_short_init(&(me->short_circuit_signer), cose_algorithm_id);
+
+        t_cose_sign_add_signer(&(me->me2),
+                               t_cose_signature_sign_from_short(&(me->short_circuit_signer)));
+    }
+
 }
 
-
-static inline void
-t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
-                             struct t_cose_key             signing_key,
-                             struct q_useful_buf_c         kid)
-{
-    t_cose_signature_sign_ecdsa_init(&(me->signer), me->cose_algorithm_id);
-
-    t_cose_signature_sign_ecdsa_set_signing_key(&(me->signer),
-                                                signing_key,
-                                                kid);
-    me->kid         = kid;
-    me->signing_key = signing_key;
-
-    t_cose_sign_add_signer(&(me->me2),
-                           t_cose_signature_sign_from_ecdsa(&(me->signer)));
-}
 
 
 /**

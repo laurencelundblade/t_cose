@@ -123,8 +123,13 @@ t_cose_short_headers(struct t_cose_signature_sign  *me_x,
 {
     struct t_cose_signature_sign_short *me = (struct t_cose_signature_sign_short *)me_x;
 
+    struct q_useful_buf_c kid = me->kid;
+    if(q_useful_buf_c_is_null(kid)) {
+        kid = get_short_circuit_kid_l();
+    }
+
     me->local_params[0]  = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
-    me->local_params[1]  = T_COSE_KID_PARAM(get_short_circuit_kid_l());
+    me->local_params[1]  = T_COSE_KID_PARAM(kid);
     me->local_params[2]  = T_COSE_END_PARAM;
 
     *params = me->local_params;

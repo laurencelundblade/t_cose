@@ -261,12 +261,12 @@ struct t_cose_header_param {
                              .value.i64 = content_type }
 
 #define T_COSE_CT_TSTR_PARAM(content_type) \
-(struct t_cose_header_param){COSE_HEADER_PARAM_CONTENT_TYPE, \
-                         T_COSE_PARAMETER_TYPE_TEXT_STRING,\
-                         true,\
-                         false,\
-                         {0,0},\
-                         .value.string = content_type }
+   (struct t_cose_header_param){COSE_HEADER_PARAM_CONTENT_TYPE, \
+                                T_COSE_PARAMETER_TYPE_TEXT_STRING,\
+                                true,\
+                                false,\
+                                {0,0},\
+                               .value.string = content_type }
 
 
 #define T_COSE_END_PARAM  \

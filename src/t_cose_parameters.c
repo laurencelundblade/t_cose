@@ -854,6 +854,10 @@ t_cose_encode_headers(QCBOREncodeContext                       *encode_context,
 {
     enum t_cose_err_t return_value;
 
+    // TODO: provide duplicate detection here? t_cose 1.0 did
+    // Do it by using CPU cycles, not memory. Allow disabling the
+    // check with an #ifdef.
+
     /* --- Protected Headers --- */
     QCBOREncode_BstrWrap(encode_context);
     return_value = encode_parameters_bucket(encode_context,
