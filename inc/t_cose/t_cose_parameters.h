@@ -252,6 +252,23 @@ struct t_cose_header_param {
                                  {0,0},\
                                  .value.string = kid }
 
+#define T_COSE_CT_UINT_PARAM(content_type) \
+    (struct t_cose_header_param){COSE_HEADER_PARAM_CONTENT_TYPE, \
+                             T_COSE_PARAMETER_TYPE_INT64,\
+                             true,\
+                             false,\
+                             {0,0},\
+                             .value.i64 = content_type }
+
+#define T_COSE_CT_TSTR_PARAM(content_type) \
+(struct t_cose_header_param){COSE_HEADER_PARAM_CONTENT_TYPE, \
+                         T_COSE_PARAMETER_TYPE_TEXT_STRING,\
+                         true,\
+                         false,\
+                         {0,0},\
+                         .value.string = content_type }
+
+
 #define T_COSE_END_PARAM  \
     (struct t_cose_header_param){0,\
                                  T_COSE_PARAMETER_TYPE_NONE, \

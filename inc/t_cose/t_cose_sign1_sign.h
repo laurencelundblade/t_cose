@@ -1,7 +1,7 @@
 /*
  * t_cose_sign1_sign.h
  *
- * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020, Michael Eckel
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -17,6 +17,8 @@
 #include "qcbor/qcbor.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_sign_sign.h"
+#include "t_cose/t_cose_signature_sign_ecdsa.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,6 +69,10 @@ extern "C" {
  * is about 100 bytes so it fits easily on the stack.
  */
 struct t_cose_sign1_sign_ctx {
+    struct t_cose_sign_sign_ctx  me2;
+
+    struct t_cose_signature_sign_ecdsa signer;
+
     /* Private data structure */
     struct q_useful_buf_c protected_parameters; /* Encoded protected paramssy */
     int32_t               cose_algorithm_id;
@@ -189,7 +195,7 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
  * The IANA CoAP Content-Formats registry is found
  * [here](https://www.iana.org/assignments/core-parameters/core-parameters.xhtml#content-formats).
  */
-static inline void
+void
 t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
                                    uint16_t                      content_type);
 
@@ -209,7 +215,7 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
  * [here](https://www.iana.org/assignments/media-types/media-types.xhtml).
  * These have been known as MIME types in the past.
  */
-static inline void
+void
 t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
                                    const char                   *content_type);
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
@@ -431,7 +437,9 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
 #endif
 
     me->cose_algorithm_id = cose_algorithm_id;
-    me->option_flags      = option_flags;
+
+    // TODO: Translate any options flags?
+    t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_COSE_SIGN1);
 }
 
 
@@ -440,8 +448,16 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
                              struct t_cose_key             signing_key,
                              struct q_useful_buf_c         kid)
 {
+    t_cose_signature_sign_ecdsa_init(&(me->signer), me->cose_algorithm_id);
+
+    t_cose_signature_sign_ecdsa_set_signing_key(&(me->signer),
+                                                signing_key,
+                                                kid);
     me->kid         = kid;
     me->signing_key = signing_key;
+
+    t_cose_sign_add_signer(&(me->me2),
+                           t_cose_signature_sign_from_ecdsa(&(me->signer)));
 }
 
 
@@ -460,7 +476,7 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
  * a private function inside the implementation. Call
  * t_cose_sign1_encode_parameters() instead of this.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *context,
                                         bool                          payload_is_detached,
                                         QCBOREncodeContext           *cbor_encode_ctx);
@@ -496,7 +512,7 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
  * is to be inline and must have been added by calls to QCBOREncode
  * after the call to t_cose_sign1_encode_parameters().
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *context,
                                            struct q_useful_buf_c         aad,
                                            struct q_useful_buf_c         detached_payload,
@@ -523,7 +539,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *context
  * This is a private function internal to the implementation. Call
  * t_cose_sign1_sign_aad() instead of this.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *context,
                                bool                          payload_is_detached,
                                struct q_useful_buf_c         aad,
@@ -602,22 +618,51 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
 }
 
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-static inline void
-t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *me,
-                                   uint16_t                     content_type)
+
+
+
+/*
+ * Semi-private function. See t_cose_sign1_sign.h
+ */
+static inline enum t_cose_err_t
+t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *me,
+                                        bool                          payload_is_detached,
+                                        QCBOREncodeContext           *cbor_encode_ctx)
 {
-    me->content_type_uint = content_type;
+    return t_cose_sign_encode_start(&(me->me2), payload_is_detached, cbor_encode_ctx);
 }
 
 
-static inline void
-t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
-                                   const char                   *content_type)
+/*
+ * Semi-private function. See t_cose_sign1_sign.h
+ */
+static inline enum t_cose_err_t
+t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
+                                           struct q_useful_buf_c         aad,
+                                           struct q_useful_buf_c         detached_payload,
+                                           QCBOREncodeContext           *cbor_encode_ctx)
 {
-    me->content_type_tstr = content_type;
+    return t_cose_sign_encode_finish(&(me->me2), aad, detached_payload, cbor_encode_ctx);
 }
-#endif
+
+
+/*
+ * Semi-private function. See t_cose_sign1_sign.h
+ */
+static inline enum t_cose_err_t
+t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *me,
+                               bool                         payload_is_detached,
+                               struct q_useful_buf_c         payload,
+                               struct q_useful_buf_c         aad,
+                               struct q_useful_buf           out_buf,
+                               struct q_useful_buf_c        *result)
+{
+    return t_cose_sign_one_short(&(me->me2), payload_is_detached, payload, aad, out_buf, result);
+}
+
+
+
+
 
 #ifdef __cplusplus
 }
