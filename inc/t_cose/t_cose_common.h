@@ -178,6 +178,12 @@ extern "C" {
  */
 
 
+/**
+ * This indicates this is t_cose 2.x, not 1.x. It should be forward compatible
+ * with 1.x, but this is available in case it is not.
+ */
+#define T_COSE_2
+
 
 
 /**

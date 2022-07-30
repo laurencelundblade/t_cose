@@ -751,11 +751,48 @@ Done:
 }
 
 
+static bool
+dup_detect2(const struct t_cose_header_param *target,
+            const struct t_cose_header_param * const *params_vector)
+{
+    const struct t_cose_header_param * const *p1;
+    const struct t_cose_header_param         *p2;
+    /* loop over the vector */
+    for(p1 = params_vector; *p1 != NULL; p1++) {
+        /* loop over the vector or param arrays */
+        for(p2 = *p1; p2->parameter_type != T_COSE_PARAMETER_TYPE_NONE; p2++) {
+            if(p2->label == target->label && p2 != target) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+static bool
+dup_detect(const struct t_cose_header_param * const *params_vector)
+{
+    const struct t_cose_header_param * const *p1;
+    const struct t_cose_header_param         *p2;
+
+    /* n ^ 2 algorithm, but n is very small. */
+    /* loop over the vector or param arrays */
+    for(p1 = params_vector; *p1 != NULL; p1++) {
+        /* loop over array of parameters */
+        for(p2 = *p1; p2->parameter_type != T_COSE_PARAMETER_TYPE_NONE; p2++) {
+            if(dup_detect2(p2, params_vector)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 
 static enum t_cose_err_t
 encode_parameters_bucket(QCBOREncodeContext                       *encode_context,
-                         const struct t_cose_header_param * const *parameters,
+                         const struct t_cose_header_param * const *params_vector,
                          bool                                      is_protected_header)
 {
     const struct t_cose_header_param * const *p1;
@@ -767,9 +804,8 @@ encode_parameters_bucket(QCBOREncodeContext                       *encode_contex
     QCBOREncode_OpenMap(encode_context);
 
     are_criticals = false;
-    /* Loop over vector of pointers to arrays */
-    for(p1 = parameters; *p1 != NULL; p1++) {
-
+    /* loop over the vector or param arrays */
+    for(p1 = params_vector; *p1 != NULL; p1++) {
         /* loop over array of parameters */
         for(p2 = *p1; p2->parameter_type != T_COSE_PARAMETER_TYPE_NONE; p2++) {
             if(is_protected_header) {
@@ -827,7 +863,7 @@ encode_parameters_bucket(QCBOREncodeContext                       *encode_contex
 
     if(are_criticals) {
         if(is_protected_header) {
-            encode_crit_parameter(encode_context, parameters);
+            encode_crit_parameter(encode_context, params_vector);
         } else {
             /* Asking for critical parameters unprotected header bucket */
             return_value = T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED;
@@ -854,9 +890,11 @@ t_cose_encode_headers(QCBOREncodeContext                       *encode_context,
 {
     enum t_cose_err_t return_value;
 
-    // TODO: provide duplicate detection here? t_cose 1.0 did
-    // Do it by using CPU cycles, not memory. Allow disabling the
-    // check with an #ifdef.
+    // TODO: allow disabling this check to save object code
+    if(dup_detect(parameters)) {
+        return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
+        goto Done;
+    }
 
     /* --- Protected Headers --- */
     QCBOREncode_BstrWrap(encode_context);

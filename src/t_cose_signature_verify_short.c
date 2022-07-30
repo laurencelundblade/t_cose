@@ -11,30 +11,10 @@
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose_crypto.h"
+#include "t_cose/t_cose_signature_sign_short.h"
 
 //#define T_COSE_CRYPTO_MAX_HASH_SIZE 300 // TODO: fix this
 
-
-// This is replicated in t_cose_signature_sign_short.c
-
-static const uint8_t defined_short_circuit_kid[] = {
-    0xef, 0x95, 0x4b, 0x4b, 0xd9, 0xbd, 0xf6, 0x70,
-    0xd0, 0x33, 0x60, 0x82, 0xf5, 0xef, 0x15, 0x2a,
-    0xf8, 0xf3, 0x5b, 0x6a, 0x6c, 0x00, 0xef, 0xa6,
-    0xa9, 0xa7, 0x1f, 0x49, 0x51, 0x7e, 0x18, 0xc6};
-
-static struct q_useful_buf_c short_circuit_kid;
-
-/*
- * Public function. See t_cose_util.h
- */
-struct q_useful_buf_c get_short_circuit_kid_x(void)
-{
-    short_circuit_kid.len = sizeof(defined_short_circuit_kid);
-    short_circuit_kid.ptr = defined_short_circuit_kid;
-
-    return short_circuit_kid;
-}
 
 /**
  * \brief Verify a short-circuit signature
@@ -98,7 +78,7 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
     }
     kid = t_cose_find_parameter_kid(body_parameters);
 
-    if(q_useful_buf_compare(kid, get_short_circuit_kid_x())) {
+    if(q_useful_buf_compare(kid, get_short_circuit_kid())) {
         return_value = 88; // TODO: error code
         goto Done;
     }
