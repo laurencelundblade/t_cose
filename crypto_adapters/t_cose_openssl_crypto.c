@@ -464,7 +464,7 @@ t_cose_crypto_sign(const int32_t                cose_algorithm_id,
     int                    ossl_result;
 
     /* This buffer is passed to OpenSSL to write the ECDSA signature into, in
-     * DER format, before it can be convert to the expected COSE format. When
+     * DER format, before it can be converted to the expected COSE format. When
      * RSA signing is selected, this buffer is unused since OpenSSL's output is
      * suitable for use in COSE directly.
      */
@@ -592,7 +592,12 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
      * selected the buffer is unused.
      */
     MakeUsefulBufOnStack(  der_format_buffer, T_COSE_MAX_ECDSA_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
-    struct q_useful_buf_c  der_format_signature;
+
+    /* This is the signature that will be passed to OpenSSL. It will either
+     * point to `cose_signature`, or into `der_format_buffer`, depending on
+     * whether an RSA or ECDSA signature is used
+     */
+    struct q_useful_buf_c  openssl_signature;
 
     /* This implementation doesn't use any key store with the ability
      * to look up a key based on kid. */
@@ -620,7 +625,7 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
         return_value = ecdsa_signature_cose_to_der(verification_key_evp,
                                                    cose_signature,
                                                    der_format_buffer,
-                                                   &der_format_signature);
+                                                   &openssl_signature);
         if(return_value) {
           goto Done;
         }
@@ -628,7 +633,7 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
         /* COSE RSA signatures are already in the format OpenSSL
          * expects, they can be used without any re-encoding.
          */
-        der_format_signature = cose_signature;
+        openssl_signature = cose_signature;
     } else {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
@@ -656,8 +661,8 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
 
     /* Actually do the signature verification */
     ossl_result =  EVP_PKEY_verify(verify_context,
-                                   der_format_signature.ptr,
-                                   der_format_signature.len,
+                                   openssl_signature.ptr,
+                                   openssl_signature.len,
                                    hash_to_verify.ptr,
                                    hash_to_verify.len);
 

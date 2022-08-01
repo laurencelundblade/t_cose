@@ -44,7 +44,7 @@ extern "C" {
  * of stack. No stack will be saved if \c T_COSE_DISABLE_ES512 is not
  * also defined.
  *
- * \c T_COSE_DISABLE_PS256 -- Disables the COSE algorithm ES256
+ * \c T_COSE_DISABLE_PS256 -- Disables the COSE algorithm PS256
  * algorithm.
  *
  * \c T_COSE_DISABLE_PS384 -- Disables the COSE algorithm PS384
@@ -102,7 +102,7 @@ extern "C" {
 /**
  * \def T_COSE_ALGORITHM_PS256
  *
- * \brief Indicates RSASSA-PSS with SHA-512.
+ * \brief Indicates RSASSA-PSS with SHA-256.
  *
  * This value comes from the
  * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).

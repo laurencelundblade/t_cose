@@ -1,5 +1,5 @@
 /*
- *  t_cose_make_psa_test_key.c
+ *  t_cose_rsa_test_key.h
  *
  * Copyright 2019-2022, Laurence Lundblade
  *
@@ -18,7 +18,7 @@
  *
  * This file is used whether mbedtls or OpenSSL is used.
  *
- * On it's own, the file not itself valid C, and must be wrapped in a variable
+ * On its own, the file is not itself valid C, and must be wrapped in a variable
  * definition before being included.
  */
 0x30, 0x82, 0x04, 0xa3, 0x02, 0x01, 0x00, 0x02, 0x82, 0x01, 0x01, 0x00,

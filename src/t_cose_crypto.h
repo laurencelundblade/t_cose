@@ -575,7 +575,7 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_ES512
         COSE_ALGORITHM_ES512,
 #endif
-        0}; /* 0 is a reserved COSE alg ID ans will never be used */
+        0}; /* 0 is a reserved COSE alg ID and will never be used */
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
@@ -594,7 +594,7 @@ t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
         COSE_ALGORITHM_PS512,
 #endif
-        0}; /* 0 is a reserved COSE alg ID ans will never be used */
+        0}; /* 0 is a reserved COSE alg ID and will never be used */
 
     return t_cose_check_list(cose_algorithm_id, rsa_list);
 }
