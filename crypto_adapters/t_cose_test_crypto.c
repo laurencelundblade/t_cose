@@ -57,7 +57,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
     (void)cose_algorithm_id;
     (void)signing_key;
 
-    *sig_size = T_COSE_MAX_SIG_SIZE;
+    *sig_size = T_COSE_MAX_ECDSA_SIG_SIZE;
 
     return T_COSE_SUCCESS;
 }

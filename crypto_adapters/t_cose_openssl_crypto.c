@@ -14,9 +14,9 @@
 #include "t_cose_crypto.h" /* The interface this code implements */
 
 #include <openssl/ecdsa.h> /* Needed for signature format conversion */
+#include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
-
 
 /**
  * \file t_cose_openssl_crypto.c
@@ -60,9 +60,29 @@
  * a llittle.
  */
 
+/**
+ * \brief Get the rounded up size of an ECDSA key in bytes.
+ */
+static unsigned ecdsa_key_size(EVP_PKEY *key_evp)
+{
+    unsigned key_len_bits;
+    unsigned key_len_bytes;
+
+    key_len_bits = EVP_PKEY_bits(key_evp);
+
+    /* Calculation of size per RFC 8152 section 8.1 -- round up to
+     * number of bytes. */
+    key_len_bytes = (unsigned)key_len_bits / 8;
+    if(key_len_bits % 8) {
+        key_len_bytes++;
+    }
+
+    return key_len_bytes;
+}
+
 
 /**
- * \brief Convert DER-encoded signature to COSE-serialized signature
+ * \brief Convert DER-encoded ECDSA signature to COSE-serialized signature
  *
  * \param[in] key_len             Size of the key in bytes -- governs sig size.
  * \param[in] der_signature       DER-encoded signature.
@@ -77,10 +97,11 @@
  * concatenated.
  */
 static inline struct q_useful_buf_c
-signature_der_to_cose(unsigned               key_len,
-                      struct q_useful_buf_c  der_signature,
-                      struct q_useful_buf    signature_buffer)
+ecdsa_signature_der_to_cose(EVP_PKEY              *key_evp,
+                            struct q_useful_buf_c  der_signature,
+                            struct q_useful_buf    signature_buffer)
 {
+    unsigned              key_len;
     size_t                r_len;
     size_t                s_len;
     const BIGNUM         *r_bn;
@@ -90,6 +111,8 @@ signature_der_to_cose(unsigned               key_len,
     void                 *s_start_ptr;
     const unsigned char  *temp_der_sig_pointer;
     ECDSA_SIG            *es;
+
+    key_len = ecdsa_key_size(key_evp);
 
     /* Put DER-encode sig into an ECDSA_SIG so we can get the r and s out. */
     temp_der_sig_pointer = der_signature.ptr;
@@ -141,7 +164,7 @@ Done:
 
 
 /**
- * \brief Convert  COSE-serialized signature to DER-encoded signature.
+ * \brief Convert COSE-serialized ECDSA signature to DER-encoded signature.
  *
  * \param[in] key_len         Size of the key in bytes -- governs sig size.
  * \param[in] cose_signature  The COSE-serialized signature.
@@ -161,11 +184,12 @@ Done:
  * between the two.
  */
 static enum t_cose_err_t
-signature_cose_to_der(unsigned                key_len,
-                      struct q_useful_buf_c   cose_signature,
-                      struct q_useful_buf     buffer,
-                      struct q_useful_buf_c  *der_signature)
+ecdsa_signature_cose_to_der(EVP_PKEY              *key_evp,
+                            struct q_useful_buf_c  cose_signature,
+                            struct q_useful_buf    buffer,
+                            struct q_useful_buf_c *der_signature)
 {
+    unsigned          key_len;
     enum t_cose_err_t return_value;
     BIGNUM           *signature_r_bn = NULL;
     BIGNUM           *signature_s_bn = NULL;
@@ -173,6 +197,8 @@ signature_cose_to_der(unsigned                key_len,
     ECDSA_SIG        *signature;
     unsigned char    *der_signature_ptr;
     int               der_signature_len;
+
+    key_len = ecdsa_key_size(key_evp);
 
     /* Check the signature length against expected */
     if(cose_signature.len != key_len * 2) {
@@ -257,24 +283,18 @@ Done:
     return return_value;
 }
 
-
 /**
  * \brief Common checks and conversions for signing and verification key.
  *
  * \param[in] t_cose_key                 The key to check and convert.
  * \param[out] return_ossl_ec_key        The OpenSSL key in memory.
- * \param[out] return_key_size_in_bytes  How big the key is.
  *
  * \return Error or \ref T_COSE_SUCCESS.
  *
- * It pulls the OpenSSL key out of \c t_cose_key and checks
- * it and figures out the number of bytes in the key rounded up. This
- * is also the size of r and s in the signature.
+ * It pulls the OpenSSL key out of \c t_cose_key and checks it.
  */
 static enum t_cose_err_t
-key_convert_and_size(struct t_cose_key  t_cose_key,
-                     EVP_PKEY         **return_ossl_ec_key,
-                     unsigned          *return_key_size_in_bytes)
+key_convert(struct t_cose_key  t_cose_key, EVP_PKEY **return_ossl_ec_key)
 {
     enum t_cose_err_t  return_value;
     int                key_len_bits; /* type unsigned is conscious choice */
@@ -290,26 +310,13 @@ key_convert_and_size(struct t_cose_key  t_cose_key,
         return_value = T_COSE_ERR_EMPTY_KEY;
         goto Done;
     }
-    ossl_ec_key = (EVP_PKEY *)t_cose_key.k.key_ptr;
-
-    key_len_bits = EVP_PKEY_bits(ossl_ec_key);
-
-    /* Calculation of size per RFC 8152 section 8.1 -- round up to
-     * number of bytes. */
-    key_len_bytes = (unsigned)key_len_bits / 8;
-    if(key_len_bits % 8) {
-        key_len_bytes++;
-    }
-
-    *return_key_size_in_bytes = key_len_bytes;
-    *return_ossl_ec_key = ossl_ec_key;
+    *return_ossl_ec_key = (EVP_PKEY *)t_cose_key.k.key_ptr;
 
     return_value = T_COSE_SUCCESS;
 
 Done:
     return return_value;
 }
-
 
 /*
  * Public Interface. See documentation in t_cose_crypto.h
@@ -319,23 +326,114 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
                                          size_t           *sig_size)
 {
     enum t_cose_err_t return_value;
-    unsigned          key_len_bytes;
-    EVP_PKEY         *signing_key_evp; /* Unused */
+    EVP_PKEY         *signing_key_evp;
 
-    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
-
-    return_value = key_convert_and_size(signing_key, &signing_key_evp, &key_len_bytes);
+    return_value = key_convert(signing_key, &signing_key_evp);
     if(return_value != T_COSE_SUCCESS) {
-        goto Done;
+        return return_value;
     }
 
-    /* Double because signature is made of up r and s values */
-    *sig_size = key_len_bytes * 2;
+    if(t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+        /* EVP_PKEY_size is not suitable because it returns the size
+         * of the DER-encoded signature, which is larger than the COSE
+         * signatures.
+         *
+         * We instead compute the size ourselves based on the COSE
+         * encoding of two r and s values, each the same size as the key.
+         */
+        *sig_size = ecdsa_key_size(signing_key_evp) * 2;
+        return_value = T_COSE_SUCCESS;
+        goto Done;
+    } else if(t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
+        *sig_size = EVP_PKEY_size(signing_key_evp);
+        return_value = T_COSE_SUCCESS;
+        goto Done;
+    } else {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
 
-    return_value = T_COSE_SUCCESS;
+Done:
+    return return_value;
+}
+
+
+/**
+ * \brief Configure an EVP_PKEY_CTX for a given algorithm.
+ *
+ * \param[in] context            The OpenSSL context to configure.
+ * \param[in] cose_algorithm_id  The algorithm ID.
+ *
+ * \return Error or \ref T_COSE_SUCCESS.
+ */
+static enum t_cose_err_t
+configure_pkey_context(EVP_PKEY_CTX* context, int32_t cose_algorithm_id)
+{
+    enum t_cose_err_t return_value;
+    const EVP_MD     *md;
+    int               ossl_result;
+
+    if (t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+        /* ECDSA doesn't need any further configuration of its context.
+         * The parameters are inferred from the key.
+         */
+        return_value = T_COSE_SUCCESS;
+    } else if (t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
+        /**
+         * These parameters are specified in Section 2 of RFC8230.
+         * In a nutshell:
+         * - PSS padding
+         * - MGF1 mask generation, using the same hash function used to digest
+         *   the message.
+         * - Salt length should match the size of the output of the hash
+         *   function.
+         */
+        switch (cose_algorithm_id) {
+            case T_COSE_ALGORITHM_PS256:
+                md = EVP_sha256();
+                break;
+
+            case T_COSE_ALGORITHM_PS384:
+                md = EVP_sha384();
+                break;
+
+            case T_COSE_ALGORITHM_PS512:
+                md = EVP_sha512();
+                break;
+
+            default:
+                return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+                goto Done;
+        }
+
+        ossl_result = EVP_PKEY_CTX_set_rsa_padding(context, RSA_PKCS1_PSS_PADDING);
+        if(ossl_result != 1) {
+            return_value = T_COSE_ERR_SIG_FAIL;
+            goto Done;
+        }
+
+        ossl_result = EVP_PKEY_CTX_set_signature_md(context, md);
+        if(ossl_result != 1) {
+            return_value = T_COSE_ERR_SIG_FAIL;
+            goto Done;
+        }
+
+        ossl_result = EVP_PKEY_CTX_set_rsa_mgf1_md(context, md);
+        if(ossl_result != 1) {
+            return_value = T_COSE_ERR_SIG_FAIL;
+            goto Done;
+        }
+
+        ossl_result = EVP_PKEY_CTX_set_rsa_pss_saltlen(context, RSA_PSS_SALTLEN_DIGEST);
+        if(ossl_result != 1) {
+            return_value = T_COSE_ERR_SIG_FAIL;
+            goto Done;
+        }
+
+        return_value = T_COSE_SUCCESS;
+    } else {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
+
 
 Done:
     return return_value;
@@ -364,8 +462,13 @@ t_cose_crypto_sign(const int32_t                cose_algorithm_id,
     EVP_PKEY_CTX          *sign_context;
     EVP_PKEY              *signing_key_evp;
     int                    ossl_result;
-    unsigned               key_size_bytes;
-    MakeUsefulBufOnStack(  der_format_signature, T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
+
+    /* This buffer is passed to OpenSSL to write the ECDSA signature into, in
+     * DER format, before it can be convert to the expected COSE format. When
+     * RSA signing is selected, this buffer is unused since OpenSSL's output is
+     * suitable for use in COSE directly.
+     */
+    MakeUsefulBufOnStack(  der_format_signature, T_COSE_MAX_ECDSA_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
 
     /* This implementation supports only ECDSA so far. The
      * interface allows it to support other, but none are implemented.
@@ -376,14 +479,15 @@ t_cose_crypto_sign(const int32_t                cose_algorithm_id,
      * check looks for ECDSA signing as indicated by COSE and rejects
      * what is not since it only supports ECDSA.
      */
-    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id) &&
+       !t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done2;
     }
 
     /* Pull the pointer to the OpenSSL-format EVP_PKEY out of the
-     * t_cose key structure and get the key size. */
-    return_value = key_convert_and_size(signing_key, &signing_key_evp, &key_size_bytes);
+     * t_cose key structure. */
+    return_value = key_convert(signing_key, &signing_key_evp);
     if(return_value != T_COSE_SUCCESS) {
         goto Done2;
     }
@@ -401,32 +505,59 @@ t_cose_crypto_sign(const int32_t                cose_algorithm_id,
         goto Done;
     }
 
+    return_value = configure_pkey_context(sign_context, cose_algorithm_id);
+    if (return_value) {
+        goto Done;
+    }
+
     /* Actually do the signature operation.  */
-    ossl_result = EVP_PKEY_sign(sign_context,
-                                der_format_signature.ptr, &der_format_signature.len,
-                                hash_to_sign.ptr, hash_to_sign.len);
-    if(ossl_result != 1) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
+    if (t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+        ossl_result = EVP_PKEY_sign(sign_context,
+                                    der_format_signature.ptr,
+                                    &der_format_signature.len,
+                                    hash_to_sign.ptr,
+                                    hash_to_sign.len);
+        if(ossl_result != 1) {
+            return_value = T_COSE_ERR_SIG_FAIL;
+            goto Done;
+        }
+
+        /* The signature produced by OpenSSL is DER-encoded. That encoding
+         * has to be removed and turned into the serialization format used
+         * by COSE. It is unfortunate that the OpenSSL APIs that create
+         * signatures that are not in DER-format are slated for
+         * deprecation.
+         */
+        *signature = ecdsa_signature_der_to_cose(
+                signing_key_evp,
+                q_usefulbuf_const(der_format_signature),
+                signature_buffer);
+
+        if(q_useful_buf_c_is_null(*signature)) {
+            return_value = T_COSE_ERR_SIG_FAIL;
+            goto Done;
+        }
+
+        return_value = T_COSE_SUCCESS;
+    } else if (t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
+        /* signature->len gets adjusted to match just the signature size.
+         */
+        *signature = q_usefulbuf_const(signature_buffer);
+        ossl_result = EVP_PKEY_sign(sign_context,
+                                    signature_buffer.ptr,
+                                    &signature->len,
+                                    hash_to_sign.ptr,
+                                    hash_to_sign.len);
+
+        if(ossl_result != 1) {
+          return_value = T_COSE_ERR_SIG_FAIL;
+          goto Done;
+        }
+
+        return_value = T_COSE_SUCCESS;
+    } else {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
-
-
-    /* The signature produced by OpenSSL is DER-encoded. That encoding
-     * has to be removed and turned into the serialization format used
-     * by COSE. It is unfortunate that the OpenSSL APIs that create
-     * signatures that are not in DER-format are slated for
-     * deprecation.
-     */
-    *signature = signature_der_to_cose((unsigned)key_size_bytes,
-                                       q_usefulbuf_const(der_format_signature),
-                                       signature_buffer);
-    if(q_useful_buf_c_is_null(*signature)) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    /* Everything succeeded */
-    return_value = T_COSE_SUCCESS;
 
 Done:
     /* This checks for NULL before free, so it is not
@@ -455,41 +586,53 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
     EVP_PKEY_CTX          *verify_context = NULL;
     EVP_PKEY              *verification_key_evp;
     unsigned               key_size;
-    MakeUsefulBufOnStack(  der_format_buffer, T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
+
+    /* This buffer is used to convert COSE ECDSA signature to DER format,
+     * before it can be consumed by OpenSSL. When RSA signatures are
+     * selected the buffer is unused.
+     */
+    MakeUsefulBufOnStack(  der_format_buffer, T_COSE_MAX_ECDSA_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
     struct q_useful_buf_c  der_format_signature;
 
     /* This implementation doesn't use any key store with the ability
      * to look up a key based on kid. */
     (void)kid;
 
-    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id) &&
+       !t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
 
     /* Get the verification key in an EVP_PKEY structure which is what
-     * is needed for sig verification. This also gets the key size
-     * which is needed to convert the format of the signature. */
-    return_value = key_convert_and_size(verification_key,
-                                        &verification_key_evp,
-                                        &key_size);
+     * is needed for sig verification. */
+    return_value = key_convert(verification_key, &verification_key_evp);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    /* Unfortunately the officially supported OpenSSL API supports
-     * only DER-encoded signatures so the COSE format signatures must
-     * be converted to DER for verification. This requires a temporary
-     * buffer and a fair bit of work inside signature_cose_to_der().
-     */
-    return_value = signature_cose_to_der(key_size,
-                                         cose_signature,
-                                         der_format_buffer,
-                                        &der_format_signature);
-    if(return_value) {
+    if (t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+        /* Unfortunately the officially supported OpenSSL API supports
+         * only DER-encoded signatures so the COSE format ECDSA signatures must
+         * be converted to DER for verification. This requires a temporary
+         * buffer and a fair bit of work inside ecdsa_signature_cose_to_der().
+         */
+        return_value = ecdsa_signature_cose_to_der(verification_key_evp,
+                                                   cose_signature,
+                                                   der_format_buffer,
+                                                   &der_format_signature);
+        if(return_value) {
+          goto Done;
+        }
+    } else if (t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
+        /* COSE RSA signatures are already in the format OpenSSL
+         * expects, they can be used without any re-encoding.
+         */
+        der_format_signature = cose_signature;
+    } else {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
-
 
     /* Create the verification context and set it up with the
      * necessary verification key.
@@ -503,6 +646,11 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
     ossl_result = EVP_PKEY_verify_init(verify_context);
     if(ossl_result != 1) {
         return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    return_value = configure_pkey_context(verify_context, cose_algorithm_id);
+    if (return_value) {
         goto Done;
     }
 
@@ -553,13 +701,13 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
         nid = NID_sha256;
         break;
 
-#ifndef T_COSE_DISABLE_ES384
+#if !defined(T_COSE_DISABLE_ES384) || !defined(T_COSE_DISABLE_PS384)
     case COSE_ALGORITHM_SHA_384:
         nid = NID_sha384;
         break;
 #endif
 
-#ifndef T_COSE_DISABLE_ES512
+#if !defined(T_COSE_DISABLE_ES512) || !defined(T_COSE_DISABLE_PS512)
     case COSE_ALGORITHM_SHA_512:
         nid = NID_sha512;
         break;

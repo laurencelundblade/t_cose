@@ -45,6 +45,15 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_ES512
            cose_algorithm_id == COSE_ALGORITHM_ES512 ? COSE_ALGORITHM_SHA_512 :
 #endif
+#ifndef T_COSE_DISABLE_PS256
+           cose_algorithm_id == COSE_ALGORITHM_PS256 ? COSE_ALGORITHM_SHA_256 :
+#endif
+#ifndef T_COSE_DISABLE_PS384
+           cose_algorithm_id == COSE_ALGORITHM_PS384 ? COSE_ALGORITHM_SHA_384 :
+#endif
+#ifndef T_COSE_DISABLE_PS512
+           cose_algorithm_id == COSE_ALGORITHM_PS512 ? COSE_ALGORITHM_SHA_512 :
+#endif
                                                        T_COSE_INVALID_ALGORITHM_ID;
 }
 

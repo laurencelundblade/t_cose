@@ -50,6 +50,6 @@ int_fast32_t sign_verify_get_size_test(void);
 /*
  * Test against known good messages.
  */
-int_fast32_t known_good_test(void);
+int_fast32_t sign_verify_known_good_test(void);
 
 #endif /* t_cose_sign_verify_test_h */
