@@ -172,7 +172,7 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
     /* Mbed TLS AES-KW Variables */
     mbedtls_nist_kw_context ctx;
     int                     ret;
-    uint32_t                res_len;
+    size_t                  res_len;
 
     mbedtls_nist_kw_init(&ctx);
 
