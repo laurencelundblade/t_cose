@@ -753,11 +753,13 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
     }
 
     if (parameters.cose_algorithm_id != cose_algorithm_id) {
+        return_value = 2000 + (int32_t)result;
+        goto Done2;
     }
 
     result = make_key_pair(cose_algorithm_id, &key_pair);
     if(result) {
-        return_value = 2000 + (int32_t)result;
+        return_value = 3000 + (int32_t)result;
         goto Done2;
     }
 
@@ -768,12 +770,12 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
                                  &payload,
                                  &parameters);
     if(result) {
-        return_value = 3000 + (int32_t)result;
+        return_value = 4000 + (int32_t)result;
         goto Done;
     }
 
     if(q_useful_buf_compare(payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))) {
-        return_value = 4000;
+        return_value = 5000;
         goto Done;
     }
 
