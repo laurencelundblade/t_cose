@@ -231,7 +231,7 @@ int RunTestsTCose(const char    *szTestNames[],
             }
         }
 
-        int nTestResult = (t->test_fun)();
+        int32_t nTestResult = (int32_t)(t->test_fun)();
         nTestsRun++;
         if(pfOutput) {
             (*pfOutput)(t->szTestName, poutCtx, 0);

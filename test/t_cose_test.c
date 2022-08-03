@@ -1620,7 +1620,7 @@ int_fast32_t get_size_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t indef_array_and_map_test()
+int_fast32_t indef_array_and_map_test()
 {
     enum t_cose_err_t  return_value;
     uint32_t           t_opts;

@@ -14,6 +14,7 @@
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_make_test_pub_key.h"
+#include "t_cose_sign_verify_test.h"
 
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
@@ -787,7 +788,7 @@ Done2:
 
 int_fast32_t sign_verify_known_good_test(void)
 {
-    int32_t return_value;
+    int_fast32_t return_value;
 
     return_value = known_good_test(T_COSE_ALGORITHM_ES256,
                                    Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_ossl_crypto_es256));

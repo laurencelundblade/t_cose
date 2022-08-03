@@ -195,7 +195,7 @@ void free_key_pair(struct t_cose_key key_pair)
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-int check_for_key_pair_leaks()
+int check_for_key_pair_leaks(void)
 {
     /* The key allocation counters are private data structures, but
      * they are the only way to do the valuable test for key
