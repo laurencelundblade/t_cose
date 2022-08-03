@@ -427,10 +427,6 @@ t_cose_crypto_hmac_sign_setup(struct t_cose_crypto_hmac *hmac_ctx,
     psa_algorithm_t psa_alg;
     psa_status_t psa_ret;
 
-    if(!hmac_ctx) {
-        return T_COSE_ERR_INVALID_ARGUMENT;
-    }
-
     /* Map the algorithm ID */
     psa_alg = cose_hmac_alg_id_to_psa(cose_alg_id);
     if(!PSA_ALG_IS_MAC(psa_alg)) {
@@ -466,10 +462,6 @@ t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
 {
     psa_status_t psa_ret;
 
-    if(!hmac_ctx) {
-        return T_COSE_ERR_INVALID_ARGUMENT;
-    }
-
     psa_ret = psa_mac_update(&hmac_ctx->op_ctx,
                               payload.ptr, payload.len);
 
@@ -485,10 +477,6 @@ t_cose_crypto_hmac_sign_finish(struct t_cose_crypto_hmac *hmac_ctx,
                                struct q_useful_buf_c     *tag)
 {
     psa_status_t psa_ret;
-
-    if(!hmac_ctx) {
-        return T_COSE_ERR_INVALID_ARGUMENT;
-    }
 
     psa_ret = psa_mac_sign_finish(&hmac_ctx->op_ctx,
                                    tag_buf.ptr, tag_buf.len,
