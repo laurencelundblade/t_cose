@@ -89,12 +89,16 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  *
- * The input to the public key signature algorithm in COSE is the hash
- * of a CBOR encoded structure containing the protected parameters
- * algorithm ID and a few other things. This formats that structure
- * and computes the hash of it. These are known as the to-be-signed or
- * "TBS" bytes. The exact specification is in [RFC 8152 section
+ * The input to the public key signature algorithm in COSE is a CBOR
+ * encoded structure containing the protected parameters algorithm ID
+ * and a few other things. These are known as the to-be-signed or "TBS"
+ * bytes. The exact specification is in [RFC 8152 section
  * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
+ *
+ * Most algorithms use a hash of these bytes, which this function
+ * computes incrementally. If the entire TBS structure is needed
+ * (for signing with EdDSA for example), the \ref create_tbs function
+ * can be used instead.
  *
  * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
@@ -105,6 +109,33 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
                                   struct q_useful_buf         buffer_for_hash,
                                   struct q_useful_buf_c      *hash);
 
+/**
+ * Serialize the to-be-signed (TBS) bytes for COSE.
+ *
+ * \param[in] protected_parameters  Full, CBOR encoded, protected parameters.
+ * \param[in] aad                   Additional Authenitcated Data to be
+ *                                  included in TBS.
+ * \param[in] payload               The CBOR-encoded payload.
+ * \param[in] buffer_for_hash       Pointer and length of buffer into which
+ *                                  the resulting TBS bytes is put.
+ * \param[out] hash                 Pointer and length of the
+ *                                  resulting TBS bytes.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * The input to the public key signature algorithm in COSE is a CBOR
+ * encoded structure containing the protected parameters algorithm ID
+ * and a few other things. These are known as the to-be-signed or "TBS"
+ * bytes. The exact specification is in [RFC 8152 section
+ * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
+ *
+ * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
+ */
+enum t_cose_err_t create_tbs(struct q_useful_buf_c  protected_parameters,
+                             struct q_useful_buf_c  aad,
+                             struct q_useful_buf_c  payload,
+                             struct q_useful_buf    buffer_for_tbs,
+                             struct q_useful_buf_c *tbs);
 
 
 

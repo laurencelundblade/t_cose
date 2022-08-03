@@ -795,3 +795,72 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
     return ossl_result ? T_COSE_SUCCESS : T_COSE_ERR_HASH_GENERAL_FAIL;
 }
 
+#ifndef T_COSE_DISABLE_EDDSA
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
+                           struct q_useful_buf_c kid,
+                           struct q_useful_buf_c tbs,
+                           struct q_useful_buf_c signature)
+{
+    enum t_cose_err_t return_value;
+    int               ossl_result;
+    EVP_MD_CTX       *verify_context = NULL;
+    EVP_PKEY         *verification_key_evp;
+
+    /* This implementation doesn't use any key store with the ability
+     * to look up a key based on kid. */
+    (void)kid;
+
+    return_value = key_convert(verification_key, &verification_key_evp);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    verify_context = EVP_MD_CTX_new();
+    if(verify_context == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
+    }
+
+    ossl_result = EVP_DigestVerifyInit(verify_context,
+                                       NULL,
+                                       NULL,
+                                       NULL,
+                                       verification_key_evp);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /** Must use EVP_DigestVerify rather than EVP_PKEY_verify, since
+     * the tbs data is not hashed yet. Because of how EdDSA works, we
+     * cannot hash the data ourselves separately.
+     */
+    ossl_result = EVP_DigestVerify(verify_context,
+                                   signature.ptr,
+                                   signature.len,
+                                   tbs.ptr,
+                                   tbs.len);
+    if(ossl_result == 0) {
+        /* The operation succeeded, but the signature doesn't match */
+        return_value = T_COSE_ERR_SIG_VERIFY;
+        goto Done;
+    } else if (ossl_result != 1) {
+        /* Failed before even trying to verify the signature */
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Everything succeeded */
+    return_value = T_COSE_SUCCESS;
+
+Done:
+     EVP_MD_CTX_free(verify_context);
+
+    return return_value;
+}
+#endif /* T_COSE_DISABLE_EDDSA */
+

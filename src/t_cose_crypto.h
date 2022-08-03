@@ -236,7 +236,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  *                              hasn't been registered.
  * \param[in] verification_key  The verification key to use.
  * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] hash_to_verify    The data or hash that is to be verified.
+ * \param[in] hash_to_verify    The hash of the data that is to be verified.
  * \param[in] signature         The COSE-format signature.
  *
  * This verifies that the \c signature passed in was over the \c
@@ -279,8 +279,54 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature);
 
-
-
+#ifndef T_COSE_DISABLE_EDDSA
+/**
+ * \brief Perform public key signature verification for EdDSA.
+ * Part of the t_cose crypto adaptation layer.
+ *
+ * The EdDSA signing algorithm (or more precisely its PureEdDSA
+ * variant, used in COSE) requires two passes over the input data.
+ * This requires the whole to-be-signed structure to be held in
+ * memory and given as an argument to this function, rather than
+ * an incrementally computed hash.
+ *
+ * \param[in] verification_key  The verification key to use.
+ * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] tbs               The data to be verified.
+ * \param[in] signature         The COSE-format signature.
+ *
+ * The key selected must be of the correct type for EdDSA
+ * signatures.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The signature is valid
+ * \retval T_COSE_ERR_SIG_VERIFY
+ *         Signature verification failed. For example, the
+ *         cryptographic operations completed successfully but hash
+ *         wasn't as expected.
+ * \retval T_COSE_ERR_UNKNOWN_KEY
+ *         The key identified by \c key_select or a \c kid was
+ *         not found.
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key was found, but it was the wrong type
+ *         for the operation.
+ * \retval T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
+ *         EdDSA signatures are not supported.
+ * \retval T_COSE_ERR_INVALID_ARGUMENT
+ *         Some (unspecified) argument was not valid.
+ * \retval T_COSE_ERR_INSUFFICIENT_MEMORY
+ *         Out of heap memory.
+ * \retval T_COSE_ERR_FAIL
+ *         General unspecific failure.
+ * \retval T_COSE_ERR_TAMPERING_DETECTED
+ *         Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED.
+ */
+enum t_cose_err_t
+t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
+                           struct q_useful_buf_c kid,
+                           struct q_useful_buf_c tbs,
+                           struct q_useful_buf_c signature);
+#endif /* T_COSE_DISABLE_EDDSA */
 
 #ifdef T_COSE_USE_PSA_CRYPTO
 #include "psa/crypto.h"

@@ -8,6 +8,7 @@
  * See BSD-3-Clause license in README.md
  */
 
+#include <stdlib.h>
 #include "t_cose/t_cose_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
@@ -729,6 +730,22 @@ static const uint8_t signed_cose_made_by_psa_crypto_ps512[] = {
 };
 #endif /* T_COSE_DISABLE_PS512 */
 
+#if !defined(T_COSE_DISABLE_EDDSA) && defined(T_COSE_CRYPTO_LIB_OPENSSL)
+static const uint8_t signed_cose_made_by_pycose_eddsa[] = {
+    0xd2, 0x84, 0x43, 0xa1, 0x01, 0x27, 0xa0, 0x47,
+    0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x58,
+    0x40, 0x17, 0x02, 0xb0, 0xf2, 0x3f, 0x47, 0xe8,
+    0x9f, 0xab, 0x39, 0xcd, 0xd3, 0xd6, 0x5a, 0x57,
+    0x76, 0x37, 0xb2, 0xbc, 0x8e, 0xd1, 0xe3, 0xa9,
+    0xc1, 0x4d, 0xf3, 0xbf, 0x4a, 0x93, 0x4c, 0xe7,
+    0xe2, 0xa8, 0xae, 0x46, 0xb5, 0x82, 0x48, 0x79,
+    0xde, 0x7b, 0x81, 0xd0, 0x25, 0xbc, 0xf8, 0x32,
+    0xab, 0x41, 0x00, 0xc5, 0xd9, 0x39, 0xc7, 0xf2,
+    0x07, 0x27, 0x70, 0xf3, 0x76, 0xd2, 0x8d, 0xbe,
+    0x00
+};
+#endif
+
 static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c signed_message)
 {
     int32_t                        return_value;
@@ -737,15 +754,17 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
     struct t_cose_key              key_pair;
     struct q_useful_buf_c          payload;
     struct t_cose_parameters       parameters;
+    struct q_useful_buf            sigstruct_buffer = { NULL, SIZE_MAX };
 
     /**
      * Decode the signed message once without a key, to extract
-     * the algorithm ID.
+     * the algorithm ID and sigstruct buffer size.
      *
      * We don't strictly need this step, since the algorithm
      * is passed as an argument, but it is a nice sanity check.
      */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
+    t_cose_sign1_verify_set_sigstruct_buffer(&verify_ctx, &sigstruct_buffer);
     result = t_cose_sign1_verify(&verify_ctx,
                                  signed_message,
                                  &payload,
@@ -760,6 +779,10 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
         goto Done2;
     }
 
+    if (sigstruct_buffer.len > 0) {
+        sigstruct_buffer.ptr = malloc(sigstruct_buffer.len);
+    }
+
     result = make_key_pair(cose_algorithm_id, &key_pair);
     if(result) {
         return_value = 3000 + (int32_t)result;
@@ -767,6 +790,7 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
     }
 
     t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_verify_set_sigstruct_buffer(&verify_ctx, &sigstruct_buffer);
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
     result = t_cose_sign1_verify(&verify_ctx,
                                  signed_message,
@@ -846,6 +870,16 @@ int_fast32_t sign_verify_known_good_test(void)
         goto Done;
     }
 #endif /* T_COSE_DISABLE_PS512 */
+
+#if !defined(T_COSE_DISABLE_EDDSA) && defined(T_COSE_CRYPTO_LIB_OPENSSL)
+    /** Only OpenSSL supports EDDSA. */
+    return_value = known_good_test(T_COSE_ALGORITHM_EDDSA,
+                                   Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_pycose_eddsa));
+    if (return_value) {
+        return_value = 70000 + return_value;
+        goto Done;
+    }
+#endif /* T_COSE_DISABLE_EDDSA */
 
     /* Can't make signed messages and compare them to a known good
      * value because signatures have a random component. They are

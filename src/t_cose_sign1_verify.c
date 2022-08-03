@@ -211,8 +211,6 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     enum t_cose_err_t             return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    struct q_useful_buf_c         tbs_hash;
     struct q_useful_buf_c         signature;
     struct t_cose_label_list      critical_parameter_labels;
     struct t_cose_label_list      unknown_parameter_labels;
@@ -221,6 +219,17 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     struct q_useful_buf_c         short_circuit_kid;
 #endif
+
+    /** If EDDSA is used, the TBS data is serialized to the
+     * me->sigstruct_buffer, and tbs is used to point to the
+     * relevant data. Otherwise, the TBS data is hashed
+     * incrementally into buffer_for_tbs_hash/tbs_hash.
+     */
+#ifndef T_COSE_DISABLE_EDDSA
+    struct q_useful_buf_c         tbs;
+#endif
+    Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    struct q_useful_buf_c         tbs_hash;
 
     clear_label_list(&unknown_parameter_labels);
     clear_label_list(&critical_parameter_labels);
@@ -309,14 +318,59 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     }
 
 
+    /** If using EdDSA, we need to serialize the Sig_structure (rather
+     * than hashing it incrementally) before signing. We do this before
+     * checking for the DECODE_ONLY option, as this allows the caller
+     * to discover the necessary buffer size (create_tbs supports a
+     * NULL sigstruct_buffer, and we write back to it the size the
+     * structure would have occupied).
+     */
+    if (me->sigstruct_buffer != NULL) {
+#ifndef T_COSE_DISABLE_EDDSA
+        if (parameters.cose_algorithm_id == COSE_ALGORITHM_EDDSA) {
+            return_value = create_tbs(protected_parameters,
+                    aad,
+                    *payload,
+                    *me->sigstruct_buffer,
+                    &tbs);
+            if (return_value) {
+                goto Done;
+            }
+            me->sigstruct_buffer->len = tbs.len;
+        } else {
+            /* Set the buffer length to 0, so the caller knows
+             * it doesn't need to allocate a buffer.
+             */
+            me->sigstruct_buffer->len = 0;
+        }
+#else
+        me->sigstruct_buffer->len = 0;
+#endif /* T_COSE_DISABLE_EDDSA */
+    }
+
     /* -- Skip signature verification if requested --*/
     if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
 
+#ifndef T_COSE_DISABLE_EDDSA
+    if (parameters.cose_algorithm_id == COSE_ALGORITHM_EDDSA) {
+        if (me->sigstruct_buffer == NULL || me->sigstruct_buffer->ptr == NULL) {
+            return_value = T_COSE_NEED_SIGSTRUCT_BUFFER;
+            goto Done;
+        }
 
-    /* -- Compute the TBS bytes -- */
+        return_value = t_cose_crypto_verify_eddsa(
+                me->verification_key,
+                parameters.kid,
+                tbs,
+                signature);
+        goto Done;
+    }
+#endif /* T_COSE_DISABLE_EDDSA */
+
+    /* -- Compute the TBS hash -- */
     return_value = create_tbs_hash(parameters.cose_algorithm_id,
                                    protected_parameters,
                                    aad,
@@ -326,7 +380,6 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     if(return_value) {
         goto Done;
     }
-
 
     /* -- Check for short-circuit signature and verify if it exists -- */
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
@@ -341,7 +394,6 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
 
     /* -- Verify the signature (if it wasn't short-circuit) -- */
     return_value = t_cose_crypto_verify(parameters.cose_algorithm_id,

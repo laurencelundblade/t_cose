@@ -57,8 +57,38 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
                                                        T_COSE_INVALID_ALGORITHM_ID;
 }
 
+/*
+ * Public function. See t_cose_util.h
+ */
+enum t_cose_err_t
+create_tbs(struct q_useful_buf_c  protected_parameters,
+           struct q_useful_buf_c  aad,
+           struct q_useful_buf_c  payload,
+           struct q_useful_buf    buffer_for_tbs,
+           struct q_useful_buf_c *tbs)
+{
+    enum t_cose_err_t   return_value;
 
+    QCBOREncodeContext  cbor_context;
+    QCBOREncode_Init(&cbor_context, buffer_for_tbs);
 
+    QCBOREncode_OpenArray(&cbor_context);
+    QCBOREncode_AddSZString(&cbor_context, COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    QCBOREncode_AddBytes(&cbor_context, protected_parameters);
+    QCBOREncode_AddBytes(&cbor_context, aad);
+    QCBOREncode_AddBytes(&cbor_context, payload);
+    QCBOREncode_CloseArray(&cbor_context);
+
+    if(QCBOREncode_Finish(&cbor_context, tbs)) {
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        goto Done;
+    }
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
+}
 
 /**
  * \brief Hash an encoded bstr without actually encoding it in memory

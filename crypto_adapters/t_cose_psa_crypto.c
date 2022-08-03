@@ -136,6 +136,26 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
     return return_value;
 }
 
+#ifndef T_COSE_DISABLE_EDDSA
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
+                           struct q_useful_buf_c kid,
+                           struct q_useful_buf_c tbs,
+                           struct q_useful_buf_c signature)
+{
+    (void)verification_key;
+    (void)kid;
+    (void)tbs;
+    (void)signature;
+
+    /* MbedTLS does not support EdDSA */
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+#endif
+
 
 /*
  * See documentation in t_cose_crypto.h

@@ -187,14 +187,21 @@ struct t_cose_parameters {
 
 
 /**
- * Context for signature verification.  It is about 56 bytes on a
- * 64-bit machine and 42 bytes on a 32-bit machine.
+ * Context for signature verification.  It is about 64 bytes on a
+ * 64-bit machine and 46 bytes on a 32-bit machine.
  */
 struct t_cose_sign1_verify_ctx {
     /* Private data structure */
     struct t_cose_key     verification_key;
     uint32_t              option_flags;
     uint64_t              auTags[T_COSE_MAX_TAGS_TO_RETURN];
+
+    /**
+     * A auxiliary buffer provided by the caller, used to serialize
+     * the Sig_Structure. This is only needed when using EdDSA, as
+     * otherwise the Sig_Structure is hashed incrementally.
+     */
+    struct q_useful_buf  *sigstruct_buffer;
 };
 
 
@@ -263,6 +270,34 @@ static void
 t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
                                   struct t_cose_key               verification_key);
 
+
+/**
+ * \brief Configure a buffer used to serialize the Sig_Structure.
+ *
+ * \param[in,out] context           The t_cose signature verification context.
+ * \param[in,out] sigstruct_buffer  The buffer used to serialize the Sig_Structure.
+ *
+ * Some signature algorithms (namely EdDSA), require two passes over
+ * their input. In order to achieve this, the library needs to serialize
+ * a temporary to-be-signed structure into an auxiliary buffer. This function
+ * allows the user to configure such a buffer.
+ *
+ * The buffer must be big enough to accomodate the Sig_Structure type,
+ * which is roughly the sum of sizes of the encoded protected parameters, aad
+ * and payload, along with a few dozen bytes of overhead.
+ *
+ * To compute the exact size needed, initialize the context with
+ * the \ref T_COSE_OPT_DECODE_ONLY option, call this function with a
+ * pointer to a q_useful_buf with a NULL pointer and a large length
+ * (eg. \c UINT32_MAX), and finally, call \ref t_cose_sign1_verify
+ * (or similar). After the message is decoded, the buffer's length will
+ * be shortened to match the necessary size. The buffer's length might
+ * be set to 0, if the signature algorithm does not need a separate
+ * buffer.
+ */
+static void
+t_cose_sign1_verify_set_sigstruct_buffer(struct t_cose_sign1_verify_ctx *context,
+                                         struct q_useful_buf            *sigstruct_buffer);
 
 /**
  * \brief Verify a \c COSE_Sign1.
@@ -421,6 +456,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
 {
     me->option_flags = option_flags;
     me->verification_key = T_COSE_NULL_KEY;
+    me->sigstruct_buffer = NULL;
 }
 
 
@@ -429,6 +465,13 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
                                   struct t_cose_key               verification_key)
 {
     me->verification_key = verification_key;
+}
+
+static inline void
+t_cose_sign1_verify_set_sigstruct_buffer(struct t_cose_sign1_verify_ctx *me,
+                                         struct q_useful_buf            *sigstruct_buffer)
+{
+    me->sigstruct_buffer = sigstruct_buffer;
 }
 
 

@@ -74,6 +74,19 @@ extern "C" {
 #define T_COSE_ALGORITHM_ES256 -7
 
 /**
+ * \def T_COSE_ALGORITHM_EDDSA
+ *
+ * \brief Indicates EDDSA, as described by RFC8032.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * Keys using either the edwards25519 or edwards448 curves can be used
+ * with this algorithm.
+ */
+#define T_COSE_ALGORITHM_EDDSA -8
+
+/**
  * \def T_COSE_ALGORITHM_ES384
  *
  * \brief Indicates ECDSA with SHA-384.
@@ -346,10 +359,11 @@ enum t_cose_err_t {
      * cryptographic library used by this integration of t_cose.
      */
     T_COSE_ERR_INCORRECT_KEY_FOR_LIB = 29,
+
     /** This implementation only handles integer COSE algorithm IDs with
      * values less than \c INT32_MAX. */
-
     T_COSE_ERR_NON_INTEGER_ALG_ID = 30,
+
     /** The content type parameter contains a content type that is
      * neither integer or text string or it is an integer not in the
      * range of 0 to \c UINT16_MAX. */
@@ -380,6 +394,11 @@ enum t_cose_err_t {
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when
      * verifying a signature. */
     T_COSE_ERR_TOO_MANY_TAGS = 37,
+
+    /** The signature algorithm needs an extra buffer, but none was provided.
+     * See \ref t_cose_sign1_verify_set_sigstruct_buffer for more details.
+     */
+    T_COSE_NEED_SIGSTRUCT_BUFFER = 38,
 };
 
 
