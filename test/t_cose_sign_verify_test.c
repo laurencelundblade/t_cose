@@ -371,7 +371,8 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
     struct t_cose_key              key_pair;
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
-    enum t_cose_err_t              return_value;
+    int32_t                        return_value;
+    enum t_cose_err_t              result;
     struct q_useful_buf            nil_buf;
     size_t                         calculated_size;
     QCBORError                     cbor_error;
@@ -380,14 +381,18 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
     struct q_useful_buf_c          payload;
     size_t                         sig_size;
 
-    return_value = make_key_pair(cose_algorithm_id, &key_pair);
-    if(return_value) {
-        return 1000 + (int32_t)return_value;
+    result = make_key_pair(cose_algorithm_id, &key_pair);
+    if(result) {
+        return 1000 + (int32_t)result;
     }
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
-    return_value = t_cose_crypto_sig_size(cose_algorithm_id, key_pair, &sig_size);
+    result = t_cose_crypto_sig_size(cose_algorithm_id, key_pair, &sig_size);
+    if(result) {
+        return_value = 2000 + (int32_t)result;
+        goto Done;
+    }
 
     /* ---- First calculate the size ----- */
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
@@ -396,23 +401,23 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
     t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
 
-    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return_value = 2000 + (int32_t)return_value;
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return_value = 3000 + (int32_t)result;
         goto Done;
     }
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return_value = 3000 + (int32_t)return_value;
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return_value = 4000 + (int32_t)result;
         goto Done;
     }
 
     cbor_error = QCBOREncode_FinishGetSize(&cbor_encode, &calculated_size);
     if(cbor_error) {
-        return_value = 4000 + (int32_t)cbor_error;
+        return_value = 5000 + (int32_t)cbor_error;
         goto Done;
     }
 
@@ -432,17 +437,17 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
     t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
 
-    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return_value = 5000 + (int32_t)return_value;
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return_value = 6000 + (int32_t)result;
         goto Done;
     }
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return_value = 6000 + (int32_t)return_value;
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return_value = 7000 + (int32_t)result;
         goto Done;
     }
 
@@ -455,12 +460,12 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
     /* ---- Again with one-call API to make COSE_Sign1 ---- */\
     t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
-    return_value = t_cose_sign1_sign(&sign_ctx,
-                                     payload,
-                                     signed_cose_buffer,
-                                     &actual_signed_cose);
-    if(return_value) {
-        return_value = 7000 + (int32_t)return_value;
+    result = t_cose_sign1_sign(&sign_ctx,
+                                payload,
+                                signed_cose_buffer,
+                               &actual_signed_cose);
+    if(result) {
+        return_value = 8000 + (int32_t)result;
         goto Done;
     }
 
