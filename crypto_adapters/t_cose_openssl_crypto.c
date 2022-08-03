@@ -65,7 +65,7 @@
  */
 static unsigned ecdsa_key_size(EVP_PKEY *key_evp)
 {
-    unsigned key_len_bits;
+    int key_len_bits;
     unsigned key_len_bytes;
 
     key_len_bits = EVP_PKEY_bits(key_evp);
@@ -297,9 +297,6 @@ static enum t_cose_err_t
 key_convert(struct t_cose_key  t_cose_key, EVP_PKEY **return_ossl_ec_key)
 {
     enum t_cose_err_t  return_value;
-    int                key_len_bits; /* type unsigned is conscious choice */
-    unsigned           key_len_bytes; /* type unsigned is conscious choice */
-    EVP_PKEY          *ossl_ec_key;
 
     /* Check the signing key and get it out of the union */
     if(t_cose_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
@@ -345,7 +342,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
         return_value = T_COSE_SUCCESS;
         goto Done;
     } else if(t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
-        *sig_size = EVP_PKEY_size(signing_key_evp);
+        *sig_size = (size_t)EVP_PKEY_size(signing_key_evp);
         return_value = T_COSE_SUCCESS;
         goto Done;
     } else {
@@ -585,7 +582,6 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
     enum t_cose_err_t      return_value;
     EVP_PKEY_CTX          *verify_context = NULL;
     EVP_PKEY              *verification_key_evp;
-    unsigned               key_size;
 
     /* This buffer is used to convert COSE ECDSA signature to DER format,
      * before it can be consumed by OpenSSL. When RSA signatures are

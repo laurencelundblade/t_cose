@@ -210,10 +210,15 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
     signing_key_psa = (mbedtls_svc_key_id_t)signing_key.k.key_handle;
     key_attributes = psa_key_attributes_init();
     status = psa_get_key_attributes(signing_key_psa, &key_attributes);
+    return_value = psa_status_to_t_cose_error_signing(status);
+    if(return_value) {
+        goto Done;
+    }
+
     key_type = psa_get_key_type(&key_attributes);
     key_len_bits = psa_get_key_bits(&key_attributes);
+    *sig_size = (size_t)PSA_SIGN_OUTPUT_SIZE(key_type, (int)key_len_bits, psa_alg_id);
 
-    *sig_size = PSA_SIGN_OUTPUT_SIZE(key_type, key_len_bits, psa_alg_id);
     return_value = T_COSE_SUCCESS;
 
 Done:

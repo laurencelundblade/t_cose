@@ -1523,7 +1523,7 @@ int_fast32_t tags_test()
 }
 
 
-int32_t get_size_test()
+int_fast32_t get_size_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;

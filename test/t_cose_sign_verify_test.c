@@ -364,8 +364,8 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-static int size_test(int32_t               cose_algorithm_id,
-                     struct q_useful_buf_c kid)
+static int_fast32_t size_test(int32_t               cose_algorithm_id,
+                              struct q_useful_buf_c kid)
 {
     struct t_cose_key              key_pair;
     struct t_cose_sign1_sign_ctx   sign_ctx;
@@ -482,9 +482,7 @@ Done:
  */
 int_fast32_t sign_verify_get_size_test()
 {
-    enum t_cose_err_t   return_value;
-    struct t_cose_key   key_pair;
-    int32_t             result;
+    int_fast32_t result;
 
     result = size_test(T_COSE_ALGORITHM_ES256, NULL_Q_USEFUL_BUF_C);
     if(result) {
