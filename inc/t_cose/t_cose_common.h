@@ -2,7 +2,7 @@
  * t_cose_common.h
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -536,6 +536,7 @@ enum t_cose_err_t {
     T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
 
     T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
+
     /**
      * When verifying a \c COSE_Mac0, something is wrong with the
      * format of the CBOR. For example, it is missing something like
