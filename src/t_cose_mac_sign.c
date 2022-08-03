@@ -205,10 +205,12 @@ Done:
 
 
 enum t_cose_err_t
-t_cose_mac_sign(struct t_cose_mac_sign_ctx *sign_ctx,
-                 struct q_useful_buf_c      payload,
-                 struct q_useful_buf        out_buf,
-                 struct q_useful_buf_c     *result)
+t_cose_sign_one_short(struct t_cose_mac_sign_ctx *context,
+                      bool                         payload_is_detached,
+                      struct q_useful_buf_c        aad,
+                      struct q_useful_buf_c        payload,
+                      struct q_useful_buf          out_buf,
+                      struct q_useful_buf_c       *result)
 {
     QCBOREncodeContext  encode_ctx;
     enum t_cose_err_t   return_value;
@@ -217,14 +219,14 @@ t_cose_mac_sign(struct t_cose_mac_sign_ctx *sign_ctx,
     QCBOREncode_Init(&encode_ctx, out_buf);
 
     /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_mac_encode_parameters(sign_ctx, &encode_ctx);
+    return_value = t_cose_mac_encode_parameters(context, &encode_ctx);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
     QCBOREncode_AddEncoded(&encode_ctx, payload);
 
-    return_value = t_cose_mac_encode_tag(sign_ctx,&encode_ctx);
+    return_value = t_cose_mac_encode_tag(context,&encode_ctx);
     if(return_value) {
         goto Done;
     }

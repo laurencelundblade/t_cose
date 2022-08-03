@@ -101,10 +101,33 @@ struct t_cose_mac_sign_ctx {
  * memory requirements by close to half.
  */
 enum t_cose_err_t
+t_cose_sign_one_short(struct t_cose_mac_sign_ctx *context,
+                      bool                        payload_is_detached,
+                      struct q_useful_buf_c       aad,
+                      struct q_useful_buf_c       payload,
+                      struct q_useful_buf         out_buf,
+                      struct q_useful_buf_c      *result);
+
+static enum t_cose_err_t
 t_cose_mac_sign(struct t_cose_mac_sign_ctx *sign_ctx,
-                 struct q_useful_buf_c      payload,
-                 struct q_useful_buf        out_buf,
-                 struct q_useful_buf_c     *result);
+                struct q_useful_buf_c       payload,
+                struct q_useful_buf         out_buf,
+                struct q_useful_buf_c      *result);
+
+
+static enum t_cose_err_t
+t_cose_mac_sign_aad(struct t_cose_mac_sign_ctx *sign_ctx,
+                    struct q_useful_buf_c       aad,
+                    struct q_useful_buf_c       payload,
+                    struct q_useful_buf         out_buf,
+                    struct q_useful_buf_c      *result);
+
+static enum t_cose_err_t
+t_cose_mac_sign_detatched(struct t_cose_mac_sign_ctx *sign_ctx,
+                          struct q_useful_buf_c       aad,
+                          struct q_useful_buf_c       datached_payload,
+                          struct q_useful_buf         out_buf,
+                          struct q_useful_buf_c      *result);
 
 /**
  * \brief  Initialize to start creating a \c COSE_Mac0.
@@ -131,8 +154,8 @@ t_cose_mac_sign(struct t_cose_mac_sign_ctx *sign_ctx,
  */
 static void
 t_cose_mac_sign_init(struct t_cose_mac_sign_ctx *me,
-                      int32_t                    option_flags,
-                      int32_t                    cose_algorithm_id);
+                     uint32_t                    option_flags,
+                     uint32_t                    cose_algorithm_id);
 
 /**
  * \brief  Set the key and kid (key ID) for signing.
@@ -255,8 +278,8 @@ t_cose_mac_set_content_type_tstr(struct t_cose_mac_sign_ctx *context,
  */
 static inline void
 t_cose_mac_sign_init(struct t_cose_mac_sign_ctx *me,
-                      int32_t                    option_flags,
-                      int32_t                    cose_algorithm_id)
+                     uint32_t                    option_flags,
+                     uint32_t                    cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
 
@@ -295,6 +318,52 @@ t_cose_mac_set_content_type_tstr(struct t_cose_mac_sign_ctx *me,
 }
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
+static inline enum t_cose_err_t
+t_cose_mac_sign(struct t_cose_mac_sign_ctx *sign_ctx,
+                struct q_useful_buf_c       payload,
+                struct q_useful_buf         out_buf,
+                struct q_useful_buf_c      *result){
+    return t_cose_sign_one_short(
+        sign_ctx,
+        false,
+        NULL_Q_USEFUL_BUF_C,
+        payload,
+        out_buf,
+        result
+    );
+}
+
+static inline enum t_cose_err_t
+t_cose_mac_sign_aad(struct t_cose_mac_sign_ctx *sign_ctx,
+                    struct q_useful_buf_c       aad,
+                    struct q_useful_buf_c       payload,
+                    struct q_useful_buf         out_buf,
+                    struct q_useful_buf_c      *result){
+    return t_cose_sign_one_short(
+        sign_ctx,
+        false,
+        aad,
+        payload,
+        out_buf,
+        result
+    );
+}
+
+static inline enum t_cose_err_t
+t_cose_mac_sign_detatched(struct t_cose_mac_sign_ctx *sign_ctx,
+                          struct q_useful_buf_c       aad,
+                          struct q_useful_buf_c       detached_payload,
+                          struct q_useful_buf         out_buf,
+                          struct q_useful_buf_c      *result){
+    return t_cose_sign_one_short(
+        sign_ctx,
+        true,
+        NULL_Q_USEFUL_BUF_C,
+        detached_payload,
+        out_buf,
+        result
+    );
+}
 #ifdef __cplusplus
 }
 #endif
