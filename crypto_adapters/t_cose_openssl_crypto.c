@@ -408,6 +408,14 @@ configure_pkey_context(EVP_PKEY_CTX* context, int32_t cose_algorithm_id)
             goto Done;
         }
 
+        /* EVP_PKEY_CTX_set_signature_md and EVP_PKEY_CTX_set_rsa_mgf1_md are
+         * macro wrappers around the EVP_PKEY_CTX_ctrl function, and cast
+         * the `const EVP_MD*` argument into a void*. This would cause a
+         * cast-qual warning, if not for the pragmas. Clang supports GCC
+         * pragmas, so it works on clang too.
+         */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
         ossl_result = EVP_PKEY_CTX_set_signature_md(context, md);
         if(ossl_result != 1) {
             return_value = T_COSE_ERR_SIG_FAIL;
@@ -419,6 +427,7 @@ configure_pkey_context(EVP_PKEY_CTX* context, int32_t cose_algorithm_id)
             return_value = T_COSE_ERR_SIG_FAIL;
             goto Done;
         }
+#pragma GCC diagnostic pop
 
         ossl_result = EVP_PKEY_CTX_set_rsa_pss_saltlen(context, RSA_PSS_SALTLEN_DIGEST);
         if(ossl_result != 1) {
