@@ -179,9 +179,11 @@ Done:
 /*
  * Public function. See t_cose_mac.h
  */
-enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
-                                     struct q_useful_buf_c        cose_mac,
-                                     struct q_useful_buf_c       *payload)
+enum t_cose_err_t t_cose_mac_verify_private(struct t_cose_mac_verify_ctx *context,
+                                            struct q_useful_buf_c         cose_mac,
+                                            struct q_useful_buf_c         aad,
+                                            bool                          payload_is_detached,
+                                            struct q_useful_buf_c        *payload)
 {
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
