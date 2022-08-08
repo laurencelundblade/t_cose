@@ -23,82 +23,6 @@
 
 #ifndef T_COSE_DISABLE_MAC0
 
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/**
- * \brief Create a short-circuit tag
- *
- * \param[in] cose_alg_id  Algorithm ID. This is used only to make
- *                         the short-circuit tag the same size as the
- *                         real tag would be for the particular algorithm.
- * \param[in] header       The Header of COSE_Mac0.
- * \param[in] payload      The payload of COSE_Mac0
- * \param[in] tag_buffer   Pointer and length of buffer into which
- *                         the resulting tag is put.
- * \param[out] tag         Pointer and length of the tag returned.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * This creates the short-circuit tag that is actually a hash of input bytes.
- * This is a test mode only has it has no security value. This is retained in
- * commercial production code as a useful test or demo that can run
- * even if key material is not set up or accessible.
- */
-static inline enum t_cose_err_t
-short_circuit_tag(int32_t                cose_alg_id,
-                  struct q_useful_buf_c  header,
-                  struct q_useful_buf_c  payload,
-                  struct q_useful_buf    tag_buffer,
-                  struct q_useful_buf_c *tag)
-{
-    /* approximate stack use on 32-bit machine: local use: 16 bytes */
-    enum t_cose_err_t         return_value;
-    struct t_cose_crypto_hash hash_ctx;
-    size_t                    tag_size;
-    int32_t                   hash_alg_id;
-
-    /*
-     * The length of Hash result equals that of HMAC result
-     * with the same Hash algorithm.
-     */
-    tag_size = t_cose_tag_size(cose_alg_id);
-
-    /* Check the tag length against buffer size */
-    if(tag_size == INT32_MAX) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
-
-    if(tag_size > tag_buffer.len) {
-        /* Buffer too small for this tag */
-        return_value = T_COSE_ERR_SIG_BUFFER_SIZE;
-        goto Done;
-    }
-
-    hash_alg_id = t_cose_hmac_to_hash_alg_id(cose_alg_id);
-    if(hash_alg_id == INT32_MAX) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
-
-    return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    /* Hash the Header */
-    t_cose_crypto_hash_update(&hash_ctx, q_useful_buf_head(header, header.len));
-
-    /* Hash the payload */
-    t_cose_crypto_hash_update(&hash_ctx, payload);
-
-    return_value = t_cose_crypto_hash_finish(&hash_ctx, tag_buffer, tag);
-
-Done:
-    return return_value;
-}
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
-
 enum t_cose_err_t
 t_cose_sign_one_short(struct t_cose_mac_sign_ctx *context,
                       bool                         payload_is_detached,
@@ -179,21 +103,6 @@ t_cose_mac_encode_parameters(struct t_cose_mac_sign_ctx *me,
      * a COSE_Mac0 message
      */
     QCBOREncode_OpenArray(cbor_encode_ctx);
-
-
-    if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_TAG) {
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        kid = NULL_Q_USEFUL_BUF_C;
-#else
-        return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
-        goto Done;
-#endif
-    } else {
-        /* Get the kid because it goes into the parameters that are about
-         * to be made.
-         */
-        kid = me->kid;
-    }
 
     params_vector[0] = protected_params_arr;
     params_vector[1] = unprotected_params_arr;
@@ -306,30 +215,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_sign_ctx *me,
      * Start the HMAC.
      * Calculate the tag of the first part of ToBeMaced and the wrapped
      * payload, to save a bigger buffer containing the entire ToBeMaced.
-     *
-     * Short-circuit tagging is invoked if requested. It does no HMAC operation
-     * and requires no key. It is just a test mode that works without accessing
-     * any device asset.
      */
-    if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_TAG) {
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        /* Short-circuit tag. Hash is used to generated tag instead of HMAC */
-        return_value = short_circuit_tag(me->cose_algorithm_id,
-                                         tbm_first_part,
-                                         maced_payload,
-                                         tag_buf,
-                                         &tag);
-        if(return_value) {
-            goto Done;
-        }
-
-        goto CloseArray;
-#else
-        return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
-        goto Done;
-#endif
-    }
-
     return_value = t_cose_crypto_hmac_sign_setup(&hmac_ctx,
                                                  me->signing_key,
                                                  me->cose_algorithm_id);

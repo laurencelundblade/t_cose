@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include "qcbor/qcbor.h"
 #include "t_cose_common.h"
+#include "t_cose/t_cose_parameters.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,22 +97,26 @@ t_cose_mac_set_verify_key(struct t_cose_mac_verify_ctx *context,
  */
 static enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
                                      struct q_useful_buf_c               cose_mac,
-                                     struct q_useful_buf_c              *payload);
+                                     struct q_useful_buf_c              *payload,
+                                     struct t_cose_header_param        **return_params);
 
 static enum t_cose_err_t t_cose_mac_verify_detached(struct t_cose_mac_verify_ctx *context,
                                      struct q_useful_buf_c                        cose_mac,
-                                     struct q_useful_buf_c                       *detached_payload);
+                                     struct q_useful_buf_c                       *detached_payload,
+                                     struct t_cose_header_param                 **return_params);
 
 static enum t_cose_err_t t_cose_mac_verify_aad(struct t_cose_mac_verify_ctx *context,
                                      struct q_useful_buf_c                   cose_mac,
                                      struct q_useful_buf_c                   aad,
-                                     struct q_useful_buf_c                  *payload);
+                                     struct q_useful_buf_c                  *payload,
+                                     struct t_cose_header_param            **return_params);
 
 enum t_cose_err_t t_cose_mac_verify_private(struct t_cose_mac_verify_ctx *context,
                                             struct q_useful_buf_c         cose_mac,
                                             struct q_useful_buf_c         aad,
                                             bool                          payload_is_detached,
-                                            struct q_useful_buf_c        *payload);
+                                            struct q_useful_buf_c        *payload,
+                                            struct t_cose_header_param  **return_params);
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
@@ -133,27 +138,31 @@ t_cose_mac_set_verify_key(struct t_cose_mac_verify_ctx *context,
 
 static inline enum t_cose_err_t
 t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
-                                     struct q_useful_buf_c        cose_mac,
-                                     struct q_useful_buf_c       *payload){
+                  struct q_useful_buf_c         cose_mac,
+                  struct q_useful_buf_c        *payload,
+                  struct t_cose_header_param  **return_params){
     return t_cose_mac_verify_private(
         context,
         cose_mac,
         NULL_Q_USEFUL_BUF_C,
         false,
-        payload
+        payload,
+        return_params
     );
 }
 
 static inline enum t_cose_err_t
 t_cose_mac_verify_detached(struct t_cose_mac_verify_ctx *context,
-                           struct q_useful_buf_c        cose_mac,
-                           struct q_useful_buf_c       *detached_payload){
+                           struct q_useful_buf_c         cose_mac,
+                           struct q_useful_buf_c        *detached_payload,
+                        struct t_cose_header_param     **return_params){
     return t_cose_mac_verify_private(
         context,
         cose_mac,
         NULL_Q_USEFUL_BUF_C,
         true,
-        detached_payload
+        detached_payload,
+        return_params
     );
 }
 
@@ -161,13 +170,15 @@ static inline enum t_cose_err_t
 t_cose_mac_verify_aad(struct t_cose_mac_verify_ctx *context,
                       struct q_useful_buf_c         cose_mac,
                       struct q_useful_buf_c         aad,
-                      struct q_useful_buf_c        *payload){
+                      struct q_useful_buf_c        *payload,
+                      struct t_cose_header_param  **return_params){
     return t_cose_mac_verify_private(
         context,
         cose_mac,
         aad,
         false,
-        payload
+        payload,
+        return_params
     );
 }
 #ifdef __cplusplus
