@@ -185,10 +185,9 @@ enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
 {
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
-    struct t_cose_parameters      parameters;
-    struct t_cose_label_list      critical_parameter_labels;
-    struct t_cose_label_list      unknown_parameter_labels;
     QCBORError                    qcbor_error;
+    struct t_cose_header_param    params_arr[4];
+    struct header_param_storage   params = {0,params_arr};
 
     enum t_cose_err_t             return_value;
     struct q_useful_buf_c         tag = NULL_Q_USEFUL_BUF_C;
@@ -199,10 +198,6 @@ enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
     struct t_cose_crypto_hmac     hmac_ctx;
 
     *payload = NULL_Q_USEFUL_BUF_C;
-
-    clear_label_list(&unknown_parameter_labels);
-    clear_label_list(&critical_parameter_labels);
-    clear_cose_parameters(&parameters);
 
     QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
 
@@ -217,27 +212,14 @@ enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
         goto Done;
     }
 
+    const struct header_location l = {0,0};
     /* --- The protected parameters --- */
-    QCBORDecode_EnterBstrWrapped(&decode_context, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &protected_parameters);
-    if(protected_parameters.len) {
-        return_value = parse_cose_header_parameters(&decode_context,
-                                                    &parameters,
-                                                    &critical_parameter_labels,
-                                                    &unknown_parameter_labels);
-        if(return_value != T_COSE_SUCCESS) {
-            goto Done;
-        }
-    }
-    QCBORDecode_ExitBstrWrapped(&decode_context);
-
-    /* ---  The unprotected parameters --- */
-    return_value = parse_cose_header_parameters(&decode_context,
-                                                &parameters,
-                                                 NULL,
-                                                &unknown_parameter_labels);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
+    t_cose_headers_decode(&decode_context,
+                          l,
+                          NULL,
+                          NULL,
+                          params,
+                          &protected_parameters);
 
     /* --- The payload --- */
     QCBORDecode_GetByteString(&decode_context, payload);
@@ -259,13 +241,12 @@ enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
     }
 
     /* === End of the decoding of the array of four === */
-    if((context->option_flags & T_COSE_OPT_REQUIRE_KID) && q_useful_buf_c_is_null(parameters.kid)) {
+    if((context->option_flags & T_COSE_OPT_REQUIRE_KID) &&
+        q_useful_buf_c_is_null(t_cose_find_parameter_kid(params.storage))) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
 
-    return_value = check_critical_labels(&critical_parameter_labels,
-                                         &unknown_parameter_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -290,7 +271,7 @@ enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         /* Short-circuit tag. Hash is used to generated tag instead of HMAC */
         return_value = short_circuit_verify(
-                                  parameters.cose_algorithm_id,
+                                  t_cose_find_parameter_alg_id(params.storage),
                                   tbm_first_part,
                                   *payload,
                                   tag);
@@ -306,7 +287,7 @@ enum t_cose_err_t t_cose_mac_verify(struct t_cose_mac_verify_ctx *context,
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_verify_setup(&hmac_ctx,
-                                  parameters.cose_algorithm_id,
+                                  t_cose_find_parameter_alg_id(params.storage),
                                   context->verification_key);
     if(return_value) {
         goto Done;
