@@ -53,7 +53,7 @@ struct t_cose_mac_sign_ctx {
     struct q_useful_buf_c  kid;
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t               content_type_uint;
-    const char            *content_type_tstr;
+    struct q_useful_buf_c         content_type_tstr;
 #endif
 };
 
@@ -270,7 +270,7 @@ t_cose_mac_set_content_type_uint(struct t_cose_mac_sign_ctx *context,
  */
 static inline void
 t_cose_mac_set_content_type_tstr(struct t_cose_mac_sign_ctx *context,
-                                  const char                *content_type);
+                                 struct q_useful_buf_c       content_type);
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 /* ------------------------------------------------------------------------
@@ -312,7 +312,7 @@ t_cose_mac_set_content_type_uint(struct t_cose_mac_sign_ctx *me,
 
 static inline void
 t_cose_mac_set_content_type_tstr(struct t_cose_mac_sign_ctx *me,
-                                  const char                *content_type)
+                                 struct q_useful_buf_c       content_type)
 {
     me->content_type_tstr = content_type;
 }

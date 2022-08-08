@@ -11,6 +11,7 @@
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_mac_sign.h"
 #include "t_cose_util.h"
+#include "t_cose/t_cose_parameters.h"
 
 /**
  * \file t_cose_mac_sign.c
@@ -21,112 +22,6 @@
  */
 
 #ifndef T_COSE_DISABLE_MAC0
-
-/**
- * \brief  Makes the protected header parameters for COSE.
- *
- * \param[in] cose_algorithm_id      The COSE algorithm ID to put in the
- *                                   header parameters.
- * \param[in] buffer_for_parameters  Pointer and length of buffer into which
- *                                   the resulting encoded protected
- *                                   parameters is put. See return value.
- *
- * \return   The pointer and length of the encoded protected
- *           parameters is returned, or \c NULL_Q_USEFUL_BUF_C if this fails.
- *           This will have the same pointer as \c buffer_for_parameters,
- *           but the pointer is conts and the length is that of the valid
- *           data, not of the size of the buffer.
- *
- * The protected parameters are returned in fully encoded CBOR format as
- * they are added to the \c COSE_Mac0 message as a binary string. This is
- * different from the unprotected parameters which are not handled this
- * way.
- *
- * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_parameters was too
- * small. See also definition of \c T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS
- */
-static inline struct q_useful_buf_c
-encode_protected_parameters(int32_t             cose_algorithm_id,
-                            struct q_useful_buf buffer_for_parameters)
-{
-    /* approximate stack use on 32-bit machine:
-     *   CBOR encode context 148
-     *   local use: 20
-     *   total: 168
-     */
-    struct q_useful_buf_c protected_parameters;
-    QCBORError            qcbor_result;
-    QCBOREncodeContext    cbor_encode_ctx;
-    struct q_useful_buf_c return_value;
-
-    QCBOREncode_Init(&cbor_encode_ctx, buffer_for_parameters);
-    QCBOREncode_OpenMap(&cbor_encode_ctx);
-    QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
-                                COSE_HEADER_PARAM_ALG,
-                                cose_algorithm_id);
-    QCBOREncode_CloseMap(&cbor_encode_ctx);
-    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &protected_parameters);
-
-    if(qcbor_result == QCBOR_SUCCESS) {
-        return_value = protected_parameters;
-    } else {
-        return_value = NULL_Q_USEFUL_BUF_C;
-    }
-
-    return return_value;
-}
-
-/**
- * \brief Add the unprotected parameters to a CBOR encoding context
- *
- * \param[in] me               The t_cose signing context.
- * \param[in] kid              The key ID.
- * \param[in] cbor_encode_ctx  CBOR encoding context to output to
- *
- * No error is returned. If an error occurred it will be returned when
- * \c QCBOR_Finish() is called on \c cbor_encode_ctx.
- *
- * The unprotected parameters added by this are the kid and content type.
- */
-static inline enum t_cose_err_t
-add_unprotected_parameters(const struct t_cose_mac_sign_ctx *me,
-                           const struct q_useful_buf_c       kid,
-                           QCBOREncodeContext               *cbor_encode_ctx)
-{
-    QCBOREncode_OpenMap(cbor_encode_ctx);
-
-    if(!q_useful_buf_c_is_null_or_empty(kid)) {
-        QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
-                                   COSE_HEADER_PARAM_KID,
-                                   kid);
-    }
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE &&
-       me->content_type_tstr != NULL) {
-        /* Both the string and int content types are not allowed */
-        return T_COSE_ERR_DUPLICATE_PARAMETER;
-    }
-
-    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-        QCBOREncode_AddUInt64ToMapN(cbor_encode_ctx,
-                                    COSE_HEADER_PARAM_CONTENT_TYPE,
-                                    me->content_type_uint);
-    }
-
-    if(me->content_type_tstr != NULL) {
-        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx,
-                                      COSE_HEADER_PARAM_CONTENT_TYPE,
-                                      me->content_type_tstr);
-    }
-#else
-    (void)me; /* avoid unused parameter warning */
-#endif
-
-    QCBOREncode_CloseMap(cbor_encode_ctx);
-
-    return T_COSE_SUCCESS;
-}
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /**
@@ -249,10 +144,22 @@ t_cose_mac_encode_parameters(struct t_cose_mac_sign_ctx *me,
                               QCBOREncodeContext        *cbor_encode_ctx)
 
 {
-    size_t                       tag_len;
-    enum t_cose_err_t            return_value;
-    struct q_useful_buf          buffer_for_protected_parameters;
-    struct q_useful_buf_c        kid;
+    size_t                            tag_len;
+    enum t_cose_err_t                 return_value;
+    struct q_useful_buf               buffer_for_protected_parameters;
+    struct q_useful_buf_c             kid;
+    const struct t_cose_header_param *params_vector[3];
+    struct t_cose_header_param        protected_params_arr[2];
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    struct t_cose_header_param        unprotected_params_arr[3];
+    struct t_cose_header_param        ct_param;
+#else
+    struct t_cose_header_param        unprotected_params_arr[3];
+#endif
+
+    struct t_cose_header_param alg_id_param;
+    struct t_cose_header_param kid_param;
+    struct t_cose_header_param end_param = T_COSE_END_PARAM;
 
     /*
      * Check the algorithm now by getting the algorithm as an early
@@ -273,23 +180,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_sign_ctx *me,
      */
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
-    /* The protected headers, which are added as a wrapped bstr  */
-    buffer_for_protected_parameters =
-        Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_parameters_buffer);
-    me->protected_parameters =
-        encode_protected_parameters(me->cose_algorithm_id,
-                                    buffer_for_protected_parameters);
-    if(q_useful_buf_c_is_null(me->protected_parameters)) {
-        /* The sizing of storage for protected headers is
-         * off (should never happen in tested, released code)
-         */
-        return_value = T_COSE_ERR_MAKING_PROTECTED;
-        goto Done;
-    }
-    /* The use of _AddBytes here achieves the bstr wrapping */
-    QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_parameters);
 
-    /* The Unprotected parameters */
     if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_TAG) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         kid = NULL_Q_USEFUL_BUF_C;
@@ -304,11 +195,41 @@ t_cose_mac_encode_parameters(struct t_cose_mac_sign_ctx *me,
         kid = me->kid;
     }
 
-    return_value = add_unprotected_parameters(me, kid, cbor_encode_ctx);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
+    params_vector[0] = protected_params_arr;
+    params_vector[1] = unprotected_params_arr;
+    params_vector[2] = NULL;
+
+    protected_params_arr[0] = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
+    protected_params_arr[1] = T_COSE_END_PARAM;
+
+    unprotected_params_arr[0] = T_COSE_KID_PARAM(me->kid);
+    unprotected_params_arr[1] = T_COSE_END_PARAM;
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    unprotected_params_arr[2] = T_COSE_END_PARAM;
+
+    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE &&
+       !q_useful_buf_c_is_null(me->content_type_tstr)) {
+        /* Both the string and int content types are not allowed */
+        return T_COSE_ERR_DUPLICATE_PARAMETER;
     }
 
+    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
+        unprotected_params_arr[1] = T_COSE_CT_INT_PARAM(me->content_type_uint);
+    }
+
+    if(!q_useful_buf_c_is_null(me->content_type_tstr)) {
+        unprotected_params_arr[1] = T_COSE_CT_TSTR_PARAM(me->content_type_tstr);
+    }
+#endif
+
+    return_value = t_cose_encode_headers(
+        cbor_encode_ctx,
+        params_vector,
+       &me->protected_parameters
+    );
+
+    /* --- Get started on the payload --- */
     QCBOREncode_BstrWrap(cbor_encode_ctx);
 
     /*
@@ -343,7 +264,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_sign_ctx *me,
     struct t_cose_crypto_hmac    hmac_ctx;
     struct q_useful_buf_c        maced_payload;
 
-    QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &maced_payload);
+    QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &maced_payload);
 
     /* Check that there are no CBOR encoding errors before proceeding
      * with hashing and tagging. This is not actually necessary as the
@@ -375,7 +296,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_sign_ctx *me,
     return_value = create_tbm(tbm_first_part_buf,
                               me->protected_parameters,
                               &tbm_first_part,
-                              T_COSE_TBM_PAYLOAD_IS_BSTR_WRAPPED,
+                              T_COSE_TBM_BARE_PAYLOAD,
                               maced_payload);
     if(return_value) {
         goto Done;
