@@ -290,35 +290,35 @@ int_fast32_t sign_verify_get_size_mac_test()
 
     return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC256, &key_pair);
     if(return_value) {
-        return 1000 + (int32_t)return_value;
+        return 10000 + (int32_t)return_value;
     }
 
     result = size_test(T_COSE_ALGORITHM_HMAC256, NULL_Q_USEFUL_BUF_C, key_pair);
     free_key(key_pair);
     if(result) {
-        return 2000 + result;
+        return 20000 + result;
     }
 
     return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC384, &key_pair);
     if(return_value) {
-        return 3000 + (int32_t)return_value;
+        return 30000 + (int32_t)return_value;
     }
 
     result = size_test(T_COSE_ALGORITHM_HMAC384, NULL_Q_USEFUL_BUF_C, key_pair);
     free_key(key_pair);
     if(result) {
-        return 4000 + result;
+        return 40000 + result;
     }
 
     return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC512, &key_pair);
     if(return_value) {
-        return 5000 + (int32_t)return_value;
+        return 50000 + (int32_t)return_value;
     }
 
     result = size_test(T_COSE_ALGORITHM_HMAC512, NULL_Q_USEFUL_BUF_C, key_pair);
     if(result) {
         free_key(key_pair);
-        return 6000 + result;
+        return 60000 + result;
     }
 
     result = size_test(T_COSE_ALGORITHM_HMAC512,
@@ -326,7 +326,7 @@ int_fast32_t sign_verify_get_size_mac_test()
                        key_pair);
     free_key(key_pair);
     if(result) {
-        return 7000 + result;
+        return 70000 + result;
     }
 
     return 0;
