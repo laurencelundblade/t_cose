@@ -157,7 +157,7 @@ t_cose_mac_sign_detatched(struct t_cose_mac_sign_ctx *sign_ctx,
 static void
 t_cose_mac_sign_init(struct t_cose_mac_sign_ctx *me,
                      uint32_t                    option_flags,
-                     uint32_t                    cose_algorithm_id);
+                     int32_t                     cose_algorithm_id);
 
 /**
  * \brief  Set the key and kid (key ID) for signing.
@@ -281,7 +281,7 @@ t_cose_mac_set_content_type_tstr(struct t_cose_mac_sign_ctx *context,
 static inline void
 t_cose_mac_sign_init(struct t_cose_mac_sign_ctx *me,
                      uint32_t                    option_flags,
-                     uint32_t                    cose_algorithm_id)
+                     int32_t                     cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
 
