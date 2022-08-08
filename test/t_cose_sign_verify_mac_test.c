@@ -61,7 +61,8 @@ int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
 
     cose_res = t_cose_mac_verify(&verify_ctx,
                                   signed_cose, /* COSE to verify */
-                                 &out_payload); /* Payload from signed_cose */
+                                 &out_payload, /* Payload from signed_cose */
+                                  NULL);
     if(cose_res != T_COSE_SUCCESS) {
         return_value = 5000 + (int32_t)cose_res;
         goto Done;
@@ -176,7 +177,8 @@ int_fast32_t sign_verify_mac_sig_fail_test()
 
     result = t_cose_mac_verify(&verify_ctx,
                                 signed_cose, /* COSE to verify */
-                               &payload      /* Payload from signed_cose */);
+                               &payload,     /* Payload from signed_cose */
+                                NULL);
 
     if(result != T_COSE_ERR_SIG_VERIFY) {
         return_value = 5000 + (int32_t)result;

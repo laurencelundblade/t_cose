@@ -105,69 +105,6 @@ process_tags(struct t_cose_mac_verify_ctx *me, QCBORDecodeContext *decode_contex
     return T_COSE_SUCCESS;
 }
 
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/**
- *  \brief Verify a short-circuit tag
- *
- * \param[in] cose_alg_id  Algorithm ID. This is used only to make
- *                         the short-circuit signature the same size as the
- *                         real tag would be for the particular algorithm.
- * \param[in] header       The Header of COSE_Mac0.
- * \param[in] payload      The payload of COSE_Mac0
- * \param[in] tag          Pointer and length of tag to be verified
- *
- * \return This returns one of the error codes defined by \ref
- *         t_cose_err_t.
- *
- * See short_circuit_tag() in t_cose_mac_sign.c for description of
- * the short-circuit tag.
- */
-static inline enum t_cose_err_t
-short_circuit_verify(int32_t               cose_alg_id,
-                     struct q_useful_buf_c header,
-                     struct q_useful_buf_c payload,
-                     struct q_useful_buf_c tag_to_verify)
-{
-    /* approximate stack use on 32-bit machine: local use: 16 bytes */
-    enum t_cose_err_t         return_value;
-    struct t_cose_crypto_hash hash_ctx;
-    Q_USEFUL_BUF_MAKE_STACK_UB(tag_buffer, T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
-    struct q_useful_buf_c     tag;
-    int32_t                   hash_alg_id;
-
-    hash_alg_id = t_cose_hmac_to_hash_alg_id(cose_alg_id);
-    if (hash_alg_id == INT32_MAX) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
-
-    return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
-    if (return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    /* Hash the Header */
-    t_cose_crypto_hash_update(&hash_ctx, q_useful_buf_head(header, header.len));
-
-    /* Hash the payload */
-    t_cose_crypto_hash_update(&hash_ctx, payload);
-
-    return_value = t_cose_crypto_hash_finish(&hash_ctx, tag_buffer, &tag);
-    if (return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    if (q_useful_buf_compare(tag_to_verify, tag)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-    } else {
-        return_value = T_COSE_SUCCESS;
-    }
-
-Done:
-    return return_value;
-}
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
 /**
  * \file t_cose_mac_verify.c
  *
@@ -183,7 +120,8 @@ enum t_cose_err_t t_cose_mac_verify_private(struct t_cose_mac_verify_ctx *contex
                                             struct q_useful_buf_c         cose_mac,
                                             struct q_useful_buf_c         aad,
                                             bool                          payload_is_detached,
-                                            struct q_useful_buf_c        *payload)
+                                            struct q_useful_buf_c        *payload,
+                                            struct t_cose_header_param  **return_params)
 {
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
@@ -269,20 +207,6 @@ enum t_cose_err_t t_cose_mac_verify_private(struct t_cose_mac_verify_ctx *contex
         goto Done;
     }
 
-    if (context->option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT) {
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        /* Short-circuit tag. Hash is used to generated tag instead of HMAC */
-        return_value = short_circuit_verify(
-                                  t_cose_find_parameter_alg_id(params.storage),
-                                  tbm_first_part,
-                                  *payload,
-                                  tag);
-#else
-        return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
-#endif
-        goto Done;
-
-    }
     /*
      * Start the HMAC verification.
      * Calculate the tag of the first part of ToBeMaced and the wrapped
@@ -311,7 +235,9 @@ enum t_cose_err_t t_cose_mac_verify_private(struct t_cose_mac_verify_ctx *contex
     return_value = t_cose_crypto_hmac_verify_finish(&hmac_ctx, tag);
 
 Done:
-
+    if(return_params != NULL && return_value == T_COSE_SUCCESS) {
+        return_params = &(params.storage);
+    }
     return return_value;
 }
 
