@@ -14,6 +14,10 @@
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
 
+#ifndef QCBOR_1_1
+// The OpenBytes API we use was only added in 1.1.
+#error t_cose requires QCBOR 1.1 or greater
+#endif
 
 /**
  * \file t_cose_sign1_sign.c
