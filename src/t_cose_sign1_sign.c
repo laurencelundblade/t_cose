@@ -14,6 +14,10 @@
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
 
+#ifndef QCBOR_1_1
+// The OpenBytes API we use was only added in 1.1.
+#error t_cose requires QCBOR 1.1 or greater
+#endif
 
 /**
  * \file t_cose_sign1_sign.c
@@ -43,6 +47,17 @@
 #error COSE algorithm identifier definitions are in error
 #endif
 
+#if T_COSE_ALGORITHM_PS256 != COSE_ALGORITHM_PS256
+#error COSE algorithm identifier definitions are in error
+#endif
+
+#if T_COSE_ALGORITHM_PS384 != COSE_ALGORITHM_PS384
+#error COSE algorithm identifier definitions are in error
+#endif
+
+#if T_COSE_ALGORITHM_PS512 != COSE_ALGORITHM_PS512
+#error COSE algorithm identifier definitions are in error
+#endif
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 static inline enum t_cose_err_t
@@ -316,12 +331,11 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
     struct q_useful_buf_c        tbs_hash;
     /* Pointer and length of the completed signature */
     struct q_useful_buf_c        signature;
-    /* Buffer for the actual signature */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature, T_COSE_MAX_SIG_SIZE);
+    /* Pointer and length of the buffer for the signature */
+    struct q_useful_buf          buffer_for_signature;
     /* Buffer for the tbs hash. */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
-
 
     if(q_useful_buf_c_is_null(detached_payload)) {
         QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
@@ -359,6 +373,12 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
+    /* The signature gets written directly into the output buffer.
+     * The matching QCBOREncode_CloseBytes call further down still needs do a
+     * memmove to make space for the CBOR header, but at least we avoid the need
+     * to allocate an extra buffer.
+     */
+    QCBOREncode_OpenBytes(cbor_encode_ctx, &buffer_for_signature);
 
     /* Compute the signature using public key crypto. The key and
      * algorithm ID are passed in to know how and what to sign
@@ -406,9 +426,8 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
-
     /* Add signature to CBOR and close out the array */
-    QCBOREncode_AddBytes(cbor_encode_ctx, signature);
+    QCBOREncode_CloseBytes(cbor_encode_ctx, signature.len);
     QCBOREncode_CloseArray(cbor_encode_ctx);
 
     /* The layer above this must check for and handle CBOR encoding

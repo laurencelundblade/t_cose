@@ -57,7 +57,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
     (void)cose_algorithm_id;
     (void)signing_key;
 
-    *sig_size = T_COSE_MAX_SIG_SIZE;
+    *sig_size = T_COSE_MAX_ECDSA_SIG_SIZE;
 
     return T_COSE_SUCCESS;
 }
@@ -104,7 +104,7 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-int check_for_key_pair_leaks()
+int check_for_key_pair_leaks(void)
 {
     /* No check for leaks with this stubbed out crypto. With this test
      crypto there is no file with code to make keys so there is no place

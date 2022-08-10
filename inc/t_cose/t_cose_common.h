@@ -44,6 +44,15 @@ extern "C" {
  * of stack. No stack will be saved if \c T_COSE_DISABLE_ES512 is not
  * also defined.
  *
+ * \c T_COSE_DISABLE_PS256 -- Disables the COSE algorithm PS256
+ * algorithm.
+ *
+ * \c T_COSE_DISABLE_PS384 -- Disables the COSE algorithm PS384
+ * algorithm.
+ *
+ * \c T_COSE_DISABLE_PS512 -- Disables the COSE algorithm PS512
+ * algorithm.
+ *
  * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type
  * parameters for both signing and verifying.
  */
@@ -89,6 +98,36 @@ extern "C" {
  * this algorithm. This curve is also known as P-521.
  */
 #define T_COSE_ALGORITHM_ES512 -36
+
+/**
+ * \def T_COSE_ALGORITHM_PS256
+ *
+ * \brief Indicates RSASSA-PSS with SHA-256.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ */
+#define T_COSE_ALGORITHM_PS256 -37
+
+/**
+ * \def T_COSE_ALGORITHM_PS384
+ *
+ * \brief Indicates RSASSA-PSS with SHA-384.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ */
+#define T_COSE_ALGORITHM_PS384 -38
+
+/**
+ * \def T_COSE_ALGORITHM_PS512
+ *
+ * \brief Indicates RSASSA-PSS with SHA-512.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ */
+#define T_COSE_ALGORITHM_PS512 -39
 
 
 

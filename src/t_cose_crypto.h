@@ -83,8 +83,6 @@ extern "C" {
  *    - If not ECDSA add another function like t_cose_algorithm_is_ecdsa()
  * - Support for a new COSE_ALGORITHM_XXX signature algorithm is added
  *    - See \ref T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
- * - Support larger key sizes (and thus signature sizes)
- *    - See \ref T_COSE_MAX_SIG_SIZE
  * - Support another hash implementation that is not a service
  *    - See struct \ref t_cose_crypto_hash
  *
@@ -118,14 +116,19 @@ extern "C" {
  * 8.1. It is the concatenation of r and s, each of which is the key
  * size in bits rounded up to the nearest byte.  That is twice the key
  * size in bytes.
+ *
+ * RSA signatures are typically much larger than this, but do not need
+ * to be stored on the stack, since the COSE format is the same as the
+ * one OpenSSL understands natively. The stack variable therefore does
+ * not need to be made large enough to fit these signatures.
  */
 #ifndef T_COSE_DISABLE_ES512
-    #define T_COSE_MAX_SIG_SIZE T_COSE_EC_P512_SIG_SIZE
+    #define T_COSE_MAX_ECDSA_SIG_SIZE T_COSE_EC_P512_SIG_SIZE
 #else
     #ifndef T_COSE_DISABLE_ES384
-        #define T_COSE_MAX_SIG_SIZE T_COSE_EC_P384_SIG_SIZE
+        #define T_COSE_MAX_ECDSA_SIG_SIZE T_COSE_EC_P384_SIG_SIZE
     #else
-        #define T_COSE_MAX_SIG_SIZE T_COSE_EC_P256_SIG_SIZE
+        #define T_COSE_MAX_ECDSA_SIG_SIZE T_COSE_EC_P256_SIG_SIZE
     #endif
 #endif
 
@@ -386,10 +389,10 @@ struct t_cose_crypto_hash {
  * The maximum needed to hold a hash. It is smaller and less stack is needed
  * if the larger hashes are disabled.
  */
-#ifndef T_COSE_DISABLE_ES512
+#if !defined(T_COSE_DISABLE_ES512) || !defined(T_COSE_DISABLE_PS512)
     #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
 #else
-    #ifndef T_COSE_DISABLE_ES384
+    #if !defined(T_COSE_DISABLE_ES384) || !defined(T_COSE_DISABLE_PS384)
         #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
     #else
         #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
@@ -505,11 +508,25 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
  * integer COSE algorithm ID uses the ECDSA signing algorithm
  * or not.
  *
- * (As other types of signing algorithms are added, RSA for example,
- * a similar function can be added for them.)
  */
 static bool
 t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
+
+/**
+ * \brief Indicate whether a COSE algorithm is RSASSA-PSS or not.
+ *
+ * \param[in] cose_algorithm_id    The algorithm ID to check.
+ *
+ * \returns This returns \c true if the algorithm is RSASSA-PSS
+ * and \c false if not.
+ *
+ * This is a convenience function to check whether a given
+ * integer COSE algorithm ID uses the RSASSA-PSS signing algorithm
+ * or not.
+ *
+ */
+static bool
+t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id);
 
 
 
@@ -558,10 +575,30 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_ES512
         COSE_ALGORITHM_ES512,
 #endif
-        0}; /* 0 is a reserved COSE alg ID ans will never be used */
+        0}; /* 0 is a reserved COSE alg ID and will never be used */
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
+
+static inline bool
+t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id)
+{
+    /* The simple list of COSE alg IDs that use RSASSA-PSS */
+    static const int32_t rsa_list[] = {
+#ifndef T_COSE_DISABLE_PS256
+        COSE_ALGORITHM_PS256,
+#endif
+#ifndef T_COSE_DISABLE_PS384
+        COSE_ALGORITHM_PS384,
+#endif
+#ifndef T_COSE_DISABLE_PS512
+        COSE_ALGORITHM_PS512,
+#endif
+        0}; /* 0 is a reserved COSE alg ID and will never be used */
+
+    return t_cose_check_list(cose_algorithm_id, rsa_list);
+}
+
 
 #ifdef __cplusplus
 }

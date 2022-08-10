@@ -22,14 +22,7 @@
  *
  * They are made by:
  *
- *   openssl ecparam -genkey -name prime256v1 -noout -out ec256-key-pair.pem
- *
- *   Edit the PEM headers off so it is just b64
- *
- *   base64 --decode to get the pure DER
- *
- *   xxd -i to turn it into a C variable
- *
+ *   openssl ecparam -genkey -name prime256v1 | sed -e '1d' -e '$d' | base64 --decode  | xxd -i
  *
  * See also:
  *  https://stackoverflow.com/
@@ -91,37 +84,53 @@ static const unsigned char ec521_key_pair[] = {
   0x43, 0xc0, 0xa8, 0x52, 0x1f, 0xf9, 0x53
 };
 
+static const unsigned char rsa2048_private_key[] = {
+#include "t_cose_rsa_test_key.h"
+};
 
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
 /*
  * The key object returned by this is malloced and has to be freed by
- * by calling free_ecdsa_key_pair(). This heap use is a part of
+ * by calling free_key_pair(). This heap use is a part of
  * OpenSSL and not t_cose which does not use the heap.
  */
-enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
+enum t_cose_err_t make_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair)
 {
     enum t_cose_err_t  return_value;
     EVP_PKEY          *pkey;
-    const uint8_t     *rfc5915_key;
-    long               rfc5915_key_len;
+
+    int                key_type;
+    const uint8_t     *key_data;
+    long               key_len;
 
     switch (cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
-        rfc5915_key = ec256_key_pair;
-        rfc5915_key_len = sizeof(ec256_key_pair);
+        key_type = EVP_PKEY_EC;
+        key_data = ec256_key_pair;
+        key_len = sizeof(ec256_key_pair);
         break;
 
     case T_COSE_ALGORITHM_ES384:
-        rfc5915_key = ec384_key_pair;
-        rfc5915_key_len = sizeof(ec384_key_pair);
+        key_type = EVP_PKEY_EC;
+        key_data = ec384_key_pair;
+        key_len = sizeof(ec384_key_pair);
         break;
 
     case T_COSE_ALGORITHM_ES512:
-        rfc5915_key = ec521_key_pair;
-        rfc5915_key_len = sizeof(ec521_key_pair);
+        key_type = EVP_PKEY_EC;
+        key_data = ec521_key_pair;
+        key_len = sizeof(ec521_key_pair);
+        break;
+
+    case T_COSE_ALGORITHM_PS256:
+    case T_COSE_ALGORITHM_PS384:
+    case T_COSE_ALGORITHM_PS512:
+        key_type = EVP_PKEY_RSA;
+        key_data = rsa2048_private_key;
+        key_len = sizeof(rsa2048_private_key);
         break;
 
     default:
@@ -129,7 +138,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
     }
 
     /* This imports the public key too */
-    pkey = d2i_PrivateKey(EVP_PKEY_EC, NULL, &rfc5915_key, rfc5915_key_len);
+    pkey = d2i_PrivateKey(key_type, NULL, &key_data, key_len);
     if(pkey == NULL) {
         return_value = T_COSE_ERR_FAIL;
         goto Done;
@@ -147,7 +156,7 @@ Done:
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-void free_ecdsa_key_pair(struct t_cose_key key_pair)
+void free_key_pair(struct t_cose_key key_pair)
 {
     EVP_PKEY_free(key_pair.k.key_ptr);
 }
