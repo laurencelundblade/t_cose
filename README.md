@@ -304,6 +304,7 @@ just have different names.
 
 ## Credit
 
+* Paul Liétar for RSA PSS (PS256..PS512)
 * Maik Riechert for cmake, CI and other.
 * Ken Takayama for the bulk of the detached content implementation.
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
