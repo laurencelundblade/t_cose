@@ -341,7 +341,8 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
         *sig_size = ecdsa_key_size(signing_key_evp) * 2;
         return_value = T_COSE_SUCCESS;
         goto Done;
-    } else if(t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
+    } else if (t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)
+            || cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
         *sig_size = (size_t)EVP_PKEY_size(signing_key_evp);
         return_value = T_COSE_SUCCESS;
         goto Done;
@@ -796,6 +797,67 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 }
 
 #ifndef T_COSE_DISABLE_EDDSA
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         struct q_useful_buf_c  tbs,
+                         struct q_useful_buf    signature_buffer,
+                         struct q_useful_buf_c *signature)
+{
+    enum t_cose_err_t return_value;
+    int               ossl_result;
+    EVP_MD_CTX       *sign_context = NULL;
+    EVP_PKEY         *signing_key_evp;
+
+    return_value = key_convert(signing_key, &signing_key_evp);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    sign_context = EVP_MD_CTX_new();
+    if(sign_context == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
+    }
+
+    ossl_result = EVP_DigestSignInit(sign_context,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     signing_key_evp);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    *signature = q_usefulbuf_const(signature_buffer);
+    /** Must use EVP_DigestSign rather than EVP_PKEY_verify, since
+     * the tbs data is not hashed yet. Because of how EdDSA works, we
+     * cannot hash the data ourselves separately.
+     */
+    ossl_result = EVP_DigestSign(sign_context,
+                                 signature_buffer.ptr,
+                                 &signature->len,
+                                 tbs.ptr,
+                                 tbs.len);
+    if (ossl_result != 1) {
+        /* Failed before even trying to verify the signature */
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Everything succeeded */
+    return_value = T_COSE_SUCCESS;
+
+Done:
+     EVP_MD_CTX_free(sign_context);
+
+    return return_value;
+}
+
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -862,5 +924,5 @@ Done:
 
     return return_value;
 }
-#endif /* T_COSE_DISABLE_EDDSA */
 
+#endif /* T_COSE_DISABLE_EDDSA */

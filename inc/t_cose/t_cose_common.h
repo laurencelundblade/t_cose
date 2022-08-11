@@ -217,7 +217,7 @@ struct t_cose_key {
  * needs to be big enough for encode_protected_parameters() to
  * succeed. It currently sized for one parameter with an algorithm ID
  * up to 32 bits long -- one byte for the wrapping map, one byte for
- * the label, 5 bytes for the ID. If this is made accidentially too
+ * the label, 5 bytes for the ID. If this is made accidentally too
  * small, QCBOR will only return an error, and not overrun any
  * buffers.
  *
@@ -396,9 +396,9 @@ enum t_cose_err_t {
     T_COSE_ERR_TOO_MANY_TAGS = 37,
 
     /** The signature algorithm needs an extra buffer, but none was provided.
-     * See \ref t_cose_sign1_verify_set_sigstruct_buffer for more details.
+     * See \ref t_cose_sign1_verify_set_auxiliary_buffer for more details.
      */
-    T_COSE_NEED_SIGSTRUCT_BUFFER = 38,
+    T_COSE_NEED_AUXILIARY_BUFFER = 38,
 };
 
 

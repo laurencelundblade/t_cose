@@ -77,6 +77,13 @@ struct t_cose_sign1_sign_ctx {
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
 #endif
+
+    /**
+     * A auxiliary buffer provided by the caller, used to serialize
+     * the Sig_Structure. This is only needed when using EdDSA, as
+     * otherwise the Sig_Structure is hashed incrementally.
+     */
+    struct q_useful_buf  *auxiliary_buffer;
 };
 
 
@@ -170,6 +177,31 @@ static void
 t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
                              struct t_cose_key             signing_key,
                              struct q_useful_buf_c         kid);
+
+/**
+ * \brief Configure an auxiliary buffer used to serialize the Sig_Structure.
+ *
+ * \param[in,out] context           The t_cose signature verification context.
+ * \param[in,out] auxiliary_buffer  The buffer used to serialize the Sig_Structure.
+ *
+ * Some signature algorithms (namely EdDSA), require two passes over
+ * their input. In order to achieve this, the library needs to serialize
+ * a temporary to-be-signed structure into an auxiliary buffer. This function
+ * allows the user to configure such a buffer.
+ *
+ * The buffer must be big enough to accomodate the Sig_Structure type,
+ * which is roughly the sum of sizes of the encoded protected parameters, aad
+ * and payload, along with a few dozen bytes of overhead.
+ *
+ * To compute the exact size needed, an auxiliary buffer with a NULL
+ * pointer and a large size, such as \c UINT32_MAX, can be used. No
+ * actual signing will take place, but the auxiliary buffer will be shrunk
+ * to the to expected size.
+ *
+ */
+static void
+t_cose_sign1_sign_set_auxiliary_buffer(struct t_cose_sign1_sign_ctx *context,
+                                       struct q_useful_buf          *auxiliary_buffer);
 
 
 
@@ -442,6 +474,13 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
 {
     me->kid         = kid;
     me->signing_key = signing_key;
+}
+
+static inline void
+t_cose_sign1_sign_set_auxiliary_buffer(struct t_cose_sign1_sign_ctx *me,
+                                       struct q_useful_buf          *auxiliary_buffer)
+{
+    me->auxiliary_buffer = auxiliary_buffer;
 }
 
 

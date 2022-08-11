@@ -101,27 +101,6 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
 }
 
 
-#ifndef T_COSE_DISABLE_EDDSA
-/*
- * See documentation in t_cose_crypto.h
- */
-enum t_cose_err_t
-t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
-                           struct q_useful_buf_c kid,
-                           struct q_useful_buf_c tbs,
-                           struct q_useful_buf_c signature)
-{
-    (void)verification_key;
-    (void)kid;
-    (void)tbs;
-    (void)signature;
-
-    /* The test adapter does not support EdDSA */
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-}
-#endif
-
-
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
@@ -189,3 +168,41 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 
     return 0;
 }
+
+
+#ifndef T_COSE_DISABLE_EDDSA
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         struct q_useful_buf_c  tbs,
+                         struct q_useful_buf    signature_buffer,
+                         struct q_useful_buf_c *signature)
+{
+    (void)signing_key;
+    (void)tbs;
+    (void)signature_buffer;
+    (void)signature;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
+                           struct q_useful_buf_c kid,
+                           struct q_useful_buf_c tbs,
+                           struct q_useful_buf_c signature)
+{
+    (void)verification_key;
+    (void)kid;
+    (void)tbs;
+    (void)signature;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+#endif /* T_COSE_DISABLE_EDDSA */

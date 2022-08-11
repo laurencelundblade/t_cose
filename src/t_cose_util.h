@@ -36,6 +36,22 @@ extern "C" {
  */
 #define T_COSE_INVALID_ALGORITHM_ID COSE_ALGORITHM_RESERVED
 
+/**
+ * \brief Check whether a signature algorithm is valid and supported
+ * by the library.
+ *
+ * \param[in] cose_algorithm_id  A COSE signature algorithm identifier.
+ *
+ * \return \c true if the algorithm is supported.
+ *
+ * What algorithms are supported can change as more algorithms are
+ * added to the library, and depend on the build configuration. Even
+ * if a signature algorithm is supported by the t_cose library and
+ * this function returns true, using an algorithm can fail for other
+ * reasons, for example if the crypto adapter does not support it.
+ *
+ */
+bool signature_algorithm_id_is_supported(int32_t cose_algorithm_id);
 
 /**
  * \brief Return hash algorithm ID from a signature algorithm ID
@@ -43,7 +59,8 @@ extern "C" {
  * \param[in] cose_algorithm_id  A COSE signature algorithm identifier.
  *
  * \return \c T_COSE_INVALID_ALGORITHM_ID when the signature algorithm ID
-              is not known.
+              is not known, or if the signature algorithm does not have
+              an associated hash algorithm (eg. EDDSA).
  *
  * This works off of algorithm identifiers defined in the
  * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).

@@ -209,10 +209,6 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  * for details on how \c q_useful_buf and \c q_useful_buf_c are used
  * to return the signature.
  *
- * To find out the size of the signature buffer needed, call this with
- * \c signature_buffer->ptr \c NULL and \c signature_buffer->len a
- * very large number like \c UINT32_MAX. The size will be returned in
- * \c signature->len.
  */
 enum t_cose_err_t
 t_cose_crypto_sign(int32_t                cose_algorithm_id,
@@ -280,9 +276,62 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c signature);
 
 #ifndef T_COSE_DISABLE_EDDSA
+
+/**
+ * \brief Perform public key signing for EdDSA.
+ *
+ * The EdDSA signing algorithm (or more precisely its PureEdDSA
+ * variant, used in COSE) requires two passes over the input data.
+ * This requires the whole to-be-signed structure to be held in
+ * memory and given as an argument to this function, rather than
+ * an incrementally computed hash.
+ *
+ * \param[in] signing_key       Indicates or contains key to sign with.
+ * \param[in] tbs               The bytes to sign.
+ * \param[in] signature_buffer  Pointer and length of buffer into which
+ *                              the resulting signature is put.
+ * \param[in] signature         Pointer and length of the signature
+ *                              returned.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully created the signature.
+ * \retval T_COSE_ERR_SIG_BUFFER_SIZE
+ *         The \c signature_buffer too small.
+ * \retval T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
+ *         EdDSA signatures are not supported.
+ * \retval T_COSE_ERR_UNKNOWN_KEY
+ *         The key identified by \c key_select was not found.
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key was found, but it was the wrong type.
+ * \retval T_COSE_ERR_INVALID_ARGUMENT
+ *         Some (unspecified) argument was not valid.
+ * \retval T_COSE_ERR_INSUFFICIENT_MEMORY
+ *         Insufficient heap memory.
+ * \retval T_COSE_ERR_FAIL
+ *         General unspecific failure.
+ * \retval T_COSE_ERR_TAMPERING_DETECTED
+ *         Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED.
+ *
+ * This is called to do public key signing. The implementation will
+ * vary from one platform / OS to another but should conform to the
+ * description here.
+ *
+ * The contents of signing_key is usually the type that holds
+ * a key for the cryptographic library.
+ *
+ * See the note in the Detailed Description (the \\file comment block)
+ * for details on how \c q_useful_buf and \c q_useful_buf_c are used
+ * to return the signature.
+ *
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         struct q_useful_buf_c  tbs,
+                         struct q_useful_buf    signature_buffer,
+                         struct q_useful_buf_c *signature);
+
 /**
  * \brief Perform public key signature verification for EdDSA.
- * Part of the t_cose crypto adaptation layer.
  *
  * The EdDSA signing algorithm (or more precisely its PureEdDSA
  * variant, used in COSE) requires two passes over the input data.

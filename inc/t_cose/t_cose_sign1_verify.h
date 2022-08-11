@@ -201,7 +201,7 @@ struct t_cose_sign1_verify_ctx {
      * the Sig_Structure. This is only needed when using EdDSA, as
      * otherwise the Sig_Structure is hashed incrementally.
      */
-    struct q_useful_buf  *sigstruct_buffer;
+    struct q_useful_buf  *auxiliary_buffer;
 };
 
 
@@ -275,7 +275,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * \brief Configure a buffer used to serialize the Sig_Structure.
  *
  * \param[in,out] context           The t_cose signature verification context.
- * \param[in,out] sigstruct_buffer  The buffer used to serialize the Sig_Structure.
+ * \param[in,out] auxiliary_buffer  The buffer used to serialize the Sig_Structure.
  *
  * Some signature algorithms (namely EdDSA), require two passes over
  * their input. In order to achieve this, the library needs to serialize
@@ -296,8 +296,8 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * buffer.
  */
 static void
-t_cose_sign1_verify_set_sigstruct_buffer(struct t_cose_sign1_verify_ctx *context,
-                                         struct q_useful_buf            *sigstruct_buffer);
+t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *context,
+                                         struct q_useful_buf            *auxiliary_buffer);
 
 /**
  * \brief Verify a \c COSE_Sign1.
@@ -456,7 +456,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
 {
     me->option_flags = option_flags;
     me->verification_key = T_COSE_NULL_KEY;
-    me->sigstruct_buffer = NULL;
+    me->auxiliary_buffer = NULL;
 }
 
 
@@ -468,10 +468,10 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
 }
 
 static inline void
-t_cose_sign1_verify_set_sigstruct_buffer(struct t_cose_sign1_verify_ctx *me,
-                                         struct q_useful_buf            *sigstruct_buffer)
+t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *me,
+                                         struct q_useful_buf            *auxiliary_buffer)
 {
-    me->sigstruct_buffer = sigstruct_buffer;
+    me->auxiliary_buffer = auxiliary_buffer;
 }
 
 
