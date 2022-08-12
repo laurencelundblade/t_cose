@@ -1,5 +1,5 @@
 /*
- *  t_cose_sign_verify_mac_test.c
+ *  t_cose_compute_validate_mac_test.c
  *
  * Copyright 2019-2022, Laurence Lundblade
  * Copyright (c) 2022, Arm Limited. All rights reserved.
@@ -13,14 +13,14 @@
 #include "t_cose/t_cose_mac_validate.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_make_test_pub_key.h"
-#include "t_cose_sign_verify_mac_test.h"
+#include "t_cose_compute_validate_mac_test.h"
 
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
 #ifndef T_COSE_DISABLE_MAC0
 
 /*
- * Public function, see t_cose_sign_verify_mac_test.h
+ * Public function, see t_cose_compute_validate_mac_test.h
  */
 int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
 {
@@ -88,7 +88,7 @@ Done:
 
 
 /*
- * Public function, see t_cose_sign_verify_mac_test.h
+ * Public function, see t_cose_compute_validate_mac_test.h
  */
 int_fast32_t sign_verify_mac_basic_test()
 {
@@ -114,7 +114,7 @@ int_fast32_t sign_verify_mac_basic_test()
 
 
 /*
- * Public function, see t_cose_sign_verify_mac_test.h
+ * Public function, see t_cose_compute_validate_mac_test.h
  */
 int_fast32_t sign_verify_mac_sig_fail_test()
 {
@@ -197,7 +197,7 @@ Done:
 }
 
 /*
- * Public function, see t_cose_sign_verify_mac_test.h
+ * Public function, see t_cose_compute_validate_mac_test.h
  */
 static int size_test(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
@@ -287,7 +287,7 @@ static int size_test(int32_t               cose_algorithm_id,
 
 
 /*
- * Public function, see t_cose_sign_verify_mac_test.h
+ * Public function, see t_cose_compute_validate_mac_test.h
  */
 int_fast32_t sign_verify_get_size_mac_test()
 {

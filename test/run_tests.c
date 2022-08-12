@@ -18,7 +18,7 @@
 
 #include "t_cose_test.h"
 #include "t_cose_sign_verify_test.h"
-#include "t_cose_sign_verify_mac_test.h"
+#include "t_cose_compute_validate_mac_test.h"
 
 
 /*
