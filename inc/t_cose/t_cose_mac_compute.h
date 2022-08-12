@@ -5,11 +5,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __T_COSE_MAC_SIGN_H_
-#define __T_COSE_MAC_SIGN_H_
+#ifndef __T_COSE_MAC_COMPUTE_H_
+#define __T_COSE_MAC_COMPUTE_H_
 
 #include <stdint.h>
-#include "qcbor/qcbor.h"
 #include "t_cose/q_useful_buf.h"
 #include "qcbor/qcbor_encode.h"
 #include "t_cose_common.h"
@@ -327,4 +326,4 @@ t_cose_mac_compute_detatched(struct t_cose_mac_calculate_ctx *sign_ctx,
 }
 #endif
 
-#endif /* __T_COSE_MAC_SIGN_H_ */
+#endif /* __T_COSE_MAC_COMPUTE_H_ */
