@@ -138,7 +138,8 @@ int_fast32_t sign_verify_basic_test()
     }
 #endif
 
-#ifndef T_COSE_DISABLE_EDDSA
+#if !defined(T_COSE_DISABLE_EDDSA) && defined(T_COSE_CRYPTO_LIB_OPENSSL)
+    /** Only OpenSSL supports EDDSA. */
     return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_EDDSA);
     if(return_value) {
         return 70000 + return_value;
