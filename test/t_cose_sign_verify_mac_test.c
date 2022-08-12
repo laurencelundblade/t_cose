@@ -10,7 +10,7 @@
  */
 
 #include "t_cose/t_cose_mac_compute.h"
-#include "t_cose/t_cose_mac_verify.h"
+#include "t_cose/t_cose_mac_validate.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_make_test_pub_key.h"
 #include "t_cose_sign_verify_mac_test.h"
