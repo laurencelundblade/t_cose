@@ -15,8 +15,6 @@
 #include "t_cose_make_test_pub_key.h"
 #include "t_cose_sign_verify_mac_test.h"
 
-#include "psa/crypto.h"
-
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
 #ifndef T_COSE_DISABLE_MAC0
