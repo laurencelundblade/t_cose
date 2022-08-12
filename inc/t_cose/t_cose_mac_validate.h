@@ -5,8 +5,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __T_COSE_MAC_VERIFY_H_
-#define __T_COSE_MAC_VERIFY_H_
+#ifndef __T_COSE_MAC_VALIDATE_H_
+#define __T_COSE_MAC_VALIDATE_H_
 
 #include <stdint.h>
 #include "t_cose/q_useful_buf.h"
@@ -166,4 +166,4 @@ t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
 }
 #endif
 
-#endif /* __T_COSE_MAC_VERIFY_H_ */
+#endif /* __T_COSE_MAC_VALIDATE_H_ */

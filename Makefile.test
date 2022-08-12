@@ -52,7 +52,7 @@ SRC_OBJ=src/t_cose_sign1_verify.o \
 	src/t_cose_util.o \
 	src/t_cose_parameters.o \
 	src/t_cose_mac_compute.o \
-	src/t_cose_mac_verify.o
+	src/t_cose_mac_validate.o
 
 .PHONY: all clean
 
@@ -81,7 +81,7 @@ src/t_cose_util.o: src/t_cose_util.h src/t_cose_standard_constants.h inc/t_cose/
 src/t_cose_sign1_verify.o: inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_parameters.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h
 src/t_cose_parameters.o: inc/t_cose/t_cose_parameters.h src/t_cose_standard_constants.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_common.h
 src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_parameters.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
-src/t_cose_mac_verify.o: inc/t_cose/t_cose_mac_verify.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_parameters.h inc/t_cose/t_cose_common.h
+src/t_cose_mac_validate.o: inc/t_cose/t_cose_mac_validate.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_parameters.h inc/t_cose/t_cose_common.h
 src/t_cose_mac_compute.o: inc/t_cose/t_cose_mac_compute.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
 
 
