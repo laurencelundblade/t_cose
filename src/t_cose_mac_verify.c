@@ -35,7 +35,7 @@
  * at the level above COSE.
  */
 static inline enum t_cose_err_t
-process_tags(struct t_cose_mac_verify_ctx *me, QCBORDecodeContext *decode_context)
+process_tags(struct t_cose_mac_validate_ctx *me, QCBORDecodeContext *decode_context)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -106,7 +106,7 @@ process_tags(struct t_cose_mac_verify_ctx *me, QCBORDecodeContext *decode_contex
 }
 
 /**
- * \file t_cose_mac_verify.c
+ * \file t_cose_mac_validate.c
  *
  * \brief This verifies t_cose Mac authentication structure without a recipient
  *        structure.
@@ -116,7 +116,7 @@ process_tags(struct t_cose_mac_verify_ctx *me, QCBORDecodeContext *decode_contex
 /*
  * Public function. See t_cose_mac.h
  */
-enum t_cose_err_t t_cose_mac_verify_private(struct t_cose_mac_verify_ctx *context,
+enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                                             struct q_useful_buf_c         cose_mac,
                                             struct q_useful_buf_c         aad,
                                             bool                          payload_is_detached,

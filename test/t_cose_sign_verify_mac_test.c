@@ -34,7 +34,7 @@ int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
     struct t_cose_key            key;
     struct q_useful_buf_c        in_payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
     struct q_useful_buf_c        out_payload;
-    struct t_cose_mac_verify_ctx verify_ctx;
+    struct t_cose_mac_validate_ctx verify_ctx;
 
     /* -- Get started with context initialization, selecting the alg -- */
     t_cose_mac_compute_init(&sign_ctx, 0, cose_alg);
@@ -59,12 +59,13 @@ int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
     }
 
     /* Verification */
-    t_cose_mac_verify_init(&verify_ctx, 0);
+    t_cose_mac_validate_init(&verify_ctx, 0);
 
-    t_cose_mac_set_verify_key(&verify_ctx, key);
+    t_cose_mac_set_validate_key(&verify_ctx, key);
 
-    cose_res = t_cose_mac_verify(&verify_ctx,
+    cose_res = t_cose_mac_validate(&verify_ctx,
                                   signed_cose, /* COSE to verify */
+                                  NULL_Q_USEFUL_BUF_C,
                                  &out_payload, /* Payload from signed_cose */
                                   NULL);
     if(cose_res != T_COSE_SUCCESS) {
@@ -128,7 +129,7 @@ int_fast32_t sign_verify_mac_sig_fail_test()
     struct t_cose_key            key_pair;
     struct q_useful_buf_c        payload;
     QCBORError                   cbor_error;
-    struct t_cose_mac_verify_ctx verify_ctx;
+    struct t_cose_mac_validate_ctx verify_ctx;
     size_t                       tamper_offset;
 
 
@@ -175,12 +176,13 @@ int_fast32_t sign_verify_mac_sig_fail_test()
     struct q_useful_buf temp_unconst = q_useful_buf_unconst(signed_cose);
     ((char *)temp_unconst.ptr)[tamper_offset] = 'h';
 
-    t_cose_mac_verify_init(&verify_ctx, 0);
+    t_cose_mac_validate_init(&verify_ctx, 0);
 
-    t_cose_mac_set_verify_key(&verify_ctx, key_pair);
+    t_cose_mac_set_validate_key(&verify_ctx, key_pair);
 
-    result = t_cose_mac_verify(&verify_ctx,
+    result = t_cose_mac_validate(&verify_ctx,
                                 signed_cose, /* COSE to verify */
+                                NULL_Q_USEFUL_BUF_C,
                                &payload,     /* Payload from signed_cose */
                                 NULL);
 
