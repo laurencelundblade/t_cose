@@ -9,7 +9,7 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose/t_cose_mac_sign.h"
+#include "t_cose/t_cose_mac_compute.h"
 #include "t_cose/t_cose_mac_verify.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_make_test_pub_key.h"
