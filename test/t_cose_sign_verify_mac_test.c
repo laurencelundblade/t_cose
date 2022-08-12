@@ -26,7 +26,7 @@
  */
 int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
 {
-    struct t_cose_mac_sign_ctx   sign_ctx;
+    struct t_cose_mac_calculate_ctx   sign_ctx;
     int32_t                      return_value;
     enum t_cose_err_t            cose_res;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
@@ -37,7 +37,7 @@ int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
     struct t_cose_mac_verify_ctx verify_ctx;
 
     /* -- Get started with context initialization, selecting the alg -- */
-    t_cose_mac_sign_init(&sign_ctx, 0, cose_alg);
+    t_cose_mac_compute_init(&sign_ctx, 0, cose_alg);
 
     /* Make an HMAC key that will be used for both signing and
      * verification.
@@ -46,9 +46,13 @@ int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
     if(cose_res != T_COSE_SUCCESS) {
         return 1000 + (int32_t)cose_res;
     }
-    t_cose_mac_set_signing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
+    t_cose_mac_set_computing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
 
-    cose_res = t_cose_mac_sign(&sign_ctx, in_payload, signed_cose_buffer, &signed_cose);
+    cose_res = t_cose_mac_compute(&sign_ctx,
+                                     NULL_Q_USEFUL_BUF_C,
+                                     in_payload,
+                                     signed_cose_buffer,
+                                    &signed_cose);
     if(cose_res != T_COSE_SUCCESS) {
         return_value = 2000 + (int32_t)cose_res;
         goto Done;
@@ -115,7 +119,7 @@ int_fast32_t sign_verify_mac_basic_test()
  */
 int_fast32_t sign_verify_mac_sig_fail_test()
 {
-    struct t_cose_mac_sign_ctx   sign_ctx;
+    struct t_cose_mac_calculate_ctx   sign_ctx;
     QCBOREncodeContext           cbor_encode;
     int32_t                      return_value;
     enum t_cose_err_t            result;
@@ -138,8 +142,8 @@ int_fast32_t sign_verify_mac_sig_fail_test()
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_mac_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_HMAC256);
-    t_cose_mac_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_mac_compute_init(&sign_ctx, 0, T_COSE_ALGORITHM_HMAC256);
+    t_cose_mac_set_computing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     result = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(result) {
@@ -199,7 +203,7 @@ static int size_test(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
                      struct t_cose_key     key_pair)
 {
-    struct t_cose_mac_sign_ctx sign_ctx;
+    struct t_cose_mac_calculate_ctx sign_ctx;
     QCBOREncodeContext         cbor_encode;
     enum t_cose_err_t          return_value;
     struct q_useful_buf        nil_buf;
@@ -216,8 +220,8 @@ static int size_test(int32_t               cose_algorithm_id,
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
-    t_cose_mac_sign_init(&sign_ctx,  0,  cose_algorithm_id);
-    t_cose_mac_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_mac_compute_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_mac_set_computing_key(&sign_ctx, key_pair, kid);
 
     return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
@@ -242,8 +246,8 @@ static int size_test(int32_t               cose_algorithm_id,
     /* ---- Now make a real COSE_Mac0 and compare the size ---- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_mac_sign_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_computing_key(&sign_ctx, key_pair, kid);
 
     return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
@@ -263,12 +267,13 @@ static int size_test(int32_t               cose_algorithm_id,
     }
 
     /* ---- Again with one-call API to make COSE_Mac0 ---- */\
-    t_cose_mac_sign_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac_set_signing_key(&sign_ctx, key_pair, kid);
-    return_value = t_cose_mac_sign(&sign_ctx,
-                                    payload,
-                                    signed_cose_buffer,
-                                   &actual_signed_cose);
+    t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_computing_key(&sign_ctx, key_pair, kid);
+    return_value = t_cose_mac_compute(&sign_ctx,
+                                         NULL_Q_USEFUL_BUF_C,
+                                         payload,
+                                         signed_cose_buffer,
+                                        &actual_signed_cose);
     if(return_value) {
         return 7000 + (int32_t)return_value;
     }

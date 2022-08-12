@@ -14,7 +14,7 @@
 #include "t_cose/t_cose_parameters.h"
 
 /**
- * \file t_cose_mac_sign.c
+ * \file t_cose_mac_compute.c
  *
  * \brief This creates t_cose Mac authentication structure without a recipient
  *        structure.
@@ -24,12 +24,12 @@
 #ifndef T_COSE_DISABLE_MAC0
 
 enum t_cose_err_t
-t_cose_mac_one_short(struct t_cose_mac_sign_ctx *context,
-                      bool                         payload_is_detached,
-                      struct q_useful_buf_c        aad,
-                      struct q_useful_buf_c        payload,
-                      struct q_useful_buf          out_buf,
-                      struct q_useful_buf_c       *result)
+t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *context,
+                      bool                               payload_is_detached,
+                      struct q_useful_buf_c              aad,
+                      struct q_useful_buf_c              payload,
+                      struct q_useful_buf                out_buf,
+                      struct q_useful_buf_c             *result)
 {
     QCBOREncodeContext  encode_ctx;
     enum t_cose_err_t   return_value;
@@ -64,7 +64,7 @@ Done:
  * Public function. See t_cose_mac.h
  */
 enum t_cose_err_t
-t_cose_mac_encode_parameters(struct t_cose_mac_sign_ctx *me,
+t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
                               QCBOREncodeContext        *cbor_encode_ctx)
 
 {
@@ -155,7 +155,7 @@ Done:
  * Public function. See t_cose_mac.h
  */
 enum t_cose_err_t
-t_cose_mac_encode_tag(struct t_cose_mac_sign_ctx *me,
+t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
                        QCBOREncodeContext        *cbor_encode_ctx)
 
 {
