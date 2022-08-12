@@ -2,7 +2,7 @@
  * t_cose_crypto.h
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -610,7 +610,7 @@ t_cose_crypto_hmac_sign_finish(struct t_cose_crypto_hmac *hmac_ctx,
  */
 enum t_cose_err_t
 t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                const int                  cose_alg_id,
+                                const  int32_t             cose_alg_id,
                                 struct t_cose_key          verify_key);
 
 /**
