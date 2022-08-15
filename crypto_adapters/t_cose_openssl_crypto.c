@@ -779,6 +779,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
     unsigned int hash_result_len;
 
     if(!hash_ctx->update_error) {
+        EVP_MD_CTX_free(hash_ctx->evp_ctx);
         return T_COSE_ERR_HASH_GENERAL_FAIL;
     }
 
