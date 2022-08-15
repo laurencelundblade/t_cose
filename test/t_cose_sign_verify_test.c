@@ -32,10 +32,6 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     struct q_useful_buf_c          payload;
     struct t_cose_sign1_verify_ctx verify_ctx;
     Q_USEFUL_BUF_MAKE_STACK_UB(    auxiliary_buffer, 100);
-    struct q_useful_buf            auxiliary;
-
-    /* -- Get started with context initialization, selecting the alg -- */
-    t_cose_sign1_sign_init(&sign_ctx, 0, cose_alg);
 
     /* Make a key pair that will be used for both signing and verification.
      */
@@ -43,10 +39,11 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     if(result) {
         return 1000 + (int32_t)result;
     }
-    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
-    auxiliary = auxiliary_buffer;
-    t_cose_sign1_sign_set_auxiliary_buffer(&sign_ctx, &auxiliary);
+    /* -- Get started with context initialization, selecting the alg -- */
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_alg);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_sign1_sign_set_auxiliary_buffer(&sign_ctx, auxiliary_buffer);
 
     result = t_cose_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
@@ -59,11 +56,8 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
 
     /* Verification */
     t_cose_sign1_verify_init(&verify_ctx, 0);
-
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
-
-    auxiliary = auxiliary_buffer;
-    t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, &auxiliary);
+    t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, auxiliary_buffer);
 
     result = t_cose_sign1_verify(&verify_ctx,
                                        signed_cose,         /* COSE to verify */
@@ -770,17 +764,16 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
     struct t_cose_key              key_pair;
     struct q_useful_buf_c          payload;
     struct t_cose_parameters       parameters;
-    struct q_useful_buf            auxiliary_buffer = { NULL, SIZE_MAX };
+    Q_USEFUL_BUF_MAKE_STACK_UB(    auxiliary_buffer, 100);
 
     /**
      * Decode the signed message once without a key, to extract
-     * the algorithm ID and auxiliary buffer size.
+     * the algorithm ID.
      *
      * We don't strictly need this step, since the algorithm
      * is passed as an argument, but it is a nice sanity check.
      */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
-    t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, &auxiliary_buffer);
     result = t_cose_sign1_verify(&verify_ctx,
                                  signed_message,
                                  &payload,
@@ -795,10 +788,6 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
         goto Done2;
     }
 
-    if (auxiliary_buffer.len > 0) {
-        auxiliary_buffer.ptr = malloc(auxiliary_buffer.len);
-    }
-
     result = make_key_pair(cose_algorithm_id, &key_pair);
     if(result) {
         return_value = 3000 + (int32_t)result;
@@ -806,7 +795,7 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
     }
 
     t_cose_sign1_verify_init(&verify_ctx, 0);
-    t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, &auxiliary_buffer);
+    t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, auxiliary_buffer);
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
     result = t_cose_sign1_verify(&verify_ctx,
                                  signed_message,

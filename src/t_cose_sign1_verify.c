@@ -176,12 +176,6 @@ sign1_verify_short_circuit(struct t_cose_sign1_verify_ctx *me,
     Q_USEFUL_BUF_MAKE_STACK_UB(buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c      tbs_hash;
 
-    /* Short-circuit signing does not use the auxiliary buffer, as
-     * hashing is done incrementally. */
-    if (me->auxiliary_buffer != NULL) {
-        me->auxiliary_buffer->len = 0;
-    }
-
     if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
@@ -224,12 +218,11 @@ Done:
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * Unlike other algorithms, EDDSA verification requires two passes over
- * the to-be-signed data, and therefore cannot be performed
- * incrementally. This function serializes the to-be-signed bytes and
- * uses the crypto adapter to verify the signature. An auxiliary
- * buffer, used to store the to-be-signed bytes, must have previously
- * been configured by calling the
- * \ref t_cose_sign1_verify_set_auxiliary_buffer function.
+ * the to-be-signed data, and therefore cannot be performed incrementally.
+ * This function serializes the to-be-signed bytes and uses the crypto
+ * adapter to verify the signature. An auxiliary buffer, used to store
+ * the to-be-signed bytes, must have previously been configured by
+ * calling the \ref t_cose_sign1_verify_set_auxiliary_buffer function.
  *
  * Signature verification is skipped if the \ref T_COSE_OPT_DECODE_ONLY
  * flag is set. This mode can however be used to determine the
@@ -246,37 +239,34 @@ sign1_verify_eddsa(struct t_cose_sign1_verify_ctx *me,
     enum t_cose_err_t            return_value;
     struct q_useful_buf_c        tbs;
 
-    /* Verifying EDDSA signatures requires an auxiliary buffer in
-     * which to serialize the TBS.
-     */
-    if (me->auxiliary_buffer == NULL) {
-        return_value = T_COSE_NEED_AUXILIARY_BUFFER;
-        goto Done;
-    }
-
     /* We need to serialize the Sig_structure (rather than hashing it
      * incrementally) before signing. We do this before checking for
      * the DECODE_ONLY option, as this allows the caller to discover
      * the necessary buffer size (create_tbs supports a NULL
-     * auxiliary_buffer, and we write back to it the size the structure
-     * would have occupied).
+     * auxiliary_buffer, and we record the size the structure would
+     * have occupied).
      */
     return_value = create_tbs(protected_parameters,
                               aad,
                               payload,
-                             *me->auxiliary_buffer,
+                              me->auxiliary_buffer,
                              &tbs);
     if (return_value) {
         goto Done;
     }
-    me->auxiliary_buffer->len = tbs.len;
+
+    /* Record how much buffer we actually used / would have used,
+     * allowing the caller to allocate an appropriately sized buffer.
+     * This is particularly useful in DECODE_ONLY mode.
+     */
+    me->auxiliary_buffer_size = tbs.len;
 
     if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
 
-    if (me->auxiliary_buffer->ptr == NULL) {
+    if (me->auxiliary_buffer.ptr == NULL) {
         return_value = T_COSE_NEED_AUXILIARY_BUFFER;
         goto Done;
     }
@@ -322,12 +312,6 @@ sign1_verify_default(struct t_cose_sign1_verify_ctx *me,
     enum t_cose_err_t          return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c      tbs_hash;
-
-    /* This function does not use the auxiliary buffer, as
-     * hashing is done incrementally. */
-    if (me->auxiliary_buffer != NULL) {
-        me->auxiliary_buffer->len = 0;
-    }
 
     if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;

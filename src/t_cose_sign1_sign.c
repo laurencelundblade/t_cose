@@ -257,12 +257,6 @@ sign1_sign_short_circuit(struct t_cose_sign1_sign_ctx *me,
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        tbs_hash;
 
-    /* Short-circuit signing does not use the auxiliary buffer, as
-     * hashing is done incrementally. */
-    if (me->auxiliary_buffer != NULL) {
-        me->auxiliary_buffer->len = 0;
-    }
-
     /* Create the hash of the to-be-signed bytes. Inputs to the
      * hash are the protected parameters, the payload that is
      * getting signed, the cose signature alg from which the hash
@@ -329,31 +323,25 @@ sign1_sign_eddsa(struct t_cose_sign1_sign_ctx *me,
     enum t_cose_err_t            return_value;
     struct q_useful_buf_c        tbs;
 
-    /* EDDSA signing requires an auxiliary buffer in which to
-     * serialize the TBS.
-     */
-    if (me->auxiliary_buffer == NULL) {
-        return_value = T_COSE_NEED_AUXILIARY_BUFFER;
-        goto Done;
-    }
-
     /* Serialize the TBS data into the auxiliary buffer.
-     * If auxiliary_buffer->ptr is NULL this will succeed, computing
+     * If auxiliary_buffer.ptr is NULL this will succeed, computing
      * the necessary size.
      */
     return_value = create_tbs(me->protected_parameters,
                               aad,
                               payload,
-                             *me->auxiliary_buffer,
+                              me->auxiliary_buffer,
                              &tbs);
     if (return_value) {
         goto Done;
     }
 
-    /* Let the caller know how big of an auxiliary buffer it needs to
-     * provide.
+    /* Record how much buffer we actually used / would have used,
+     * allowing the caller to allocate an appropriately sized buffer.
+     * This is particularly useful when out_buf.ptr are NULL, when
+     * no signing is actually taking place yet.
      */
-    me->auxiliary_buffer->len = tbs.len;
+    me->auxiliary_buffer_size = tbs.len;
 
     if (out_buf.ptr == NULL) {
         /* Output size calculation. Only need signature size. */
@@ -361,7 +349,7 @@ sign1_sign_eddsa(struct t_cose_sign1_sign_ctx *me,
         return_value  = t_cose_crypto_sig_size(me->cose_algorithm_id,
                                                me->signing_key,
                                               &signature->len);
-    } else if (me->auxiliary_buffer->ptr == NULL) {
+    } else if (me->auxiliary_buffer.ptr == NULL) {
         /* Without a real auxiliary buffer, we have nothing to sign. */
         return_value = T_COSE_NEED_AUXILIARY_BUFFER;
     } else {
@@ -409,12 +397,6 @@ sign1_sign_default(struct t_cose_sign1_sign_ctx *me,
     enum t_cose_err_t            return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        tbs_hash;
-
-    /* Short-circuit signing does not use the auxiliary buffer, as
-     * hashing is done incrementally. */
-    if (me->auxiliary_buffer != NULL) {
-        me->auxiliary_buffer->len = 0;
-    }
 
     /* Create the hash of the to-be-signed bytes. Inputs to the
      * hash are the protected parameters, the payload that is

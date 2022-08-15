@@ -564,7 +564,7 @@ Done:
  * using malloc and free.
  *
  */
-int32_t dynamic_buffer_example()
+int32_t dynamic_buffer_example(void)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     enum t_cose_err_t              return_value;
@@ -591,34 +591,34 @@ int32_t dynamic_buffer_example()
     /* ------   Initialize for signing    ------ */
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_EDDSA);
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);
-    t_cose_sign1_sign_set_auxiliary_buffer(&sign_ctx, &auxiliary_buffer);
 
     /* ------   Compute the size of the output and auxiliary buffers   ------
      *
-     * Both the output and auxiliary buffers are set to a NULL pointer
-     * but very large length. The signing operation will behave as
-     * though it had written to these, and report how much size it
-     * used. These sizes are used later on to allocate the proper
-     * buffers.
+     * A large but NULL output buffer is given to the signing operation.
+     * The size of result, signed_cose, will reflect how big of a buffer
+     * needs to be provided for the real operation.
+     *
+     * Similarly, the necessary auxiliary buffer size is saved in the
+     * signing context and available by calling t_cose_sign1_sign_auxiliary_buffer_size.
+     *
+     * Both sizes are used later on to allocate the proper buffers.
      */
-    signed_cose_buffer = (struct q_useful_buf){ NULL, UINT32_MAX };
-    auxiliary_buffer = (struct q_useful_buf){ NULL, UINT32_MAX };
-
     return_value = t_cose_sign1_sign(&sign_ctx,
                                       constructed_payload,
-                                      signed_cose_buffer,
+                                      (struct q_useful_buf){ NULL, SIZE_MAX },
                                      &signed_cose);
     printf("Computed signing size %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
         goto Done;
     }
     printf("Output buffer size = %d bytes\n", signed_cose.len);
-    printf("Auxiliary buffer size = %d bytes\n", auxiliary_buffer.len);
+    printf("Auxiliary buffer size = %d bytes\n", t_cose_sign1_sign_auxiliary_buffer_size(&sign_ctx));
 
     /* ------   Allocate buffers of the right size   ------ */
     signed_cose_buffer.ptr = malloc(signed_cose.len);
     signed_cose_buffer.len = signed_cose.len;
 
+    auxiliary_buffer.len = t_cose_sign1_sign_auxiliary_buffer_size(&sign_ctx);
     auxiliary_buffer.ptr = malloc(auxiliary_buffer.len);
 
     if (signed_cose_buffer.ptr == NULL || auxiliary_buffer.ptr == NULL) {
@@ -627,7 +627,12 @@ int32_t dynamic_buffer_example()
         goto Done;
     }
 
-    /* ------   Sign    ------ */
+    /* ------   Sign    ------
+     *
+     * Call the sign function again, this time providing it with the
+     * real buffers.
+     */
+    t_cose_sign1_sign_set_auxiliary_buffer(&sign_ctx, auxiliary_buffer);
     return_value = t_cose_sign1_sign(&sign_ctx,
                                       constructed_payload,
                                       signed_cose_buffer,
@@ -654,16 +659,13 @@ int32_t dynamic_buffer_example()
 
     /* ------   Compute the size of the auxiliary buffer   ------
      *
-     * We call the verify procedure with the DECODE_ONLY flag, which
-     * updates the length of auxiliary_buffer.
+     * We call the verify procedure with the DECODE_ONLY flag.
      *
      * This is only necessary because EDDSA is used as a signing
      * algorithm. Other algorithms have no need for an auxiliary
      * buffer.
      */
-    auxiliary_buffer = (struct q_useful_buf){ NULL, UINT32_MAX };
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
-    t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, &auxiliary_buffer);
     printf("Initialized t_cose for decoding\n");
 
     return_value = t_cose_sign1_verify(&verify_ctx, signed_cose, NULL, NULL);
@@ -671,9 +673,10 @@ int32_t dynamic_buffer_example()
     if(return_value) {
         goto Done;
     }
-    printf("Auxiliary buffer size = %d bytes\n", auxiliary_buffer.len);
+    printf("Auxiliary buffer size = %d bytes\n", t_cose_sign1_verify_auxiliary_buffer_size(&verify_ctx));
 
     /* ------   Allocate an auxiliary buffer of the right size   ------ */
+    auxiliary_buffer.len = t_cose_sign1_verify_auxiliary_buffer_size(&verify_ctx);
     auxiliary_buffer.ptr = malloc(auxiliary_buffer.len);
     if (auxiliary_buffer.ptr == NULL) {
         printf("Auxiliary buffer allocation failed\n");
@@ -688,15 +691,15 @@ int32_t dynamic_buffer_example()
      */
     t_cose_sign1_verify_init(&verify_ctx, 0);
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
-    t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, &auxiliary_buffer);
+    t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, auxiliary_buffer);
 
     printf("Initialized t_cose for verification and set verification key\n");
 
     /* ------   Perform the verification   ------ */
     return_value = t_cose_sign1_verify(&verify_ctx,
-                                       signed_cose,         /* COSE to verify */
-                                       &returned_payload,  /* Payload from signed_cose */
-                                       NULL);      /* Don't return parameters */
+                                       signed_cose,       /* COSE to verify */
+                                       &returned_payload, /* Payload from signed_cose */
+                                       NULL);             /* Don't return parameters */
 
     printf("Verification complete: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
@@ -723,7 +726,7 @@ int main(int argc, const char * argv[])
     (void)argc; /* Avoid unused parameter error */
     (void)argv;
 
-    // one_step_sign_example();
-    // two_step_sign_example();
+    one_step_sign_example();
+    two_step_sign_example();
     dynamic_buffer_example();
 }
