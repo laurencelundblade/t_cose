@@ -75,13 +75,13 @@
 enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                           struct t_cose_key *key_pair)
 {
-    psa_key_type_t        key_type;
-    psa_status_t          crypto_result;
-    mbedtls_svc_key_id_t  key_handle;
-    psa_algorithm_t       key_alg;
-    const uint8_t        *private_key;
-    size_t                private_key_len;
-    psa_key_attributes_t  key_attributes;
+    psa_key_type_t       key_type;
+    psa_status_t         crypto_result;
+    psa_key_id_t         key_handle;
+    psa_algorithm_t      key_alg;
+    const uint8_t       *private_key;
+    size_t               private_key_len;
+    psa_key_attributes_t key_attributes;
 
 
     static const uint8_t private_key_256[] = {PRIVATE_KEY_prime256v1};
@@ -180,7 +180,7 @@ enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
  */
 void free_psa_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-    psa_close_key((mbedtls_svc_key_id_t)key_pair.k.key_handle);
+    psa_close_key((psa_key_id_t)key_pair.k.key_handle);
 }
 
 
