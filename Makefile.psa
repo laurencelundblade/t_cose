@@ -64,7 +64,7 @@ INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
-SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
+SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o src/t_cose_sign_mini_verify.o
 
 .PHONY: all install install_headers install_so uninstall clean
 
