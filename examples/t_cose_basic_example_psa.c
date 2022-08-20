@@ -14,6 +14,8 @@
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
 
+#include "t_cose/t_cose_sign_mini_verify.h"
+
 #include "psa/crypto.h"
 
 #include <stdio.h>
@@ -595,10 +597,81 @@ Done:
     return (int)return_value;
 }
 
+
+void mini()
+{
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    enum t_cose_err_t              return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
+    struct q_useful_buf_c          signed_cose;
+    struct q_useful_buf_c          payload;
+    struct t_cose_key              key_pair;
+
+
+    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
+
+    /* ------   Initialize for signing    ------
+       *
+       * Initialize the signing context by telling it the signing
+       * algorithm and signing options. No options are set here hence
+       * the 0 value.
+       *
+       * Set up the signing key and kid (key ID). No kid is passed here
+       * hence the NULL_Q_USEFUL_BUF_C.
+       */
+
+      t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_OMIT_CBOR_TAG, T_COSE_ALGORITHM_ES384);
+
+      t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);
+
+      printf("Initialized t_cose and configured signing key\n");
+
+
+      /* ------   Sign    ------
+       *
+       * This performs encoding of the headers, the signing and formatting
+       * in one shot.
+       *
+       * With this API the payload ends up in memory twice, once as the
+       * input and once in the output. If the payload is large, this
+       * needs about double the size of the payload to work.
+       */
+      return_value = t_cose_sign1_sign(/* The context set up with signing key */
+                                       &sign_ctx,
+                                       /* Pointer and length of payload to be
+                                        * signed.
+                                        */
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL("XX"),
+                                       /* Non-const pointer and length of the
+                                        * buffer where the completed output is
+                                        * written to. The length here is that
+                                        * of the whole buffer.
+                                        */
+                                       signed_cose_buffer,
+                                       /* Const pointer and actual length of
+                                        * the completed, signed and encoded
+                                        * COSE_Sign1 message. This points
+                                        * into the output buffer and has the
+                                        * lifetime of the output buffer.
+                                        */
+                                       &signed_cose);
+
+
+
+    return_value =
+    t_cose_sign1_mini_verify(signed_cose,
+                             key_pair,
+                             &payload);
+
+
+}
+
 int main(int argc, const char * argv[])
 {
     (void)argc; /* Avoid unused parameter error */
     (void)argv;
+
+    mini();
 
     one_step_sign_example();
     two_step_sign_example();
