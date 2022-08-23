@@ -55,7 +55,7 @@ process_tags(struct t_cose_mac_verify_ctx *me, QCBORDecodeContext *decode_contex
         /* The protocol that is using COSE says the input CBOR must
          * be a COSE tag.
          */
-        if(uTag != CBOR_TAG_COSE_SIGN1) {
+        if(uTag != CBOR_TAG_COSE_MAC0) {
             return T_COSE_ERR_INCORRECTLY_TAGGED;
         }
     }
@@ -63,7 +63,7 @@ process_tags(struct t_cose_mac_verify_ctx *me, QCBORDecodeContext *decode_contex
         /* The protocol that is using COSE says the input CBOR must
          * not be a COSE tag.
          */
-        if(uTag == CBOR_TAG_COSE_SIGN1) {
+        if(uTag == CBOR_TAG_COSE_MAC0) {
             return T_COSE_ERR_INCORRECTLY_TAGGED;
         }
     }
@@ -80,9 +80,9 @@ process_tags(struct t_cose_mac_verify_ctx *me, QCBORDecodeContext *decode_contex
 
     returned_tag_index = 0;
 
-    if(uTag != CBOR_TAG_COSE_SIGN1) {
+    if(uTag != CBOR_TAG_COSE_MAC0) {
         /* Never return the tag that this code is about to process. Note
-         * that you can sign a COSE_SIGN1 recursively. This only takes out
+         * that you can sign a COSE_MAC0 recursively. This only takes out
          * the one tag layer that is processed here.
          */
         me->auTags[returned_tag_index] = uTag;
