@@ -125,8 +125,8 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
-    struct t_cose_header_param    params_arr[4];
-    struct header_param_storage   params = {0,params_arr};
+    struct t_cose_header_param    params_arr[T_COSE_NUM_VERIFY_DECODE_HEADERS];
+    struct header_param_storage   params = {T_COSE_NUM_VERIFY_DECODE_HEADERS,params_arr};
 
     enum t_cose_err_t             return_value;
     struct q_useful_buf_c         tag = NULL_Q_USEFUL_BUF_C;
