@@ -355,6 +355,7 @@ struct t_cose_key {
  */
 #define T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS (1 + 1 + 5 + 9)
 
+#define T_COSE_NUM_VERIFY_DECODE_HEADERS 8
 /**
  * Error codes return by t_cose.
  */
