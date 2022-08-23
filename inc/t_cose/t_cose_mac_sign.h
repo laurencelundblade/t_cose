@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include "qcbor/qcbor.h"
 #include "t_cose/q_useful_buf.h"
+#include "qcbor/qcbor_encode.h"
 #include "t_cose_common.h"
 
 #ifdef __cplusplus
