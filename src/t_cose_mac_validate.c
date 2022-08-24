@@ -127,14 +127,6 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
-    struct t_cose_header_param    params_arr[T_COSE_NUM_VERIFY_DECODE_HEADERS];
-    struct header_param_storage params;
-    params.storage_size = T_COSE_NUM_VERIFY_DECODE_HEADERS;
-    if(return_params == NULL){
-        params.storage = params_arr;
-    }else{
-        params.storage = *return_params;
-    }
 
     enum t_cose_err_t             return_value;
     struct q_useful_buf_c         tag = NULL_Q_USEFUL_BUF_C;
@@ -165,7 +157,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
                           l,
                           NULL,
                           NULL,
-                          params,
+                          context->params,
                           &protected_parameters);
 
     /* --- The payload --- */
@@ -189,7 +181,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
 
     /* === End of the decoding of the array of four === */
     if((context->option_flags & T_COSE_OPT_REQUIRE_KID) &&
-        q_useful_buf_c_is_null(t_cose_find_parameter_kid(params.storage))) {
+        q_useful_buf_c_is_null(t_cose_find_parameter_kid(context->params.storage))) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
@@ -220,7 +212,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_verify_setup(&hmac_ctx,
-                                  t_cose_find_parameter_alg_id(params.storage),
+                                  t_cose_find_parameter_alg_id(context->params.storage),
                                   context->verification_key);
     if(return_value) {
         goto Done;
@@ -242,6 +234,10 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
     return_value = t_cose_crypto_hmac_verify_finish(&hmac_ctx, tag);
 
 Done:
+    if(return_params != NULL) {
+        *return_params = context->params.storage;
+    }
+
     return return_value;
 }
 
