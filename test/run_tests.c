@@ -47,6 +47,7 @@ typedef struct {
 
 
 static test_entry2 s_tests2[] = {
+    NULL
 };
 #endif
 
