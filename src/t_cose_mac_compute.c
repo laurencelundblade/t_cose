@@ -31,6 +31,8 @@ t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *context,
                       struct q_useful_buf                out_buf,
                       struct q_useful_buf_c             *result)
 {
+    (void)payload_is_detached;
+    (void)aad;
     QCBOREncodeContext  encode_ctx;
     enum t_cose_err_t   return_value;
 
@@ -70,20 +72,13 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
 {
     size_t                            tag_len;
     enum t_cose_err_t                 return_value;
-    struct q_useful_buf               buffer_for_protected_parameters;
-    struct q_useful_buf_c             kid;
     const struct t_cose_header_param *params_vector[3];
     struct t_cose_header_param        protected_params_arr[2];
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     struct t_cose_header_param        unprotected_params_arr[3];
-    struct t_cose_header_param        ct_param;
 #else
     struct t_cose_header_param        unprotected_params_arr[2];
 #endif
-
-    struct t_cose_header_param alg_id_param;
-    struct t_cose_header_param kid_param;
-    struct t_cose_header_param end_param = T_COSE_END_PARAM;
 
     /*
      * Check the algorithm now by getting the algorithm as an early
@@ -147,7 +142,6 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
      * here as the CBOR encoder tracks it internally.
      */
 
-Done:
     return return_value;
 }
 

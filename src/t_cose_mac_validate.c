@@ -122,6 +122,8 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
                                             struct q_useful_buf_c        *payload,
                                             struct t_cose_header_param  **return_params)
 {
+    (void)aad;
+    (void)payload_is_detached;
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;

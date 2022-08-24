@@ -313,6 +313,7 @@ t_cose_mac_compute_detatched(struct t_cose_mac_calculate_ctx *sign_ctx,
                           struct q_useful_buf_c            detached_payload,
                           struct q_useful_buf              out_buf,
                           struct q_useful_buf_c           *result){
+    (void)aad;
     return t_cose_mac_compute_private(
         sign_ctx,
         true,

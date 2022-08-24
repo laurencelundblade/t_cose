@@ -240,9 +240,6 @@ static int size_test(int32_t               cose_algorithm_id,
         return 4000 + (int32_t)cbor_error;
     }
 
-    /* ---- General sanity check ---- */
-    size_t expected_min = payload.len + kid.len;
-
     /* ---- Now make a real COSE_Mac0 and compare the size ---- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
