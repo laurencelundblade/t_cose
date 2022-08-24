@@ -127,7 +127,7 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-int check_for_key_pair_leaks()
+int check_for_key_pair_leaks(void)
 {
     /* No check for leaks with this stubbed out crypto. With this test
      crypto there is no file with code to make keys so there is no place

@@ -86,7 +86,7 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_basic_test()
+int_fast32_t sign_verify_basic_test(void)
 {
     int_fast32_t return_value;
 
@@ -118,7 +118,7 @@ int_fast32_t sign_verify_basic_test()
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_sig_fail_test()
+int_fast32_t sign_verify_sig_fail_test(void)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -202,7 +202,7 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_make_cwt_test()
+int_fast32_t sign_verify_make_cwt_test(void)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -441,7 +441,7 @@ static int size_test(int32_t               cose_algorithm_id,
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_get_size_test()
+int_fast32_t sign_verify_get_size_test(void)
 {
     enum t_cose_err_t   return_value;
     struct t_cose_key   key_pair;
