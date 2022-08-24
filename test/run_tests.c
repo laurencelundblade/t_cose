@@ -128,7 +128,7 @@ static test_entry s_tests[] = {
  StringMem should be 12 bytes long, 9 for digits, 1 for minus and
  1 for \0 termination.
  */
-static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
+static const char *NumToString(int_fast32_t nNum, UsefulBuf StringMem)
 {
    const int32_t nMax = 1000000000;
 
@@ -145,7 +145,7 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
    bool bDidSomeOutput = false;
    for(int32_t n = nMax; n > 0; n/=10) {
-      int32_t nDigitValue = nNum/n;
+      int_fast32_t nDigitValue = nNum/n;
       if(nDigitValue || bDidSomeOutput){
          bDidSomeOutput = true;
          UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + nDigitValue));
@@ -247,7 +247,7 @@ int RunTestsTCose(const char    *szTestNames[],
             }
         }
 
-        int nTestResult = (t->test_fun)();
+        int_fast32_t nTestResult = (t->test_fun)();
         nTestsRun++;
         if(pfOutput) {
             (*pfOutput)(t->szTestName, poutCtx, 0);
