@@ -29,7 +29,7 @@ struct t_cose_mac_calculate_ctx {
     struct q_useful_buf_c  protected_parameters; /* The encoded protected parameters */
     int32_t                cose_algorithm_id;
     struct t_cose_key      signing_key;
-    int32_t                option_flags;
+    uint32_t                option_flags;
     struct q_useful_buf_c  kid;
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t               content_type_uint;
