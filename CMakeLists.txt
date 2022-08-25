@@ -114,7 +114,7 @@ if (BUILD_TESTS)
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")
-        list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c)
+        list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c test/t_cose_compute_validate_mac_test.c)
     endif()
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
