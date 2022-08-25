@@ -42,6 +42,43 @@
 /* Avoid compiler warning due to unused argument */
 #define ARG_UNUSED(arg) (void)(arg)
 
+/*
+ * See documentation in t_cose_crypto.h
+ *
+ * This will typically not be referenced and thus not linked,
+ * for deployed code. This is mainly used for test.
+ */
+bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
+{
+    /* Notably, this list does not include EDDSA, regardless of how
+     * t_cose is configured, since PSA doesn't support it.
+     */
+    static const int32_t supported_algs[] = {
+        COSE_ALGORITHM_SHA_256,
+        COSE_ALGORITHM_SHA_384,
+        COSE_ALGORITHM_SHA_512,
+        COSE_ALGORITHM_ES256,
+#ifndef T_COSE_DISABLE_ES384
+        COSE_ALGORITHM_ES384,
+#endif
+#ifndef T_COSE_DISABLE_ES512
+        COSE_ALGORITHM_ES512,
+#endif
+#ifndef T_COSE_DISABLE_PS256
+        COSE_ALGORITHM_PS256,
+#endif
+#ifndef T_COSE_DISABLE_PS384
+        COSE_ALGORITHM_PS384,
+#endif
+#ifndef T_COSE_DISABLE_PS512
+        COSE_ALGORITHM_PS512,
+#endif
+        0 /* List terminator */
+    };
+
+    return t_cose_check_list(cose_algorithm_id, supported_algs);
+}
+
 
 /**
  * \brief Map a COSE signing algorithm ID to a PSA signing algorithm ID

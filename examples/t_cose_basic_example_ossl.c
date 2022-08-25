@@ -548,7 +548,7 @@ Done:
  * \brief  Sign and verify example with dynamically allocated buffers
  *
  * The signing operation of t_cose requires the caller to provide a
- * buffers large enough to hold the result. If the provided buffer is
+ * buffer large enough to hold the result. If the provided buffer is
  * too small, the operation will fail.
  *
  * When EDDSA is used, an additional auxiliary buffer is needed for
@@ -556,12 +556,13 @@ Done:
  *
  * While memory-constrained applications may want to use stack or
  * statically allocated buffers of a fixed size, others prefer the
- * flexibility of dynamically allocate buffers of the right size on
+ * flexibility of dynamically allocating buffers of the right size on
  * demand.
  *
  * This example shows how to call t_cose to determine the size of the
  * output and auxiliary buffers, before dynamically allocating them
- * using malloc and free.
+ * using malloc and free. Any alternative allocator could also have
+ * been used.
  *
  */
 int32_t dynamic_buffer_example(void)

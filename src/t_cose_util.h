@@ -139,6 +139,10 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
  *                                  resulting TBS bytes.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         The output buffer is too small.
+ * \retval T_COSE_ERR_CBOR_FORMATTING
+ *         Something went wrong formatting the CBOR.
  *
  * The input to the public key signature algorithm in COSE is a CBOR
  * encoded structure containing the protected parameters algorithm ID

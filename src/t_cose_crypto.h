@@ -134,6 +134,14 @@ extern "C" {
 
 
 
+/*
+ * Says where a particular algorithm is supported or not.
+ * Most useful for test code that wants to know if a
+ * test should be attempted or not.
+ *
+ * See t_cose_is_algorithm_supported()
+ */
+bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id);
 
 /**
  * \brief Returns the size of a signature given the key and algorithm.

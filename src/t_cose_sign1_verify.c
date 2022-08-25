@@ -251,6 +251,10 @@ sign1_verify_eddsa(struct t_cose_sign1_verify_ctx *me,
                               payload,
                               me->auxiliary_buffer,
                              &tbs);
+    if (return_value == T_COSE_ERR_TOO_SMALL) {
+        /* Be a bit more specific about which buffer is too small */
+        return_value = T_COSE_ERR_AUXILIARY_BUFFER_SIZE;
+    }
     if (return_value) {
         goto Done;
     }
@@ -267,7 +271,7 @@ sign1_verify_eddsa(struct t_cose_sign1_verify_ctx *me,
     }
 
     if (me->auxiliary_buffer.ptr == NULL) {
-        return_value = T_COSE_NEED_AUXILIARY_BUFFER;
+        return_value = T_COSE_ERR_NEED_AUXILIARY_BUFFER;
         goto Done;
     }
 
@@ -490,6 +494,5 @@ Done:
     }
 
     return return_value;
-
 }
 

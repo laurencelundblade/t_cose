@@ -332,6 +332,10 @@ sign1_sign_eddsa(struct t_cose_sign1_sign_ctx *me,
                               payload,
                               me->auxiliary_buffer,
                              &tbs);
+    if (return_value == T_COSE_ERR_TOO_SMALL) {
+        /* Be a bit more specific about which buffer is too small */
+        return_value = T_COSE_ERR_AUXILIARY_BUFFER_SIZE;
+    }
     if (return_value) {
         goto Done;
     }
@@ -351,7 +355,7 @@ sign1_sign_eddsa(struct t_cose_sign1_sign_ctx *me,
                                               &signature->len);
     } else if (me->auxiliary_buffer.ptr == NULL) {
         /* Without a real auxiliary buffer, we have nothing to sign. */
-        return_value = T_COSE_NEED_AUXILIARY_BUFFER;
+        return_value = T_COSE_ERR_NEED_AUXILIARY_BUFFER;
     } else {
         /* Perform the public key signing over the TBS bytes we just
          * serialized.

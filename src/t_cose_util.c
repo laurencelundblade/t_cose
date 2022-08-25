@@ -52,6 +52,17 @@ bool signature_algorithm_id_is_supported(int32_t cose_algorithm_id)
 }
 
 /*
+ * Public function.
+ *
+ * This is declared in t_cose_common.h, but there is no t_cose_common.c,
+ * so this little function is put here.*/
+bool
+t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
+{
+    return t_cose_crypto_is_algorithm_supported(cose_algorithm_id);
+}
+
+/*
  * Public function. See t_cose_util.h
  */
 int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
@@ -93,8 +104,6 @@ create_tbs(struct q_useful_buf_c  protected_parameters,
            struct q_useful_buf    buffer_for_tbs,
            struct q_useful_buf_c *tbs)
 {
-    enum t_cose_err_t   return_value;
-
     QCBOREncodeContext  cbor_context;
     QCBOREncode_Init(&cbor_context, buffer_for_tbs);
 
@@ -105,15 +114,14 @@ create_tbs(struct q_useful_buf_c  protected_parameters,
     QCBOREncode_AddBytes(&cbor_context, payload);
     QCBOREncode_CloseArray(&cbor_context);
 
-    if(QCBOREncode_Finish(&cbor_context, tbs)) {
-        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-        goto Done;
+    QCBORError cbor_err = QCBOREncode_Finish(&cbor_context, tbs);
+    if (cbor_err == QCBOR_ERR_BUFFER_TOO_SMALL) {
+        return T_COSE_ERR_TOO_SMALL;
+    } else if (cbor_err != QCBOR_SUCCESS) {
+        return T_COSE_ERR_CBOR_FORMATTING;
+    } else {
+        return T_COSE_SUCCESS;
     }
-
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
 }
 
 /**
@@ -276,4 +284,5 @@ struct q_useful_buf_c get_short_circuit_kid(void)
 
     return short_circuit_kid;
 }
+
 #endif

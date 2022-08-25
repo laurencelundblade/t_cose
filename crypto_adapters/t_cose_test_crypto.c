@@ -46,6 +46,23 @@
 int hash_test_mode = 0;
 #endif
 
+/*
+ * See documentation in t_cose_crypto.h
+ *
+ * This will typically not be referenced and thus not linked,
+ * for deployed code. This is mainly used for test.
+ */
+bool
+t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
+{
+    static const int32_t supported_algs[] = {
+        COSE_ALGORITHM_SHA_256,
+        0 /* List terminator */
+    };
+
+    return t_cose_check_list(cose_algorithm_id, supported_algs);
+}
+
 
 /*
  * See documentation in t_cose_crypto.h
