@@ -611,8 +611,8 @@ int32_t dynamic_buffer_example(void)
     if(return_value) {
         goto Done;
     }
-    printf("Output buffer size = %d bytes\n", signed_cose.len);
-    printf("Auxiliary buffer size = %d bytes\n", t_cose_sign1_sign_auxiliary_buffer_size(&sign_ctx));
+    printf("Output buffer size = %zu bytes\n", signed_cose.len);
+    printf("Auxiliary buffer size = %zu bytes\n", t_cose_sign1_sign_auxiliary_buffer_size(&sign_ctx));
 
     /* ------   Allocate buffers of the right size   ------ */
     signed_cose_buffer.ptr = malloc(signed_cose.len);
@@ -673,7 +673,7 @@ int32_t dynamic_buffer_example(void)
     if(return_value) {
         goto Done;
     }
-    printf("Auxiliary buffer size = %d bytes\n", t_cose_sign1_verify_auxiliary_buffer_size(&verify_ctx));
+    printf("Auxiliary buffer size = %zu bytes\n", t_cose_sign1_verify_auxiliary_buffer_size(&verify_ctx));
 
     /* ------   Allocate an auxiliary buffer of the right size   ------ */
     auxiliary_buffer.len = t_cose_sign1_verify_auxiliary_buffer_size(&verify_ctx);

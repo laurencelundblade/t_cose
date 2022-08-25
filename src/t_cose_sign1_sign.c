@@ -231,25 +231,25 @@ Done:
 /**
  * \brief Compute the short-circuit signature for a COSE_Sign1 message.
  *
- * \param[in] me         The t_cose signing context.
- * \param[in] aad        The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] payload    Pointer and length of payload to sign.
- * \param[in] out_buf    Pointer and length of buffer to output to.
- * \param[out] signature Pointer and length of the resulting signature.
+ * \param[in] me                    The t_cose signing context.
+ * \param[in] aad                   The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] payload               Pointer and length of payload to sign.
+ * \param[in] buffer_for_signature  Pointer and length of buffer to output to.
+ * \param[out] signature            Pointer and length of the resulting signature.
  *
  * \returns An error of type \ref t_cose_err_t.
  *
  * This function does not actually perform any kind of cryptographic
  * signature, and should only be used as a test mode.
  *
- * If \c out_buf contains a \c NULL pointer, this function will
- * compute the necessary size, and update \c signature accordingly.
+ * If \c buffer_for_signature contains a \c NULL pointer, this function
+ * will compute the necessary size, and set \c signature accordingly.
  */
 static inline enum t_cose_err_t
 sign1_sign_short_circuit(struct t_cose_sign1_sign_ctx *me,
                          struct q_useful_buf_c         aad,
                          struct q_useful_buf_c         payload,
-                         struct q_useful_buf           out_buf,
+                         struct q_useful_buf           buffer_for_signature,
                          struct q_useful_buf_c         *signature)
 {
     enum t_cose_err_t            return_value;
@@ -273,7 +273,7 @@ sign1_sign_short_circuit(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
-    if (out_buf.ptr == NULL) {
+    if (buffer_for_signature.ptr == NULL) {
         /* Output size calculation. Only need signature size. */
         signature->ptr = NULL;
         return_value = short_circuit_sig_size(me->cose_algorithm_id, &signature->len);
@@ -281,7 +281,7 @@ sign1_sign_short_circuit(struct t_cose_sign1_sign_ctx *me,
         /* Perform the a short circuit signing */
         return_value = short_circuit_sign(me->cose_algorithm_id,
                                           tbs_hash,
-                                          out_buf,
+                                          buffer_for_signature,
                                           signature);
     }
 
@@ -294,11 +294,11 @@ Done:
 /**
  * \brief Compute an EDDSA signature for a COSE_Sign1 message.
  *
- * \param[in] me         The t_cose signing context.
- * \param[in] aad        The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] payload    Pointer and length of payload to sign.
- * \param[in] out_buf    Pointer and length of buffer to output to.
- * \param[out] signature Pointer and length of the resulting signature.
+ * \param[in] me                    The t_cose signing context.
+ * \param[in] aad                   The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] payload               Pointer and length of payload to sign.
+ * \param[in] buffer_for_signature  Pointer and length of buffer to output to.
+ * \param[out] signature            Pointer and length of the resulting signature.
  *
  * \returns An error of type \ref t_cose_err_t.
  *
@@ -310,14 +310,14 @@ Done:
  * configured by calling the \ref t_cose_sign1_sign_set_auxiliary_buffer
  * function.
  *
- * If \c out_buf contains a \c NULL pointer, this function will
- * compute the necessary size, and update \c signature accordingly.
+ * If \c buffer_for_signature contains a \c NULL pointer, this function
+ * will compute the necessary size, and update \c signature accordingly.
  */
 static inline enum t_cose_err_t
 sign1_sign_eddsa(struct t_cose_sign1_sign_ctx *me,
                  struct q_useful_buf_c         aad,
                  struct q_useful_buf_c         payload,
-                 struct q_useful_buf           out_buf,
+                 struct q_useful_buf           buffer_for_signature,
                  struct q_useful_buf_c        *signature)
 {
     enum t_cose_err_t            return_value;
@@ -338,12 +338,12 @@ sign1_sign_eddsa(struct t_cose_sign1_sign_ctx *me,
 
     /* Record how much buffer we actually used / would have used,
      * allowing the caller to allocate an appropriately sized buffer.
-     * This is particularly useful when out_buf.ptr are NULL, when
-     * no signing is actually taking place yet.
+     * This is particularly useful when buffer_for_signature.ptr is
+     * NULL and no signing is actually taking place yet.
      */
     me->auxiliary_buffer_size = tbs.len;
 
-    if (out_buf.ptr == NULL) {
+    if (buffer_for_signature.ptr == NULL) {
         /* Output size calculation. Only need signature size. */
         signature->ptr = NULL;
         return_value  = t_cose_crypto_sig_size(me->cose_algorithm_id,
@@ -358,7 +358,7 @@ sign1_sign_eddsa(struct t_cose_sign1_sign_ctx *me,
          */
         return_value = t_cose_crypto_sign_eddsa(me->signing_key,
                                                 tbs,
-                                                out_buf,
+                                                buffer_for_signature,
                                                 signature);
     }
 
@@ -371,11 +371,11 @@ Done:
  * \brief Compute a signature for a COSE_Sign1 message, following the
  * general procedure which works for most algorithms.
  *
- * \param[in] me         The t_cose signing context.
- * \param[in] aad        The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] payload    Pointer and length of payload to sign.
- * \param[in] out_buf    Pointer and length of buffer to output to.
- * \param[out] signature Pointer and length of the resulting signature.
+ * \param[in] me                    The t_cose signing context.
+ * \param[in] aad                   The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] payload               Pointer and length of payload to sign.
+ * \param[in] buffer_for_signature  Pointer and length of buffer to output to.
+ * \param[out] signature            Pointer and length of the resulting signature.
  *
  * \returns An error of type \ref t_cose_err_t.
  *
@@ -386,6 +386,9 @@ Done:
  * This function does not support short-circuit signing or EDDSA
  * signatures, which require a special procedure. See
  * \ref sign1_sign_short_circuit and \ref sign1_sign_eddsa.
+ *
+ * If \c buffer_for_signature contains a \c NULL pointer, this function
+ * will compute the necessary size, and update \c signature accordingly.
  */
 static inline enum t_cose_err_t
 sign1_sign_default(struct t_cose_sign1_sign_ctx *me,

@@ -322,8 +322,8 @@ t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *context
  * allocate an appropriately sized buffer before performing the
  * actual verification.
  *
- * This function returns if the signature algorithm used does not need
- * an auxiliary buffer.
+ * This function returns zero if the signature algorithm used does not
+ * need an auxiliary buffer.
  */
 static size_t
 t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *context);

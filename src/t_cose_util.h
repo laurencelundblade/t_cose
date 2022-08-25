@@ -133,9 +133,9 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
  * \param[in] aad                   Additional Authenitcated Data to be
  *                                  included in TBS.
  * \param[in] payload               The CBOR-encoded payload.
- * \param[in] buffer_for_hash       Pointer and length of buffer into which
+ * \param[in] buffer_for_tbs        Pointer and length of buffer into which
  *                                  the resulting TBS bytes is put.
- * \param[out] hash                 Pointer and length of the
+ * \param[out] tbs                  Pointer and length of the
  *                                  resulting TBS bytes.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
