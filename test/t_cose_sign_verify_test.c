@@ -214,13 +214,14 @@ struct test_case {
  * For each algorithm, a known valid message is associated.
  */
 static struct test_case test_cases[] = {
-    { T_COSE_ALGORITHM_ES256, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_ossl_crypto_es256) },
-    { T_COSE_ALGORITHM_ES384, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_psa_crypto_es384) },
-    { T_COSE_ALGORITHM_ES512, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_ossl_crypto_es512) },
-    { T_COSE_ALGORITHM_PS256, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_psa_crypto_ps256) },
-    { T_COSE_ALGORITHM_PS384, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_psa_crypto_ps384) },
-    { T_COSE_ALGORITHM_PS512, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_psa_crypto_ps512) },
-    { T_COSE_ALGORITHM_EDDSA, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_pycose_eddsa) },
+    /* Annoyingly, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL doesn't work in a const-context */
+    { T_COSE_ALGORITHM_ES256, { signed_cose_made_by_ossl_crypto_es256, sizeof(signed_cose_made_by_ossl_crypto_es256) } },
+    { T_COSE_ALGORITHM_ES384, { signed_cose_made_by_psa_crypto_es384, sizeof(signed_cose_made_by_psa_crypto_es384) } },
+    { T_COSE_ALGORITHM_ES512, { signed_cose_made_by_ossl_crypto_es512, sizeof(signed_cose_made_by_ossl_crypto_es512) } },
+    { T_COSE_ALGORITHM_PS256, { signed_cose_made_by_psa_crypto_ps256, sizeof(signed_cose_made_by_psa_crypto_ps256) } },
+    { T_COSE_ALGORITHM_PS384, { signed_cose_made_by_psa_crypto_ps384, sizeof(signed_cose_made_by_psa_crypto_ps384) } },
+    { T_COSE_ALGORITHM_PS512, { signed_cose_made_by_psa_crypto_ps512, sizeof(signed_cose_made_by_psa_crypto_ps512) } },
+    { T_COSE_ALGORITHM_EDDSA, { signed_cose_made_by_pycose_eddsa, sizeof(signed_cose_made_by_pycose_eddsa) } },
     { 0 }, /* Sentinel value with an invalid algorithm id */
 };
 
