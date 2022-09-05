@@ -75,8 +75,8 @@ struct t_cose_mac_calculate_ctx {
  * contains the payload preceded by the header parameters and followed
  * by the tags, all CBOR formatted. This function thus requires
  * two copies of the payload to be in memory.  Alternatively
- * t_cose_sign1_encode_parameters() and
- * t_cose_sign1_encode_signature() can be used. They are more complex
+ * t_cose_mac_encode_parameters() and
+ * t_cose_mac_encode_tag() can be used. They are more complex
  * to use, but avoid the two copies of the payload and can reduce
  * memory requirements by close to half.
  */
