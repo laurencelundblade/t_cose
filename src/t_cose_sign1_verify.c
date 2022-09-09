@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign1_verify.c
  *
- * Copyright 2019-2021, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -143,6 +143,7 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error)
     return T_COSE_SUCCESS;
 }
 
+
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /**
  * \brief Verify the short-circuit signature of a COSE_Sign1 message.
@@ -204,6 +205,7 @@ Done:
 }
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
+
 #ifndef T_COSE_DISABLE_EDDSA
 /**
  * \brief Verify the EDDSA signature from a COSE_Sign1 message.
@@ -228,7 +230,7 @@ Done:
  * flag is set. This mode can however be used to determine the
  * necessary size for the auxiliary buffer.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 sign1_verify_eddsa(struct t_cose_sign1_verify_ctx *me,
                    const struct t_cose_parameters *parameters,
                    struct q_useful_buf_c           signature,
@@ -285,6 +287,7 @@ Done:
 }
 #endif /* T_COSE_DISABLE_EDDSA */
 
+
 /**
  * \brief Verify the signature from a COSE_Sign1 message, following
  * the general process which work for most algorithms.
@@ -305,7 +308,7 @@ Done:
  * procedure, are not supported. See \ref sign1_sign_short_circuit and
  * \ref sign1_sign_eddsa.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 sign1_verify_default(struct t_cose_sign1_verify_ctx *me,
                      const struct t_cose_parameters *parameters,
                      struct q_useful_buf_c           signature,
@@ -344,6 +347,10 @@ Done:
     return return_value;
 }
 
+
+/*
+ * Semi-private function. See t_cose_sign1_verify.h
+ */
 enum t_cose_err_t
 t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,
