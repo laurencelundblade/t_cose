@@ -300,7 +300,7 @@ int_fast32_t sign_verify_basic_test()
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
             return_value = sign_verify_basic_test_alg(tc->cose_algorithm_id);
             if (return_value) {
-                return (1 + tc - test_cases) * 10000 + return_value;
+                return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
             }
         }
     }
@@ -405,7 +405,7 @@ int_fast32_t sign_verify_sig_fail_test()
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
             return_value = sig_fail_test(tc->cose_algorithm_id);
             if (return_value) {
-                return (1 + tc - test_cases) * 10000 + return_value;
+                return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
             }
         }
     }
@@ -706,13 +706,13 @@ int_fast32_t sign_verify_get_size_test()
             return_value = size_test(tc->cose_algorithm_id,
                                      NULL_Q_USEFUL_BUF_C);
             if (return_value) {
-                return (1 + tc - test_cases) * 10000 + return_value;
+                return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
             }
 
             return_value = size_test(tc->cose_algorithm_id,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"));
             if (return_value) {
-                return (1 + tc - test_cases) * 10000 + return_value;
+                return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
             }
         }
     }
@@ -804,14 +804,14 @@ Done2:
 
 int_fast32_t sign_verify_known_good_test(void)
 {
-    int_fast32_t return_value;
+    int_fast32_t return_value = 0;
     const struct test_case* tc;
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
             return_value = known_good_test(tc->cose_algorithm_id,
                                            tc->known_good_message);
             if (return_value) {
-                return (1 + tc - test_cases) * 10000 + return_value;
+                return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
             }
         }
     }
@@ -885,7 +885,7 @@ int_fast32_t sign_verify_unsupported_test(void)
             return_value = sign_verify_unsupported_test_alg(tc->cose_algorithm_id,
                                                             tc->known_good_message);
             if (return_value) {
-                return (1 + tc - test_cases) * 10000 + return_value;
+                return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
             }
         }
     }

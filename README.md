@@ -97,7 +97,7 @@ To build run:
 #### OpenSSL Crypto -- Makefile.ossl
 
 This OpenSSL integration supports SHA-256, SHA-384 and SHA-512 with
-ECDSA or RSAPSS to support the COSE algorithms ES256, ES384 and
+ECDSA, EdDSA, or RSAPSS to support the COSE algorithms ES256, ES384 and
 ES512, PS256, PS384 and PS512. It is a full and tested integration
 with OpenSSL crypto.
 
@@ -141,7 +141,7 @@ As of March 2022, t_cose works with the PSA 1.0 Crypto API as
 implemented by Mbed TLS 2.x and 3.x.
 
 This integration supports SHA-256, SHA-384 and SHA-512 with
-ECDSA or RSAPSS to support the COSE algorithms ES256, ES384 and
+ECDSA, EdDSA or RSAPSS to support the COSE algorithms ES256, ES384 and
 ES512, PS256, PS384 and PS512.
 
 If Mbed TLS is installed in /usr/local, you can probably just run
@@ -297,14 +297,13 @@ just have different names.
   been assigned by IANA.
 * No way to add custom headers when creating signed messages or
   process them during verification.
-* EDDSA signatures are not supported yet.
 * Does not handle CBOR indefinite length strings (indefinite length
   maps and arrays are handled).
 * Counter signatures are not supported.
 
 ## Credit
 
-* Paul Liétar for RSA PSS (PS256..PS512)
+* Paul Liétar for RSA PSS (PS256..PS512) and EdDSA
 * Maik Riechert for cmake, CI and other.
 * Ken Takayama for the bulk of the detached content implementation.
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
