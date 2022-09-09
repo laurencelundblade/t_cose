@@ -60,6 +60,43 @@
  * a llittle.
  */
 
+/*
+ * See documentation in t_cose_crypto.h
+ *
+ * This will typically not be referenced and thus not linked,
+ * for deployed code. This is mainly used for test.
+ */
+bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
+{
+    static const int32_t supported_algs[] = {
+        COSE_ALGORITHM_SHA_256,
+        COSE_ALGORITHM_SHA_384,
+        COSE_ALGORITHM_SHA_512,
+        COSE_ALGORITHM_ES256,
+#ifndef T_COSE_DISABLE_ES384
+        COSE_ALGORITHM_ES384,
+#endif
+#ifndef T_COSE_DISABLE_ES512
+        COSE_ALGORITHM_ES512,
+#endif
+#ifndef T_COSE_DISABLE_PS256
+        COSE_ALGORITHM_PS256,
+#endif
+#ifndef T_COSE_DISABLE_PS384
+        COSE_ALGORITHM_PS384,
+#endif
+#ifndef T_COSE_DISABLE_PS512
+        COSE_ALGORITHM_PS512,
+#endif
+#ifndef T_COSE_DISABLE_EDDSA
+        COSE_ALGORITHM_EDDSA,
+#endif
+        0 /* List terminator */
+    };
+
+    return t_cose_check_list(cose_algorithm_id, supported_algs);
+}
+
 /**
  * \brief Get the rounded up size of an ECDSA key in bytes.
  */
@@ -341,7 +378,8 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
         *sig_size = ecdsa_key_size(signing_key_evp) * 2;
         return_value = T_COSE_SUCCESS;
         goto Done;
-    } else if(t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
+    } else if (t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)
+            || cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
         *sig_size = (size_t)EVP_PKEY_size(signing_key_evp);
         return_value = T_COSE_SUCCESS;
         goto Done;
@@ -796,3 +834,133 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
     return ossl_result ? T_COSE_SUCCESS : T_COSE_ERR_HASH_GENERAL_FAIL;
 }
 
+#ifndef T_COSE_DISABLE_EDDSA
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         struct q_useful_buf_c  tbs,
+                         struct q_useful_buf    signature_buffer,
+                         struct q_useful_buf_c *signature)
+{
+    enum t_cose_err_t return_value;
+    int               ossl_result;
+    EVP_MD_CTX       *sign_context = NULL;
+    EVP_PKEY         *signing_key_evp;
+
+    return_value = key_convert(signing_key, &signing_key_evp);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    sign_context = EVP_MD_CTX_new();
+    if(sign_context == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
+    }
+
+    ossl_result = EVP_DigestSignInit(sign_context,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     signing_key_evp);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    *signature = q_usefulbuf_const(signature_buffer);
+    /** Must use EVP_DigestSign rather than EVP_PKEY_verify, since
+     * the tbs data is not hashed yet. Because of how EdDSA works, we
+     * cannot hash the data ourselves separately.
+     */
+    ossl_result = EVP_DigestSign(sign_context,
+                                 signature_buffer.ptr,
+                                 &signature->len,
+                                 tbs.ptr,
+                                 tbs.len);
+    if (ossl_result != 1) {
+        /* Failed before even trying to verify the signature */
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Everything succeeded */
+    return_value = T_COSE_SUCCESS;
+
+Done:
+     EVP_MD_CTX_free(sign_context);
+
+    return return_value;
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
+                           struct q_useful_buf_c kid,
+                           struct q_useful_buf_c tbs,
+                           struct q_useful_buf_c signature)
+{
+    enum t_cose_err_t return_value;
+    int               ossl_result;
+    EVP_MD_CTX       *verify_context = NULL;
+    EVP_PKEY         *verification_key_evp;
+
+    /* This implementation doesn't use any key store with the ability
+     * to look up a key based on kid. */
+    (void)kid;
+
+    return_value = key_convert(verification_key, &verification_key_evp);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    verify_context = EVP_MD_CTX_new();
+    if(verify_context == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
+    }
+
+    ossl_result = EVP_DigestVerifyInit(verify_context,
+                                       NULL,
+                                       NULL,
+                                       NULL,
+                                       verification_key_evp);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /** Must use EVP_DigestVerify rather than EVP_PKEY_verify, since
+     * the tbs data is not hashed yet. Because of how EdDSA works, we
+     * cannot hash the data ourselves separately.
+     */
+    ossl_result = EVP_DigestVerify(verify_context,
+                                   signature.ptr,
+                                   signature.len,
+                                   tbs.ptr,
+                                   tbs.len);
+    if(ossl_result == 0) {
+        /* The operation succeeded, but the signature doesn't match */
+        return_value = T_COSE_ERR_SIG_VERIFY;
+        goto Done;
+    } else if (ossl_result != 1) {
+        /* Failed before even trying to verify the signature */
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Everything succeeded */
+    return_value = T_COSE_SUCCESS;
+
+Done:
+     EVP_MD_CTX_free(verify_context);
+
+    return return_value;
+}
+
+#endif /* T_COSE_DISABLE_EDDSA */

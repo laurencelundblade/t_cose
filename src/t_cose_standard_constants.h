@@ -164,6 +164,20 @@
 #define COSE_ALGORITHM_ES256 -7
 
 /**
+ * \def COSE_ALGORITHM_EDDSA
+ *
+ * \brief Indicates EDDSA.
+ *
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate EDDSA.
+ *
+ * Keys using either the edwards25519 or edwards448 curves can be used
+ * with this algorithm.
+ *
+ * See https://tools.ietf.org/search/rfc8032 and https://tools.ietf.org/html/rfc8152
+ */
+#define COSE_ALGORITHM_EDDSA -8
+
+/**
  * \def COSE_ALGORITHM_ES384
  *
  * \brief Indicates ECDSA with SHA-384.

@@ -42,6 +42,43 @@
 /* Avoid compiler warning due to unused argument */
 #define ARG_UNUSED(arg) (void)(arg)
 
+/*
+ * See documentation in t_cose_crypto.h
+ *
+ * This will typically not be referenced and thus not linked,
+ * for deployed code. This is mainly used for test.
+ */
+bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
+{
+    /* Notably, this list does not include EDDSA, regardless of how
+     * t_cose is configured, since PSA doesn't support it.
+     */
+    static const int32_t supported_algs[] = {
+        COSE_ALGORITHM_SHA_256,
+        COSE_ALGORITHM_SHA_384,
+        COSE_ALGORITHM_SHA_512,
+        COSE_ALGORITHM_ES256,
+#ifndef T_COSE_DISABLE_ES384
+        COSE_ALGORITHM_ES384,
+#endif
+#ifndef T_COSE_DISABLE_ES512
+        COSE_ALGORITHM_ES512,
+#endif
+#ifndef T_COSE_DISABLE_PS256
+        COSE_ALGORITHM_PS256,
+#endif
+#ifndef T_COSE_DISABLE_PS384
+        COSE_ALGORITHM_PS384,
+#endif
+#ifndef T_COSE_DISABLE_PS512
+        COSE_ALGORITHM_PS512,
+#endif
+        0 /* List terminator */
+    };
+
+    return t_cose_check_list(cose_algorithm_id, supported_algs);
+}
+
 
 /**
  * \brief Map a COSE signing algorithm ID to a PSA signing algorithm ID
@@ -343,3 +380,44 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 Done:
     return psa_status_to_t_cose_error_hash(hash_ctx->status);
 }
+
+#ifndef T_COSE_DISABLE_EDDSA
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         struct q_useful_buf_c  tbs,
+                         struct q_useful_buf    signature_buffer,
+                         struct q_useful_buf_c *signature)
+{
+    (void)signing_key;
+    (void)tbs;
+    (void)signature_buffer;
+    (void)signature;
+
+    /* MbedTLS does not support EdDSA */
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
+                           struct q_useful_buf_c kid,
+                           struct q_useful_buf_c tbs,
+                           struct q_useful_buf_c signature)
+{
+    (void)verification_key;
+    (void)kid;
+    (void)tbs;
+    (void)signature;
+
+    /* MbedTLS does not support EdDSA */
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+#endif /* T_COSE_DISABLE_EDDSA */

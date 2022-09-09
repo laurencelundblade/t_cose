@@ -13,6 +13,7 @@
 #define __T_COSE_COMMON_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,6 +73,19 @@ extern "C" {
  * this algorithm. This curve is also known as prime256v1 and P-256.
  */
 #define T_COSE_ALGORITHM_ES256 -7
+
+/**
+ * \def T_COSE_ALGORITHM_EDDSA
+ *
+ * \brief Indicates EDDSA, as described by RFC8032.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * Keys using either the edwards25519 or edwards448 curves can be used
+ * with this algorithm.
+ */
+#define T_COSE_ALGORITHM_EDDSA -8
 
 /**
  * \def T_COSE_ALGORITHM_ES384
@@ -204,7 +218,7 @@ struct t_cose_key {
  * needs to be big enough for encode_protected_parameters() to
  * succeed. It currently sized for one parameter with an algorithm ID
  * up to 32 bits long -- one byte for the wrapping map, one byte for
- * the label, 5 bytes for the ID. If this is made accidentially too
+ * the label, 5 bytes for the ID. If this is made accidentally too
  * small, QCBOR will only return an error, and not overrun any
  * buffers.
  *
@@ -346,10 +360,11 @@ enum t_cose_err_t {
      * cryptographic library used by this integration of t_cose.
      */
     T_COSE_ERR_INCORRECT_KEY_FOR_LIB = 29,
+
     /** This implementation only handles integer COSE algorithm IDs with
      * values less than \c INT32_MAX. */
-
     T_COSE_ERR_NON_INTEGER_ALG_ID = 30,
+
     /** The content type parameter contains a content type that is
      * neither integer or text string or it is an integer not in the
      * range of 0 to \c UINT16_MAX. */
@@ -380,6 +395,14 @@ enum t_cose_err_t {
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when
      * verifying a signature. */
     T_COSE_ERR_TOO_MANY_TAGS = 37,
+
+    /** The signature algorithm needs an extra buffer, but none was provided.
+     * See \ref t_cose_sign1_verify_set_auxiliary_buffer for more details.
+     */
+    T_COSE_ERR_NEED_AUXILIARY_BUFFER = 38,
+
+    /** The auxiliary buffer is too small */
+    T_COSE_ERR_AUXILIARY_BUFFER_SIZE = 39,
 };
 
 
@@ -408,6 +431,23 @@ enum t_cose_err_t {
  * type.  See \ref t_cose_parameters.
  */
 #define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
+
+/**
+ * \brief  Check whether an algorithm is supported.
+ *
+ * \param[in] cose_algorithm_id        COSE Integer algorithm ID.
+ *
+ * \returns \c true if algorithm is supported, \c false if not.
+ *
+ * Algorithms identifiers are from COSE algorithm registry:
+ *   https://www.iana.org/assignments/cose/cose.xhtml#algorithms
+ *
+ * A primary use for this is to determine whether or not to run a test case.
+ * It is often unneccessary for regular use, because all the APIs will return
+ * T_COSE_ERR_UNSUPPORTED_XXXX if the algorithm is not supported.
+ */
+bool
+t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
 
 
 #ifdef __cplusplus
