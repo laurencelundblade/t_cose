@@ -63,28 +63,24 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
                                const struct t_cose_header_param *body_parameters,
                                const struct q_useful_buf_c       signature)
 {
-    int32_t                             alg_id;
+    int32_t                             cose_algorithm_id;
     enum t_cose_err_t                   return_value;
     struct q_useful_buf_c               kid;
-    //const struct t_cose_signature_verify_short *me = (const struct t_cose_signature_verify_short *)me_x;
     Q_USEFUL_BUF_MAKE_STACK_UB(         buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c               tbs_hash;
 
     /* --- Get the parameters values needed here --- */
-    alg_id = t_cose_find_parameter_alg_id(body_parameters);
-    if(alg_id == T_COSE_ALGORITHM_NONE) {
-        return_value = 88; // TODO: error code
-        goto Done;
-    }
+    cose_algorithm_id = t_cose_find_parameter_alg_id(body_parameters);
+
     kid = t_cose_find_parameter_kid(body_parameters);
 
     if(q_useful_buf_compare(kid, get_short_circuit_kid())) {
-        return_value = 88; // TODO: error code
+        return_value = T_COSE_ERR_KID_UNMATCHED;
         goto Done;
     }
 
     /* --- Compute the hash of the to-be-signed bytes -- */
-    return_value = create_tbs_hash(alg_id,
+    return_value = create_tbs_hash(cose_algorithm_id,
                                    protected_body_headers,
                                    protected_signature_headers,
                                    aad,
@@ -120,6 +116,7 @@ t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
                               const struct header_param_storage params,
                               QCBORDecodeContext               *qcbor_decoder)
 {
+    QCBORError             qcbor_error;
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  protected_parameters;
     struct q_useful_buf_c  signature;
@@ -142,8 +139,9 @@ t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
     QCBORDecode_GetByteString(qcbor_decoder, &signature);
 
     QCBORDecode_ExitArray(qcbor_decoder);
-    if(QCBORDecode_GetError(qcbor_decoder)) {
-        return_value = 200; // TODO:
+    qcbor_error = QCBORDecode_GetError(qcbor_decoder);
+    if(qcbor_error != QCBOR_SUCCESS) {
+        return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_SIGN1_FORMAT);
         goto Done;
     }
     /* --- Done decoding the COSE_Signature --- */

@@ -20,6 +20,7 @@
 #include "t_cose/t_cose_sign_sign.h"
 #include "t_cose/t_cose_signature_sign_ecdsa.h" // TODO: why is this here?
 #include "t_cose/t_cose_signature_sign_short.h"
+#include "t_cose/t_cose_parameters.h"
 
 
 #ifdef __cplusplus

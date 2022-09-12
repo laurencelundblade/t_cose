@@ -49,7 +49,7 @@ static test_entry2 s_tests2[] = {
 #endif
 
 static test_entry s_tests[] = {
-    TEST_ENTRY(sign1_structure_decode_test),
+    //TEST_ENTRY(sign1_structure_decode_test),
 
 #ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
     /* Many tests can be run without a crypto library integration and
@@ -286,8 +286,8 @@ static void PrintSize(const char *szWhat,
 
 
 
-#include "t_cose/t_cose_sign1_sign.h" /* For struct size printing */
 #include "t_cose/t_cose_sign1_verify.h" /* For struct size printing */
+#include "t_cose/t_cose_sign1_sign.h" /* For struct size printing */
 #include "t_cose_crypto.h" /* For struct size printing */
 
 

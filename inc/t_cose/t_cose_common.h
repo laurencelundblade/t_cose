@@ -26,7 +26,7 @@ extern "C" {
  * t_cose is made up of a collection of objects (in the
  * object-oriented programming sense) that correspond to the main
  * objects defined in CDDL by the COSE standard (RFC 9052). These
- * objects come in pairs, one for the sendi *ng/signing/encrypting
+ * objects come in pairs, one for the sending/signing/encrypting
  * side and the other for the receiving/verifying/decrypting
  * side. Following is a high-level description of all of these and how
  * they connect up to each other.
@@ -76,16 +76,16 @@ extern "C" {
  * For COSE_Mac, t_cose_recipient_enc() and t_cose_recipient_dec()
  * implement COSE_recipient. (I’m pretty sure sharing t_cose_recipient
  * between COSE_MAC and COSE_Encrypt can work, but this needs to be
- * checked by actually de *signing and implementing it). These are not
+ * checked by actually designing and implementing it). These are not
  * needed for COSE_Mac0.
  *
  * 
  * COSE_Message
  *
  * t_cose_message_create() and t_cose_message_decode handle
- * COSE_Message. This is for handling COSE messages that might signed,
+ * COSE_Message. This is for handling COSE messages that might be signed,
  * encrypted, MACed or some combination of these. In the simplest case
- * they decode the CBOR tag n *umber and switch off to one of the
+ * they decode the CBOR tag number and switch off to one of the
  * above handlers. In more complicated cases they recursively handled
  * nested signing, encrypting and MACing. (Lots of work to do on
  * this…)
@@ -100,7 +100,7 @@ extern "C" {
  * This also defines a data structure, t_cose_header_parameter that
  * holds one single parameter, for example an algorithm ID or a
  * kid. This structure is used to pass the parameters in and out of
- * all the methods above. It fa *cilitates the general header
+ * all the methods above. It facilitates the general header
  * parameter implementation and allows for custom and specialized
  * headers.
  *
@@ -117,7 +117,7 @@ extern "C" {
  * The concrete classes will generally correspond to groups of
  * algorithms. For example, there will likely be one for ECDSA,
  * t_cose_signature_sign_ecdsa, another for RSAPSS and a variety for
- * PQ. Perhaps there will be one fo *r counter signatures of
+ * PQ. Perhaps there will be one for counter signatures of
  * particular types.
  *
  * The user of t_cose will create instances of t_cose_signature and
@@ -444,10 +444,11 @@ enum t_cose_err_t {
      * cryptographic library used by this integration of t_cose.
      */
     T_COSE_ERR_INCORRECT_KEY_FOR_LIB = 29,
+
     /** This implementation only handles integer COSE algorithm IDs with
      * values less than \c INT32_MAX. */
-
     T_COSE_ERR_NON_INTEGER_ALG_ID = 30,
+
     /** The content type parameter contains a content type that is
      * neither integer or text string or it is an integer not in the
      * range of 0 to \c UINT16_MAX. */
@@ -494,6 +495,30 @@ enum t_cose_err_t {
     T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
 
     T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
+
+    /* A header parameter with a string label occurred and there
+     * is no support enabled for string labeled header parameters.
+     */
+    T_COSE_ERR_STRING_LABELED_PARAM = 42,
+
+    /* No signers as in struct t_cose_signature_sign are  configured.
+     */
+    T_COSE_ERR_NO_SIGNERS = 43,
+
+    /* More than one signer configured when signing a
+     * COSE_Sign1 (multiple signers are OK for COSE_SIGN). */
+    T_COSE_ERR_TOO_MANY_SIGNERS = 44,
+
+    /* Mostly a verifier that is configured to look for kids
+     * before it acts didn't match the kid in the message. */
+    T_COSE_ERR_KID_UNMATCHED = 45,
+
+    /* General CBOR decode error. */
+    T_COSE_ERR_CBOR_DECODE = 46,
+
+    /* A COSE_Signature contains unexected data or types. */
+    T_COSE_ERR_SIGNATURE_FORMAT = 47,
+
 };
 
 
@@ -522,6 +547,13 @@ enum t_cose_err_t {
  * type.  See \ref t_cose_parameters.
  */
 #define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
+
+
+/**
+ * A special COSE algorithm ID that indicates no COSE algorithm ID or an unset
+ * COSE algorithm ID.
+ */
+#define T_COSE_UNSET_ALGORITHM_ID 0
 
 
 /**

@@ -15,7 +15,6 @@
 #include <stdint.h>
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
-#include "t_cose/t_cose_sign1_verify.h" // TODO: remove this
 #include "qcbor/qcbor.h"
 
 
@@ -252,10 +251,27 @@ struct t_cose_header_param {
                                  {0,0},\
                                  .value.string = kid }
 
+
+#define T_COSE_IV_PARAM(iv) \
+    (struct t_cose_header_param){COSE_HEADER_PARAM_IV, \
+                                 T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                                 false, \
+                                 false, \
+                                 {0,0},\
+                                 .value.string = iv }
+
+#define T_COSE_PARTIAL_IV_PARAM(partial_iv) \
+    (struct t_cose_header_param){COSE_HEADER_PARAM_PARTIAL_IV, \
+                                 T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                                 false, \
+                                 false, \
+                                 {0,0},\
+                                 .value.string = partial_iv }
+
 #define T_COSE_CT_UINT_PARAM(content_type) \
     (struct t_cose_header_param){COSE_HEADER_PARAM_CONTENT_TYPE, \
                              T_COSE_PARAMETER_TYPE_INT64,\
-                             true,\
+                             false,\
                              false,\
                              {0,0},\
                              .value.i64 = content_type }
@@ -263,7 +279,7 @@ struct t_cose_header_param {
 #define T_COSE_CT_TSTR_PARAM(content_type) \
    (struct t_cose_header_param){COSE_HEADER_PARAM_CONTENT_TYPE, \
                                 T_COSE_PARAMETER_TYPE_TEXT_STRING,\
-                                true,\
+                                false,\
                                 false,\
                                 {0,0},\
                                .value.string = content_type }
@@ -291,7 +307,21 @@ t_cose_find_parameter_kid(const struct t_cose_header_param *p);
 uint32_t
 t_cose_find_content_id_int(const struct t_cose_header_param *p);
 
-// TODO: add more of these
+struct q_useful_buf_c
+t_cose_find_parameter_iv(const struct t_cose_header_param *p);
+
+struct q_useful_buf_c
+t_cose_find_parameter_partial_iv(const struct t_cose_header_param *p);
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+
+struct q_useful_buf_c
+t_cose_find_parameter_content_type_tstr(const struct t_cose_header_param *p);
+
+uint32_t
+t_cose_find_parameter_content_type_int(const struct t_cose_header_param *p);
+
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 
 /*
@@ -597,47 +627,6 @@ inline static void clear_label_list(struct t_cose_label_list *list)
 }
 
 
-
-
-enum t_cose_err_t
-check_critical_labels(const struct t_cose_label_list *critical_labels,
-                      const struct t_cose_label_list *unknown_labels);
-
-
-
-enum t_cose_err_t
-parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
-                             struct t_cose_parameters  *returned_parameters,
-                             struct t_cose_label_list  *critical_labels,
-                             struct t_cose_label_list  *unknown_labels);
-
-
-/**
- * \brief Clear a struct t_cose_parameters to empty
- *
- * \param[in,out] parameters   Parameter list to clear.
- */
-static inline void clear_cose_parameters(struct t_cose_parameters *parameters)
-{
-#if COSE_ALGORITHM_RESERVED != 0
-#error Invalid algorithm designator not 0. Parameter list initialization fails.
-#endif
-
-#if T_COSE_UNSET_ALGORITHM_ID != COSE_ALGORITHM_RESERVED
-#error Constant for unset algorithm ID not aligned with COSE_ALGORITHM_RESERVED
-#endif
-
-    /* This clears all the useful_bufs to NULL_Q_USEFUL_BUF_C
-     * and the cose_algorithm_id to COSE_ALGORITHM_RESERVED
-     */
-    memset(parameters, 0, sizeof(struct t_cose_parameters));
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    /* The only non-zero clear-state value. (0 is plain text in CoAP
-     * content format) */
-    parameters->content_type_uint =  T_COSE_EMPTY_UINT_CONTENT_TYPE;
-#endif
-}
 
 
 #endif /* t_cose_parameters_h */

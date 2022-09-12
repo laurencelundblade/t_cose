@@ -42,7 +42,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     signer = me->signers;
     if(signer == NULL) {
         /* No signers configured. */
-        return_value = 888;
+        return_value = T_COSE_ERR_NO_SIGNERS;
         goto Done;
     }
 
@@ -57,7 +57,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
         vector_index++;
         if(signer->next_in_list != NULL) {
             /* In COSE_Sign1 mode, but too many signers configured.*/
-            return_value = 999;
+            return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
             goto Done;
         }
     }
@@ -143,7 +143,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
          * of which is an array of Headers and signature. The surrounding
          * array is handed here.
          */
-        return_value = 888; // TODO: error code for no signers
+        return_value = T_COSE_ERR_NO_SIGNERS;
         QCBOREncode_OpenArray(cbor_encode_ctx);
         while(signer != NULL) {
             return_value = (signer->callback)(signer,

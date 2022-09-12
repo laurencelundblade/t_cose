@@ -94,7 +94,7 @@ struct t_cose_signature_sign;
  * is being called in size calculation mode.
  */
 typedef enum t_cose_err_t
-(t_cose_signature_sign_callback)(struct t_cose_signature_sign *me,
+t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
                                  bool                          sign_only,
                                  const struct q_useful_buf_c   protected_body_headers,
                                  const struct q_useful_buf_c   payload,

@@ -1,5 +1,5 @@
 /*
- *  t_cose_sign1_verify.h
+ *  t_cose_sign_verify.h
  *
  * Copyright 2019-2022, Laurence Lundblade
  *
@@ -13,7 +13,7 @@
 #ifndef t_cose_sign_verify_h
 #define t_cose_sign_verify_h
 
-
+#include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_signature_verify.h"
 
@@ -29,6 +29,64 @@ extern "C" {
 
 #define T_COSE_NUM_VERIFY_DECODE_HEADERS 8
 
+#define T_COSE_MAX_TAGS_TO_RETURN2 4
+
+
+/**
+ * Normally this will decode the CBOR presented as a \c COSE_Sign1
+ * message whether it is tagged using QCBOR tagging as such or not.
+ * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
+ * returned if it is not a \ref CBOR_TAG_COSE_SIGN1 tag.
+ *
+ * See also \ref T_COSE_OPT_TAG_PROHIBITED. If neither this or
+ * \ref T_COSE_OPT_TAG_PROHIBITED is set then the content can
+ * either be COSE message (COSE_Sign1 CDDL from RFC 8152) or
+ * a COSESign1 tagg (COSE_Sign1_Tagged from RFC 8152).
+ *
+ * See t_cose_sign1_get_nth_tag() to get further tags that enclose
+ * the COSE message.
+ */
+#define T_COSE_OPT_TAG_REQUIRED  0x00000004
+
+
+/**
+ * Normally this will decode the CBOR presented as a \c COSE_Sign1
+ * message whether it is tagged using QCBOR tagging as such or not.
+ * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
+ * returned if a \ref CBOR_TAG_COSE_SIGN1 tag. When this option is set the caller
+ * knows for certain that a COSE signed message is expected.
+ *
+ * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
+ */
+#define T_COSE_OPT_TAG_PROHIBITED  0x00000010
+
+
+/**
+ * See t_cose_sign1_set_verification_key().
+ *
+ * This option disables cryptographic signature verification.  With
+ * this option the \c verification_key is not needed.  This is useful
+ * to decode the \c COSE_Sign1 message to get the kid (key ID).  The
+ * verification key can be looked up or otherwise obtained by the
+ * caller. Once the key in in hand, t_cose_sign1_verify() can be
+ * called again to perform the full verification.
+ *
+ * The payload will always be returned whether this is option is given
+ * or not, but it should not be considered secure when this option is
+ * given.
+ */
+#define T_COSE_OPT_DECODE_ONLY  0x00000008
+
+
+/**
+ * The maximum number of unprocessed tags that can be returned by
+ * t_cose_sign1_get_nth_tag(). The CWT
+ * tag is an example of the tags that might returned. The COSE tags
+ * that are processed, don't count here.
+ */
+#define T_COSE_MAX_TAGS_TO_RETURN 4
+
+
 
 /**
  * Context for signature verification.
@@ -37,7 +95,7 @@ struct t_cose_sign_verify_ctx {
     /* Private data structure */
     struct t_cose_signature_verify *verifiers;
     uint32_t                        option_flags;
-    uint64_t                        auTags[T_COSE_MAX_TAGS_TO_RETURN];
+    uint64_t                        auTags[T_COSE_MAX_TAGS_TO_RETURN2];
     struct header_param_storage     params;
     struct t_cose_header_param      __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     t_cose_header_reader           *reader;
@@ -242,13 +300,13 @@ static inline enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
                    struct q_useful_buf_c          sign,
                    struct q_useful_buf_c          aad,
-                   struct q_useful_buf_c          payload,
+                   struct q_useful_buf_c          detatched_payload,
                    struct t_cose_header_param   **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       sign,
                                       aad,
-                                      &payload,
+                                     &detatched_payload,
                                       parameters,
                                       true);
 }
@@ -261,7 +319,7 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *me,
     memset(me, 0, sizeof(*me));
     me->option_flags               = option_flags;
     me->params.storage             = me->__params;
-    me->params.storage_size        = sizeof(me->__params);
+    me->params.storage_size        = sizeof(me->__params)/sizeof(struct t_cose_header_param);
     me->__params[0].parameter_type = T_COSE_PARAMETER_TYPE_NONE;
 }
 

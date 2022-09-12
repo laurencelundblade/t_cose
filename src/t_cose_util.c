@@ -218,6 +218,7 @@ static const uint8_t defined_short_circuit_kid[] = {
 
 static struct q_useful_buf_c short_circuit_kid;
 
+
 /*
  * Public function. See t_cose_util.h
  */
@@ -229,3 +230,25 @@ struct q_useful_buf_c get_short_circuit_kid(void)
     return short_circuit_kid;
 }
 #endif
+
+
+/*
+ * Public function. See t_cose_util.h
+ */
+enum t_cose_err_t
+qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t format_error)
+{
+    if(qcbor_error == QCBOR_ERR_TOO_MANY_TAGS) {
+        return T_COSE_ERR_TOO_MANY_TAGS;
+    }
+    if(QCBORDecode_IsNotWellFormedError(qcbor_error)) {
+        return T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+    }
+    if(qcbor_error == QCBOR_ERR_UNEXPECTED_TYPE || qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
+        return format_error;
+    }
+    if(qcbor_error != QCBOR_SUCCESS) {
+        return T_COSE_ERR_CBOR_DECODE;
+    }
+    return T_COSE_SUCCESS;
+}
