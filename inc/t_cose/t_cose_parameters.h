@@ -2,6 +2,7 @@
  * t_cose_parameters.h
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -576,6 +577,27 @@ On verifying...
 
  */
 
+/**
+ * The maximum number of header parameters that can be handled during
+ * verification of a \c COSE_Sign1 message. \ref
+ * T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
+ * t_cose_sign1_verify() if the input message has more.
+ *
+ * There can be both \ref T_COSE_PARAMETER_LIST_MAX integer-labeled
+ * parameters and \ref T_COSE_PARAMETER_LIST_MAX string-labeled
+ * parameters.
+ *
+ * This is a hard maximum so the implementation doesn't need
+ * malloc. This constant can be increased if needed. Doing so will
+ * increase stack usage.
+ */
+#define T_COSE_PARAMETER_LIST_MAX 10
+
+/**
+ * The value of an unsigned integer content type indicating no content
+ * type.  See \ref t_cose_parameters.
+ */
+#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 
 
 /**

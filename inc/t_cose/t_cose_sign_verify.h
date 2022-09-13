@@ -27,55 +27,10 @@ extern "C" {
 
 /* Warning: this is still early development. Documentation may be incorrect. */
 
-#define T_COSE_NUM_VERIFY_DECODE_HEADERS 8
 
 #define T_COSE_MAX_TAGS_TO_RETURN2 4
 
 
-/**
- * Normally this will decode the CBOR presented as a \c COSE_Sign1
- * message whether it is tagged using QCBOR tagging as such or not.
- * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if it is not a \ref CBOR_TAG_COSE_SIGN1 tag.
- *
- * See also \ref T_COSE_OPT_TAG_PROHIBITED. If neither this or
- * \ref T_COSE_OPT_TAG_PROHIBITED is set then the content can
- * either be COSE message (COSE_Sign1 CDDL from RFC 8152) or
- * a COSESign1 tagg (COSE_Sign1_Tagged from RFC 8152).
- *
- * See t_cose_sign1_get_nth_tag() to get further tags that enclose
- * the COSE message.
- */
-#define T_COSE_OPT_TAG_REQUIRED  0x00000004
-
-
-/**
- * Normally this will decode the CBOR presented as a \c COSE_Sign1
- * message whether it is tagged using QCBOR tagging as such or not.
- * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if a \ref CBOR_TAG_COSE_SIGN1 tag. When this option is set the caller
- * knows for certain that a COSE signed message is expected.
- *
- * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
- */
-#define T_COSE_OPT_TAG_PROHIBITED  0x00000010
-
-
-/**
- * See t_cose_sign1_set_verification_key().
- *
- * This option disables cryptographic signature verification.  With
- * this option the \c verification_key is not needed.  This is useful
- * to decode the \c COSE_Sign1 message to get the kid (key ID).  The
- * verification key can be looked up or otherwise obtained by the
- * caller. Once the key in in hand, t_cose_sign1_verify() can be
- * called again to perform the full verification.
- *
- * The payload will always be returned whether this is option is given
- * or not, but it should not be considered secure when this option is
- * given.
- */
-#define T_COSE_OPT_DECODE_ONLY  0x00000008
 
 
 /**

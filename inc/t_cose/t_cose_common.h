@@ -2,6 +2,7 @@
  * t_cose_common.h
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,7 +15,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
+#include "t_cose/q_useful_buf.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -225,6 +226,41 @@ extern "C" {
  */
 #define T_COSE_ALGORITHM_ES512 -36
 
+/**
+ * \def T_COSE_ALGORITHM_HMAC256
+ *
+ * \brief Indicates HMAC with SHA256
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-256
+ */
+#define T_COSE_ALGORITHM_HMAC256 5
+
+/**
+ * \def T_COSE_ALGORITHM_HMAC384
+ *
+ * \brief Indicates HMAC with SHA384
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-384
+ */
+#define T_COSE_ALGORITHM_HMAC384 6
+
+/**
+ * \def T_COSE_ALGORITHM_HMAC512
+ *
+ * \brief Indicates HMAC with SHA512
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-512
+ */
+#define T_COSE_ALGORITHM_HMAC512 7
 
 #define T_COSE_ALGORITHM_NONE 0
 
@@ -312,7 +348,20 @@ struct t_cose_key {
  */
 #define T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS (1+1+5+17)
 
+/* Private value. Intentionally not documented for Doxygen.
+ * This is the size allocated for the encoded protected headers.  It
+ * needs to be big enough for make_protected_header() to succeed. It
+ * currently sized for one header with an algorithm ID up to 32 bits
+ * long -- one byte for the wrapping map, one byte for the label, 5
+ * bytes for the ID. If this is made accidentially too small, QCBOR will
+ * only return an error, and not overrun any buffers.
+ *
+ * 9 extra bytes are added, rounding it up to 16 total, in case some
+ * other protected header is to be added.
+ */
+#define T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS (1 + 1 + 5 + 9)
 
+#define T_COSE_NUM_VERIFY_DECODE_HEADERS 8
 /**
  * Error codes return by t_cose.
  */
@@ -496,6 +545,7 @@ enum t_cose_err_t {
 
     T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
 
+
     /* A header parameter with a string label occurred and there
      * is no support enabled for string labeled header parameters.
      */
@@ -519,34 +569,123 @@ enum t_cose_err_t {
     /* A COSE_Signature contains unexected data or types. */
     T_COSE_ERR_SIGNATURE_FORMAT = 47,
 
+    /**
+     * When verifying a \c COSE_Mac0, something is wrong with the
+     * format of the CBOR. For example, it is missing something like
+     * the payload.
+     */
+    T_COSE_ERR_MAC0_FORMAT = 48
 };
 
 
+/**
+ * Normally this will decode the CBOR presented as a \c COSE_Sign1
+ * message whether it is tagged using QCBOR tagging as such or not.
+ * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
+ * returned if it is not a \ref CBOR_TAG_COSE_SIGN1 tag.
+ *
+ * See also \ref T_COSE_OPT_TAG_PROHIBITED. If neither this or
+ * \ref T_COSE_OPT_TAG_PROHIBITED is set then the content can
+ * either be COSE message (COSE_Sign1 CDDL from RFC 8152) or
+ * a COSESign1 tagg (COSE_Sign1_Tagged from RFC 8152).
+ *
+ * See t_cose_sign1_get_nth_tag() to get further tags that enclose
+ * the COSE message.
+ */
+#define T_COSE_OPT_TAG_REQUIRED  0x00000004
 
 
 /**
- * The maximum number of header parameters that can be handled during
- * verification of a \c COSE_Sign1 message. \ref
- * T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
- * t_cose_sign1_verify() if the input message has more.
+ * Normally this will decode the CBOR presented as a \c COSE_Sign1
+ * message whether it is tagged using QCBOR tagging as such or not.
+ * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
+ * returned if a \ref CBOR_TAG_COSE_SIGN1 tag. When this option is set the caller
+ * knows for certain that a COSE signed message is expected.
  *
- * There can be both \ref T_COSE_PARAMETER_LIST_MAX integer-labeled
- * parameters and \ref T_COSE_PARAMETER_LIST_MAX string-labeled
- * parameters.
- *
- * This is a hard maximum so the implementation doesn't need
- * malloc. This constant can be increased if needed. Doing so will
- * increase stack usage.
+ * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
  */
-#define T_COSE_PARAMETER_LIST_MAX 10
-
+#define T_COSE_OPT_TAG_PROHIBITED  0x00000010
 
 
 /**
- * The value of an unsigned integer content type indicating no content
- * type.  See \ref t_cose_parameters.
+ * See t_cose_sign1_set_verification_key().
+ *
+ * This option disables cryptographic signature verification.  With
+ * this option the \c verification_key is not needed.  This is useful
+ * to decode the \c COSE_Sign1 message to get the kid (key ID).  The
+ * verification key can be looked up or otherwise obtained by the
+ * caller. Once the key in in hand, t_cose_sign1_verify() can be
+ * called again to perform the full verification.
+ *
+ * The payload will always be returned whether this is option is given
+ * or not, but it should not be considered secure when this option is
+ * given.
  */
-#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
+#define T_COSE_OPT_DECODE_ONLY  0x00000008
+
+
+/**
+ * An \c option_flag to not add the CBOR type 6 tag for a COSE message.
+ * Some uses of COSE may require this tag be absent because its COSE
+ * message type is known from surrounding context.
+ *
+ * Or said another way, per the COSE RFC, this code produces a \c
+ * COSE_Sign1_Tagged/ \c COSE_Mac0_Tagged by default and
+ * a \c COSE_Sign1/ \c COSE_Mac0 when this flag is set.
+ * The only difference between these two is the CBOR tag.
+ */
+#define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
+
+
+/**
+ * Pass this as \c option_flags to allow verification of short-circuit
+ * signatures. This should only be used as a test mode as
+ * short-circuit signatures are not secure.
+ *
+ * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
+ */
+#define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x00000001
+
+
+/**
+ * The error \ref T_COSE_ERR_NO_KID is returned if the kid parameter
+ * is missing. Note that the kid parameter is primarily passed on to
+ * the crypto layer so the crypto layer can look up the key. If the
+ * verification key is determined by other than the kid, then it is
+ * fine if there is no kid.
+ */
+#define T_COSE_OPT_REQUIRE_KID 0x00000002
+
+
+/**
+ * Normally this will decode the CBOR presented as a \c COSE_Sign1
+ * or a \c COSE_Mac0 message whether it is tagged using QCBOR tagging
+ * as such or not.
+ * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
+ * returned if it is not tagged.
+ */
+#define T_COSE_OPT_TAG_REQUIRED  0x00000004
+
+
+/**
+ * This option disables cryptographic signature verification.  With
+ * this option the \c verification_key is not needed.  This is useful
+ * to decode the a COSE message to get the kid (key ID).  The
+ * verification key can be looked up or otherwise obtained by the
+ * caller. Once the key in in hand, the verification function can be
+ * called again to perform the full verification.
+ *
+ * The payload will always be returned whether this is option is given
+ * or not, but it should not be considered secure when this option is
+ * given.
+ *
+ */
+#define T_COSE_OPT_DECODE_ONLY  0x00000008
+
+
+
+
+
 
 
 /**
@@ -572,8 +711,6 @@ enum t_cose_err_t {
  */
 bool
 t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
-
-
 
 #ifdef __cplusplus
 }
