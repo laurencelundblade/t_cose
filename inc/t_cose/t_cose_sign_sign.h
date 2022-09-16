@@ -123,7 +123,7 @@ struct t_cose_sign_sign_ctx {
  * is set t_cose_sign_add_signer() must have been called
  * once and only once.
  */
-#define T_COSE_OPT_COSE_SIGN1 0x00000004
+#define T_COSE_OPT_OUTPUT_COSE_SIGN1 0x00000004
 
 
 
@@ -134,7 +134,7 @@ struct t_cose_sign_sign_ctx {
  * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
  *
  * Initialize the \ref t_cose_sign_sign_ctx context. Typically, no
- * \c option_flags are needed and 0 can be passed. . See \ref T_COSE_OPT_COSE_SIGN1 and
+ * \c option_flags are needed and 0 can be passed. . See \ref T_COSE_OPT_OUTPUT_COSE_SIGN1 and
  * related for possible option flags.
  *
  * The algorithm ID(s) is(are) set for in the t_cose_signature_sign instance(s).

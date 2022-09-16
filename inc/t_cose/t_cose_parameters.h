@@ -156,8 +156,8 @@ struct t_cose_header_param;
  * will stop and error out with the error it returned.
  */
 typedef enum t_cose_err_t
-(t_cose_header_writer)(const struct t_cose_header_param  *param,
-                       QCBOREncodeContext                *qcbor_encoder);
+t_cose_header_writer(const struct t_cose_header_param  *param,
+                     QCBOREncodeContext                *qcbor_encoder);
 
 
 

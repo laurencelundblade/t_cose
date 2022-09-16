@@ -385,7 +385,7 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 
 
 // Private function used by inlined functions below.
-void
+enum t_cose_err_t
 t_cose_translate_params_private(const struct t_cose_header_param *decoded_params,
                                 struct t_cose_parameters   *returned_parameters);
 
@@ -405,10 +405,17 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                                       NULL_Q_USEFUL_BUF_C,
                                       payload,
                                      &decoded_params);
-    if(parameters != NULL) {
-        t_cose_translate_params_private(decoded_params, parameters);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
     }
 
+    if(parameters != NULL) {
+        return_value = t_cose_translate_params_private(decoded_params, parameters);
+    }
+
+    memcpy(me->auTags, me->me2.auTags, sizeof(me->auTags));
+
+   Done:
     return return_value;
 }
 
@@ -453,7 +460,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                                               &decoded_params);
 
     if(parameters != NULL) {
-        t_cose_translate_params_private(decoded_params, parameters);
+        return_value = t_cose_translate_params_private(decoded_params, parameters);
     }
 
     return return_value;

@@ -23,6 +23,7 @@
  *
  */
 
+#ifdef TODO_CRIT_PARAM_FIXED
 
 /**
  * \brief Add a new label to the end of the label list.
@@ -99,7 +100,7 @@ is_label_list_clear(const struct t_cose_label_list *list)
     return list->int_labels[0] == 0 &&
                q_useful_buf_c_is_null_or_empty(list->tstr_labels[0]);
 }
-
+#endif
 
 static bool
 is_in_list(const struct t_cose_label_list *critical_labels, int64_t label)
@@ -114,6 +115,9 @@ is_in_list(const struct t_cose_label_list *critical_labels, int64_t label)
 
     return false;
 }
+
+
+#ifdef TODO_CRIT_PARAM_FIXED
 
 /**
  * \brief Decode the parameter containing the labels of parameters considered
@@ -265,21 +269,21 @@ check_critical_labels(const struct t_cose_label_list *critical_labels,
 Done:
     return return_value;
 }
-
+#endif
 
 
 static void
 encode_crit_parameter(QCBOREncodeContext                      *encode_context,
                       const struct t_cose_header_param *const *parameters)
 {
-    const struct t_cose_header_param *const *p1;
-    const struct t_cose_header_param        *p2;
+    const struct t_cose_header_param *const *p_vector;
+    const struct t_cose_header_param        *p_param;
 
     QCBOREncode_OpenArrayInMapN(encode_context, COSE_HEADER_PARAM_CRIT);
-    for(p1 = parameters; *p1 != NULL; p1++) {
-        for(p2 = *p1; p2->parameter_type != T_COSE_PARAMETER_TYPE_NONE; p2++) {
-            if(p2->critical) {
-                QCBOREncode_AddInt64(encode_context, p2->label);
+    for(p_vector = parameters; *p_vector != NULL; p_vector++) {
+        for(p_param = *p_vector; p_param->parameter_type != T_COSE_PARAMETER_TYPE_NONE; p_param++) {
+            if(p_param->critical) {
+                QCBOREncode_AddInt64(encode_context, p_param->label);
             }
         }
     }
@@ -327,11 +331,10 @@ decode_parameters_bucket(QCBORDecodeContext         *decode_context,
     struct t_cose_header_param *params;
     QCBORItem                   item;
 
-
     clear_label_list(&critical_parameter_labels);
     QCBORDecode_EnterMap(decode_context, NULL);
 
-#ifdef CRIT_PARAM_FIXED
+#ifdef TODO_CRIT_PARAM_FIXED
     /* TODO: There is a bug in QCBOR where mixing of get by
      * label and traversal don't work together right.
      * When it is fixed, this code can be re enabled.
@@ -396,14 +399,6 @@ decode_parameters_bucket(QCBORDecodeContext         *decode_context,
 
                 case T_COSE_PARAMETER_TYPE_INT64:
                     params->value.i64 = item.val.int64;
-                    break;
-
-                case T_COSE_PARAMETER_TYPE_UINT64:
-                    params->value.u64 = item.val.uint64;
-                    break;
-
-                case T_COSE_PARAMETER_TYPE_BOOL:
-                    params->value.b = (item.uDataType == QCBOR_TYPE_TRUE ? true : false);
                     break;
             }
 
@@ -475,7 +470,7 @@ t_cose_ignore_param_cb(void *cb,
 
 
 static bool
-dup_detect3(const struct t_cose_header_param *params,
+dup_detect_target(const struct t_cose_header_param *params,
             const struct t_cose_header_param *target)
 {
     for(;params->parameter_type != T_COSE_PARAMETER_TYPE_NONE; params++) {
@@ -487,13 +482,14 @@ dup_detect3(const struct t_cose_header_param *params,
     return false;
 }
 
+
 static bool
-dup_detect4(const struct t_cose_header_param *params)
+dup_detect_array(const struct t_cose_header_param *params)
 {
     const struct t_cose_header_param *target;
 
     for(target = params; target->parameter_type != T_COSE_PARAMETER_TYPE_NONE; target++) {
-        if(dup_detect3(params, target)) {
+        if(dup_detect_target(params, target)) {
             return true;
         }
     }
@@ -502,21 +498,21 @@ dup_detect4(const struct t_cose_header_param *params)
 
 
 static bool
-dup_detect2(const struct t_cose_header_param *target,
+dup_detect_vector_array(const struct t_cose_header_param *target,
             const struct t_cose_header_param * const *params_vector)
 {
     const struct t_cose_header_param * const *p1;
     /* loop over the vector */
     for(p1 = params_vector; *p1 != NULL; p1++) {
         /* loop over the vector or param arrays */
-        dup_detect3(*p1, target);
+        dup_detect_target(*p1, target);
     }
     return false;
 }
 
 
 static bool
-dup_detect(const struct t_cose_header_param * const *params_vector)
+dup_detect_vector(const struct t_cose_header_param * const *params_vector)
 {
     const struct t_cose_header_param * const *p1;
     const struct t_cose_header_param         *p2;
@@ -526,7 +522,7 @@ dup_detect(const struct t_cose_header_param * const *params_vector)
     for(p1 = params_vector; *p1 != NULL; p1++) {
         /* loop over array of parameters */
         for(p2 = *p1; p2->parameter_type != T_COSE_PARAMETER_TYPE_NONE; p2++) {
-            if(dup_detect2(p2, params_vector)) {
+            if(dup_detect_vector_array(p2, params_vector)) {
                 return true;
             }
         }
@@ -583,7 +579,7 @@ t_cose_headers_decode(QCBORDecodeContext          *decode_context,
         goto Done;
     }
 
-    if(dup_detect4(param_storage.storage)) {
+    if(dup_detect_array(param_storage.storage)) {
         return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
         goto Done;
     }
@@ -594,54 +590,58 @@ Done:
 
 
 
-
+/**
+ * \brief Encode a bucket of header parameters
+ *
+ * \param[in]  encode_context    QCBOR encoder context to output to.
+ * \param[in]  params_vector      A vector of arrays of parameters to encode.
+ * \param[in]  is_protected_header  \c true if output the protected bucket, \c false if not.
+ *
+ * This iterates of the vector of parameter arrays output each one. When \c is_protected_header
+ * is true the parameters marked as protected will be output and vice versa.
+ *
+ * The callback will be invoked for parameters that are to be output by a callback function.
+ * This is required for parameters that are not strings or integers
+ *
+ * If there are any parameters marked critical in the input, the critical parameters
+ * header will be constructed about output.
+ **/
 static enum t_cose_err_t
 encode_parameters_bucket(QCBOREncodeContext                       *encode_context,
                          const struct t_cose_header_param * const *params_vector,
-                         bool                                      is_protected_header)
+                         const bool                                is_protected_header)
 {
-    const struct t_cose_header_param * const *p1;
-    const struct t_cose_header_param         *p2;
-    bool                                      are_criticals;
+    const struct t_cose_header_param * const *p_vector;
+    const struct t_cose_header_param         *p_param;
+    bool                                      criticals_present;
     enum t_cose_err_t                         return_value;
 
     /* Protected and unprotected parameters are a map of label/value pairs */
     QCBOREncode_OpenMap(encode_context);
 
-    are_criticals = false;
-    /* loop over the vector or param arrays */
-    for(p1 = params_vector; *p1 != NULL; p1++) {
+    criticals_present = false;
+    /* loop over the vector of param arrays */
+    for(p_vector = params_vector; *p_vector != NULL; p_vector++) {
         /* loop over array of parameters */
-        for(p2 = *p1; p2->parameter_type != T_COSE_PARAMETER_TYPE_NONE; p2++) {
-            if(is_protected_header) {
-                if(!p2->prot) {
-                    continue;
-                }
-            } else {
-                if(p2->prot) {
-                    continue;
-                }
+        for(p_param = *p_vector; p_param->parameter_type != T_COSE_PARAMETER_TYPE_NONE; p_param++) {
+            if(is_protected_header && !p_param->prot) {
+                continue;
+            }
+            if(!is_protected_header && p_param->prot) {
+                continue;
             }
 
-            switch(p2->parameter_type) {
+            switch(p_param->parameter_type) {
                 case T_COSE_PARAMETER_TYPE_INT64:
-                    QCBOREncode_AddInt64ToMapN(encode_context, p2->label, p2->value.i64);
-                    break;
-
-                case T_COSE_PARAMETER_TYPE_UINT64:
-                    QCBOREncode_AddUInt64ToMapN(encode_context, p2->label, p2->value.u64);
+                    QCBOREncode_AddInt64ToMapN(encode_context, p_param->label, p_param->value.i64);
                     break;
 
                 case T_COSE_PARAMETER_TYPE_TEXT_STRING:
-                    QCBOREncode_AddTextToMapN(encode_context, p2->label, p2->value.string);
+                    QCBOREncode_AddTextToMapN(encode_context, p_param->label, p_param->value.string);
                     break;
 
                 case T_COSE_PARAMETER_TYPE_BYTE_STRING:
-                    QCBOREncode_AddBytesToMapN(encode_context, p2->label, p2->value.string);
-                    break;
-
-                case T_COSE_PARAMETER_TYPE_BOOL:
-                    QCBOREncode_AddBoolToMapN(encode_context, p2->label, p2->value.b);
+                    QCBOREncode_AddBytesToMapN(encode_context, p_param->label, p_param->value.string);
                     break;
 
                 case T_COSE_PARAMETER_TYPE_CALLBACK:
@@ -649,28 +649,30 @@ encode_parameters_bucket(QCBOREncodeContext                       *encode_contex
                      * save a little object code. Caller should never
                      * indicate a callback without supplying the pointer
                      */
-                    return_value = (p2->value.writer.call_back)(p2, encode_context);
+                    return_value = (p_param->value.writer.call_back)(p_param, encode_context);
                     if(return_value != T_COSE_SUCCESS) {
                         goto Done;
                     }
                     break;
 
                 default:
+                    // TODO: allow disabling this check to save object code
                     return_value = T_COSE_ERR_INVALID_PARAMETER_TYPE;
                     goto Done;
             }
 
-            if(p2->critical) {
-                are_criticals = true;
+            if(p_param->critical) {
+                criticals_present = true;
             }
         }
     }
 
-    if(are_criticals) {
+    if(criticals_present) {
         if(is_protected_header) {
             encode_crit_parameter(encode_context, params_vector);
         } else {
             /* Asking for critical parameters unprotected header bucket */
+            // TODO: allow disabling this check to save object code
             return_value = T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED;
             goto Done;
         }
@@ -696,7 +698,7 @@ t_cose_encode_headers(QCBOREncodeContext                       *encode_context,
     enum t_cose_err_t return_value;
 
     // TODO: allow disabling this check to save object code
-    if(dup_detect(parameters)) {
+    if(dup_detect_vector(parameters)) {
         return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
         goto Done;
     }
@@ -755,6 +757,18 @@ t_cose_find_parameter_alg_id(const struct t_cose_header_param *p)
     }
 }
 
+
+
+/*
+1) No distinction between lack of parameter and bad parameter
+
+ 2) Return value and an error code
+
+ 
+
+
+
+ */
 
 /*
  * Public function. See t_cose_parameters.h

@@ -47,7 +47,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     }
 
     vector_index = 0;
-    if(me->option_flags & T_COSE_OPT_COSE_SIGN1) {
+    if(me->option_flags & T_COSE_OPT_OUTPUT_COSE_SIGN1) {
 
         /* For a COSE_Sign1, the header parameters go in the
          * main body header parameter section, not in the
@@ -138,7 +138,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
 
     /* --- Create the signature or signatures --- */
     signer = me->signers;
-    if(!(me->option_flags & T_COSE_OPT_COSE_SIGN1)) {
+    if(!(me->option_flags & T_COSE_OPT_OUTPUT_COSE_SIGN1)) {
         /* What is needed here is to output an arrray of signers, each
          * of which is an array of Headers and signature. The surrounding
          * array is handed here.

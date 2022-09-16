@@ -459,14 +459,17 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
     me->option_flags = option_flags;  // Used by t_cose_make_test_messages.c
 
     // TODO: Translate any more options flags?
-    t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_COSE_SIGN1);
+    t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_OUTPUT_COSE_SIGN1);
 
+
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     if(option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
         t_cose_signature_sign_short_init(&(me->short_circuit_signer), cose_algorithm_id);
 
         t_cose_sign_add_signer(&(me->me2),
                                t_cose_signature_sign_from_short(&(me->short_circuit_signer)));
     }
+#endif
 
 }
 

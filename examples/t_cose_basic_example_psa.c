@@ -670,7 +670,7 @@ int two_step_sign_example_new(void)
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_COSE_SIGN1);
+    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_OUTPUT_COSE_SIGN1);
 
     t_cose_signature_sign_ecdsa_init(&ecdsa_signer, T_COSE_ALGORITHM_ES256);
 

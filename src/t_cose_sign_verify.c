@@ -261,7 +261,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                 } else if(return_value == 88) {
                     goto done_with_sigs; /* No more COSE_Signatures to be read */
                 } else {
-                    goto Done;
+                    goto Done2;
                 }
             }
         }
@@ -285,11 +285,12 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     }
     /* === End of the decoding of the array of four === */
 
-Done:
+Done2:
     if(returned_parameters != NULL) {
         *returned_parameters = me->params.storage;
     }
 
+Done:
     return return_value;
 }
 

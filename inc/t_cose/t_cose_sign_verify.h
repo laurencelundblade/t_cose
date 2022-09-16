@@ -63,12 +63,12 @@ struct t_cose_sign_verify_ctx {
  2) explicitly indicate COSE_SIGN
  3) require a CBOR tag number to tell which
  */
-#define T_COSE_OPT_COSE_SIGN1 0x00000004
-#define T_COSE_OPT_COSE_SIGN  0x00000008
-#define T_COSE_OPT_COSE_SIGN_TYPE_BY_TAG  0x00000010
+#define T_COSE_OPT_COSE_SIGN1             0x00000100
+#define T_COSE_OPT_COSE_SIGN              0x00000200
+#define T_COSE_OPT_COSE_SIGN_TYPE_BY_TAG  0x00000400
 
 /* ALL signatures must be verified successfully */
-#define T_COSE_VERIFY_ALL 0x00080
+#define T_COSE_VERIFY_ALL                  0x0008000
 
 /**
  * \brief Initialize for \c COSE_Sign1 message verification.
