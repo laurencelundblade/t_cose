@@ -30,9 +30,11 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
     t_cose_sign_verify_init(&(me->me2), option_flags | T_COSE_OPT_MESSAGE_TYPE_SIGN1);
     me->option_flags = option_flags;
 
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     t_cose_signature_verify_short_init(&(me->verifier_sc));
     t_cose_sign_add_verifier(&(me->me2),
                              t_cose_signature_verify_from_short(&(me->verifier_sc)));
+#endif
 }
 
 

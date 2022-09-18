@@ -15,6 +15,7 @@
 
 //#define T_COSE_CRYPTO_MAX_HASH_SIZE 300 // TODO: fix this
 
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 
 /**
  * \brief Verify a short-circuit signature
@@ -68,6 +69,8 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
     struct q_useful_buf_c               kid;
     Q_USEFUL_BUF_MAKE_STACK_UB(         buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c               tbs_hash;
+
+    (void)me_x;
 
     /* --- Get the parameters values needed here --- */
     cose_algorithm_id = t_cose_find_parameter_alg_id(body_parameters);
@@ -170,3 +173,9 @@ t_cose_signature_verify_short_init(struct t_cose_signature_verify_short *me)
     me->s.callback  = t_cose_signature_verify_short;
     me->s.callback1 = t_cose_signature_verify1_short;
 }
+
+#else
+
+void t_cose_signature_verify_short_placeholder(void) {}
+
+#endif

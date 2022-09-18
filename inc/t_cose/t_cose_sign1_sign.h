@@ -105,31 +105,6 @@ struct t_cose_sign1_sign_ctx {
 };
 
 
-/**
- * This selects a signing test mode called _short_ _circuit_
- * _signing_. This mode is useful when there is no signing key
- * available, perhaps because it has not been provisioned or
- * configured for the particular device. It may also be because the
- * public key cryptographic functions have not been connected up in
- * the cryptographic adaptation layer.
- *
- * It has no value for security at all. Data signed this way MUST NOT
- * be trusted as anyone can sign like this.
- *
- * In this mode, the signature is the hash of that which would
- * normally be signed by the public key algorithm. To make the
- * signature the correct size for the particular algorithm, instances
- * of the hash are concatenated to pad it out.
- *
- * This mode is very useful for testing because all the code except
- * the actual signing algorithm is run exactly as it would if a proper
- * signing algorithm was run. This can be used for end-end system
- * testing all the way to a server or relying party, not just for
- * testing device code as t_cose_sign1_verify() supports it too.
- */
-#define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x0000000100000
-
-
 
 /**
  * \brief  Initialize to start creating a \c COSE_Sign1.
@@ -447,7 +422,7 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
     me->option_flags = option_flags;  // Used by t_cose_make_test_messages.c
 
     // TODO: Translate any more options flags?
-    t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_OUTPUT_COSE_SIGN1);
+    t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN

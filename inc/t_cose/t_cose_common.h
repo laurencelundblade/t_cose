@@ -545,7 +545,6 @@ enum t_cose_err_t {
 
     T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
 
-
     /* A header parameter with a string label occurred and there
      * is no support enabled for string labeled header parameters.
      */
@@ -576,7 +575,6 @@ enum t_cose_err_t {
      */
     T_COSE_ERR_MAC0_FORMAT = 48
 };
-
 
 
 /**
@@ -610,7 +608,7 @@ enum t_cose_err_t {
  * See t_cose_sign1_get_nth_tag() to get further tags that enclose
  * the COSE message.
  */
-#define T_COSE_OPT_TAG_REQUIRED  0x0000000100
+#define T_COSE_OPT_TAG_REQUIRED  0x00000100
 
 
 /**
@@ -628,7 +626,7 @@ enum t_cose_err_t {
  *
  * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
  */
-#define T_COSE_OPT_TAG_PROHIBITED  0x0000000200
+#define T_COSE_OPT_TAG_PROHIBITED  0x00000200
 
 
 /**
@@ -642,7 +640,7 @@ enum t_cose_err_t {
  * COSE_Xxxx is COSE_Sign, COSE_Mac0, ... as specified in CDDL in RFC
  * 9052).  The only difference is the presence of the CBOR tag number.
  */
-#define T_COSE_OPT_OMIT_CBOR_TAG 0x0000000400
+#define T_COSE_OPT_OMIT_CBOR_TAG 0x00000400
 
   
 /**
@@ -657,17 +655,20 @@ enum t_cose_err_t {
  * Note that anything returned (parameters, payload) will not have
  * been verified and should be considered untrusted.
  */
-#define T_COSE_OPT_DECODE_ONLY  0x0000000800
+#define T_COSE_OPT_DECODE_ONLY  0x00000800
 
 
 /* The lower 8 bits of the options give the type of the
  * COSE message to decode.
  * TODO: this may not be implmented correctly yet
  */
-#define T_COSE_OPT_MESSAGE_TYPE_MASK 0x00000ff
+#define T_COSE_OPT_MESSAGE_TYPE_MASK 0x000000ff
 
 /* The following are possble values for the lower 8 bits
- * of option_flags. */
+ * of option_flags. They are used to indicated what
+ * type of messsage to output and what type of message
+ * to expect when decoding and the tag number is
+ * absent or being overriden. */
 #define T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED 00
 #define T_COSE_OPT_MESSAGE_TYPE_SIGN        98
 #define T_COSE_OPT_MESSAGE_TYPE_SIGN1       18
@@ -685,7 +686,7 @@ enum t_cose_err_t {
  * verification key is determined by other than the kid, then it is
  * fine if there is no kid.
  */
-#define T_COSE_OPT_REQUIRE_KID 0x00010000
+#define T_COSE_OPT_REQUIRE_KID 0x00001000
 
 
 /**

@@ -51,6 +51,11 @@ static test_entry2 s_tests2[] = {
 };
 #endif
 
+int32_t dummy_test(void)
+{
+    return 0;
+}
+
 static test_entry s_tests[] = {
 
 #ifndef T_COSE_DISABLE_SIGN1
@@ -113,7 +118,7 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SIGN1 */
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
-
+    TEST_ENTRY(dummy_test)
 };
 
 

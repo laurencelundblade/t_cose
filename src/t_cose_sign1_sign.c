@@ -30,7 +30,6 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
                              struct q_useful_buf_c         kid)
 {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-
     if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
 
         me->kid = kid; // TODO: is this needed?

@@ -67,26 +67,6 @@ extern "C" {
 
 
 
-
-
-
-
-
-
-
-
-/**
- * Pass this as \c option_flags to allow verification of short-circuit
- * signatures. This should only be used as a test mode as
- * short-circuit signatures are not secure.
- *
- * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
- */
-#define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x0000000100000
-
-
-
-
 /**
  * The result of parsing a set of COSE header parameters. The pointers
  * in this are all back into the \c COSE_Sign1 blob passed in to
