@@ -198,7 +198,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     }
 
     /* --- The Signature or the COSE_Signature(s) --- */
-    if(me->option_flags & T_COSE_OPT_COSE_SIGN1) { // TODO: allow tag determination
+    if((me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) == T_COSE_OPT_MESSAGE_TYPE_SIGN1) { // TODO: allow tag determination
         QCBORDecode_GetByteString(&decode_context, &signature);
         // TODO: check decode error status here
         if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {

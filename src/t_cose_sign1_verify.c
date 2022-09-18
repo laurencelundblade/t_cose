@@ -27,7 +27,7 @@ void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
                          uint32_t                        option_flags)
 {
-    t_cose_sign_verify_init(&(me->me2), option_flags | T_COSE_OPT_COSE_SIGN1);
+    t_cose_sign_verify_init(&(me->me2), option_flags | T_COSE_OPT_MESSAGE_TYPE_SIGN1);
     me->option_flags = option_flags;
 
     t_cose_signature_verify_short_init(&(me->verifier_sc));
@@ -58,7 +58,7 @@ static inline void clear_cose_parameters(struct t_cose_parameters *parameters)
 #error Invalid algorithm designator not 0. Parameter list initialization fails.
 #endif
 
-#if T_COSE_UNSET_ALGORITHM_ID != COSE_ALGORITHM_RESERVED
+#if T_COSE_ALGORITHM_NONE != COSE_ALGORITHM_RESERVED
 #error Constant for unset algorithm ID not aligned with COSE_ALGORITHM_RESERVED
 #endif
 

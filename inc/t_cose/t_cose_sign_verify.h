@@ -42,6 +42,17 @@ extern "C" {
 #define T_COSE_MAX_TAGS_TO_RETURN 4
 
 
+/**
+ * Pass this as \c option_flags to allow verification of short-circuit
+ * signatures. This should only be used as a test mode as
+ * short-circuit signatures are not secure.
+ *
+ * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
+ */
+#define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x0000000100000
+
+
+
 
 /**
  * Context for signature verification.
@@ -58,20 +69,14 @@ struct t_cose_sign_verify_ctx {
 };
 
 
-/* Three modes to determine whether the input is COSE_Sign or COSE_Sign1.
- 1) expliclity indicate COSE_SIGN1
- 2) explicitly indicate COSE_SIGN
- 3) require a CBOR tag number to tell which
- */
-#define T_COSE_OPT_COSE_SIGN1             0x00000100
-#define T_COSE_OPT_COSE_SIGN              0x00000200
-#define T_COSE_OPT_COSE_SIGN_TYPE_BY_TAG  0x00000400
+
 
 /* ALL signatures must be verified successfully */
 #define T_COSE_VERIFY_ALL                  0x0008000
 
+
 /**
- * \brief Initialize for \c COSE_Sign1 message verification.
+ * \brief Initialize for \c COSE_Sign and \c COSE_Sign1 message verification.
  *
  * \param[in,out]  context       The context to initialize.
  * \param[in]      option_flags  Options controlling the verification.

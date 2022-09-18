@@ -82,17 +82,8 @@ extern "C" {
  *
  * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
  */
-#define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x00000001
+#define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x0000000100000
 
-
-/**
- * The error \ref T_COSE_ERR_NO_KID is returned if the kid parameter
- * is missing. Note that the kid parameter is primarily passed on to
- * the crypto layer so the crypto layer can look up the key. If the
- * verification key is determined by other than the kid, then it is
- * fine if there is no kid.
- */
-#define T_COSE_OPT_REQUIRE_KID 0x00000002
 
 
 
@@ -105,7 +96,7 @@ extern "C" {
  * machine is 40.
  */
 struct t_cose_parameters {
-    /** The algorithm ID. \ref T_COSE_UNSET_ALGORITHM_ID if the algorithm ID
+    /** The algorithm ID. \ref T_COSE_ALGORITHM_NONE if the algorithm ID
      * parameter is not present. String type algorithm IDs are not
      * supported.  See the
      * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml)

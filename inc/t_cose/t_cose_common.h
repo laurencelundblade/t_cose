@@ -87,7 +87,7 @@ extern "C" {
  * COSE_Message. This is for handling COSE messages that might be signed,
  * encrypted, MACed or some combination of these. In the simplest case
  * they decode the CBOR tag number and switch off to one of the
- * above handlers. In more complicated cases they recursively handled
+ * above handlers. In more complicated cases they recursively handle
  * nested signing, encrypting and MACing. (Lots of work to do on
  * this…)
  *
@@ -534,12 +534,12 @@ enum t_cose_err_t {
      * and related. */
     T_COSE_ERR_UNHANDLED_HEADER_PARAMETER = 38,
 
-    /* When encoding parameters, struct t_cose_header_parameter.parameter_type
+    /** When encoding parameters, struct t_cose_header_parameter.parameter_type
      * is not a valid type.
      */
     T_COSE_ERR_INVALID_PARAMETER_TYPE = 39,
 
-    /* Can't put critical parameters in the non-protected
+    /** Can't put critical parameters in the non-protected
      * header bucket. */
     T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
 
@@ -551,22 +551,22 @@ enum t_cose_err_t {
      */
     T_COSE_ERR_STRING_LABELED_PARAM = 42,
 
-    /* No signers as in struct t_cose_signature_sign are  configured.
+    /** No signers as in struct t_cose_signature_sign are  configured.
      */
     T_COSE_ERR_NO_SIGNERS = 43,
 
-    /* More than one signer configured when signing a
+    /** More than one signer configured when signing a
      * COSE_Sign1 (multiple signers are OK for COSE_SIGN). */
     T_COSE_ERR_TOO_MANY_SIGNERS = 44,
 
-    /* Mostly a verifier that is configured to look for kids
+    /** Mostly a verifier that is configured to look for kids
      * before it acts didn't match the kid in the message. */
     T_COSE_ERR_KID_UNMATCHED = 45,
 
-    /* General CBOR decode error. */
+    /** General CBOR decode error. */
     T_COSE_ERR_CBOR_DECODE = 46,
 
-    /* A COSE_Signature contains unexected data or types. */
+    /** A COSE_Signature contains unexected data or types. */
     T_COSE_ERR_SIGNATURE_FORMAT = 47,
 
     /**
@@ -578,73 +578,104 @@ enum t_cose_err_t {
 };
 
 
+
 /**
- * Normally this will decode the CBOR presented as a \c COSE_Sign1
- * message whether it is tagged using QCBOR tagging as such or not.
- * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if it is not a \ref CBOR_TAG_COSE_SIGN1 tag.
+ * TODO: this may not be implmented correctly yet
  *
- * See also \ref T_COSE_OPT_TAG_PROHIBITED. If neither this or
- * \ref T_COSE_OPT_TAG_PROHIBITED is set then the content can
- * either be COSE message (COSE_Sign1 CDDL from RFC 8152) or
- * a COSESign1 tagg (COSE_Sign1_Tagged from RFC 8152).
+ * In this tag decoding mode, there must be a tag number present in
+ * the input CBOR. That tag number solely determines the COSE message
+ * type that decoding expects.
+ *
+ * It is an error if there is no tag number.
+ *
+ * If a message type option like \ref T_COSE_OPT_MESSAGE_TYPE_SIGN is
+ * set in the options, it is ignored.
+ *
+ * If there are nested tags, the inner most tag number, the one
+ * closest to the array item (all COSE messages are arrays) is used.
+ *
+ * See also \ref T_COSE_OPT_TAG_PROHIBITED for another tag decoding
+ * mode.
+ *
+ * If neither this or \ref T_COSE_OPT_TAG_PROHIBITED is set then the
+ * message type will be determined by either the tag or or message
+ * type option like \ref T_COSE_OPT_MESSAGE_TYPE_SIGN.  If neither are
+ * available, then it is an error as the message type can't be
+ * determined. If both are set, then the message type option overrules
+ * the tag number. This is the default, but it is discouraged by
+ * the CBOR standard as it is a bit ambigous and protocol definitions
+ * should clearly state which they use. It is left as the default
+ * here in t_cose because it will usually work out of the box.
  *
  * See t_cose_sign1_get_nth_tag() to get further tags that enclose
  * the COSE message.
  */
-#define T_COSE_OPT_TAG_REQUIRED  0x00000004
+#define T_COSE_OPT_TAG_REQUIRED  0x0000000100
 
 
 /**
- * Normally this will decode the CBOR presented as a \c COSE_Sign1
- * message whether it is tagged using QCBOR tagging as such or not.
- * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if a \ref CBOR_TAG_COSE_SIGN1 tag. When this option is set the caller
- * knows for certain that a COSE signed message is expected.
+ * TODO: this may not be implmented correctly yet
+ *
+ * In this tag decoding mode, there must be no tag number present in
+ * the input CBOR.  Message type options like \ref
+ * T_COSE_OPT_MESSAGE_TYPE_SIGN are solely relied on.
+ *
+ * If a tag number is present, then \ref T_COSE_ERR_INCORRECTLY_TAGGED
+ * is returned.
+ *
+ * If no Message type options like \ref T_COSE_OPT_MESSAGE_TYPE_SIGN
+ * is set the TODO error is returned.
  *
  * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
  */
-#define T_COSE_OPT_TAG_PROHIBITED  0x00000010
+#define T_COSE_OPT_TAG_PROHIBITED  0x0000000200
 
 
 /**
- * See t_cose_sign1_set_verification_key().
+ * An \c option_flag to not add the CBOR type 6 tag number when
+ * encoding a COSE message.  Some uses of COSE may require this tag
+ * number be absent because its COSE message type is known from
+ * surrounding context.
  *
- * This option disables cryptographic signature verification.  With
- * this option the \c verification_key is not needed.  This is useful
- * to decode the \c COSE_Sign1 message to get the kid (key ID).  The
- * verification key can be looked up or otherwise obtained by the
- * caller. Once the key in in hand, t_cose_sign1_verify() can be
- * called again to perform the full verification.
- *
- * The payload will always be returned whether this is option is given
- * or not, but it should not be considered secure when this option is
- * given.
+ * Or said another way \c COSE_Xxxx_Tagged message is produced by
+ * default and a \c COSE_Xxxx is produced when this flag is set (where
+ * COSE_Xxxx is COSE_Sign, COSE_Mac0, ... as specified in CDDL in RFC
+ * 9052).  The only difference is the presence of the CBOR tag number.
  */
-#define T_COSE_OPT_DECODE_ONLY  0x00000008
+#define T_COSE_OPT_OMIT_CBOR_TAG 0x0000000400
 
-
+  
 /**
- * An \c option_flag to not add the CBOR type 6 tag for a COSE message.
- * Some uses of COSE may require this tag be absent because its COSE
- * message type is known from surrounding context.
+ * When verifying or signing a COSE message, cryptographic operations
+ * like verification and decryption will not be performed. Keys needed
+ * for these operations are not needed. This is useful to decode a
+ * COSE message to get the header parameter(s) to lookup/find/identify
+ * the required key(s) (e.g., the kid parameter).  Then the key(s)
+ * are/is configured and the message is decoded again without this
+ * option.
  *
- * Or said another way, per the COSE RFC, this code produces a \c
- * COSE_Sign1_Tagged/ \c COSE_Mac0_Tagged by default and
- * a \c COSE_Sign1/ \c COSE_Mac0 when this flag is set.
- * The only difference between these two is the CBOR tag.
+ * Note that anything returned (parameters, payload) will not have
+ * been verified and should be considered untrusted.
  */
-#define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
+#define T_COSE_OPT_DECODE_ONLY  0x0000000800
 
 
-/**
- * Pass this as \c option_flags to allow verification of short-circuit
- * signatures. This should only be used as a test mode as
- * short-circuit signatures are not secure.
- *
- * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
+/* The lower 8 bits of the options give the type of the
+ * COSE message to decode.
+ * TODO: this may not be implmented correctly yet
  */
-#define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x00000001
+#define T_COSE_OPT_MESSAGE_TYPE_MASK 0x00000ff
+
+/* The following are possble values for the lower 8 bits
+ * of option_flags. */
+#define T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED 00
+#define T_COSE_OPT_MESSAGE_TYPE_SIGN        98
+#define T_COSE_OPT_MESSAGE_TYPE_SIGN1       18
+#define T_COSE_OPT_MESSAGE_TYPE_ENCRYPT     96
+#define T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0    16
+#define T_COSE_OPT_MESSAGE_TYPE_MAC         97
+#define T_COSE_OPT_MESSAGE_TYPE_MAC0        17
+/* Not expecting any more. */
 
 
 /**
@@ -654,45 +685,7 @@ enum t_cose_err_t {
  * verification key is determined by other than the kid, then it is
  * fine if there is no kid.
  */
-#define T_COSE_OPT_REQUIRE_KID 0x00000002
-
-
-/**
- * Normally this will decode the CBOR presented as a \c COSE_Sign1
- * or a \c COSE_Mac0 message whether it is tagged using QCBOR tagging
- * as such or not.
- * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if it is not tagged.
- */
-#define T_COSE_OPT_TAG_REQUIRED  0x00000004
-
-
-/**
- * This option disables cryptographic signature verification.  With
- * this option the \c verification_key is not needed.  This is useful
- * to decode the a COSE message to get the kid (key ID).  The
- * verification key can be looked up or otherwise obtained by the
- * caller. Once the key in in hand, the verification function can be
- * called again to perform the full verification.
- *
- * The payload will always be returned whether this is option is given
- * or not, but it should not be considered secure when this option is
- * given.
- *
- */
-#define T_COSE_OPT_DECODE_ONLY  0x00000008
-
-
-
-
-
-
-
-/**
- * A special COSE algorithm ID that indicates no COSE algorithm ID or an unset
- * COSE algorithm ID.
- */
-#define T_COSE_UNSET_ALGORITHM_ID 0
+#define T_COSE_OPT_REQUIRE_KID 0x00010000
 
 
 /**
