@@ -74,6 +74,7 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
 
     /* --- Get the parameters values needed here --- */
     cose_algorithm_id = t_cose_find_parameter_alg_id(body_parameters);
+    // TODO: error check
 
     kid = t_cose_find_parameter_kid(body_parameters);
 

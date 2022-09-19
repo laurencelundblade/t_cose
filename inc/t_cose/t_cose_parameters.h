@@ -295,34 +295,59 @@ struct t_cose_header_param {
                                 .value.string = NULL_Q_USEFUL_BUF_C }
 
 
+// TODO: finish documentation for functions below
 /* Find a parameter by label in array of parameters returned by verify */
 const struct t_cose_header_param *
 t_cose_find_parameter(const struct t_cose_header_param *p, int64_t label);
 
+
+/*
+ * TODO: finish documentation
+ * This returns T_COSE_ALGORITHM_NONE for all errors decoding
+ * the algorithm ID including it not being present and not being
+ * a protected parameter.
+ */
 int32_t
 t_cose_find_parameter_alg_id(const struct t_cose_header_param *p);
 
-UsefulBufC
-t_cose_find_parameter_kid(const struct t_cose_header_param *p);
-
-uint32_t
-t_cose_find_content_id_int(const struct t_cose_header_param *p);
-
-struct q_useful_buf_c
-t_cose_find_parameter_iv(const struct t_cose_header_param *p);
-
-struct q_useful_buf_c
-t_cose_find_parameter_partial_iv(const struct t_cose_header_param *p);
-
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 
+/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
+* not being present and not being the right type.
+*/
 struct q_useful_buf_c
 t_cose_find_parameter_content_type_tstr(const struct t_cose_header_param *p);
 
+/*
+ * This returns T_COSE_EMPTY_UINT_CONTENT_TYPE for all errors include it
+ * not being present and it being larger than UINT16_MAX (the largest allowed
+ * value for a CoAP content type).
+ */
 uint32_t
 t_cose_find_parameter_content_type_int(const struct t_cose_header_param *p);
 
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
+
+/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
+ * not being present and not being the right type.
+ */
+struct q_useful_buf_c
+t_cose_find_parameter_kid(const struct t_cose_header_param *p);
+
+
+/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
+* not being present and not being the right type.
+*/
+struct q_useful_buf_c
+t_cose_find_parameter_iv(const struct t_cose_header_param *p);
+
+
+/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
+* not being present and not being the right type.
+*/
+struct q_useful_buf_c
+t_cose_find_parameter_partial_iv(const struct t_cose_header_param *p);
 
 
 /*

@@ -723,6 +723,7 @@ Done:
 }
 
 
+// TODO: test all these functions below
 /*
  * Public function. See t_cose_parameters.h
  */
@@ -746,10 +747,13 @@ t_cose_find_parameter(const struct t_cose_header_param *p, int64_t label)
 int32_t
 t_cose_find_parameter_alg_id(const struct t_cose_header_param *p)
 {
-    const struct t_cose_header_param *p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_ALG);
+    const struct t_cose_header_param *p_found;
+
+    p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_ALG);
     if(p_found != NULL &&
        p_found->parameter_type == T_COSE_PARAMETER_TYPE_INT64 &&
        p_found->prot &&
+       p_found->value.i64 != COSE_ALGORITHM_RESERVED &&
        p_found->value.i64 < INT32_MAX) {
         return (int32_t)p_found->value.i64;
     } else {
@@ -758,17 +762,44 @@ t_cose_find_parameter_alg_id(const struct t_cose_header_param *p)
 }
 
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+/*
+ * Public function. See t_cose_parameters.h
+ */
+uint32_t
+t_cose_find_parameter_content_type_int(const struct t_cose_header_param *p)
+{
+    const struct t_cose_header_param *p_found;
+
+    p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_CONTENT_TYPE);
+    if(p_found != NULL &&
+       p_found->parameter_type == T_COSE_PARAMETER_TYPE_INT64 &&
+       p_found->value.u64 < UINT16_MAX) {
+        return (uint32_t)p_found->value.u64;
+    } else {
+        return T_COSE_EMPTY_UINT_CONTENT_TYPE;
+    }
+}
+
 
 /*
-1) No distinction between lack of parameter and bad parameter
-
- 2) Return value and an error code
-
- 
-
-
-
+ * Public function. See t_cose_parameters.h
  */
+struct q_useful_buf_c
+t_cose_find_parameter_content_type_tstr(const struct t_cose_header_param *p)
+{
+    const struct t_cose_header_param *p_found;
+
+    p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_CONTENT_TYPE);
+    if(p_found != NULL &&
+       p_found->parameter_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
+        return p_found->value.string;
+    } else {
+        return NULL_Q_USEFUL_BUF_C;
+    }
+}
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
 
 /*
  * Public function. See t_cose_parameters.h
@@ -776,7 +807,9 @@ t_cose_find_parameter_alg_id(const struct t_cose_header_param *p)
 struct q_useful_buf_c
 t_cose_find_parameter_kid(const struct t_cose_header_param *p)
 {
-    const struct t_cose_header_param *p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_KID );
+    const struct t_cose_header_param *p_found;
+
+    p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_KID);
     if(p_found != NULL &&
        p_found->parameter_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
         return p_found->value.string;
@@ -792,7 +825,9 @@ t_cose_find_parameter_kid(const struct t_cose_header_param *p)
 struct q_useful_buf_c
 t_cose_find_parameter_iv(const struct t_cose_header_param *p)
 {
-    const struct t_cose_header_param *p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_IV );
+    const struct t_cose_header_param *p_found;
+
+    p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_IV);
     if(p_found != NULL &&
        p_found->parameter_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
         return p_found->value.string;
@@ -808,7 +843,9 @@ t_cose_find_parameter_iv(const struct t_cose_header_param *p)
 struct q_useful_buf_c
 t_cose_find_parameter_partial_iv(const struct t_cose_header_param *p)
 {
-    const struct t_cose_header_param *p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_PARTIAL_IV );
+    const struct t_cose_header_param *p_found;
+
+    p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_PARTIAL_IV);
     if(p_found != NULL &&
        p_found->parameter_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
         return p_found->value.string;
@@ -818,37 +855,4 @@ t_cose_find_parameter_partial_iv(const struct t_cose_header_param *p)
 }
 
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-/*
- * Public function. See t_cose_parameters.h
- */
-uint32_t
-t_cose_find_parameter_content_type_int(const struct t_cose_header_param *p)
-{
-    const struct t_cose_header_param *p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_CONTENT_TYPE );
-    if(p_found != NULL &&
-       p_found->parameter_type == T_COSE_PARAMETER_TYPE_INT64) {
-        // TODO: checks to make cast safe
-        return (uint32_t)p_found->value.u64;
-    } else {
-        return T_COSE_EMPTY_UINT_CONTENT_TYPE;
-    }
-}
 
-
-/*
- * Public function. See t_cose_parameters.h
- */
-struct q_useful_buf_c
-t_cose_find_parameter_content_type_tstr(const struct t_cose_header_param *p)
-{
-    const struct t_cose_header_param *p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_CONTENT_TYPE );
-    if(p_found != NULL &&
-       p_found->parameter_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
-        return p_found->value.string;
-    } else {
-        return NULL_Q_USEFUL_BUF_C;
-    }
-}
-
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
