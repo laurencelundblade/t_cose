@@ -119,7 +119,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
     }
 
     if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-        unprotected_params_arr[1] = T_COSE_CT_INT_PARAM(me->content_type_uint);
+        unprotected_params_arr[1] = T_COSE_CT_UINT_PARAM(me->content_type_uint);
     }
 
     if(!q_useful_buf_c_is_null(me->content_type_tstr)) {

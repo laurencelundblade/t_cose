@@ -280,7 +280,7 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *me,
     me->option_flags               = option_flags;
     me->params.storage             = me->__params;
     me->params.storage_size        = sizeof(me->__params)/sizeof(struct t_cose_header_param);
-    me->__params[0].parameter_type = T_COSE_PARAMETER_TYPE_NONE;
+    me->__params[0].value_type = T_COSE_PARAMETER_TYPE_NONE;
 }
 
 

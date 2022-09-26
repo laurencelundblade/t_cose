@@ -127,7 +127,7 @@ t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
     context->verification_key    = T_COSE_NULL_KEY;
     context->params.storage      = context->__params;
     context->params.storage_size = sizeof(context->__params);
-    context->__params[0].parameter_type = T_COSE_PARAMETER_TYPE_NONE;
+    context->__params[0].value_type = T_COSE_PARAMETER_TYPE_NONE;
 }
 
 static inline void

@@ -88,16 +88,16 @@ t_cose_translate_params_private(const struct t_cose_header_param *decoded_params
 
     /* No duplicate detection is necessary because t_cose_headers_decode()
      * does it. */
-    for(p = decoded_params; p->parameter_type != 0; p++) {
+    for(p = decoded_params; p->value_type != 0; p++) {
         if(p->label == COSE_HEADER_PARAM_KID) {
-            if(p->parameter_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+            if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
             returned_parameters->kid = p->value.string;
 
         } else if(p->label == COSE_HEADER_PARAM_ALG) {
-            if(p->parameter_type != T_COSE_PARAMETER_TYPE_INT64) {
+            if(p->value_type != T_COSE_PARAMETER_TYPE_INT64) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
@@ -112,14 +112,14 @@ t_cose_translate_params_private(const struct t_cose_header_param *decoded_params
             returned_parameters->cose_algorithm_id = (int32_t)p->value.i64;
 
         } else if(p->label == COSE_HEADER_PARAM_IV) {
-            if(p->parameter_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+            if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
             returned_parameters->iv = p->value.string;
 
         } else if(p->label == COSE_HEADER_PARAM_PARTIAL_IV) {
-            if(p->parameter_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+            if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
@@ -127,10 +127,10 @@ t_cose_translate_params_private(const struct t_cose_header_param *decoded_params
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
         } else if(p->label == COSE_HEADER_PARAM_CONTENT_TYPE) {
-            if(p->parameter_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
+            if(p->value_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
                 returned_parameters->content_type_tstr = p->value.string;
 
-            } else if(p->parameter_type == T_COSE_PARAMETER_TYPE_INT64) {
+            } else if(p->value_type == T_COSE_PARAMETER_TYPE_INT64) {
                 if(p->value.i64 < 0 || p->value.i64 > UINT16_MAX) {
                       return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                       goto Done;
