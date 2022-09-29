@@ -21,6 +21,7 @@
 // TODO: this file probably needs some re ordering and re organizing
 
 /*
+ * TODO: move this documentation to the right functions
  * Header parameter encoding and decoding hinges around struct
  * t_cose_header_param plus primary functions for encoding and decoding
  * the header. Users of the t_cose public API for verifying signing,
@@ -29,7 +30,7 @@
  *
  * Struct t_cose_header_param holds a single header parameter that is
  * to be encoded or has been decoded. The same structure is used for
- * both. Most parameters are either integers, strings or Booleans and
+ * both. Most parameters are either integers or strings and
  * are held directly in struct t_cose_header_param. A callback is used
  * for more complex parameters.
  *
@@ -45,7 +46,7 @@
  * When encoding a COSE message and only the kid and algorithm id are
  * needed, there is no need to use the header parameter structure as
  * those are handled internally. If further parameters are needed when
- * encoding further the caller creates an array of struct
+ * encoding further the caller creates an TODO: vector array of struct
  * t_cose_header_param passes it in with xxxx_add_parameters(). This
  * array is terminated by a header parameter structure with type
  * T_COSE_PARAMETER_TYPE_NONE. This array can contain only one, or a large number of
@@ -130,12 +131,21 @@
  * the output is an array of struct t_cose_header_param. Both of these
  * functions handle both the protected and unprotected headers all in
  * one call (since they always occur together in COSE).
+ *
+ * Is it "header parameter" or "parameter"? From looking at RFC
+ * 9052 it seems there are two kinds of parameters, "header parameters"
+ * and "key parameters". Header parameters occur in the Headers
+ * section of COSE_Sign, COSE_Encrypt and such. Key parameters
+ * occur in COSE_Keys. When the context is known, they might
+ * just be refered to as "parameter".
+
  */
 
 
 
 /* Forward declaration. See actual definition below. */
-struct t_cose_header_param;
+// TODO: rename to header_parameter ? Yes, but maybe wait until encrypt is merged
+struct t_cose_parameter;
 
 
 
@@ -158,9 +168,30 @@ struct t_cose_header_param;
  * For CBOR
  */
 typedef enum t_cose_err_t
-t_cose_header_writer(const struct t_cose_header_param  *param,
-                     QCBOREncodeContext                *qcbor_encoder);
+t_cose_parameter_encode_callback(const struct t_cose_parameter  *parameter,
+                                 QCBOREncodeContext             *qcbor_encoder);
 
+
+/*
+ *
+ * This is called back from t_cose_decode_headers() when
+ * a parameter that is not an integer or string is
+ * encountered. The call back must consume all the CBOR
+ * that makes up the particular parameter and no more.
+ *
+ * The label, prot, crit and type are set based on peeking
+ * at the first data item in the header. The value is
+ * not set.
+ *
+ * On exit, this function must set the type and the value.
+ *
+ * Typically this function will switch on the label to
+ * know what to decode.
+ */
+typedef enum t_cose_err_t
+t_cose_parameter_decode_callback(void                    *callback_context,
+                                 QCBORDecodeContext      *qcbor_decoder,
+                                 struct t_cose_parameter *parameter); // [in,out] parameter
 
 
 /* Where in a COSE message a header was found. */
@@ -176,32 +207,12 @@ struct header_location {
 
 
 /*
-
-On read, the QCBOR type can be passed to the
- reader function.  The reader function could
- set the type, but probably doesn't need to
- because the main identification is by label.
-
- The type is the CBOR type of the
- first item in the header. If the
- type is int64, bstr or tstr it is
- processed internally. If it is other
- then it is processed by callback.
-
- 
-
-
-
-
- */
-
-/*
- * This holds one header parameter such as an algorithm ID
- * or kid. When that one header parameter is not an
- * integer, string or boolean, this holds a callback to
+ * This holds one parameter such as an algorithm ID
+ * or kid. When that one parameter is not an
+ * integer or string, this holds a callback to
  * output it. It typically takes up 32 bytes.
  */
-struct t_cose_header_param {
+struct t_cose_parameter {
     /* Label indicating which parameter it is. One of COSE_HEADER_PARAM_ALG,
      * ...
      */
@@ -209,7 +220,7 @@ struct t_cose_header_param {
 
     /* Indicates parameter is to be encoded in the protected header
      * bucket was decoded from the protected header bucket. */
-    bool    prot;
+    bool    protected;
     /* Indicates parameter should be listed in the critical headers
      * when encoding. Not used while decoding.*/
     bool    critical;
@@ -232,26 +243,49 @@ struct t_cose_header_param {
         void                 *ptr;
         uint8_t               little_buf[8];
         struct { /* Used only for encoding */
-            void                 *context;
-            t_cose_header_writer *call_back;
+            void                             *context;
+            t_cose_parameter_encode_callback *callback;
         } custom_encoder;
     } value;
 };
 
 
 #define T_COSE_PARAMETER_TYPE_NONE         0
-
 #define T_COSE_PARAMETER_TYPE_INT64        2
 #define T_COSE_PARAMETER_TYPE_BYTE_STRING  6
 #define T_COSE_PARAMETER_TYPE_TEXT_STRING  7
-
 #define T_COSE_PARAMETER_TYPE_PTR        100
 #define T_COSE_PARAMETER_TYPE_LITTLE_BUF 101
 #define T_COSE_PARAMETER_TYPE_CALLBACK   102
+// TODO: add a parameters type to recursively encode because COSE_Keys are
+// parameter sets too and they go into headers.
+
+
+/**
+ * The maximum number of header parameters that can be handled during
+ * verification of a \c COSE_Sign1 message. \ref
+ * T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
+ * t_cose_sign1_verify() if the input message has more.
+ *
+ * There can be both \ref T_COSE_PARAMETER_LIST_MAX integer-labeled
+ * parameters and \ref T_COSE_PARAMETER_LIST_MAX string-labeled
+ * parameters.
+ *
+ * This is a hard maximum so the implementation doesn't need
+ * malloc. This constant can be increased if needed. Doing so will
+ * increase stack usage.
+ */
+#define T_COSE_PARAMETER_LIST_MAX 10
+
+/**
+ * The value of an unsigned integer content type indicating no content
+ * type.  See \ref t_cose_parameters.
+ */
+#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 
 
 
-
+// TODO: these maybe should be *HEADER*_PARAMETERS (not KEY PARAMETERS).
 /* These are struct t_cose_header_parameter initializers for the standard
  * header parameters. They set the type and typical protection level.
  *
@@ -261,7 +295,7 @@ struct t_cose_header_param {
  *    params[1] = T_COSE_END_PARAM;
  */
 #define T_COSE_MAKE_ALG_ID_PARAM(x) \
-    (struct t_cose_header_param){COSE_HEADER_PARAM_ALG, \
+    (struct t_cose_parameter){COSE_HEADER_PARAM_ALG, \
                                  true,\
                                  false,\
                                  {0,0},\
@@ -270,178 +304,62 @@ struct t_cose_header_param {
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 #define T_COSE_CT_UINT_PARAM(content_type) \
-    (struct t_cose_header_param){COSE_HEADER_PARAM_CONTENT_TYPE, \
-                                 false,\
-                                 false,\
-                                 {0,0},\
-                                 T_COSE_PARAMETER_TYPE_INT64,\
-                                 .value.i64 = content_type }
+    (struct t_cose_parameter){COSE_HEADER_PARAM_CONTENT_TYPE, \
+                              false,\
+                              false,\
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_INT64,\
+                              .value.i64 = content_type }
 
 #define T_COSE_CT_TSTR_PARAM(content_type) \
-   (struct t_cose_header_param){COSE_HEADER_PARAM_CONTENT_TYPE, \
-                                false,\
-                                false,\
-                                {0,0},\
-                                T_COSE_PARAMETER_TYPE_TEXT_STRING,\
-                                .value.string = content_type }
+   (struct t_cose_parameter){COSE_HEADER_PARAM_CONTENT_TYPE, \
+                             false,\
+                             false,\
+                             {0,0},\
+                             T_COSE_PARAMETER_TYPE_TEXT_STRING,\
+                             .value.string = content_type }
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 #define T_COSE_KID_PARAM(kid) \
-    (struct t_cose_header_param){COSE_HEADER_PARAM_KID, \
-                                 false, \
-                                 false, \
-                                 {0,0},\
-                                 T_COSE_PARAMETER_TYPE_BYTE_STRING, \
-                                 .value.string = kid }
+    (struct t_cose_parameter){COSE_HEADER_PARAM_KID, \
+                              false, \
+                              false, \
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                              .value.string = kid }
 
 #define T_COSE_IV_PARAM(iv) \
-    (struct t_cose_header_param){COSE_HEADER_PARAM_IV, \
-                                 false, \
-                                 false, \
-                                 {0,0},\
-                                 T_COSE_PARAMETER_TYPE_BYTE_STRING, \
-                                 .value.string = iv }
+    (struct t_cose_parameter){COSE_HEADER_PARAM_IV, \
+                              false, \
+                              false, \
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                              .value.string = iv }
 
 #define T_COSE_PARTIAL_IV_PARAM(partial_iv) \
-    (struct t_cose_header_param){COSE_HEADER_PARAM_PARTIAL_IV, \
-                                 false, \
-                                 false, \
-                                 {0,0},\
-                                 T_COSE_PARAMETER_TYPE_BYTE_STRING, \
-                                 .value.string = partial_iv }
+    (struct t_cose_parameter){COSE_HEADER_PARAM_PARTIAL_IV, \
+                              false, \
+                              false, \
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                              .value.string = partial_iv }
 
 #define T_COSE_END_PARAM  \
-    (struct t_cose_header_param){0,\
-                                 false, \
-                                 false, \
-                                 {0,0},\
-                                 T_COSE_PARAMETER_TYPE_NONE, \
-                                 .value.string = NULL_Q_USEFUL_BUF_C }
-
-
-// TODO: finish documentation for functions below
-/* Find a parameter by label in array of parameters returned by verify */
-const struct t_cose_header_param *
-t_cose_find_parameter(const struct t_cose_header_param *p, int64_t label);
-
-
-/*
- * TODO: finish documentation
- * This returns T_COSE_ALGORITHM_NONE for all errors decoding
- * the algorithm ID including it not being present and not being
- * a protected parameter.
- */
-int32_t
-t_cose_find_parameter_alg_id(const struct t_cose_header_param *p);
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-
-/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
-* not being present and not being the right type.
-*/
-struct q_useful_buf_c
-t_cose_find_parameter_content_type_tstr(const struct t_cose_header_param *p);
-
-/*
- * This returns T_COSE_EMPTY_UINT_CONTENT_TYPE for all errors include it
- * not being present and it being larger than UINT16_MAX (the largest allowed
- * value for a CoAP content type).
- */
-uint32_t
-t_cose_find_parameter_content_type_int(const struct t_cose_header_param *p);
-
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
-
-
-/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
- * not being present and not being the right type.
- */
-struct q_useful_buf_c
-t_cose_find_parameter_kid(const struct t_cose_header_param *p);
-
-
-/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
-* not being present and not being the right type.
-*/
-struct q_useful_buf_c
-t_cose_find_parameter_iv(const struct t_cose_header_param *p);
-
-
-/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
-* not being present and not being the right type.
-*/
-struct q_useful_buf_c
-t_cose_find_parameter_partial_iv(const struct t_cose_header_param *p);
-
-
-/*
- *
- * This is called back from t_cose_decode_headers() when
- * a parameter that is not an integer or string is
- * encountered. The call back must consume all the CBOR
- * that makes up the particular parameter and no more.
- *
- * The label, prot, crit and type are set based on peeking
- * at the first data item in the header. The value is
- * not set.
- *
- * On exit, this function must set the type and the value.
- *
- * Typically this function will switch on the label to
- * know what to decode.
- */
-typedef enum t_cose_err_t
-t_cose_header_reader(void                   *callback_context,
-                     QCBORDecodeContext     *qcbor_decoder,
-                     struct t_cose_header_param *p); // [in,out] parameter
+    (struct t_cose_parameter){0,\
+                              false, \
+                              false, \
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_NONE, \
+                              .value.string = NULL_Q_USEFUL_BUF_C }
 
 
 /* A structure to hold an array of struct t_cose_header_param
  * of a given length, typically an empty structure that is
  * not yet terminated by T_COSE_PARAMETER_TYPE_NONE. */
-struct header_param_storage {
+struct t_cose_parameter_storage {
     size_t                      storage_size;
-    struct t_cose_header_param *storage;
+    struct t_cose_parameter *storage;
 };
-
-
-/*
- * \brief Decode both protected and unprotected Headers.
- *
- * Use this to decode "Headers" that occurs
- * through out COSE. The QCBOR decoder should be positioned
- * so the protected header bucket is the next item to
- * be decoded. This then consumes the CBOR for the two headers
- * leaving the decoder position for what ever comes after.
- *
- * The decoded headers are placed in an array of
- * struct t_cose_header_param which is in the
- * function parameter named params. Params
- * is functions as [in,out]. The decoded
- * COSE header params are in params.storage
- * terminated by TYPE_NONE.
- *
- * The number of parameters list in the crit
- * parameter is limited to XX for each bucket
- * of headers. T_COSE_ERR_TOO_MANY_PARAMETERS is returned
- * if this is exceeded and the decode of all the
- * header ends.  Note that this only the limit
- * for one header bucket, not the aggregation of
- * all the headers buckets. For example it limits
- * the crit list in for one COSE_Signer, not the
- * the total of all COSE_Signers. This is a hard
- * limt that can only be increased by changing
- * the size and re building the t_cose library.
- *
- */
-enum t_cose_err_t
-t_cose_headers_decode(QCBORDecodeContext         *decode_context,
-                      struct header_location      location,
-                      t_cose_header_reader       *cb,
-                      void                       *cb_context,
-                      const struct header_param_storage params,
-                      struct q_useful_buf_c      *protected_parameters);
-
 
 
 
@@ -486,9 +404,105 @@ t_cose_headers_decode(QCBORDecodeContext         *decode_context,
  * mechanism is in used (e.g., hashing or AEAD encryption).
  */
 enum t_cose_err_t
-t_cose_encode_headers(QCBOREncodeContext                *encode_context,
-                      const struct t_cose_header_param * const *parameters,
-                      struct q_useful_buf_c             *protected_parameters);
+t_cose_encode_headers(QCBOREncodeContext                    *encode_context,
+                      const struct t_cose_parameter * const *parameters,
+                      struct q_useful_buf_c                 *protected_parameters);
+
+
+
+/*
+ * \brief Decode both protected and unprotected Headers.
+ *
+ * Use this to decode "Headers" that occurs
+ * through out COSE. The QCBOR decoder should be positioned
+ * so the protected header bucket is the next item to
+ * be decoded. This then consumes the CBOR for the two headers
+ * leaving the decoder position for what ever comes after.
+ *
+ * The decoded headers are placed in an array of
+ * struct t_cose_header_param which is in the
+ * function parameter named params. Params
+ * is functions as [in,out]. The decoded
+ * COSE header params are in params.storage
+ * terminated by TYPE_NONE.
+ *
+ * The number of parameters list in the crit
+ * parameter is limited to XX for each bucket
+ * of headers. T_COSE_ERR_TOO_MANY_PARAMETERS is returned
+ * if this is exceeded and the decode of all the
+ * header ends.  Note that this only the limit
+ * for one header bucket, not the aggregation of
+ * all the headers buckets. For example it limits
+ * the crit list in for one COSE_Signer, not the
+ * the total of all COSE_Signers. This is a hard
+ * limt that can only be increased by changing
+ * the size and re building the t_cose library.
+ *
+ */
+enum t_cose_err_t
+t_cose_headers_decode(QCBORDecodeContext                   *decode_context,
+                      struct header_location                location,
+                      t_cose_parameter_decode_callback     *cb,
+                      void                                 *cb_context,
+                      const struct t_cose_parameter_storage params,
+                      struct q_useful_buf_c                *protected_parameters);
+
+
+
+// TODO: finish documentation for functions below
+/* Find a parameter by label in array of parameters returned by verify */
+const struct t_cose_parameter *
+t_cose_find_parameter(const struct t_cose_parameter *p, int64_t label);
+
+
+/*
+ * TODO: finish documentation
+ * This returns T_COSE_ALGORITHM_NONE for all errors decoding
+ * the algorithm ID including it not being present and not being
+ * a protected parameter.
+ */
+int32_t
+t_cose_find_parameter_alg_id(const struct t_cose_parameter *p);
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+
+/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
+* not being present and not being the right type.
+*/
+struct q_useful_buf_c
+t_cose_find_parameter_content_type_tstr(const struct t_cose_parameter *p);
+
+/*
+ * This returns T_COSE_EMPTY_UINT_CONTENT_TYPE for all errors include it
+ * not being present and it being larger than UINT16_MAX (the largest allowed
+ * value for a CoAP content type).
+ */
+uint32_t
+t_cose_find_parameter_content_type_int(const struct t_cose_parameter *p);
+
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
+
+/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
+ * not being present and not being the right type.
+ */
+struct q_useful_buf_c
+t_cose_find_parameter_kid(const struct t_cose_parameter *p);
+
+
+/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
+* not being present and not being the right type.
+*/
+struct q_useful_buf_c
+t_cose_find_parameter_iv(const struct t_cose_parameter *p);
+
+
+/* This returns NULL_Q_USEFUL_BUF_C for all errors including it
+* not being present and not being the right type.
+*/
+struct q_useful_buf_c
+t_cose_find_parameter_partial_iv(const struct t_cose_parameter *p);
+
 
 
 
@@ -623,27 +637,6 @@ On verifying...
 
  */
 
-/**
- * The maximum number of header parameters that can be handled during
- * verification of a \c COSE_Sign1 message. \ref
- * T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
- * t_cose_sign1_verify() if the input message has more.
- *
- * There can be both \ref T_COSE_PARAMETER_LIST_MAX integer-labeled
- * parameters and \ref T_COSE_PARAMETER_LIST_MAX string-labeled
- * parameters.
- *
- * This is a hard maximum so the implementation doesn't need
- * malloc. This constant can be increased if needed. Doing so will
- * increase stack usage.
- */
-#define T_COSE_PARAMETER_LIST_MAX 10
-
-/**
- * The value of an unsigned integer content type indicating no content
- * type.  See \ref t_cose_parameters.
- */
-#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 
 
 

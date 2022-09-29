@@ -35,7 +35,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
                          QCBOREncodeContext          *cbor_encode_ctx)
 {
     enum t_cose_err_t                 return_value;
-    const struct t_cose_header_param *params_vector[3];
+    const struct t_cose_parameter *params_vector[3];
     int                               vector_index;
     struct t_cose_signature_sign     *signer;
 

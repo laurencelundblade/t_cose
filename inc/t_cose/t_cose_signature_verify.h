@@ -54,7 +54,7 @@ typedef enum t_cose_err_t
                                    const struct q_useful_buf_c       protected_body_headers,
                                    const struct q_useful_buf_c       payload,
                                    const struct q_useful_buf_c       aad,
-                                   const struct header_param_storage params,
+                                   const struct t_cose_parameter_storage params,
                                    QCBORDecodeContext               *qcbor_decoder);
 
 
@@ -80,7 +80,7 @@ typedef enum t_cose_err_t
                                     const struct q_useful_buf_c       protected_signature_headers,
                                     const struct q_useful_buf_c       payload,
                                     const struct q_useful_buf_c       aad,
-                                    const struct t_cose_header_param *body_parameters,
+                                    const struct t_cose_parameter *body_parameters,
                                     const struct q_useful_buf_c       signature);
 
 

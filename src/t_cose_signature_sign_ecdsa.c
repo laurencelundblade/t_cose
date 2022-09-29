@@ -15,7 +15,7 @@
 
 static void
 t_cose_ecdsa_headers(struct t_cose_signature_sign  *me_x,
-                     const struct t_cose_header_param **params)
+                     const struct t_cose_parameter **params)
 {
     struct t_cose_signature_sign_ecdsa *me = (struct t_cose_signature_sign_ecdsa *)me_x;
 
@@ -48,7 +48,7 @@ t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
     Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_signature, T_COSE_MAX_SIG_SIZE);
     struct q_useful_buf_c              tbs_hash;
     struct q_useful_buf_c              signature;
-    const struct t_cose_header_param  *params_vector[3];
+    const struct t_cose_parameter  *params_vector[3];
     struct q_useful_buf_c              signer_protected_headers;
 
 

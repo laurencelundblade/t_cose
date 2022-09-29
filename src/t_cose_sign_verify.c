@@ -125,7 +125,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                            struct q_useful_buf_c           cose_sign1,
                            struct q_useful_buf_c           aad,
                            struct q_useful_buf_c          *payload,
-                           struct t_cose_header_param    **returned_parameters,
+                           struct t_cose_parameter    **returned_parameters,
                            bool                            is_detached)
 {
     /* TODO: this is wrong ... Aproximate stack usage

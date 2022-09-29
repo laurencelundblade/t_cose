@@ -112,7 +112,7 @@ t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
  * point of not returning an error here is to save object code) */
 typedef void
 (t_cose_signature_sign_h_callback)(struct t_cose_signature_sign       *me,
-                                   const struct t_cose_header_param  **header_params);
+                                   const struct t_cose_parameter  **header_params);
 
 
 /* The definition (not declaration) of the context that every

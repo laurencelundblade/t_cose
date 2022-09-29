@@ -357,7 +357,7 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 
 // Private function used by inlined functions below.
 enum t_cose_err_t
-t_cose_translate_params_private(const struct t_cose_header_param *decoded_params,
+t_cose_translate_params_private(const struct t_cose_parameter *decoded_params,
                                 struct t_cose_parameters   *returned_parameters);
 
 
@@ -369,7 +369,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct t_cose_parameters       *parameters)
 {
     enum t_cose_err_t           return_value;
-    struct t_cose_header_param *decoded_params;
+    struct t_cose_parameter *decoded_params;
 
     return_value = t_cose_sign_verify(&(me->me2),
                                       cose_sign1,
@@ -399,7 +399,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                         struct t_cose_parameters       *parameters)
 {
      enum t_cose_err_t           return_value;
-     struct t_cose_header_param *decoded_params;
+     struct t_cose_parameter *decoded_params;
 
      return_value = t_cose_sign_verify(&(me->me2),
                                        cose_sign1,
@@ -422,7 +422,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                              struct t_cose_parameters       *parameters)
 {
     enum t_cose_err_t           return_value;
-    struct t_cose_header_param *decoded_params;
+    struct t_cose_parameter *decoded_params;
 
     return_value = t_cose_sign_verify_detached(&(me->me2),
                                                cose_sign1,

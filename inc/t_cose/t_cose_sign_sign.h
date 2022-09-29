@@ -76,7 +76,7 @@ struct t_cose_sign_sign_ctx {
     struct q_useful_buf_c protected_parameters; /* Encoded protected params */
     uint32_t              option_flags;
     struct t_cose_signature_sign      *signers;
-    const struct t_cose_header_param  *added_body_parameters;
+    const struct t_cose_parameter  *added_body_parameters;
 };
 
 
@@ -191,7 +191,7 @@ t_cose_sign_add_signer(struct t_cose_sign_sign_ctx   *context,
  */
 static void
 t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx      *context,
-                                   const struct t_cose_header_param *parameters);
+                                   const struct t_cose_parameter *parameters);
 
 
 /*
@@ -433,7 +433,7 @@ t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *me,
 
 static inline void
 t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx *me,
-                                       const struct t_cose_header_param *parameters)
+                                       const struct t_cose_parameter *parameters)
 {
     me->added_body_parameters = parameters;
 }

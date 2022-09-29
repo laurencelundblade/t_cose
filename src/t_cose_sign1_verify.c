@@ -78,11 +78,11 @@ static inline void clear_cose_parameters(struct t_cose_parameters *parameters)
 
 
 enum t_cose_err_t
-t_cose_translate_params_private(const struct t_cose_header_param *decoded_params,
+t_cose_translate_params_private(const struct t_cose_parameter *decoded_params,
                                 struct t_cose_parameters   *returned_parameters)
 {
     enum t_cose_err_t                 return_value = T_COSE_SUCCESS;
-    const struct t_cose_header_param *p;
+    const struct t_cose_parameter *p;
 
     clear_cose_parameters(returned_parameters);
 
@@ -101,7 +101,7 @@ t_cose_translate_params_private(const struct t_cose_header_param *decoded_params
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
-            if(!p->prot) {
+            if(!p->protected) {
                 return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
                 goto Done;
             }

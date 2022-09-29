@@ -72,10 +72,10 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
 {
     size_t                            tag_len;
     enum t_cose_err_t                 return_value;
-    const struct t_cose_header_param *params_vector[3];
-    struct t_cose_header_param        protected_params_arr[2];
+    const struct t_cose_parameter *params_vector[3];
+    struct t_cose_parameter        protected_params_arr[2];
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
-    struct t_cose_header_param        unprotected_params_arr[3];
+    struct t_cose_parameter        unprotected_params_arr[3];
 #else
     struct t_cose_header_param        unprotected_params_arr[2];
 #endif

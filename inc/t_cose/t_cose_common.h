@@ -540,7 +540,7 @@ enum t_cose_err_t {
     T_COSE_ERR_INVALID_PARAMETER_TYPE = 39,
 
     /** Can't put critical parameters in the non-protected
-     * header bucket. */
+     * header bucket per section 3.1 of RFC 9052. */
     T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
 
     T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
