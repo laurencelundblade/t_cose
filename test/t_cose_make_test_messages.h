@@ -49,7 +49,7 @@ extern "C" {
  *  such are skipped correctly */
 #define T_COSE_TEST_EXTRA_PARAMETER 0x20000000
 
-/** The protected parameters bucked is left out of the COSE_Sign1
+/** The protected parameters bucket is left out of the COSE_Sign1
  *  message entirely */
 #define T_COSE_TEST_NO_PROTECTED_PARAMETERS 0x10000000
 

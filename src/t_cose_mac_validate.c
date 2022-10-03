@@ -151,7 +151,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
         goto Done;
     }
 
-    const struct header_location l = {0,0};
+    const struct t_cose_header_location l = {0,0};
     /* --- The protected parameters --- */
     t_cose_headers_decode(&decode_context,
                           l,

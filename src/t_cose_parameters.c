@@ -291,7 +291,7 @@ encode_crit_parameter(QCBOREncodeContext                      *encode_context,
 
 static enum t_cose_err_t
 decode_parameters_bucket(QCBORDecodeContext               *decode_context,
-                         struct header_location            location,
+                         struct t_cose_header_location            location,
                          bool                              is_protected,
                          t_cose_parameter_decode_callback *cb,
                          void                             *cb_context,
@@ -421,7 +421,7 @@ Done:
 enum t_cose_err_t
 t_cose_ignore_param_cb(void *cb,
                        QCBORDecodeContext *decode_context,
-                       struct header_location location,
+                       struct t_cose_header_location location,
                        bool is_protected,
                        bool is_crit)
 {
@@ -505,7 +505,7 @@ dup_detect_vector(const struct t_cose_parameter * const *params_vector)
  */
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                *decode_context,
-                      struct header_location             location,
+                      struct t_cose_header_location             location,
                       t_cose_parameter_decode_callback  *cb,
                       void                              *cb_context,
                       const struct t_cose_parameter_storage  param_storage,
@@ -540,6 +540,10 @@ t_cose_headers_decode(QCBORDecodeContext                *decode_context,
                                             cb,
                                             cb_context,
                                             param_storage);
+
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     /* This check covers all the CBOR decode errors. */
     qcbor_error = QCBORDecode_GetError(decode_context);

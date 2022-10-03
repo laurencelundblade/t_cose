@@ -147,7 +147,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     struct q_useful_buf_c           signature;
     QCBORError                      qcbor_error;
     struct t_cose_signature_verify *verifier;
-    struct header_location          header_location;
+    struct t_cose_header_location          header_location;
     QCBORItem                       null_payload;
 
 
@@ -168,7 +168,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
     /* --- The protected parameters --- */
     /* The location of body header parameters is 0,0 */
-    header_location = (struct header_location){0,  /* nesting */
+    header_location = (struct t_cose_header_location){0,  /* nesting */
                                                0}; /* index */
 
     return_value = t_cose_headers_decode(&decode_context,
@@ -228,7 +228,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     } else {
         QCBORDecode_EnterArray(&decode_context, NULL);
         verifier = me->verifiers;
-        header_location = (struct header_location){1, /* nesting at level 1 */
+        header_location = (struct t_cose_header_location){1, /* nesting at level 1 */
                                                    0}; /* index that gets incremented with each signature */
         bool decode_only = me->option_flags & T_COSE_OPT_DECODE_ONLY;
         while(1) { /* loop over COSE_Signatures */

@@ -112,7 +112,6 @@ struct param_test {
     enum t_cose_err_t           decode_result;
     int32_t                     (*check_cb)(struct t_cose_parameter *param);
     QCBORError                  qcbor_encode_result;
-
 };
 
 
@@ -124,11 +123,28 @@ static const uint8_t b1[] = {0x01, 0x02, 0x03};
 
 static const uint8_t x3[] = {0x47, 0xA1, 0x0B, 0x3A, 0x7F, 0xFF, 0xFF, 0xFF, 0xA0};
 
+#ifdef TODO_CRIT_PARAM_FIXED
+static const uint8_t x4[] = {0x4A, 0xA2, 0x18, 0x4D, 0x19, 0x03, 0x09, 0x02, 0x81, 0x18, 0x4D, 0xA0};
+#endif
+
+static const uint8_t x5[] = {0x41, 0xA0, 0xA0};
+
+static const uint8_t x6[] = {0x41, 0x80, 0xA0};
+
+static const uint8_t x7[] = {0x40, 0xA1, 0x01, 0x1c};
+
+static const uint8_t x8[] = {0x40, 0xA1, 0xff};
+
+static const uint8_t x9[] = {0xA1, 0x01, 0x01};
+
+
 #define UBX(x) {x, sizeof(x)}
+
+#define NO_ENCODE_TEST 253 /* A special parameter type to not encode */
 
 
 static const struct param_test param_tests[] = {
-    /* 0. Critical, protected floating point parameter made by call back. */
+    /* 0. Critical, protected floating point parameter made by callback. */
     {
         UBX(x1),
         {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer} },
@@ -158,7 +174,6 @@ static const struct param_test param_tests[] = {
         NULL,
         QCBOR_SUCCESS
     },
-
 
     /* 3. A protected negative integer parameter. */
     {
@@ -200,6 +215,70 @@ static const struct param_test param_tests[] = {
         QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN /* Expected CBOR encode result */
     },
 
+    /* 7. Empty parameters. */
+    {
+        UBX(x5), /* CBOR encoded header params */
+        {0, false, false, {0,0}, T_COSE_PARAMETER_TYPE_NONE},
+        T_COSE_SUCCESS, /* Expected encode result */
+        T_COSE_SUCCESS, /* Expected decode result */
+        NULL, /* Call back for decode check */
+        QCBOR_SUCCESS /* Expected CBOR encode result */
+    },
+
+    /* 8. Incorrectly formatted parameters (decode only test) */
+    {
+        UBX(x6), /* CBOR encoded header params */
+        {0, false, false, {0,0}, NO_ENCODE_TEST},
+        T_COSE_SUCCESS, /* Expected encode result */
+        T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
+        NULL, /* Call back for decode check */
+        QCBOR_SUCCESS /* Expected CBOR encode result */
+    },
+
+    /* 9. Not-well formed parameters (decode only test) */
+    {
+        UBX(x7), /* CBOR encoded header params */
+        {0, false, false, {0,0}, NO_ENCODE_TEST},
+        T_COSE_SUCCESS, /* Expected encode result */
+        T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
+        NULL, /* Call back for decode check */
+        QCBOR_SUCCESS /* Expected CBOR encode result */
+    },
+
+    /* 10. Not-well formed parameters (decode only test) */
+    {
+        UBX(x8), /* CBOR encoded header params */
+        {0, false, false, {0,0}, NO_ENCODE_TEST},
+        T_COSE_SUCCESS, /* Expected encode result */
+        T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
+        NULL, /* Call back for decode check */
+        QCBOR_SUCCESS /* Expected CBOR encode result */
+    },
+
+    /* 11. No protected headers at all (decode only test) */
+    {
+        UBX(x9), /* CBOR encoded header params */
+        {0, false, false, {0,0}, NO_ENCODE_TEST},
+        T_COSE_SUCCESS, /* Expected encode result */
+        T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
+        NULL, /* Call back for decode check */
+        QCBOR_SUCCESS /* Expected CBOR encode result */
+    },
+
+#ifdef TODO_CRIT_PARAM_FIXED
+
+    /* X. Critical parameter with no callback to handle it. */
+    {
+        UBX(x4), /* CBOR encoded header params */
+        NULL,
+        T_COSE_SUCCESS, /* Expected encode result */
+        0, /* Expected decode result */
+        NULL, /* Call back for decode check */
+        QCBOR_SUCCESS /* Expected CBOR encode result */
+    },
+#endif
+
+
     /* */
     {
         NULL_Q_USEFUL_BUF_C
@@ -232,11 +311,6 @@ static  struct param_test_combo xx[] = {
 
 
 
-
-
-
-
-
 int_fast32_t
 param_test(void)
 {
@@ -246,7 +320,7 @@ param_test(void)
     enum t_cose_err_t      t_cose_result;
     QCBORError q;
     QCBOREncodeContext         qcbor_encoder;
-    MakeUsefulBufOnStack(      B,    200);
+    Q_USEFUL_BUF_MAKE_STACK_UB(   B,    200);
 
     const struct param_test *p_test;
 
@@ -257,33 +331,35 @@ param_test(void)
             break;
         }
 
-        if(i == 6) {
+        if(i == 11) {
             t_cose_result = 0; // Exists just for a break point for a test number
         }
 
         /* Encode test */
-        p[0] = p_test->unencoded;
-        p[1].value_type = T_COSE_PARAMETER_TYPE_NONE;
-        vector[0] = p;
-        vector[1] = NULL;
-        QCBOREncode_Init(&qcbor_encoder, B);
-        t_cose_result = t_cose_encode_headers(&qcbor_encoder,
-                                              vector,
-                                              NULL);
+        if(p_test->unencoded.value_type != NO_ENCODE_TEST) {
+            p[0] = p_test->unencoded;
+            p[1].value_type = T_COSE_PARAMETER_TYPE_NONE;
+            vector[0] = p;
+            vector[1] = NULL;
+            QCBOREncode_Init(&qcbor_encoder, B);
+            t_cose_result = t_cose_encode_headers(&qcbor_encoder,
+                                                  vector,
+                                                  NULL);
 
-        if(t_cose_result != p_test->encode_result) {
-            return i * 1000 + 1;
-        }
-
-        if(t_cose_result == T_COSE_SUCCESS) {
-            q = QCBOREncode_Finish(&qcbor_encoder, &output);
-            if(q != p_test->qcbor_encode_result) {
-                return i * 1000 + 6;
+            if(t_cose_result != p_test->encode_result) {
+                return i * 1000 + 1;
             }
 
-            if(q == QCBOR_SUCCESS) {
-                if(q_useful_buf_compare(output, p_test->encoded)) {
-                    return i * 1000 + 2;
+            if(t_cose_result == T_COSE_SUCCESS) {
+                q = QCBOREncode_Finish(&qcbor_encoder, &output);
+                if(q != p_test->qcbor_encode_result) {
+                    return i * 1000 + 6;
+                }
+
+                if(q == QCBOR_SUCCESS) {
+                    if(q_useful_buf_compare(output, p_test->encoded)) {
+                        return i * 1000 + 2;
+                    }
                 }
             }
         }
@@ -303,7 +379,7 @@ param_test(void)
             struct q_useful_buf_c p_p;
 
             t_cose_result = t_cose_headers_decode(&decode_context,
-                                                  (struct header_location){0,0},
+                                                  (struct t_cose_header_location){0,0},
                                                   header_reader, NULL,
                                                   ll,
                                                  &p_p);
@@ -312,31 +388,33 @@ param_test(void)
                 return i * 1000 + 3;
             }
 
-            struct t_cose_parameter decoded = ll.storage[0];
+            if(t_cose_result == T_COSE_SUCCESS) {
+                struct t_cose_parameter decoded = ll.storage[0];
 
-            if(p_test->check_cb) {
-                int32_t r;
-                r = p_test->check_cb(&decoded);
-                if(r) {
-                    return i * 1000 + 10 + r;
-                }
-            } else {
-                if(decoded.value_type != p_test->unencoded.value_type) {
-                    return i * 1000;
-                }
-                switch(decoded.value_type) {
-                    case T_COSE_PARAMETER_TYPE_INT64:
-                        if(decoded.value.i64 != p_test->unencoded.value.i64) {
-                            return i * 1000;
-                        }
-                        break;
+                if(p_test->check_cb) {
+                    int32_t r;
+                    r = p_test->check_cb(&decoded);
+                    if(r) {
+                        return i * 1000 + 10 + r;
+                    }
+                } else {
+                    if(decoded.value_type != p_test->unencoded.value_type) {
+                        return i * 1000;
+                    }
+                    switch(decoded.value_type) {
+                        case T_COSE_PARAMETER_TYPE_INT64:
+                            if(decoded.value.i64 != p_test->unencoded.value.i64) {
+                                return i * 1000;
+                            }
+                            break;
 
-                    case T_COSE_PARAMETER_TYPE_TEXT_STRING:
-                    case T_COSE_PARAMETER_TYPE_BYTE_STRING:
-                        if(q_useful_buf_compare(decoded.value.string, p_test->unencoded.value.string)) {
-                            return i * 1000;
-                        }
-                        break;
+                        case T_COSE_PARAMETER_TYPE_TEXT_STRING:
+                        case T_COSE_PARAMETER_TYPE_BYTE_STRING:
+                            if(q_useful_buf_compare(decoded.value.string, p_test->unencoded.value.string)) {
+                                return i * 1000;
+                            }
+                            break;
+                    }
                 }
             }
         }

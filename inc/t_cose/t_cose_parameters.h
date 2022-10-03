@@ -20,47 +20,29 @@
 
 // TODO: this file probably needs some re ordering and re organizing
 
-/*
- * TODO: move this documentation to the right functions
- * Header parameter encoding and decoding hinges around struct
- * t_cose_header_param plus primary functions for encoding and decoding
- * the header. Users of the t_cose public API for verifying signing,
- * encrypting, decrypting and MACing will mainly use struct
- * t_cose_header_param.
+/**
+ * @file t_cose_parameters.h
  *
- * Struct t_cose_header_param holds a single header parameter that is
+ * @brief Parameter encoding and decoding.
+ *
+ * TODO: move this documentation to the right functions
+ *
+ * Parameter encoding and decoding hinges around
+ * \ref t_cose_parameter and functions for encoding and decoding
+ * arrays of it. Users of the t_cose public APIs for verifying signing,
+ * encrypting, decrypting and MACing will mainly use struct
+ * t_cose_parameter, not the encoding and decoding functions.
+ *
+ * Struct \ref t_cose_parameter holds a single header parameter that is
  * to be encoded or has been decoded. The same structure is used for
- * both. Most parameters are either integers or strings and
- * are held directly in struct t_cose_header_param. A callback is used
+ * both. Most parameter values are either integers or strings and
+ * are held directly in struct t_cose_parameter. A callback is used
  * for more complex parameters.
  *
- * The struct t_cose_header_param also holds:
- *   * Whether the parameter is protected or not
- *   * Whether the parameter is critical
- *   * The label for the parameter
- *   * The data type of the parameter
- *   * The location of the parameter in the COSE message
+ * Only integer parameter labels are supported (so far).
  *
- * Only integer parameter labels are supported.
- *
- * When encoding a COSE message and only the kid and algorithm id are
- * needed, there is no need to use the header parameter structure as
- * those are handled internally. If further parameters are needed when
- * encoding further the caller creates an TODO: vector array of struct
- * t_cose_header_param passes it in with xxxx_add_parameters(). This
- * array is terminated by a header parameter structure with type
- * T_COSE_PARAMETER_TYPE_NONE. This array can contain only one, or a large number of
- * parameters, can contain protected or unprotected headers, critical
- * or not-critical headers and headers of any data type.
- *
- * If the data type to encode is complex, for example the parameter
- * itself is a map, then an encoding callback must be implemented that
- * will output the parameter to a QCBOR encode context.  The pointer to
- * this function goes in the struct t_cose_header_param. It will be
- * called back during the encoding of the COSE message.
- *
- * If any header parameters for encoding are marked critical, the crit
- * header parameter will be automatically added to the COSE message.
+ * For many encoding use cases the needed header parameters will be automatically
+ * generated and there is no need for use of anything in this file.
  *
  * When decoding a COSE message (verification or decryption) the full
  * set of header parameters decoded are returned as a pointer to an
@@ -131,62 +113,63 @@
  * the output is an array of struct t_cose_header_param. Both of these
  * functions handle both the protected and unprotected headers all in
  * one call (since they always occur together in COSE).
- *
- * Is it "header parameter" or "parameter"? From looking at RFC
- * 9052 it seems there are two kinds of parameters, "header parameters"
- * and "key parameters". Header parameters occur in the Headers
- * section of COSE_Sign, COSE_Encrypt and such. Key parameters
- * occur in COSE_Keys. When the context is known, they might
- * just be refered to as "parameter".
-
  */
 
 
 
 /* Forward declaration. See actual definition below. */
-// TODO: rename to header_parameter ? Yes, but maybe wait until encrypt is merged
 struct t_cose_parameter;
 
 
 
-/*
- * Callback to output the encoded CBOR of a header parameter
+/**
+ * \brief Type of callback to output the encoded CBOR of a parameter.
  *
- * This callback pointer is placed in struct t_cose_header_param. It is called
+ * \param[in] parameter   A single parameter to encode
+ * \param[in] qcbor_encoder   The encoder instance to output to
+ *
+ * A callback pointer of this type is placed in struct t_cose_parameter. It is called
  * back when t_cose_encode_headers() gets to encoding
  * the particular parameter. It is typically used for
  * encoding parameters that are not integers or strings,
  * but can be used for them too. For most
  * use cases, this is not needed.
  *
- * When called it should output the QCBOR for the headers
+ * When called it should output the CBOR for the headers
  * parameter to the encoder context including the
  * header label.
  *
- * If it returns an error encoding of the COSE message
+ * If it returns an error, encoding of the COSE message
  * will stop and error out with the error it returned.
- * For CBOR
+ *
+ * If desired there can be several implementations of this for
+ * several different parameters.
  */
 typedef enum t_cose_err_t
 t_cose_parameter_encode_callback(const struct t_cose_parameter  *parameter,
                                  QCBOREncodeContext             *qcbor_encoder);
 
 
-/*
+/**
+ * \brief Type of callback to decode the QCBOR of a parameter.
+ *
+ * \param[in] callback_context  Context for callback
+ * \param[in] qcbor_decoder  QCBOR decoder to pull from.
+ * \param[in,out] parameter  On input, label and other. On output the decoded value.
  *
  * This is called back from t_cose_decode_headers() when
  * a parameter that is not an integer or string is
- * encountered. The call back must consume all the CBOR
+ * encountered. The callback must consume all the CBOR
  * that makes up the particular parameter and no more.
  *
- * The label, prot, crit and type are set based on peeking
+ * On input, the label, protected, critical and value_type are set based on peeking
  * at the first data item in the header. The value is
  * not set.
  *
- * On exit, this function must set the type and the value.
+ * On exit, this function must set the value_type and the value.
  *
- * Typically this function will switch on the label to
- * know what to decode.
+ * Unlike t_cose_parameter_encode_callback()
+ * there is just one implementation of this that switches on the label.
  */
 typedef enum t_cose_err_t
 t_cose_parameter_decode_callback(void                    *callback_context,
@@ -195,7 +178,7 @@ t_cose_parameter_decode_callback(void                    *callback_context,
 
 
 /* Where in a COSE message a header was found. */
-struct header_location {
+struct t_cose_header_location {
     /* 0 means the body, 1 means the first level of signer/recipient, 2,
      * the second level.*/
     uint8_t  nesting;
@@ -206,28 +189,33 @@ struct header_location {
 
 
 
-/*
+
+/**
  * This holds one parameter such as an algorithm ID
  * or kid. When that one parameter is not an
  * integer or string, this holds a callback to
  * output it. It typically takes up 32 bytes.
+ *
+ * This is used both for to-be-encoded parameters
+ * and decoded parameters. It is also used for
+ * header parameters and key parameters.
  */
 struct t_cose_parameter {
-    /* Label indicating which parameter it is. One of COSE_HEADER_PARAM_ALG,
-     * ...
+    /** Label indicating which parameter it is. Typically, one of COSE_HEADER_PARAM_XXXXX,
+     * such as \ref COSE_HEADER_PARAM_ALG
      */
     int64_t label;
 
-    /* Indicates parameter is to be encoded in the protected header
-     * bucket was decoded from the protected header bucket. */
+    /** Indicates parameter is to be encoded in the protected header
+     * bucket or was decoded from the protected header bucket. */
     bool    protected;
-    /* Indicates parameter should be listed in the critical headers
+    /** Indicates parameter should be listed in the critical headers
      * when encoding. Not used while decoding.*/
     bool    critical;
-    /* When decoding the location. Ignored when encoding. */
-    struct header_location location;
+    /** When decoding the location. Ignored when encoding. */
+    struct t_cose_header_location location;
 
-    /* One of T_COSE_PARAMETER_TYPE_INT64, ... This is the selector
+    /** One of \ref T_COSE_PARAMETER_TYPE_INT64, ... This is the selector
      * for the contents of the value union. On encoding, the
      * caller fills this in to say what they want encoded.
      * On decoding it is filled in by the decoder for strings
@@ -236,7 +224,7 @@ struct t_cose_parameter {
      * the decode callback. */
     uint8_t value_type;
 
-    /* The value of the parameter. */
+    /** The value of the parameter. */
     union {
         int64_t               i64;
         struct q_useful_buf_c string;
@@ -285,12 +273,11 @@ struct t_cose_parameter {
 
 
 
-// TODO: these maybe should be *HEADER*_PARAMETERS (not KEY PARAMETERS).
 /* These are struct t_cose_header_parameter initializers for the standard
  * header parameters. They set the type and typical protection level.
  *
  * Example use:
- *    struct t_cose_header_param params[2];
+ *    struct t_cose_parameter params[2];
  *    params[0] = T_COSE_MAKE_ALG_ID_PARAM(T_COSE_ALGORITHM_ES256);
  *    params[1] = T_COSE_END_PARAM;
  */
@@ -364,40 +351,50 @@ struct t_cose_parameter_storage {
 
 
 
-/*
- * \brief Encode both the protected and unprotected Headers
+/**
+ * \brief Encode both the protected and unprotected header buckets.
  *
- * The input to this is a set of struct t_cose_header_param containing both
+ * \param[in] encode_context    Encoder context to which headers are output.
+ * \param[in] parameters        The vector of parameters to output.
+ * \param[out] protected_parameters  Place to put pointer and length of encoded protected headers. May be NULL.
+ *
+ * This encodes COSE "Headers" that are used in COSE_Sign, COSE_Sign1,
+ * COSE_Signature, COSE_Encrypt, COSE_Encrypt0, COSE_Mac, COSE_Mac0 and COSE_Recipient
+ *
+ * The input to this is a set of struct t_cose_parameter containing both
  * protected and unprotected header parameters. They will
  * be encoded and output to the encoder context into
  * first the protected header bucket and then the unprotected
  * header bucket.
  *
  * The input set is in the form of an array of pointers to arrays of
- * xxxxx (i.e. a scatter/gather list). The array of pointers is
- * terminated by a NULL pointer. The arrays of xxxx are terminated
- * by a xxxx of type xxxx_NONE.
+ * struct t_cose_parameter (i.e. a vector or scatter/gather list). The array of pointers is
+ * terminated by a NULL pointer. The arrays of struct t_cose_parameter are terminated
+ * by a value_type of type \ref T_COSE_PARAMETER_TYPE_NONE.
  *
- * Xxxxx.prot indicated whether the parameter should go into
+ * t_cose_parameter.protected indicated whether the parameter should go into
  * the protected or unprotected bucket. The order of the parameters
  * in the input doesn't matter as to whether the protected
  * parameters go first or not.
  *
  * Each parameter has a label, data type and value.
- * Only integer label types are supported. Most
- * header parameters will be either an integer, string or Boolean.
- * Types are provided for these.
+ * Only integer label types are supported (so far). Most
+ * header parameters will be either an integer or string,
+ * (T_COSE_PARAMETER_TYPE_INT64, T_COSE_PARAMETER_TYPE_BYTE_STRING
+ * or T_COSE_PARAMETER_TYPE_TEXT_STRING).
  *
- * The parameter type may also be yyyy in which case the
+ * The parameter type may also be T_COSE_PARAMETER_TYPE_CALLBACK in which case the
  * a callback function and context are supplied that will be
  * called when it is time to encode that parameter. This is
- * typically needed for parameter types tha are not integers,
- * strings or booleans, but can be used for them too.
+ * typically needed for parameter types that are not integers or
+ * strings, but can be used for them too.
  *
  * The crit header parameter will be automatically added
  * if there are any protected parameters that are marked
  * as critical. If there are none, then it will not be
- * added.
+ * added. There is no limit to the number of critical
+ * parameters to encode, but there is a limit of xxxx
+ * for decoding by t_cose_headers_decode().
  *
  * A pointer and length of the protected header byte string
  * is returned so that it can be covered by what ever protection
@@ -410,8 +407,15 @@ t_cose_encode_headers(QCBOREncodeContext                    *encode_context,
 
 
 
-/*
- * \brief Decode both protected and unprotected Headers.
+/**
+ * \brief Decode both protected and unprotected header buckets
+ *
+ * \param[in] decode_context  QCBOR decoder to decode from
+ * \param[in] location                location in message of the parameters
+ * \param[in] callback                Callback for non-integer and non-string parameters
+ * \param[in] callback_context  Context for the above callback
+ * \param[in,out] parameters   On input storage for parameters, on output the decoded parameters
+ * \param[out] protected_parameters  Pointer and length of encoded protected parameters.
  *
  * Use this to decode "Headers" that occurs
  * through out COSE. The QCBOR decoder should be positioned
@@ -420,8 +424,8 @@ t_cose_encode_headers(QCBOREncodeContext                    *encode_context,
  * leaving the decoder position for what ever comes after.
  *
  * The decoded headers are placed in an array of
- * struct t_cose_header_param which is in the
- * function parameter named params. Params
+ * struct t_cose_parameter which is in the
+ * function parameter named \c parameters. Params
  * is functions as [in,out]. The decoded
  * COSE header params are in params.storage
  * terminated by TYPE_NONE.
@@ -438,13 +442,19 @@ t_cose_encode_headers(QCBOREncodeContext                    *encode_context,
  * limt that can only be increased by changing
  * the size and re building the t_cose library.
  *
+ * In order to handle parameters that are not integers or
+ * strings a callback of type \ref t_cose_parameter_decode_callback
+ * must be configured. There is only one of these callbacks
+ * for all the non-integer and string header parameters. It
+ * typically switches on the parameter label.
+ *
  */
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                   *decode_context,
-                      struct header_location                location,
-                      t_cose_parameter_decode_callback     *cb,
-                      void                                 *cb_context,
-                      const struct t_cose_parameter_storage params,
+                      struct t_cose_header_location         location,
+                      t_cose_parameter_decode_callback     *callback,
+                      void                                 *callback_context,
+                      const struct t_cose_parameter_storage parameters,
                       struct q_useful_buf_c                *protected_parameters);
 
 
@@ -505,7 +515,7 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *p);
 
 
 
-
+// TODO: rewrite and test this.
 /* Convenience callback to ignore headers that are not understood.
  *
  * This does NOT ignore critical parameters. (But you
@@ -514,7 +524,7 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *p);
 enum t_cose_err_t
 t_cose_ignore_param_cb(void                  *callback_context,
                        QCBORDecodeContext    *decode_context,
-                       struct header_location location,
+                       struct t_cose_header_location location,
                        bool                   is_protected,
                        bool                   is_crit);
 
