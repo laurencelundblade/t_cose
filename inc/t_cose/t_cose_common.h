@@ -145,6 +145,24 @@ extern "C" {
 
 
 
+/*!
+ * \brief HPKE ciphersuite
+ */
+struct t_cose_crypto_hpke_suite_t {
+    uint16_t    kem_id;  // Key Encryption Method id
+    uint16_t    kdf_id;  // Key Derivation Function id
+    uint16_t    aead_id; // Authenticated Encryption with Associated Data id
+};
+
+#define T_COSE_ALGORITHM_NONE 0
+
+
+enum t_cose_key_usage_flags {
+    T_COSE_KEY_USAGE_FLAG_NONE = 0,
+    T_COSE_KEY_USAGE_FLAG_DECRYPT = 1,
+    T_COSE_KEY_USAGE_FLAG_ENCRYPT = 2
+};
+
 
 /**
  * Indicates the cryptographic library the \ref t_cose_key is intended
@@ -403,6 +421,68 @@ enum t_cose_err_t {
 
     /** The auxiliary buffer is too small */
     T_COSE_ERR_AUXILIARY_BUFFER_SIZE = 39,
+
+    /** The requested key exchange algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG = 42,
+
+    /** The requested encryption algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 43,
+
+    /** The requested key length is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEY_LENGTH = 44,
+
+    /** Adding a recipient to the COSE_Encrypt0 structure is not allowed.  */
+    T_COSE_ERR_RECIPIENT_CANNOT_BE_ADDED = 45,
+
+    /** The requested cipher algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_CIPHER_ALG = 46,
+
+    /** Something went wrong in the crypto adaptor when
+     * encrypting data. */
+    T_COSE_ERR_ENCRYPT_FAIL = 47,
+
+    /** Something went wrong in the crypto adaptor when
+     * decrypting data. */
+    T_COSE_ERR_DECRYPT_FAIL = 48,
+
+    /** Something went wrong in the crypto adaptor when
+     * invoking HPKE to encrypt data. */
+    T_COSE_ERR_HPKE_ENCRYPT_FAIL = 49,
+
+    /** Something went wrong in the crypto adaptor when
+     * invoking HPKE to decrypt data. */
+    T_COSE_ERR_HPKE_DECRYPT_FAIL = 50,
+
+    /** When decoding a CBOR structure, a mandatory field
+     *  was not found. */
+    T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING = 51,
+
+    /** When decoding the ephemeral key structure, the included
+     * public key is of incorrect or unexpected size. */
+    T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT = 52,
+
+    /** Cryptographic operations may require a key usage flags
+     * to be indicated. If the provided flags are unsupported,
+     * this error is returned. */
+    T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS = 53,
+
+    /** The key import failed. */
+    T_COSE_ERR_KEY_IMPORT_FAILED = 54,
+
+    /** Obtaining random bytes failed. */
+    T_COSE_ERR_RNG_FAILED = 55,
+
+    /** Export of the public key failed. */
+    T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED = 56,
+
+    /** Generating asymmetric key pair failed. */
+    T_COSE_ERR_KEY_GENERATION_FAILED = 57,
+
+    /** Export of the key failed. */
+    T_COSE_ERR_KEY_EXPORT_FAILED = 58,
+
+    /** Something went wrong with AES Key Wrap. */
+    T_COSE_ERR_AES_KW_FAILED = 59,
 };
 
 
