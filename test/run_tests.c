@@ -311,6 +311,7 @@ static void PrintSize(const char *szWhat,
 #include "t_cose/t_cose_sign1_verify.h" /* For struct size printing */
 #include "t_cose/t_cose_sign1_sign.h" /* For struct size printing */
 #include "t_cose_crypto.h" /* For struct size printing */
+#include "t_cose/t_cose_parameters.h" /* For struct size printing */
 
 
 /*
@@ -335,5 +336,7 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
     PrintSize("sizeof(struct t_cose_sign1_verify_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_verify_ctx),
               pfOutput, pOutCtx);
-    (*pfOutput)("", pOutCtx, 1);
+    PrintSize("sizeof(struct t_cose_parameter)",
+              (uint32_t)sizeof(struct t_cose_parameter),
+              pfOutput, pOutCtx);    (*pfOutput)("", pOutCtx, 1);
 }

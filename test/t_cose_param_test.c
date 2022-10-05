@@ -12,7 +12,7 @@
 
 #include <limits.h>
 #include "qcbor/qcbor_spiffy_decode.h"
-#include "UsefulBuf.h"
+#include "t_cose/q_useful_buf.h"
 
 #include "t_cose_standard_constants.h" // TODO: change path when this becomes public
 

@@ -204,7 +204,7 @@ encode_protected_parameters(uint32_t            test_message_options,
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         int i;
         /* Add the maxium */
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX; i++) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS; i++) {
             QCBOREncode_AddInt64(&cbor_encode_ctx, i + 10);
         }
         QCBOREncode_CloseArray(&cbor_encode_ctx);
@@ -215,7 +215,7 @@ encode_protected_parameters(uint32_t            test_message_options,
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         int i;
         /* One more than the maximum */
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX+1; i++) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS+1; i++) {
             QCBOREncode_AddInt64(&cbor_encode_ctx, i + 10);
         }
         QCBOREncode_CloseArray(&cbor_encode_ctx);
@@ -226,7 +226,7 @@ encode_protected_parameters(uint32_t            test_message_options,
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         int i;
         /* One more than the maximum */
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX+1; i++) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS+1; i++) {
             QCBOREncode_AddSZString(&cbor_encode_ctx, "");
         }
         QCBOREncode_CloseArray(&cbor_encode_ctx);
@@ -348,7 +348,7 @@ add_unprotected_parameters(uint32_t              test_message_options,
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         int i;
         /* Add the maxium */
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX; i++) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS; i++) {
             QCBOREncode_AddInt64(cbor_encode_ctx, i + 100);
             QCBOREncode_AddSZString(cbor_encode_ctx, "xxxx");
         }
@@ -357,7 +357,7 @@ add_unprotected_parameters(uint32_t              test_message_options,
 
     if(test_message_options & T_COSE_TEST_TOO_MANY_UNKNOWN) {
         int i;
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX + 1; i++ ) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS + 1; i++ ) {
             QCBOREncode_AddBoolToMapN(cbor_encode_ctx, i+10, true);
         }
     }

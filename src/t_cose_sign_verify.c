@@ -256,18 +256,21 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                     } else {
                         break; /* successful decode. Don't need to try another verifier */
                     }
+#ifdef TODO_FIXME_MULTISIG
                 } else if(return_value == 98) {
                     continue; /* Didn't know how to decode, try another verifier */
                 } else if(return_value == 88) {
                     goto done_with_sigs; /* No more COSE_Signatures to be read */
+#endif
                 } else {
                     goto Done2;
                 }
             }
         }
-
+#ifdef TODO_FIXME_MULTISIG
      done_with_sigs:
         QCBORDecode_ExitArray(&decode_context);
+#endif
     }
 
   continue_decode:
