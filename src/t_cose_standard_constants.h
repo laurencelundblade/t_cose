@@ -1,6 +1,8 @@
 /*
  * t_cose_standard_constants.h
  *
+ * TODO: make this public
+ *
  * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
