@@ -33,26 +33,25 @@
 
 /**
  *
- * \brief A list of COSE parameter labels, both integer and string.
+ * \brief A list of critical parameter labels, both integer and string.
  *
  * It is fixed size to avoid the complexity of memory management and
  * because the number of parameters is assumed to be small.
  *
- * On a 64-bit machine it is 24 * PARAMETER_LIST_MAX which is 244
- * bytes. That accommodates 10 string parameters and 10 integer parameters
- * and is small enough to go on the stack.
+ * On a 64-bit machine it is 24 * (T_COSE_MAX_CRITICAL_PARAMS+1) which
+ * is 120 bytes. That accommodates 4 string parameters and 4 integer
+ * parameters and is small enough to go on the stack.
  *
- * On a 32-bit machine: 16 * PARAMETER_LIST_MAX = 176
+ * On a 32-bit machine: 16 * (PARAMETER_LIST_MAX+1) = 80
  *
  * This is a big consumer of stack in this implementation.  Some
- * cleverness with a union could save almost 200 bytes of stack, as
- * this is on the stack twice.
+ * cleverness with a union could save some bytes of stack.
  */
 struct t_cose_label_list {
     /* Terminated by value LABEL_LIST_TERMINATOR */
-    int64_t int_labels[T_COSE_PARAMETER_LIST_MAX+1];
+    int64_t int_labels[T_COSE_MAX_CRITICAL_PARAMS+1];
     /*  Terminated by a NULL_Q_USEFUL_BUF_C */
-    struct q_useful_buf_c tstr_labels[T_COSE_PARAMETER_LIST_MAX+1];
+    struct q_useful_buf_c tstr_labels[T_COSE_MAX_CRITICAL_PARAMS+1];
 };
 
 
@@ -182,13 +181,13 @@ decode_critical_parameter(QCBORDecodeContext       *decode_context,
         }
 
         if(item.uDataType == QCBOR_TYPE_INT64) {
-            if(num_int_labels >= T_COSE_PARAMETER_LIST_MAX) {
+            if(num_int_labels >= T_COSE_MAX_CRITICAL_PARAMS) {
                 return_value = T_COSE_ERR_CRIT_PARAMETER;
                 goto Done;
             }
             critical_labels->int_labels[num_int_labels++] = item.val.int64;
         } else if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
-            if(num_tstr_labels >= T_COSE_PARAMETER_LIST_MAX) {
+            if(num_tstr_labels >= T_COSE_MAX_CRITICAL_PARAMS) {
                 return_value = T_COSE_ERR_CRIT_PARAMETER;
                 goto Done;
             }
@@ -291,12 +290,22 @@ encode_crit_parameter(QCBOREncodeContext                      *encode_context,
 
 static enum t_cose_err_t
 decode_parameters_bucket(QCBORDecodeContext               *decode_context,
-                         struct t_cose_header_location            location,
+                         struct t_cose_header_location     location,
                          bool                              is_protected,
                          t_cose_parameter_decode_callback *cb,
                          void                             *cb_context,
                          const struct t_cose_parameter_storage param_storage)
 {
+    /* Stack usage:
+      Item   56
+      vars   24
+     crit list :120
+     QCBORpeek: 200 (The largest subroutine called)
+
+
+     TOTAL 400
+
+     */
     QCBORError                qcbor_error;
     enum t_cose_err_t         return_value;
     struct t_cose_label_list  critical_parameter_labels;
@@ -415,25 +424,6 @@ Done:
 }
 
 
-/*
- * Public function. See t_cose_parameters.h
- */
-enum t_cose_err_t
-t_cose_ignore_param_cb(void *cb,
-                       QCBORDecodeContext *decode_context,
-                       struct t_cose_header_location location,
-                       bool is_protected,
-                       bool is_crit)
-{
-    (void)cb;
-    (void)decode_context;
-    (void)location;
-    (void)is_protected;
-    /* If the caller wants to ignore critical parameters, they
-     * have to do the work to implement there own function. */
-    return is_crit ? T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER : T_COSE_SUCCESS;
-}
-
 
 
 static bool
@@ -504,13 +494,20 @@ dup_detect_vector(const struct t_cose_parameter * const *params_vector)
  * Public function. See t_cose_parameters.h
  */
 enum t_cose_err_t
-t_cose_headers_decode(QCBORDecodeContext                *decode_context,
-                      struct t_cose_header_location             location,
-                      t_cose_parameter_decode_callback  *cb,
-                      void                              *cb_context,
-                      const struct t_cose_parameter_storage  param_storage,
-                      struct q_useful_buf_c             *protected_parameters)
+t_cose_headers_decode(QCBORDecodeContext                   *decode_context,
+                      struct t_cose_header_location         location,
+                      t_cose_parameter_decode_callback     *cb,
+                      void                                 *cb_context,
+                      const struct t_cose_parameter_storage param_storage,
+                      struct q_useful_buf_c                *protected_parameters)
 {
+    /* stack usage:
+     vars: 16
+     decode_bucket  324
+
+     */
+
+
     QCBORError        qcbor_error;
     enum t_cose_err_t return_value;
 

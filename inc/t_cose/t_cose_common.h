@@ -474,10 +474,9 @@ enum t_cose_err_t {
      /** The buffer passed in to receive the output is too small. */
     T_COSE_ERR_TOO_SMALL = 25,
 
-    /** More parameters (more than \ref T_COSE_PARAMETER_LIST_MAX)
-     * than this implementation can handle. Note that all parameters
-     * need to be checked for criticality so all parameters need to be
-     * examined. */
+    /** More than \ref T_COSE_MAX_CRITICAL_PARAMS parameters
+     * listed in the "crit" parameter.
+     */
     T_COSE_ERR_TOO_MANY_PARAMETERS = 26,
 
     /** A parameter was encountered that was unknown and also listed in

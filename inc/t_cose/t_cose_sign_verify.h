@@ -59,13 +59,13 @@ extern "C" {
  */
 struct t_cose_sign_verify_ctx {
     /* Private data structure */
-    struct t_cose_signature_verify *verifiers;
-    uint32_t                        option_flags;
-    uint64_t                        auTags[T_COSE_MAX_TAGS_TO_RETURN2];
-    struct t_cose_parameter_storage     params;
-    struct t_cose_parameter      __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
-    t_cose_parameter_decode_callback           *reader;
-    void                           *reader_ctx;
+    struct t_cose_signature_verify   *verifiers;
+    uint32_t                          option_flags;
+    uint64_t                          auTags[T_COSE_MAX_TAGS_TO_RETURN2];
+    struct t_cose_parameter_storage   params;
+    struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
+    t_cose_parameter_decode_callback *reader;
+    void                             *reader_ctx;
 };
 
 
