@@ -300,7 +300,7 @@ static const uint8_t x8[] = {0x40, 0xA1, 0xff};
 
 static const uint8_t x9[] = {0xA1, 0x01, 0x01};
 
-static const uint8_t x10[] = {0x56, 0xA3, 0x18, 0x2C, 0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F, 0x0B, 0x3A, 0x7F, 0xFF, 0xFF, 0xFF, 0x02, 0x81, 0x18, 0x2C, 0xA1, 0x18, 0x21, 0x43, 0x01, 0x02, 0x03};
+static const uint8_t x10[] = {0x52, 0xA3, 0x18, 0x2C, 0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F, 0x01, 0x26, 0x02, 0x81, 0x18, 0x2C, 0xA5, 0x18, 0x21, 0x43, 0x01, 0x02, 0x03, 0x03, 0x18, 0x2A, 0x04, 0x4D, 0x74, 0x68, 0x69, 0x73, 0x2D, 0x69, 0x73, 0x2D, 0x61, 0x2D, 0x6B, 0x69, 0x64, 0x05, 0x48, 0x69, 0x76, 0x69, 0x76, 0x69, 0x76, 0x69, 0x76, 0x06, 0x43, 0x70, 0x69, 0x76};
 
 
 static const uint8_t x11[] = {0x43, 0xA1, 0x01, 0x26, 0xA0};
@@ -545,7 +545,7 @@ static  struct param_test_combo param_combo_tests[] = {
     /* 1. Several parameters success test */
     {
         UBX(x10),
-        (int []){0, 1, 3, INT_MAX},
+        (int []){0, 1, 12, 13, 15, 16, 17, INT_MAX},
         T_COSE_SUCCESS,
         QCBOR_SUCCESS,
     },
@@ -572,6 +572,12 @@ param_test(void)
     QCBOREncodeContext             qcbor_encoder;
     Q_USEFUL_BUF_MAKE_STACK_UB(    encode_buffer, 200);
     const struct param_test       *param_test;
+    QCBORDecodeContext             decode_context;
+    struct q_useful_buf_c          encoded_prot_params;
+    struct q_useful_buf_c          string;
+
+
+
 
     /* Test is driven by data in param_tests and param_combo_tests.
      * This is all a bit more complicated than expected, but it is
@@ -584,8 +590,9 @@ param_test(void)
             break;
         }
 
+        /* This if is just to be able to set break points by test number. */
         if(i == 17) {
-            t_cose_result = 0; // Exists just for a break point for a test number
+            t_cose_result = 0;
         }
 
         /* Encode test */
@@ -625,17 +632,14 @@ param_test(void)
             ll.storage = param_array;
             param_array[0].value_type = T_COSE_PARAMETER_TYPE_NONE;
 
-            QCBORDecodeContext decode_context;
-
             QCBORDecode_Init(&decode_context, param_test->encoded, 0);
 
-            struct q_useful_buf_c p_p;
 
             t_cose_result = t_cose_headers_decode(&decode_context,
                                                   (struct t_cose_header_location){0,0},
                                                   header_reader, NULL,
                                                   ll,
-                                                 &p_p);
+                                                 &encoded_prot_params);
 
             if(t_cose_result != param_test->decode_result) {
                 return i * 1000 + 3;
@@ -716,21 +720,26 @@ param_test(void)
             }
         }
 
-        // Decode tests... ?
+        // Could do some decode tests here, but so far not
+        // a real need.
     }
 
 
     /* One test that is not so data driven to test the encoding vector feature. */
     int k = 0;
     param_array[0] = param_tests[0].unencoded;
-    param_array[1].value_type = T_COSE_PARAMETER_TYPE_NONE;
+    param_array[1] = param_tests[1].unencoded;
+    param_array[2] = param_tests[12].unencoded;
+    param_array[3].value_type = T_COSE_PARAMETER_TYPE_NONE;
     params_vector[k++] = param_array;
 
-    param_array2[0] = param_tests[1].unencoded;
-    param_array2[1].value_type = T_COSE_PARAMETER_TYPE_NONE;
+    param_array2[0] = param_tests[13].unencoded;
+    param_array2[1] = param_tests[15].unencoded;
+    param_array2[2] = param_tests[16].unencoded;
+    param_array2[3].value_type = T_COSE_PARAMETER_TYPE_NONE;
     params_vector[k++] = param_array2;
 
-    param_array3[0] = param_tests[3].unencoded;
+    param_array3[0] = param_tests[17].unencoded;
     param_array3[1].value_type = T_COSE_PARAMETER_TYPE_NONE;
     params_vector[k++] = param_array3;
 
@@ -753,6 +762,54 @@ param_test(void)
     if(q_useful_buf_compare(encoded_params, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(x10))) {
         return 66;
     }
+
+
+    struct t_cose_parameter_storage ll;
+
+    ll.storage_size = sizeof(param_array);
+    ll.storage = param_array;
+    param_array[0].value_type = T_COSE_PARAMETER_TYPE_NONE;
+
+    QCBORDecode_Init(&decode_context, encoded_params, 0);
+
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                          (struct t_cose_header_location){0,0},
+                                          NULL,
+                                          NULL,
+                                          ll,
+                                          &encoded_prot_params);
+
+    qcbor_result = QCBORDecode_Finish(&decode_context);
+    if(qcbor_result != QCBOR_SUCCESS) {
+        return 88;
+    }
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return 88; //i * 1000 + 1;
+    }
+
+    if(t_cose_find_parameter_alg_id(param_array) != COSE_ALGORITHM_ES256) {
+        return 77;
+    }
+
+    if(t_cose_find_parameter_content_type_int (param_array) != 42) {
+        return 77;
+    }
+
+    string = t_cose_find_parameter_kid(param_array);
+    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"))) {
+        return 99;
+    }
+
+    string = t_cose_find_parameter_iv(param_array);
+    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"))) {
+        return 99;
+    }
+
+    string = t_cose_find_parameter_partial_iv(param_array);
+    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"))) {
+        return 99;
+    }
+
 
     return 0;
 }
