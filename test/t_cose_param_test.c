@@ -29,11 +29,13 @@ encode_44(const struct t_cose_parameter  *param,
 }
 
 static enum t_cose_err_t
-decode_44(void                       *call_back_context,
+decode_44(void                       *callback_context,
           QCBORDecodeContext         *qcbor_decoder,
           struct t_cose_parameter *p)
 {
     double  d;
+
+    (void)callback_context;
 
     QCBORDecode_GetDouble(qcbor_decoder, &d);
     // Stuff the double into the little buf
@@ -397,7 +399,7 @@ static const struct param_test param_tests[] = {
     /* 7. Empty parameters. */
     {
         UBX(x5), /* CBOR encoded header params */
-        {0, false, false, {0,0}, T_COSE_PARAMETER_TYPE_NONE},
+        {0, false, false, {0,0}, T_COSE_PARAMETER_TYPE_NONE, .value.ptr = NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -407,7 +409,7 @@ static const struct param_test param_tests[] = {
     /* 8. Incorrectly formatted parameters (decode only test) */
     {
         UBX(x6), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -417,7 +419,7 @@ static const struct param_test param_tests[] = {
     /* 9. Not-well formed parameters (decode only test) */
     {
         UBX(x7), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -427,7 +429,7 @@ static const struct param_test param_tests[] = {
     /* 10. Not-well formed parameters (decode only test) */
     {
         UBX(x8), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -437,7 +439,7 @@ static const struct param_test param_tests[] = {
     /* 11. No protected headers at all (decode only test) */
     {
         UBX(x9), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -521,7 +523,12 @@ static const struct param_test param_tests[] = {
 
     /* */
     {
-        NULL_Q_USEFUL_BUF_C
+        NULL_Q_USEFUL_BUF_C,
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
+        0,
+        0,
+        NULL,
+        0
     }
 
 };
@@ -552,7 +559,9 @@ static struct param_test_combo param_combo_tests[] = {
 
     {
         NULL_Q_USEFUL_BUF_C,
-        NULL
+        NULL,
+        0,
+        0
     }
 };
 

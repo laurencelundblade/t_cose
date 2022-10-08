@@ -246,7 +246,7 @@ struct t_cose_parameter {
  *    params[1] = T_COSE_END_PARAM;
  */
 #define T_COSE_MAKE_ALG_ID_PARAM(x) \
-    (struct t_cose_parameter){COSE_HEADER_PARAM_ALG, \
+    (const struct t_cose_parameter){COSE_HEADER_PARAM_ALG, \
                                  true,\
                                  false,\
                                  {0,0},\
@@ -255,7 +255,7 @@ struct t_cose_parameter {
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 #define T_COSE_CT_UINT_PARAM(content_type) \
-    (struct t_cose_parameter){COSE_HEADER_PARAM_CONTENT_TYPE, \
+    (const struct t_cose_parameter){COSE_HEADER_PARAM_CONTENT_TYPE, \
                               false,\
                               false,\
                               {0,0},\
@@ -263,7 +263,7 @@ struct t_cose_parameter {
                               .value.i64 = content_type }
 
 #define T_COSE_CT_TSTR_PARAM(content_type) \
-   (struct t_cose_parameter){COSE_HEADER_PARAM_CONTENT_TYPE, \
+   (const struct t_cose_parameter){COSE_HEADER_PARAM_CONTENT_TYPE, \
                              false,\
                              false,\
                              {0,0},\
@@ -272,7 +272,7 @@ struct t_cose_parameter {
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 #define T_COSE_KID_PARAM(kid) \
-    (struct t_cose_parameter){COSE_HEADER_PARAM_KID, \
+    (const struct t_cose_parameter){COSE_HEADER_PARAM_KID, \
                               false, \
                               false, \
                               {0,0},\
@@ -280,7 +280,7 @@ struct t_cose_parameter {
                               .value.string = kid }
 
 #define T_COSE_IV_PARAM(iv) \
-    (struct t_cose_parameter){COSE_HEADER_PARAM_IV, \
+    (const struct t_cose_parameter){COSE_HEADER_PARAM_IV, \
                               false, \
                               false, \
                               {0,0},\
@@ -288,7 +288,7 @@ struct t_cose_parameter {
                               .value.string = iv }
 
 #define T_COSE_PARTIAL_IV_PARAM(partial_iv) \
-    (struct t_cose_parameter){COSE_HEADER_PARAM_PARTIAL_IV, \
+    (const struct t_cose_parameter){COSE_HEADER_PARAM_PARTIAL_IV, \
                               false, \
                               false, \
                               {0,0},\
@@ -296,7 +296,7 @@ struct t_cose_parameter {
                               .value.string = partial_iv }
 
 #define T_COSE_END_PARAM  \
-    (struct t_cose_parameter){0,\
+    (const struct t_cose_parameter){0,\
                               false, \
                               false, \
                               {0,0},\
