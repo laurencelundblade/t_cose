@@ -103,14 +103,14 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
     params_vector[1] = unprotected_params_arr;
     params_vector[2] = NULL;
 
-    protected_params_arr[0] = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
-    protected_params_arr[1] = T_COSE_END_PARAM;
+    protected_params_arr[0] = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
+    protected_params_arr[1] = t_cose_make_end_parameter();
 
-    unprotected_params_arr[0] = T_COSE_KID_PARAM(me->kid);
-    unprotected_params_arr[1] = T_COSE_END_PARAM;
+    unprotected_params_arr[0] = t_cose_make_kid_parameter(me->kid);
+    unprotected_params_arr[1] = t_cose_make_end_parameter();
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
-    unprotected_params_arr[2] = T_COSE_END_PARAM;
+    unprotected_params_arr[2] = t_cose_make_end_parameter();
 
     if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE &&
        !q_useful_buf_c_is_null(me->content_type_tstr)) {
@@ -119,11 +119,11 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
     }
 
     if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-        unprotected_params_arr[1] = T_COSE_CT_UINT_PARAM(me->content_type_uint);
+        unprotected_params_arr[1] = t_cose_make_ct_uint_parameter(me->content_type_uint);
     }
 
     if(!q_useful_buf_c_is_null(me->content_type_tstr)) {
-        unprotected_params_arr[1] = T_COSE_CT_TSTR_PARAM(me->content_type_tstr);
+        unprotected_params_arr[1] = t_cose_make_ct_tstr_parameter(me->content_type_tstr);
     }
 #endif
 

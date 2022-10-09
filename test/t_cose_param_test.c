@@ -82,7 +82,7 @@ check_alg_id(struct t_cose_parameter *param)
         return 3;
     }
 
-    if(!param->protected) {
+    if(!param->in_protected) {
         return 6;
     }
 
@@ -110,7 +110,7 @@ check_int_content_id(struct t_cose_parameter *param)
         return 3;
     }
 
-    if(param->protected) {
+    if(param->in_protected) {
         return 6;
     }
 
@@ -137,7 +137,7 @@ check_text_content_id(struct t_cose_parameter *param)
         return 3;
     }
 
-    if(param->protected) {
+    if(param->in_protected) {
         return 6;
     }
 
@@ -164,7 +164,7 @@ check_kid(struct t_cose_parameter *param)
         return 3;
     }
 
-    if(param->protected) {
+    if(param->in_protected) {
         return 6;
     }
 
@@ -191,7 +191,7 @@ check_iv(struct t_cose_parameter *param)
         return 3;
     }
 
-    if(param->protected) {
+    if(param->in_protected) {
         return 6;
     }
 
@@ -218,7 +218,7 @@ check_partial_iv(struct t_cose_parameter *param)
         return 3;
     }
 
-    if(param->protected) {
+    if(param->in_protected) {
         return 6;
     }
 
@@ -280,6 +280,78 @@ struct param_test {
 };
 
 
+
+
+#define T_COSE_MAKE_ALG_ID_PARAM(alg_id) \
+                                {COSE_HEADER_PARAM_ALG, \
+                                 true,\
+                                 false,\
+                                 {0,0},\
+                                 T_COSE_PARAMETER_TYPE_INT64,\
+                                 .value.i64 = alg_id }
+
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+
+
+#define T_COSE_MAKE_CT_UINT_PARAM(content_type) \
+                             {COSE_HEADER_PARAM_CONTENT_TYPE, \
+                              false,\
+                              false,\
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_INT64,\
+                              .value.i64 = content_type }
+
+
+
+#define T_COSE_MAKE_CT_TSTR_PARAM(content_type) \
+                            {COSE_HEADER_PARAM_CONTENT_TYPE, \
+                             false,\
+                             false,\
+                             {0,0},\
+                             T_COSE_PARAMETER_TYPE_TEXT_STRING,\
+                             .value.string = content_type }
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
+
+
+#define T_COSE_MAKE_KID_PARAM(kid) \
+                              {COSE_HEADER_PARAM_KID, \
+                              false, \
+                              false, \
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                              .value.string = kid }
+
+
+
+#define T_COSE_MAKE_IV_PARAM(iv) \
+                             {COSE_HEADER_PARAM_IV, \
+                              false, \
+                              false, \
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                              .value.string = iv }
+
+
+
+#define T_COSE_MAKE_PARTIAL_IV_PARAM(partial_iv) \
+                             {COSE_HEADER_PARAM_PARTIAL_IV, \
+                              false, \
+                              false, \
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
+                              .value.string = partial_iv }
+
+
+#define T_COSE_MAKE_END_PARAM  \
+                             {0,\
+                              false, \
+                              false, \
+                              {0,0},\
+                              T_COSE_PARAMETER_TYPE_NONE, \
+                              .value.string = NULL_Q_USEFUL_BUF_C }
+
 static const uint8_t x1[] = {0x50, 0xA2, 0x18, 0x2C, 0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F, 0x02, 0x81, 0x18, 0x2C, 0xA0};
 
 static const uint8_t x2[] = {0x41, 0xA0, 0xA1, 0x18, 0x21, 0x43, 0x01, 0x02, 0x03};
@@ -320,6 +392,8 @@ static const uint8_t x16[] = {0x41, 0xA0, 0xA1, 0x06, 0x43, 0x70, 0x69, 0x76};
 
 
 #define UBX(x) {x, sizeof(x)}
+#define UBS(x) {x, sizeof(x)-1}
+
 
 #define NO_ENCODE_TEST 253 /* A special parameter type to not encode */
 
@@ -459,7 +533,7 @@ static const struct param_test param_tests[] = {
     /* 13. an integer content ID  */
     {
         UBX(x12), /* CBOR encoded header params */
-        T_COSE_CT_UINT_PARAM(42),
+        T_COSE_MAKE_CT_UINT_PARAM(42),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         check_int_content_id, /* Call back for decode check */
@@ -469,7 +543,7 @@ static const struct param_test param_tests[] = {
     /* 14. text string content ID  */
     {
         UBX(x13), /* CBOR encoded header params */
-        T_COSE_CT_TSTR_PARAM(Q_USEFUL_BUF_FROM_SZ_LITERAL("text/plain")),
+        T_COSE_MAKE_CT_TSTR_PARAM(UBS("text/plain")),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         check_text_content_id, /* Call back for decode check */
@@ -479,7 +553,7 @@ static const struct param_test param_tests[] = {
     /* 15. kid  */
     {
         UBX(x14), /* CBOR encoded header params */
-        T_COSE_KID_PARAM(Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid")),
+        T_COSE_MAKE_KID_PARAM(UBS("this-is-a-kid")),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         check_kid, /* Call back for decode check */
@@ -490,7 +564,7 @@ static const struct param_test param_tests[] = {
     /* 16. IV */
     {
         UBX(x15), /* CBOR encoded header params */
-        T_COSE_IV_PARAM(Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv")),
+        T_COSE_MAKE_IV_PARAM(UBS("iviviviv")),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         check_iv, /* Call back for decode check */
@@ -500,7 +574,7 @@ static const struct param_test param_tests[] = {
     /* 17. Partial IV */
     {
         UBX(x16), /* CBOR encoded header params */
-        T_COSE_PARTIAL_IV_PARAM(Q_USEFUL_BUF_FROM_SZ_LITERAL("piv")),
+        T_COSE_MAKE_PARTIAL_IV_PARAM(UBS("piv")),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         check_partial_iv, /* Call back for decode check */
@@ -523,7 +597,7 @@ static const struct param_test param_tests[] = {
 
     /* */
     {
-        NULL_Q_USEFUL_BUF_C,
+        {NULL, 0},
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
         0,
         0,
@@ -558,7 +632,7 @@ static struct param_test_combo param_combo_tests[] = {
     },
 
     {
-        NULL_Q_USEFUL_BUF_C,
+        {NULL, 0},
         NULL,
         0,
         0

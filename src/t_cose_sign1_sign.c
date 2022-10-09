@@ -55,8 +55,8 @@ void
 t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *me,
                                    uint16_t                     content_type)
 {
-    me->content_id_param[0] = T_COSE_CT_UINT_PARAM(content_type);
-    me->content_id_param[1] = T_COSE_END_PARAM;
+    me->content_id_param[0] = t_cose_make_ct_uint_parameter(content_type);
+    me->content_id_param[1] = t_cose_make_end_parameter();
 
     t_cose_sign_add_body_header_params(&(me->me2), me->content_id_param);
 }
@@ -66,8 +66,8 @@ void
 t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
                                    const char                   *content_type)
 {
-    me->content_id_param[0] = T_COSE_CT_TSTR_PARAM(q_useful_buf_from_sz(content_type));
-    me->content_id_param[1] = T_COSE_END_PARAM;
+    me->content_id_param[0] = t_cose_make_ct_tstr_parameter(q_useful_buf_from_sz(content_type));
+    me->content_id_param[1] = t_cose_make_end_parameter();
 
     t_cose_sign_add_body_header_params(&(me->me2), me->content_id_param);
 }

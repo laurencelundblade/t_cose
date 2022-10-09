@@ -372,7 +372,7 @@ decode_parameters_bucket(QCBORDecodeContext               *decode_context,
         parameters->value_type = item.uDataType;
         parameters->location   = location;
         parameters->label      = item.label.int64;
-        parameters->protected  = is_protected;
+        parameters->in_protected  = is_protected;
         parameters->critical   = is_in_list(&critical_parameter_labels, item.label.int64);;
 
         switch (item.uDataType) {
@@ -594,10 +594,10 @@ encode_parameters_bucket(QCBOREncodeContext                    *encode_context,
     for(p_vector = params_vector; *p_vector != NULL; p_vector++) {
         /* loop over array of parameters */
         for(p_parameter = *p_vector; p_parameter->value_type != T_COSE_PARAMETER_TYPE_NONE; p_parameter++) {
-            if(is_protected_header && !p_parameter->protected) {
+            if(is_protected_header && !p_parameter->in_protected) {
                 continue;
             }
-            if(!is_protected_header && p_parameter->protected) {
+            if(!is_protected_header && p_parameter->in_protected) {
                 continue;
             }
 
@@ -722,7 +722,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *p)
     p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_ALG);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
-       p_found->protected &&
+       p_found->in_protected &&
        p_found->value.i64 != COSE_ALGORITHM_RESERVED &&
        p_found->value.i64 < INT32_MAX) {
         return (int32_t)p_found->value.i64;

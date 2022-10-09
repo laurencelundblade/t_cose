@@ -140,9 +140,9 @@ t_cose_short_headers(struct t_cose_signature_sign      *me_x,
         kid = t_cose_get_short_circuit_kid_l();
     }
 
-    me->local_params[0] = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
-    me->local_params[1] = T_COSE_KID_PARAM(kid);
-    me->local_params[2] = T_COSE_END_PARAM;
+    me->local_params[0] = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
+    me->local_params[1] = t_cose_make_kid_parameter(kid);
+    me->local_params[2] = t_cose_make_end_parameter();
 
     *params = me->local_params;
 }

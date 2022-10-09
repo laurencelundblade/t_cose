@@ -17,6 +17,12 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "qcbor/qcbor.h"
+#include "t_cose_standard_constants.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 // TODO: this file probably needs some re ordering and re organizing
 
@@ -171,7 +177,7 @@ struct t_cose_parameter {
 
     /** Indicates parameter is to be encoded in the protected header
      * bucket or was decoded from the protected header bucket. */
-    bool    protected;
+    bool    in_protected;
     /** Indicates parameter should be listed in the critical headers
      * when encoding. Not used while decoding.*/
     bool    critical;
@@ -197,6 +203,8 @@ struct t_cose_parameter {
             t_cose_parameter_encode_callback *callback;
         } custom_encoder;
     } value;
+
+    struct t_cose_parameter *next;
 };
 
 
@@ -237,71 +245,63 @@ struct t_cose_parameter {
 
 
 
+
 /* These are struct t_cose_header_parameter initializers for the standard
  * header parameters. They set the type and typical protection level.
  *
+ * See comments in t_cose_make_alg_id_parameter() implementation.
+ *
  * Example use:
  *    struct t_cose_parameter params[2];
- *    params[0] = T_COSE_MAKE_ALG_ID_PARAM(T_COSE_ALGORITHM_ES256);
- *    params[1] = T_COSE_END_PARAM;
+ *    params[0] = t_cose_make_alg_id_parameter(T_COSE_ALGORITHM_ES256);
+ *    params[1] = t_cose_make_end_parameter();
  */
-#define T_COSE_MAKE_ALG_ID_PARAM(x) \
-    (const struct t_cose_parameter){COSE_HEADER_PARAM_ALG, \
-                                 true,\
-                                 false,\
-                                 {0,0},\
-                                 T_COSE_PARAMETER_TYPE_INT64,\
-                                 .value.i64 = x }
+
+static inline struct t_cose_parameter
+t_cose_make_alg_id_parameter(int32_t alg_id);
+
+
+
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
-#define T_COSE_CT_UINT_PARAM(content_type) \
-    (const struct t_cose_parameter){COSE_HEADER_PARAM_CONTENT_TYPE, \
-                              false,\
-                              false,\
-                              {0,0},\
-                              T_COSE_PARAMETER_TYPE_INT64,\
-                              .value.i64 = content_type }
 
-#define T_COSE_CT_TSTR_PARAM(content_type) \
-   (const struct t_cose_parameter){COSE_HEADER_PARAM_CONTENT_TYPE, \
-                             false,\
-                             false,\
-                             {0,0},\
-                             T_COSE_PARAMETER_TYPE_TEXT_STRING,\
-                             .value.string = content_type }
+static inline struct t_cose_parameter
+t_cose_make_ct_uint_parameter(uint32_t content_type);
+
+
+
+
+static inline struct t_cose_parameter
+t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type);
+
+
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
-#define T_COSE_KID_PARAM(kid) \
-    (const struct t_cose_parameter){COSE_HEADER_PARAM_KID, \
-                              false, \
-                              false, \
-                              {0,0},\
-                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
-                              .value.string = kid }
 
-#define T_COSE_IV_PARAM(iv) \
-    (const struct t_cose_parameter){COSE_HEADER_PARAM_IV, \
-                              false, \
-                              false, \
-                              {0,0},\
-                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
-                              .value.string = iv }
 
-#define T_COSE_PARTIAL_IV_PARAM(partial_iv) \
-    (const struct t_cose_parameter){COSE_HEADER_PARAM_PARTIAL_IV, \
-                              false, \
-                              false, \
-                              {0,0},\
-                              T_COSE_PARAMETER_TYPE_BYTE_STRING, \
-                              .value.string = partial_iv }
 
-#define T_COSE_END_PARAM  \
-    (const struct t_cose_parameter){0,\
-                              false, \
-                              false, \
-                              {0,0},\
-                              T_COSE_PARAMETER_TYPE_NONE, \
-                              .value.string = NULL_Q_USEFUL_BUF_C }
+static inline struct t_cose_parameter
+t_cose_make_kid_parameter(struct q_useful_buf_c kid);
+
+
+
+
+static inline struct t_cose_parameter
+t_cose_make_iv_parameter(struct q_useful_buf_c iv);
+
+
+
+
+static inline struct t_cose_parameter
+t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv);
+
+
+
+static inline struct t_cose_parameter
+t_cose_make_end_parameter(void);
+
+
+
 
 
 /* A structure to hold an array of struct t_cose_header_param
@@ -478,5 +478,155 @@ t_cose_find_parameter_iv(const struct t_cose_parameter *p);
 struct q_useful_buf_c
 t_cose_find_parameter_partial_iv(const struct t_cose_parameter *p);
 
+
+
+static inline struct t_cose_parameter
+t_cose_make_alg_id_parameter(int32_t alg_id)
+{
+    /* The weird world of initializers, compound literals for
+     * C and C++...
+     *
+     * There are three contexts where it would be nice
+     * to assign / initialize with a filled in t_cose_parameter.
+     *
+     * 1) Assignments where an expression is needed.
+     * 2) Initializers of a simple variable.
+     * 3) Initializer of a static const data structure -- initialized data in the executable.
+     *
+     * The functions here provide 1) and 2) for C and C++, but not 3).
+     *
+     *
+     * The macros like T_COSE_MAKE_ALG_ID_PARAM create *initializers* that can be
+     * used only in C. An initializer can be used for static
+     * const data. They only work in C because they use
+     * designated initializers (e.g., .value.i64 = alg_id) for the union and C++
+     * doesn't allow designated initializers.
+     *
+     * The inline functions work in both C and C++ because they
+     * are C functions. Since they are C functions they can
+     * use the macro which has the designated initializer that
+     * won't work in C++. The function also gives better
+     * type checking and error reporting. It is expected
+     * that the optimizer reduces the function to nothing.
+     *
+     * The one thing you can't do with the macro and function is initialize
+     * static const data in C++.
+     */
+
+
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = true;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = COSE_HEADER_PARAM_ALG;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
+    parameter.value.i64        = alg_id;
+
+    return parameter;
+}
+
+static inline struct t_cose_parameter
+t_cose_make_ct_uint_parameter(uint32_t content_type)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = COSE_HEADER_PARAM_CONTENT_TYPE;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
+    parameter.value.i64        = (int32_t)content_type;
+
+    return parameter;
+}
+
+static inline struct t_cose_parameter
+t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = COSE_HEADER_PARAM_CONTENT_TYPE;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value.string     = content_type;
+
+    return parameter;
+}
+
+static inline struct t_cose_parameter
+t_cose_make_kid_parameter(struct q_useful_buf_c kid)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = COSE_HEADER_PARAM_KID;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value.string     = kid;
+
+    return parameter;
+}
+
+static inline struct t_cose_parameter
+t_cose_make_iv_parameter(struct q_useful_buf_c iv)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = COSE_HEADER_PARAM_IV;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value.string     = iv;
+
+    return parameter;
+}
+
+static inline struct t_cose_parameter
+t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = COSE_HEADER_PARAM_PARTIAL_IV;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value.string     = iv;
+
+    return parameter;
+}
+
+
+static inline struct t_cose_parameter
+t_cose_make_end_parameter(void)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = 0;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_NONE;
+    parameter.value.string     = NULLUsefulBufC;
+
+    return parameter;
+}
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* t_cose_parameters_h */

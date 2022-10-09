@@ -101,7 +101,7 @@ t_cose_translate_params_private(const struct t_cose_parameter *decoded_params,
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
-            if(!p->protected) {
+            if(!p->in_protected) {
                 return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
                 goto Done;
             }

@@ -19,13 +19,13 @@ t_cose_ecdsa_headers(struct t_cose_signature_sign  *me_x,
 {
     struct t_cose_signature_sign_ecdsa *me = (struct t_cose_signature_sign_ecdsa *)me_x;
 
-    me->local_params[0]  = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
+    me->local_params[0]  = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
     if(!q_useful_buf_c_is_null(me->kid)) {
         // TODO: optimize this if possible
-        me->local_params[1]  = T_COSE_KID_PARAM(me->kid);
-        me->local_params[2]  = T_COSE_END_PARAM;
+        me->local_params[1]  = t_cose_make_kid_parameter(me->kid);
+        me->local_params[2]  = t_cose_make_end_parameter();
     } else  {
-        me->local_params[1]  = T_COSE_END_PARAM;
+        me->local_params[1]  = t_cose_make_end_parameter();
     }
     *params = me->local_params;
 }
