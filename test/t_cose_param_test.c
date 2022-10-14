@@ -14,7 +14,7 @@
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/q_useful_buf.h"
 
-#include "t_cose_standard_constants.h" // TODO: change path when this becomes public
+#include "t_cose/t_cose_standard_constants.h" // TODO: change path when this becomes public
 
 
 /* Param with label 44 carries a single float. This test

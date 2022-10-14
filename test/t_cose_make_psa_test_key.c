@@ -11,7 +11,7 @@
 
 
 #include "t_cose_make_test_pub_key.h" /* The interface implemented here */
-#include "t_cose_standard_constants.h"
+#include "t_cose/t_cose_standard_constants.h"
 #include "psa/crypto.h"
 
 

@@ -13,7 +13,7 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_sign_verify.h"
 
-#include "t_cose_standard_constants.h"
+#include "t_cose/t_cose_standard_constants.h"
 
 /**
  * \file t_cose_sign1_verify.c

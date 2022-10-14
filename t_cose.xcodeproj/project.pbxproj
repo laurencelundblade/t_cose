@@ -182,7 +182,6 @@
 		0F8B2FE9233C3DD600A22349 /* t_cose_make_test_messages.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_make_test_messages.h; sourceTree = "<group>"; };
 		0F9105792321878F00008572 /* t_cose_parameters.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_parameters.c; sourceTree = "<group>"; };
 		E71D9E8E231C930B00A21F7F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		E71D9ECA23341D8200A21F7F /* t_cose_standard_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_standard_constants.h; sourceTree = "<group>"; };
 		E721CB9123628B5F00C7FD56 /* t_cose_make_psa_test_key.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_make_psa_test_key.c; sourceTree = "<group>"; };
 		E721CB9423628D2600C7FD56 /* t_cose_sign_verify_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_sign_verify_test.c; sourceTree = "<group>"; };
 		E721CB9523628D2700C7FD56 /* t_cose_sign_verify_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_sign_verify_test.h; sourceTree = "<group>"; };
@@ -244,6 +243,7 @@
 		E762D6F128D0ADCF00A22792 /* encode_only_psa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encode_only_psa.c; path = tdv/encode_only_psa.c; sourceTree = "<group>"; };
 		E762D6F328D2C32E00A22792 /* decode_only_psa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = decode_only_psa.c; path = tdv/decode_only_psa.c; sourceTree = "<group>"; };
 		E772028523CAEC84006E966E /* t_cose_psa_noss */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_psa_noss; sourceTree = BUILT_PRODUCTS_DIR; };
+		E77F343028F979DF0089FC2A /* t_cose_standard_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_standard_constants.h; path = t_cose/t_cose_standard_constants.h; sourceTree = "<group>"; };
 		E7AF703428DADF5E00F07637 /* t_cose_param_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_param_test.h; sourceTree = "<group>"; };
 		E7AF703528DADF5E00F07637 /* t_cose_param_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_param_test.c; sourceTree = "<group>"; };
 		E7C960A527F7569500FB537C /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
@@ -416,6 +416,7 @@
 		E7E36E82226CB9460040613B /* inc */ = {
 			isa = PBXGroup;
 			children = (
+				E77F343028F979DF0089FC2A /* t_cose_standard_constants.h */,
 				E762D6D228CC0BB000A22792 /* t_cose_mac_compute.h */,
 				E762D6D328CC0BB000A22792 /* t_cose_mac_validate.h */,
 				E72EC9EF242E74EE006D3DD3 /* q_useful_buf.h */,
@@ -453,7 +454,6 @@
 				E7E36E8C226CB9460040613B /* t_cose_util.h */,
 				E7E36E89226CB9460040613B /* t_cose_util.c */,
 				E7E36E8D226CB9460040613B /* t_cose_crypto.h */,
-				E71D9ECA23341D8200A21F7F /* t_cose_standard_constants.h */,
 			);
 			path = src;
 			sourceTree = "<group>";

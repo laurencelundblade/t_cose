@@ -1,9 +1,7 @@
 /*
  * t_cose_standard_constants.h
  *
- * TODO: make this public
- *
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -27,6 +25,7 @@
  * they are not needed by t_cose. They can be added if they become
  * needed.
  *
+ * TODO: now that this is public....
  * This file is not part of the t_cose public interface as it contains
  * lots of stuff not needed in the public interface. The parts that
  * are needed in the public interface are also defined as \ref
