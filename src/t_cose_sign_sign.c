@@ -34,10 +34,10 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
                          bool                         payload_is_detached,
                          QCBOREncodeContext          *cbor_encode_ctx)
 {
-    enum t_cose_err_t                 return_value;
-    const struct t_cose_parameter *params_vector[3];
-    int                               vector_index;
-    struct t_cose_signature_sign     *signer;
+    enum t_cose_err_t              return_value;
+    struct t_cose_signature_sign  *signer;
+    struct t_cose_parameter       *sign1_parameters;
+    struct t_cose_parameter       *body_parameters;
 
     signer = me->signers;
     if(signer == NULL) {
@@ -46,24 +46,28 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
         goto Done;
     }
 
-    vector_index = 0;
-    if((me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) ==  T_COSE_OPT_MESSAGE_TYPE_SIGN1) {
+    sign1_parameters = NULL;
+    if((me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) == T_COSE_OPT_MESSAGE_TYPE_SIGN1) {
 
         /* For a COSE_Sign1, the header parameters go in the
          * main body header parameter section, not in the
          * signatures. Ask the first sigher for the header
          * parameters it wants to output. */
-        (signer->h_callback)(signer, &params_vector[0]);
-        vector_index++;
+        (signer->h_callback)(signer, &sign1_parameters);
         if(signer->next_in_list != NULL) {
             /* In COSE_Sign1 mode, but too many signers configured.*/
             return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
             goto Done;
         }
     }
-    params_vector[vector_index] = me->added_body_parameters;
-    vector_index++;
-    params_vector[vector_index] = NULL;
+
+    if(sign1_parameters == NULL) {
+        body_parameters = me->added_body_parameters;
+    } else {
+        body_parameters = sign1_parameters;
+        t_cose_parameter_list_append(body_parameters, me->added_body_parameters);
+    }
+
     /* --- parameters are now all in params_vector -- */
 
 
@@ -78,7 +82,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
 
     /* --- Encode both proteced and unprotected headers --- */
     return_value = t_cose_encode_headers(cbor_encode_ctx,
-                                         params_vector,
+                                         body_parameters,
                                          &me->protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;

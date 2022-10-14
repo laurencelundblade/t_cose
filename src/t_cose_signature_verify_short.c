@@ -117,8 +117,9 @@ t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
                               const struct q_useful_buf_c       protected_body_headers,
                               const struct q_useful_buf_c       payload,
                               const struct q_useful_buf_c       aad,
-                              const struct t_cose_parameter_storage params,
-                              QCBORDecodeContext               *qcbor_decoder)
+                              struct t_cose_parameter_storage *params,
+                              QCBORDecodeContext               *qcbor_decoder,
+                              struct t_cose_parameter **decoded_parameters)
 {
     QCBORError             qcbor_error;
     enum t_cose_err_t      return_value;
@@ -134,7 +135,8 @@ t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
                                          me->reader,
                                          me->reader_ctx,
                                          params,
-                                        &protected_parameters);
+                                         decoded_parameters,
+                                         &protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -160,7 +162,7 @@ t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
                                                   protected_parameters,
                                                   payload,
                                                   aad,
-                                                  params.storage,
+                                                *decoded_parameters,
                                                   signature);
 Done:
     return return_value;

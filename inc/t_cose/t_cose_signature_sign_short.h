@@ -38,7 +38,7 @@ struct t_cose_signature_sign_short {
     int32_t                            cose_algorithm_id;
     struct q_useful_buf_c              kid;
     struct t_cose_parameter         local_params[3];
-    const struct t_cose_parameter  *added_signer_params;
+    struct t_cose_parameter        *added_signer_params;
 };
 
 
@@ -91,7 +91,7 @@ t_cose_signature_sign_short_init(struct t_cose_signature_sign_short *context,
  */
 static void
 t_cose_signature_sign_short_set_header_parameter(struct t_cose_signature_sign_short *context,
-                                                 const struct t_cose_parameter   *header_parameters);
+                                                 struct t_cose_parameter            *header_parameters);
 
 
 /**
@@ -147,7 +147,7 @@ t_cose_get_short_circuit_kid(void);
 
 static inline void
 t_cose_signature_sign_short_set_header_parameter(struct t_cose_signature_sign_short *me,
-                                                 const struct t_cose_parameter   *header_parameters)
+                                                 struct t_cose_parameter            *header_parameters)
 {
     me->added_signer_params = header_parameters;
 }

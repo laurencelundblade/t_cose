@@ -32,11 +32,11 @@ extern "C" {
  */
 struct t_cose_mac_validate_ctx {
     /* Private data structure */
-    struct t_cose_key             verification_key;
-    int32_t                       option_flags;
-    uint64_t                      auTags[T_COSE_MAX_TAGS_TO_RETURN];
-    struct t_cose_parameter    __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
-    struct t_cose_parameter_storage   params;
+    struct t_cose_key                verification_key;
+    int32_t                          option_flags;
+    uint64_t                         auTags[T_COSE_MAX_TAGS_TO_RETURN];
+    struct t_cose_parameter          __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
+    struct t_cose_parameter_storage  parameter_storage;
 };
 
 
@@ -125,9 +125,9 @@ t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
 {
     context->option_flags        = option_flags;
     context->verification_key    = T_COSE_NULL_KEY;
-    context->params.storage      = context->__params;
-    context->params.storage_size = sizeof(context->__params);
-    context->__params[0].value_type = T_COSE_PARAMETER_TYPE_NONE;
+    context->parameter_storage.storage = context->__params;
+    context->parameter_storage.size    = sizeof(context->__params)/sizeof(struct t_cose_parameter);
+    context->parameter_storage.used    = 0;
 }
 
 static inline void

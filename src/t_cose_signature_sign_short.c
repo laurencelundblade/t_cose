@@ -129,7 +129,7 @@ Done:
  */
 static void
 t_cose_short_headers(struct t_cose_signature_sign      *me_x,
-                     const struct t_cose_parameter **params)
+                     struct t_cose_parameter **params)
 {
     struct t_cose_signature_sign_short *me = (struct t_cose_signature_sign_short *)me_x;
 
@@ -140,9 +140,10 @@ t_cose_short_headers(struct t_cose_signature_sign      *me_x,
         kid = t_cose_get_short_circuit_kid_l();
     }
 
+    /* Make the linked list of two parameters, the alg id and kid. */
     me->local_params[0] = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
     me->local_params[1] = t_cose_make_kid_parameter(kid);
-    me->local_params[2] = t_cose_make_end_parameter();
+    me->local_params[0].next = &me->local_params[1];
 
     *params = me->local_params;
 }
@@ -169,9 +170,9 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
     Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_signature, T_COSE_MAX_SIG_SIZE);
     struct q_useful_buf_c              tbs_hash;
     struct q_useful_buf_c              signature;
-    const struct t_cose_parameter  *params_vector[3];
     struct q_useful_buf_c              signer_protected_headers;
     size_t                             tmp_sig_size;
+    struct t_cose_parameter           *parameter_list;
 
     /* Get the sig size to find out if this is an alg that short-circuit
      * signer can pretend to be.
@@ -188,11 +189,10 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
         /* Open the array enclosing the two header buckets and the sig. */
         QCBOREncode_OpenArray(qcbor_encoder);
 
-        t_cose_short_headers(me_x, &params_vector[0]);
-        params_vector[1] = me->added_signer_params;
-        params_vector[2] = NULL;
+        t_cose_short_headers(me_x, &parameter_list);
+        t_cose_parameter_list_append(parameter_list, me->added_signer_params);
 
-        t_cose_encode_headers(qcbor_encoder, params_vector, &signer_protected_headers);
+        t_cose_encode_headers(qcbor_encoder, parameter_list, &signer_protected_headers);
     }
 
     /* -- The signature -- */

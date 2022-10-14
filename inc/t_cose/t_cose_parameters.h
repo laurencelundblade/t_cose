@@ -24,15 +24,13 @@ extern "C" {
 #endif
 
 
-// TODO: this file probably needs some re ordering and re organizing
-
 /**
  * @file t_cose_parameters.h
  *
  * @brief Parameter encoding and decoding.
  *
  * Parameter encoding and decoding hinges around \ref t_cose_parameter
- * and functions for encoding and decoding arrays of it. Users of the
+ * and functions for encoding and decoding liked lists of it. Users of the
  * t_cose public APIs for verifying signing, encrypting, decrypting
  * and MACing will mainly use struct t_cose_parameter, not the
  * encoding and decoding functions.
@@ -55,8 +53,8 @@ extern "C" {
  * examine what is returned.
  *
  * If the caller wishes to examine them, they can iterate over the
- * array searching by label. The data type, protected-ness and
- * criticality of the parameters in the returned array is not
+ * liked list searching by label. The data type, protected-ness and
+ * criticality of the parameters in the returned list is not
  * checked. It is up to the caller examining these to check.  Some
  * functions for examining headers in the array are provided. See
  * t_cose_find_parameter(), t_cose_find_parameter_kid(), etc… These do
@@ -75,7 +73,7 @@ extern "C" {
  * and per recipient.
  *
  * When decoding all the headers for the entire message are returned
- * in one. The caller can know which parameters are for the body and
+ * in one list. The caller can know which parameters are for the body and
  * an index number for the recipient or signer. Even the nesting of
  * recipients within recipients is indicated.
  *
@@ -86,6 +84,21 @@ extern "C" {
  * simpler to use for the caller.
  */
 
+/**
+ * The maximum number of critical header parameters that can be
+ * handled during decoding (e.g., during verification, decryption,
+ * ...). \ref T_COSE_ERR_TOO_MANY_PARAMETERS will be returned if the
+ * input message has more.
+ *
+ * There can be both \ref T_COSE_MAX_CRITICAL_PARAMS integer-labeled
+ * parameters and \ref T_COSE_MAX_CRITICAL_PARAMS string-labeled
+ * parameters.
+ *
+ * This is a hard maximum so the implementation doesn't need
+ * malloc. This constant can be increased if needed. Doing so will
+ * increase stack usage.
+ */
+#define T_COSE_MAX_CRITICAL_PARAMS 4
 
 
 
@@ -147,6 +160,8 @@ t_cose_parameter_decode_callback(void                    *callback_context,
                                  struct t_cose_parameter *parameter);
 
 
+
+
 /** Where in a COSE message a header was found. */
 struct t_cose_header_location {
     /** 0 means the body, 1 means the first level of signer/recipient, 2,
@@ -158,8 +173,6 @@ struct t_cose_header_location {
 };
 
 
-
-
 /**
  * This holds one parameter such as an algorithm ID or kid. When that
  * one parameter is not an integer or string, this holds a callback to
@@ -168,6 +181,9 @@ struct t_cose_header_location {
  * This is used both for to-be-encoded parameters and decoded
  * parameters. It is also used for header parameters and key
  * parameters.
+ *
+ * Collections of parameters are represented by a linked
+ * list of these.
  */
 struct t_cose_parameter {
     /** Label indicating which parameter it is. Typically, one of
@@ -204,6 +220,7 @@ struct t_cose_parameter {
         } custom_encoder;
     } value;
 
+    /** next parameter in the linked list or NULL at the end of the list. */
     struct t_cose_parameter *next;
 };
 
@@ -220,95 +237,61 @@ struct t_cose_parameter {
 
 
 /**
- * The maximum number of critical header parameters that can be
- * handled during decoding (e.g., during verification, decryption,
- * ...). \ref T_COSE_ERR_TOO_MANY_PARAMETERS will be returned if the
- * input message has more.
- *
- * There can be both \ref T_COSE_MAX_CRITICAL_PARAMS integer-labeled
- * parameters and \ref T_COSE_MAX_CRITICAL_PARAMS string-labeled
- * parameters.
- *
- * This is a hard maximum so the implementation doesn't need
- * malloc. This constant can be increased if needed. Doing so will
- * increase stack usage.
- */
-#define T_COSE_MAX_CRITICAL_PARAMS 4
-
-
-/**
  * The value of an unsigned integer content type indicating no content
  * type.  See \ref t_cose_parameters.
  */
 #define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 
 
-
-
-
-/* These are struct t_cose_header_parameter initializers for the standard
- * header parameters. They set the type and typical protection level.
+/**
+ * This holds the common header parameters defined in section 3 of
+ * RFC 9052. It was the only way that parameters were returned in t_cose 1.x
+ * which did not support any parameters but these. For t_cose 2.x
+ * parameters are returned as linked lists of struct t_cose_parameter.
  *
- * See comments in t_cose_make_alg_id_parameter() implementation.
- *
- * Example use:
- *    struct t_cose_parameter params[2];
- *    params[0] = t_cose_make_alg_id_parameter(T_COSE_ALGORITHM_ES256);
- *    params[1] = t_cose_make_end_parameter();
+ * Approximate size on a 64-bit machine is 80 bytes and on a 32-bit
+ * machine is 40.
  */
+struct t_cose_parameters {
+    /** The algorithm ID. \ref T_COSE_ALGORITHM_NONE if the algorithm ID
+     * parameter is not present. String type algorithm IDs are not
+     * supported.  See the
+     * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml)
+     * for the algorithms corresponding to the integer values.
+     */
+    int32_t               cose_algorithm_id;
 
-static inline struct t_cose_parameter
-t_cose_make_alg_id_parameter(int32_t alg_id);
+    /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if parameter is not
+     * present */
+    struct q_useful_buf_c kid;
 
+    /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if parameter
+     * is not present */
+    struct q_useful_buf_c iv;
 
-
+    /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
+     * parameter is not present */
+    struct q_useful_buf_c partial_iv;
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
+    /** The content type as a MIME type like
+     * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
+    struct q_useful_buf_c content_type_tstr;
 
-static inline struct t_cose_parameter
-t_cose_make_ct_uint_parameter(uint32_t content_type);
-
-
-
-
-static inline struct t_cose_parameter
-t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type);
-
-
+    /** The content type as a CoAP Content-Format
+     * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not
+     * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
+    uint32_t              content_type_uint;
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
-
-
-
-
-static inline struct t_cose_parameter
-t_cose_make_kid_parameter(struct q_useful_buf_c kid);
-
-
-
-
-static inline struct t_cose_parameter
-t_cose_make_iv_parameter(struct q_useful_buf_c iv);
-
-
-
-
-static inline struct t_cose_parameter
-t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv);
-
-
-
-static inline struct t_cose_parameter
-t_cose_make_end_parameter(void);
-
-
-
+};
 
 
 /* A structure to hold an array of struct t_cose_header_param
  * of a given length, typically an empty structure that is
  * not yet terminated by T_COSE_PARAMETER_TYPE_NONE. */
 struct t_cose_parameter_storage {
-    size_t                   storage_size;
+    size_t                   size;
+    size_t                   used;
     struct t_cose_parameter *storage;
 };
 
@@ -366,10 +349,9 @@ struct t_cose_parameter_storage {
  * mechanism is in used (e.g., hashing or AEAD encryption).
  */
 enum t_cose_err_t
-t_cose_encode_headers(QCBOREncodeContext                    *encode_context,
-                      const struct t_cose_parameter * const *parameters,
-                      struct q_useful_buf_c                 *protected_parameters);
-
+t_cose_encode_headers(QCBOREncodeContext            *encode_context,
+                      const struct t_cose_parameter *parameters,
+                      struct q_useful_buf_c         *protected_parameters);
 
 
 /**
@@ -380,8 +362,8 @@ t_cose_encode_headers(QCBOREncodeContext                    *encode_context,
  * \param[in] callback                Callback for non-integer and
  *                                    non-string parameters.
  * \param[in] callback_context        Context for the above callback
- * \param[in,out] parameters          On input storage for parameters, on
- *                                    output the decoded parameters.
+ * \param[in] parameter_storage          Storage for parameters.
+ * \param[out] decoded_parameters  Returned decoded parameters.
  * \param[out] protected_parameters   Pointer and length of encoded protected
  *                                    parameters.
  *
@@ -415,29 +397,116 @@ t_cose_encode_headers(QCBOREncodeContext                    *encode_context,
  * and non-critical parameters will be ignored.
  */
 enum t_cose_err_t
-t_cose_headers_decode(QCBORDecodeContext                   *decode_context,
-                      struct t_cose_header_location         location,
-                      t_cose_parameter_decode_callback     *callback,
-                      void                                 *callback_context,
-                      const struct t_cose_parameter_storage parameters,
-                      struct q_useful_buf_c                *protected_parameters);
+t_cose_headers_decode(QCBORDecodeContext                *decode_context,
+                      struct t_cose_header_location      location,
+                      t_cose_parameter_decode_callback  *callback,
+                      void                              *callback_context,
+                      struct t_cose_parameter_storage   *parameter_storage,
+                      struct t_cose_parameter          **decoded_parameters,
+                      struct q_useful_buf_c             *protected_parameters);
 
 
 
-// TODO: finish documentation for functions below
-/* Find a parameter by label in array of parameters returned by verify */
+
+/**
+ * \brief Append one list of parameters to another.
+ *
+ * \param[in] existing  A parameter linked list to which something is added to the end.
+ * \param[in] to_be_appended A parameter link list which is to added.
+ *
+ * This finds the end of \c existing and sets the \c next member in the
+ * last node to \c to_be_appended.
+ *
+ * \c to_be_appended may be \c NULL. \c existing may not.
+ */
+static void
+t_cose_parameter_list_append(struct t_cose_parameter *existing,
+                             struct t_cose_parameter *to_be_appended);
+
+
+
+
+/**
+ * Make a struct t_cose_parameter for algorithm ID
+ *
+ * \param[in] alg_id    The COSE algorithm ID
+ *
+ * \return An initialized struct t_cose_parameter.
+ *
+ * This fills in all the elements in a struct t_cose_parameter
+ * for an algorithm ID. In particular, it is always in the protected
+ * bucked and never critical (because all COSE implementations
+ * MUST understand this parameter).
+ *
+ * struct t_cose_parameter is just about always used as
+ * a node in a linked list. This initializes the \c next
+ * pointer to \c NULL. If it's not the last item in
+ * a linked list it will have to be set. For example:
+ *
+ *   struct t_cose_parameter params[2];
+ *   params[0] = t_cose_make_alg_id_parameter(cose_algorithm_id);
+ *   params[1] = t_cose_make_kid_parameter(kid);
+ *   params[0].next = &params[1];
+ *
+ * This is implemented as an inline function so it usually
+ * compiles down to some assignments (an inline function
+ * works in C and C++ where an initializer or a compound
+ * literal does not, particularly because there is a union
+ * involved and C++ can't initialize unions at all).
+ */
+static struct t_cose_parameter
+t_cose_make_alg_id_parameter(int32_t alg_id);
+
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+static struct t_cose_parameter
+t_cose_make_ct_uint_parameter(uint32_t content_type);
+
+
+static struct t_cose_parameter
+t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type);
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
+
+static struct t_cose_parameter
+t_cose_make_kid_parameter(struct q_useful_buf_c kid);
+
+
+static struct t_cose_parameter
+t_cose_make_iv_parameter(struct q_useful_buf_c iv);
+
+
+static struct t_cose_parameter
+t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv);
+
+
+
+
+/**
+ * \brief  Find a parameter by label in linked list.
+ *
+ * \param[in] parameter_list   The linked list to search.
+ * \param[in] label   The label to search for.
+ *
+ * \return The found parameter or NULL.
+ */
 const struct t_cose_parameter *
-t_cose_find_parameter(const struct t_cose_parameter *p, int64_t label);
+t_cose_find_parameter(const struct t_cose_parameter *parameter_list, int64_t label);
 
 
-/*
- * TODO: finish documentation
- * This returns T_COSE_ALGORITHM_NONE for all errors decoding
- * the algorithm ID including it not being present and not being
- * a protected parameter.
+/**
+ * \brief Find the algorithm ID parameter in a linked list
+ *
+ * \param[in] parameter_list  The parameter list to search.
+ *
+ * \return The algorithm ID or \ref T_COSE_ALGORITHM_NONE.
+ *
+ * This returns \ref T_COSE_ALGORITHM_NONE on all errors including
+ * errors such as the parameter not being present, the parameter being
+ * of the wrong type and the parameter not being protected.
  */
 int32_t
-t_cose_find_parameter_alg_id(const struct t_cose_parameter *p);
+t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list);
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 
@@ -445,7 +514,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *p);
 * not being present and not being the right type.
 */
 struct q_useful_buf_c
-t_cose_find_parameter_content_type_tstr(const struct t_cose_parameter *p);
+t_cose_find_parameter_content_type_tstr(const struct t_cose_parameter *parameter_list);
 
 /*
  * This returns T_COSE_EMPTY_UINT_CONTENT_TYPE for all errors include it
@@ -453,7 +522,7 @@ t_cose_find_parameter_content_type_tstr(const struct t_cose_parameter *p);
  * value for a CoAP content type).
  */
 uint32_t
-t_cose_find_parameter_content_type_int(const struct t_cose_parameter *p);
+t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_list);
 
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
@@ -462,22 +531,44 @@ t_cose_find_parameter_content_type_int(const struct t_cose_parameter *p);
  * not being present and not being the right type.
  */
 struct q_useful_buf_c
-t_cose_find_parameter_kid(const struct t_cose_parameter *p);
+t_cose_find_parameter_kid(const struct t_cose_parameter *parameter_list);
 
 
 /* This returns NULL_Q_USEFUL_BUF_C for all errors including it
 * not being present and not being the right type.
 */
 struct q_useful_buf_c
-t_cose_find_parameter_iv(const struct t_cose_parameter *p);
+t_cose_find_parameter_iv(const struct t_cose_parameter *parameter_list);
 
 
 /* This returns NULL_Q_USEFUL_BUF_C for all errors including it
 * not being present and not being the right type.
 */
 struct q_useful_buf_c
-t_cose_find_parameter_partial_iv(const struct t_cose_parameter *p);
+t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list);
 
+
+/**
+ * \brief Fill in structure with common header parameters.
+ *
+ * \param[in] decoded_params  Linked list of decoded parameters.
+ * \param[out] returned_parameters   A filled in structure with the common header parameters.
+ *
+ *  \c decoded_params is traversed and any of the common headers
+ *  parameters found in it are filled into \c returned_parameters.
+ *  Unknown header parameters are ignored.
+ *
+ *  TODO: anything to be done with critical parameters that are unknown?
+ */
+enum t_cose_err_t
+t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
+                                struct t_cose_parameters      *returned_parameters);
+
+
+
+/* ------------------------------------------------------------------------
+ * Inline implementations of public functions defined above.
+ */
 
 
 static inline struct t_cose_parameter
@@ -487,32 +578,47 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      * C and C++...
      *
      * There are three contexts where it would be nice
-     * to assign / initialize with a filled in t_cose_parameter.
+     * to assign / initialize with a filled-in t_cose_parameter.
      *
-     * 1) Assignments where an expression is needed.
-     * 2) Initializers of a simple variable.
-     * 3) Initializer of a static const data structure -- initialized data in the executable.
+     * 1) Assignments -- an expression is required
+     * 2) Initialization of a variable upon its declaration.
+     * 3) Initialization of a static const data structure -- initialized data in the data sections of executable object code
      *
-     * The functions here provide 1) and 2) for C and C++, but not 3).
+     * The inline functions here provide 1) and 2) for C and C++, but not 3).
      *
+     * The macros like this
+     * #define T_COSE_MAKE_ALG_ID_PARAM(alg_id) \
+     *    {COSE_HEADER_PARAM_ALG, \
+     *     true,\
+     *     false,\
+     *     {0,0},\
+     *     T_COSE_PARAMETER_TYPE_INT64,\
+     *     .value.i64 = alg_id }
+     * is an initializer. Both C and C++ have initializers,
+     * but in C++ they can't use designated initializers,
+     * the part where .value.i64 = alg_id.
      *
-     * The macros like T_COSE_MAKE_ALG_ID_PARAM create *initializers* that can be
-     * used only in C. An initializer can be used for static
-     * const data. They only work in C because they use
-     * designated initializers (e.g., .value.i64 = alg_id) for the union and C++
-     * doesn't allow designated initializers.
+     * The following is a compound literal.
+     * #define T_COSE_MAKE_ALG_ID_PARAM(alg_id) \
+     *   (struct t_cose_parameter){COSE_HEADER_PARAM_ALG, \
+     *     true,\
+     *     false,\
+     *     {0,0},\
+     *     T_COSE_PARAMETER_TYPE_INT64,\
+     *     .value.i64 = alg_id }
+     *
+     * It looks like a cast but it is not. You can take the address
+     * of it and it is an lvalue. These exist only in C, not in C++,
+     * though c++ compilers do support them, but warnings will ensue
+     * if -Wpendatic is used so this code doesn't use them with c++
+     *
+     * https://stackoverflow.com/questions/28116467/are-compound-literals-standard-c
+     *
+     * See also the definition of NULLUsefulBufC in UsefulBuf.h in QCBOR.
      *
      * The inline functions work in both C and C++ because they
-     * are C functions. Since they are C functions they can
-     * use the macro which has the designated initializer that
-     * won't work in C++. The function also gives better
-     * type checking and error reporting. It is expected
-     * that the optimizer reduces the function to nothing.
-     *
-     * The one thing you can't do with the macro and function is initialize
-     * static const data in C++.
+     * are functions.
      */
-
 
     struct t_cose_parameter parameter;
 
@@ -523,6 +629,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
     parameter.label            = COSE_HEADER_PARAM_ALG;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
     parameter.value.i64        = alg_id;
+    parameter.next             = NULL;
 
     return parameter;
 }
@@ -539,6 +646,7 @@ t_cose_make_ct_uint_parameter(uint32_t content_type)
     parameter.label            = COSE_HEADER_PARAM_CONTENT_TYPE;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
     parameter.value.i64        = (int32_t)content_type;
+    parameter.next             = NULL;
 
     return parameter;
 }
@@ -553,8 +661,9 @@ t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type)
     parameter.location.index   = 0;
     parameter.location.nesting = 0;
     parameter.label            = COSE_HEADER_PARAM_CONTENT_TYPE;
-    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_TEXT_STRING;
     parameter.value.string     = content_type;
+    parameter.next             = NULL;
 
     return parameter;
 }
@@ -571,6 +680,7 @@ t_cose_make_kid_parameter(struct q_useful_buf_c kid)
     parameter.label            = COSE_HEADER_PARAM_KID;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
     parameter.value.string     = kid;
+    parameter.next             = NULL;
 
     return parameter;
 }
@@ -587,6 +697,7 @@ t_cose_make_iv_parameter(struct q_useful_buf_c iv)
     parameter.label            = COSE_HEADER_PARAM_IV;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
     parameter.value.string     = iv;
+    parameter.next             = NULL;
 
     return parameter;
 }
@@ -603,25 +714,21 @@ t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv)
     parameter.label            = COSE_HEADER_PARAM_PARTIAL_IV;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
     parameter.value.string     = iv;
+    parameter.next             = NULL;
 
     return parameter;
 }
 
 
-static inline struct t_cose_parameter
-t_cose_make_end_parameter(void)
+
+static inline void
+t_cose_parameter_list_append(struct t_cose_parameter *existing, struct t_cose_parameter *to_be_appended)
 {
-    struct t_cose_parameter parameter;
+    while(existing->next != NULL) {
+        existing = existing->next;
+    }
 
-    parameter.critical         = false;
-    parameter.in_protected     = false;
-    parameter.location.index   = 0;
-    parameter.location.nesting = 0;
-    parameter.label            = 0;
-    parameter.value_type       = T_COSE_PARAMETER_TYPE_NONE;
-    parameter.value.string     = NULLUsefulBufC;
-
-    return parameter;
+    existing->next = to_be_appended;
 }
 
 

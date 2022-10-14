@@ -135,8 +135,10 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
     Q_USEFUL_BUF_MAKE_STACK_UB(   tbm_first_part_buf,
                                   T_COSE_SIZE_OF_TBM);
     struct t_cose_crypto_hmac     hmac_ctx;
+    struct t_cose_parameter   *decoded_params;
 
     *payload = NULL_Q_USEFUL_BUF_C;
+    decoded_params = NULL; // TODO: check that this is right and necessary
 
     QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
 
@@ -157,7 +159,8 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
                           l,
                           NULL,
                           NULL,
-                          context->params,
+                        &context->parameter_storage,
+                        &decoded_params,
                           &protected_parameters);
 
     /* --- The payload --- */
@@ -181,7 +184,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
 
     /* === End of the decoding of the array of four === */
     if((context->option_flags & T_COSE_OPT_REQUIRE_KID) &&
-        q_useful_buf_c_is_null(t_cose_find_parameter_kid(context->params.storage))) {
+        q_useful_buf_c_is_null(t_cose_find_parameter_kid(decoded_params))) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
@@ -212,7 +215,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_verify_setup(&hmac_ctx,
-                                  t_cose_find_parameter_alg_id(context->params.storage),
+                                  t_cose_find_parameter_alg_id(decoded_params),
                                   context->verification_key);
     if(return_value) {
         goto Done;
@@ -235,7 +238,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
 
 Done:
     if(return_params != NULL) {
-        *return_params = context->params.storage;
+        *return_params = decoded_params;
     }
 
     return return_value;

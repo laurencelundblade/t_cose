@@ -291,7 +291,7 @@ struct param_test {
                                  .value.i64 = alg_id }
 
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
+//#ifndef T_COSE_DISABLE_CONTENT_TYPE
 
 
 #define T_COSE_MAKE_CT_UINT_PARAM(content_type) \
@@ -311,7 +311,7 @@ struct param_test {
                              {0,0},\
                              T_COSE_PARAMETER_TYPE_TEXT_STRING,\
                              .value.string = content_type }
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+//#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 
 
@@ -402,7 +402,7 @@ static const struct param_test param_tests[] = {
     /* 0. Critical, protected floating point parameter made by callback. */
     {
         UBX(x1),
-        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer} },
+        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer}, NULL },
         T_COSE_SUCCESS,
         T_COSE_SUCCESS,
         check_44,
@@ -413,7 +413,7 @@ static const struct param_test param_tests[] = {
     {
         UBX(x2),
         {33, false, false, {0,0}, T_COSE_PARAMETER_TYPE_BYTE_STRING,
-            .value.string = UBX(b1)},
+            .value.string = UBX(b1), NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         NULL,
@@ -423,7 +423,7 @@ static const struct param_test param_tests[] = {
     /* 2. Trying to make a parameter of an unknown type. */
     {
         {x2, 0}, // Unused
-        {22, false, false, {0,0}, 200 /* Unknown type */, .value.i64 = 11},
+        {22, false, false, {0,0}, 200 /* Unknown type */, .value.i64 = 11, NULL},
         T_COSE_ERR_INVALID_PARAMETER_TYPE,
         0,
         NULL,
@@ -433,7 +433,7 @@ static const struct param_test param_tests[] = {
     /* 3. A protected negative integer parameter. */
     {
         UBX(x3), /* CBOR encoded header params */
-        {11, true, false, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.i64 = INT32_MIN},
+        {11, true, false, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.i64 = INT32_MIN, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -443,7 +443,7 @@ static const struct param_test param_tests[] = {
     /* 4. Attempt to encode a critical unprotected parameter. */
     {
         {x2, 0}, // Unused
-        {101, false, true, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.i64 = INT32_MIN},
+        {101, false, true, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.i64 = INT32_MIN, NULL},
         T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -453,7 +453,7 @@ static const struct param_test param_tests[] = {
     /* 5. Encoder callback returns an error. */
     {
         {x2, 0}, // Unused
-        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer} },
+        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer}, NULL },
         T_COSE_ERR_FAIL, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -463,27 +463,22 @@ static const struct param_test param_tests[] = {
     /* 6. Encoder callback produces invalid CBOR. */
     {
         {x2, 0}, // Unused
-        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer} },
+        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer}, NULL },
         T_COSE_SUCCESS, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
         QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN /* Expected CBOR encode result */
     },
 
-    /* 7. Empty parameters. */
-    {
-        UBX(x5), /* CBOR encoded header params */
-        {0, false, false, {0,0}, T_COSE_PARAMETER_TYPE_NONE, .value.ptr = NULL},
-        T_COSE_SUCCESS, /* Expected encode result */
-        T_COSE_SUCCESS, /* Expected decode result */
-        NULL, /* Call back for decode check */
-        QCBOR_SUCCESS /* Expected CBOR encode result */
-    },
+    // TODO: renumber tests
+    // TODO: test for empty parameters
+
+
 
     /* 8. Incorrectly formatted parameters (decode only test) */
     {
         UBX(x6), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -503,7 +498,7 @@ static const struct param_test param_tests[] = {
     /* 10. Not-well formed parameters (decode only test) */
     {
         UBX(x8), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -513,7 +508,7 @@ static const struct param_test param_tests[] = {
     /* 11. No protected headers at all (decode only test) */
     {
         UBX(x9), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -626,7 +621,7 @@ static struct param_test_combo param_combo_tests[] = {
     /* 1. Several parameters success test */
     {
         UBX(x10),
-        (int []){0, 1, 12, 13, 15, 16, 17, INT_MAX},
+        (int []){0, 1, 11, 12, 14, 15, 16, INT_MAX},
         T_COSE_SUCCESS,
         QCBOR_SUCCESS,
     },
@@ -646,9 +641,6 @@ int_fast32_t
 param_test(void)
 {
     struct t_cose_parameter         param_array[20];
-    struct t_cose_parameter         param_array2[20];
-    struct t_cose_parameter         param_array3[20];
-    const struct t_cose_parameter  *params_vector[4];
     struct q_useful_buf_c           encoded_params;
     enum t_cose_err_t               t_cose_result;
     QCBORError                      qcbor_result;
@@ -673,19 +665,15 @@ param_test(void)
         }
 
         /* This is just to be able to set break points by test number. */
-        if(i == 17) {
+        if(i == 7) {
             t_cose_result = 0;
         }
 
         /* Encode test */
         if(param_test->unencoded.value_type != NO_ENCODE_TEST) {
-            param_array[0] = param_test->unencoded;
-            param_array[1].value_type = T_COSE_PARAMETER_TYPE_NONE;
-            params_vector[0] = param_array;
-            params_vector[1] = NULL;
             QCBOREncode_Init(&qcbor_encoder, encode_buffer);
             t_cose_result = t_cose_encode_headers(&qcbor_encoder,
-                                                  params_vector,
+                                                  &(param_test->unencoded),
                                                   NULL);
 
             if(t_cose_result != param_test->encode_result) {
@@ -708,16 +696,18 @@ param_test(void)
 
         /* Decode test */
         if(!q_useful_buf_c_is_empty(param_test->encoded)) {
-            param_storage.storage_size = sizeof(param_array);
+            param_storage.size = sizeof(param_array)/sizeof(struct t_cose_parameter);
+            param_storage.used = 0;
             param_storage.storage = param_array;
-            param_array[0].value_type = T_COSE_PARAMETER_TYPE_NONE;
+            struct t_cose_parameter *decoded_parameter;
 
             QCBORDecode_Init(&decode_context, param_test->encoded, 0);
 
             t_cose_result = t_cose_headers_decode(&decode_context,
                                                   (struct t_cose_header_location){0,0},
                                                   header_reader, NULL,
-                                                  param_storage,
+                                                 &param_storage,
+                                                 &decoded_parameter,
                                                  &encoded_prot_params);
 
             if(t_cose_result != param_test->decode_result) {
@@ -755,6 +745,7 @@ param_test(void)
             }
         }
     }
+    
 
     /* The multiple parameter tests */
     for(int i = 0; ; i++) {
@@ -772,15 +763,14 @@ param_test(void)
         int j;
         for(j = 0; ppp->combo_list[j] != INT_MAX; j++) {
             param_array[j] = param_tests[ppp->combo_list[j]].unencoded;
+            if(j != 0) {
+                param_array[j-1].next = &param_array[j];
+            }
         }
-        param_array[j].value_type = T_COSE_PARAMETER_TYPE_NONE;
-        params_vector[0] = param_array;
-        params_vector[1] = NULL;
-
 
         QCBOREncode_Init(&qcbor_encoder, encode_buffer);
         t_cose_result = t_cose_encode_headers(&qcbor_encoder,
-                                              params_vector,
+                                              param_array,
                                               NULL);
 
         if(t_cose_result != ppp->header_encode_result) {
@@ -803,29 +793,33 @@ param_test(void)
     }
 
 
+
     /* One test that is not so data driven to test the encoding vector feature. */
-    int k = 0;
-    param_array[0] = param_tests[0].unencoded;
-    param_array[1] = param_tests[1].unencoded;
-    param_array[2] = param_tests[12].unencoded;
-    param_array[3].value_type = T_COSE_PARAMETER_TYPE_NONE;
-    params_vector[k++] = param_array;
 
-    param_array2[0] = param_tests[13].unencoded;
-    param_array2[1] = param_tests[15].unencoded;
-    param_array2[2] = param_tests[16].unencoded;
-    param_array2[3].value_type = T_COSE_PARAMETER_TYPE_NONE;
-    params_vector[k++] = param_array2;
+    param_array[0] = param_tests[1].unencoded;
 
-    param_array3[0] = param_tests[17].unencoded;
-    param_array3[1].value_type = T_COSE_PARAMETER_TYPE_NONE;
-    params_vector[k++] = param_array3;
+    param_array[1] = t_cose_make_ct_uint_parameter(42);
+    param_array[0].next = &param_array[1];
 
-    params_vector[k] = NULL;
+    param_array[2] = t_cose_make_kid_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"));
+    param_array[1].next = &param_array[2];
+
+    param_array[3] = t_cose_make_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"));
+    param_array[2].next = &param_array[3];
+
+    param_array[4] = t_cose_make_partial_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"));
+    param_array[3].next = &param_array[4];
+
+    param_array[5] = param_tests[0].unencoded;
+    param_array[4].next = &param_array[5];
+
+    param_array[6] = t_cose_make_alg_id_parameter(COSE_ALGORITHM_ES256);
+    param_array[5].next = &param_array[6];
+
 
     QCBOREncode_Init(&qcbor_encoder, encode_buffer);
     t_cose_result = t_cose_encode_headers(&qcbor_encoder,
-                                          params_vector,
+                                          &param_array[0],
                                           NULL);
 
     if(t_cose_result != T_COSE_SUCCESS) {
@@ -842,38 +836,46 @@ param_test(void)
     }
 
 
-    param_storage.storage_size = sizeof(param_array);
-    param_storage.storage = param_array;
-    param_array[0].value_type = T_COSE_PARAMETER_TYPE_NONE;
-
-    if(t_cose_find_parameter_alg_id(param_array) != T_COSE_ALGORITHM_NONE) {
+    if(t_cose_find_parameter_alg_id(NULL) != T_COSE_ALGORITHM_NONE) {
         return -4;
     }
 
-    if(t_cose_find_parameter_content_type_int(param_array) != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    if(t_cose_find_parameter_content_type_int(NULL) != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
         return -5;
     }
+#endif
 
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_kid(param_array))) {
+
+    if(!q_useful_buf_c_is_null(t_cose_find_parameter_kid(NULL))) {
         return -6;
     }
 
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_iv(param_array))) {
+    if(!q_useful_buf_c_is_null(t_cose_find_parameter_iv(NULL))) {
         return -7;
     }
 
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_partial_iv(param_array))) {
+    if(!q_useful_buf_c_is_null(t_cose_find_parameter_partial_iv(NULL))) {
         return -8;
     }
 
 
     QCBORDecode_Init(&decode_context, encoded_params, 0);
 
+    struct t_cose_parameter *dec;
+
+
+    param_storage.size = sizeof(param_array)/sizeof(struct t_cose_parameter);
+    param_storage.storage = param_array;
+    param_storage.used = 0;
+
+
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
                                           NULL,
                                           NULL,
-                                          param_storage,
+                                          &param_storage,
+                                          &dec,
                                           &encoded_prot_params);
 
     qcbor_result = QCBORDecode_Finish(&decode_context);
@@ -884,27 +886,75 @@ param_test(void)
         return -10; //i * 1000 + 1;
     }
 
-    if(t_cose_find_parameter_alg_id(param_array) != COSE_ALGORITHM_ES256) {
+    if(t_cose_find_parameter_alg_id(dec) != COSE_ALGORITHM_ES256) {
         return -11;
     }
 
-    if(t_cose_find_parameter_content_type_int (param_array) != 42) {
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    if(t_cose_find_parameter_content_type_int (dec) != 42) {
         return -12;
     }
+#endif
 
-    string = t_cose_find_parameter_kid(param_array);
+
+    string = t_cose_find_parameter_kid(dec);
     if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"))) {
         return -13;
     }
 
-    string = t_cose_find_parameter_iv(param_array);
+    string = t_cose_find_parameter_iv(dec);
     if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"))) {
         return -14;
     }
 
-    string = t_cose_find_parameter_partial_iv(param_array);
+    string = t_cose_find_parameter_partial_iv(dec);
     if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"))) {
         return -15;
+    }
+
+    /* Empty parameters section test */
+    QCBOREncode_Init(&qcbor_encoder, encode_buffer);
+    t_cose_result = t_cose_encode_headers(&qcbor_encoder,
+                                          NULL,
+                                          NULL);
+
+    if(t_cose_result != param_test->encode_result) {
+        return -900;
+    }
+
+    if(t_cose_result == T_COSE_SUCCESS) {
+        qcbor_result = QCBOREncode_Finish(&qcbor_encoder, &encoded_params);
+        if(qcbor_result != param_test->qcbor_encode_result) {
+            return -900;
+        }
+
+        if(qcbor_result == QCBOR_SUCCESS) {
+            if(q_useful_buf_compare(encoded_params, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(x5))) {
+                return -900;
+            }
+        }
+    }
+
+    param_storage.size = sizeof(param_array)/sizeof(struct t_cose_parameter);
+    param_storage.used = 0;
+    param_storage.storage = param_array;
+    struct t_cose_parameter *decoded_parameter;
+
+    QCBORDecode_Init(&decode_context, encoded_params, 0);
+
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                          (struct t_cose_header_location){0,0},
+                                          header_reader, NULL,
+                                         &param_storage,
+                                         &decoded_parameter,
+                                         &encoded_prot_params);
+
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return -700;
+    }
+
+    if(decoded_parameter != NULL) {
+        return -900;
     }
 
     return 0;

@@ -147,8 +147,10 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     struct q_useful_buf_c           signature;
     QCBORError                      qcbor_error;
     struct t_cose_signature_verify *verifier;
-    struct t_cose_header_location          header_location;
+    struct t_cose_header_location   header_location;
     QCBORItem                       null_payload;
+    struct t_cose_parameter  *decoded_body_parameter_list;
+    struct t_cose_parameter  *decoded_sig_parameter_list;
 
 
     /* === Decoding of the array of four starts here === */
@@ -166,16 +168,17 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     }
 
 
-    /* --- The protected parameters --- */
+    /* --- The header parameters --- */
     /* The location of body header parameters is 0,0 */
     header_location = (struct t_cose_header_location){0,  /* nesting */
-                                               0}; /* index */
+                                                      0}; /* index */
 
     return_value = t_cose_headers_decode(&decode_context,
                                           header_location,
                                           NULL, // TODO: read callback
                                           NULL, // TODO: read callback
-                                          me->params,
+                                          me->p_storage,
+                                         &decoded_body_parameter_list,
                                          &protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -218,7 +221,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                                                  NULL_Q_USEFUL_BUF_C,
                                                 *payload,
                                                  aad,
-                                                 me->params.storage,
+                                                 decoded_body_parameter_list,
                                                  signature);
             if(return_value == T_COSE_SUCCESS) {
                 break;
@@ -248,8 +251,13 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                                                     protected_parameters,
                                                    *payload,
                                                     aad,
-                                                    me->params,
-                                                   &decode_context);
+                                                    me->p_storage,
+                                                     &decode_context,
+                                                    &decoded_sig_parameter_list);
+
+                // TODO: this may not be in the right place
+                t_cose_parameter_list_append(decoded_body_parameter_list, decoded_sig_parameter_list);
+
                 if(return_value == T_COSE_SUCCESS) {
                     if(me->option_flags & T_COSE_VERIFY_ALL) { // TODO: correct flag value
                         continue;
@@ -290,7 +298,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
 Done2:
     if(returned_parameters != NULL) {
-        *returned_parameters = me->params.storage;
+        *returned_parameters = decoded_body_parameter_list;
     }
 
 Done:
