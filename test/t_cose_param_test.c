@@ -70,7 +70,7 @@ check_44(struct t_cose_parameter *param)
 static int32_t
 check_alg_id(struct t_cose_parameter *param)
 {
-    if(param->label != COSE_HEADER_PARAM_ALG) {
+    if(param->label != T_COSE_HEADER_PARAM_ALG) {
         return 1;
     }
 
@@ -78,7 +78,7 @@ check_alg_id(struct t_cose_parameter *param)
         return 2;
     }
 
-    if(param->value.i64 != COSE_ALGORITHM_ES256) {
+    if(param->value.i64 != T_COSE_ALGORITHM_ES256) {
         return 3;
     }
 
@@ -98,7 +98,7 @@ check_alg_id(struct t_cose_parameter *param)
 static int32_t
 check_int_content_id(struct t_cose_parameter *param)
 {
-    if(param->label != COSE_HEADER_PARAM_CONTENT_TYPE) {
+    if(param->label != T_COSE_HEADER_PARAM_CONTENT_TYPE) {
         return 1;
     }
 
@@ -125,7 +125,7 @@ check_int_content_id(struct t_cose_parameter *param)
 static int32_t
 check_text_content_id(struct t_cose_parameter *param)
 {
-    if(param->label != COSE_HEADER_PARAM_CONTENT_TYPE) {
+    if(param->label != T_COSE_HEADER_PARAM_CONTENT_TYPE) {
         return 1;
     }
 
@@ -152,7 +152,7 @@ check_text_content_id(struct t_cose_parameter *param)
 static int32_t
 check_kid(struct t_cose_parameter *param)
 {
-    if(param->label != COSE_HEADER_PARAM_KID) {
+    if(param->label != T_COSE_HEADER_PARAM_KID) {
         return 1;
     }
 
@@ -179,7 +179,7 @@ check_kid(struct t_cose_parameter *param)
 static int32_t
 check_iv(struct t_cose_parameter *param)
 {
-    if(param->label != COSE_HEADER_PARAM_IV) {
+    if(param->label != T_COSE_HEADER_PARAM_IV) {
         return 1;
     }
 
@@ -206,7 +206,7 @@ check_iv(struct t_cose_parameter *param)
 static int32_t
 check_partial_iv(struct t_cose_parameter *param)
 {
-    if(param->label != COSE_HEADER_PARAM_PARTIAL_IV) {
+    if(param->label != T_COSE_HEADER_PARAM_PARTIAL_IV) {
         return 1;
     }
 
@@ -283,7 +283,7 @@ struct param_test {
 
 
 #define T_COSE_MAKE_ALG_ID_PARAM(alg_id) \
-                                {COSE_HEADER_PARAM_ALG, \
+                                {T_COSE_HEADER_PARAM_ALG, \
                                  true,\
                                  false,\
                                  {0,0},\
@@ -295,7 +295,7 @@ struct param_test {
 
 
 #define T_COSE_MAKE_CT_UINT_PARAM(content_type) \
-                             {COSE_HEADER_PARAM_CONTENT_TYPE, \
+                             {T_COSE_HEADER_PARAM_CONTENT_TYPE, \
                               false,\
                               false,\
                               {0,0},\
@@ -305,7 +305,7 @@ struct param_test {
 
 
 #define T_COSE_MAKE_CT_TSTR_PARAM(content_type) \
-                            {COSE_HEADER_PARAM_CONTENT_TYPE, \
+                            {T_COSE_HEADER_PARAM_CONTENT_TYPE, \
                              false,\
                              false,\
                              {0,0},\
@@ -316,7 +316,7 @@ struct param_test {
 
 
 #define T_COSE_MAKE_KID_PARAM(kid) \
-                              {COSE_HEADER_PARAM_KID, \
+                              {T_COSE_HEADER_PARAM_KID, \
                               false, \
                               false, \
                               {0,0},\
@@ -326,7 +326,7 @@ struct param_test {
 
 
 #define T_COSE_MAKE_IV_PARAM(iv) \
-                             {COSE_HEADER_PARAM_IV, \
+                             {T_COSE_HEADER_PARAM_IV, \
                               false, \
                               false, \
                               {0,0},\
@@ -336,7 +336,7 @@ struct param_test {
 
 
 #define T_COSE_MAKE_PARTIAL_IV_PARAM(partial_iv) \
-                             {COSE_HEADER_PARAM_PARTIAL_IV, \
+                             {T_COSE_HEADER_PARAM_PARTIAL_IV, \
                               false, \
                               false, \
                               {0,0},\
@@ -518,7 +518,7 @@ static const struct param_test param_tests[] = {
     /* 12. an algorithm ID  */
     {
         UBX(x11), /* CBOR encoded header params */
-        T_COSE_MAKE_ALG_ID_PARAM(COSE_ALGORITHM_ES256),
+        T_COSE_MAKE_ALG_ID_PARAM(T_COSE_ALGORITHM_ES256),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         check_alg_id, /* Call back for decode check */
@@ -813,7 +813,7 @@ param_test(void)
     param_array[5] = param_tests[0].unencoded;
     param_array[4].next = &param_array[5];
 
-    param_array[6] = t_cose_make_alg_id_parameter(COSE_ALGORITHM_ES256);
+    param_array[6] = t_cose_make_alg_id_parameter(T_COSE_ALGORITHM_ES256);
     param_array[5].next = &param_array[6];
 
 
@@ -886,7 +886,7 @@ param_test(void)
         return -10; //i * 1000 + 1;
     }
 
-    if(t_cose_find_parameter_alg_id(dec) != COSE_ALGORITHM_ES256) {
+    if(t_cose_find_parameter_alg_id(dec) != T_COSE_ALGORITHM_ES256) {
         return -11;
     }
 

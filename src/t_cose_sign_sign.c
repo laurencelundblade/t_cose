@@ -21,8 +21,8 @@
  *
  * Stack usage to sign is dependent on the signing alg and key size
  * and type of hash implementation. t_cose_sign1_finish() is the main
- * user of stack It is 384 for \ref COSE_ALGORITHM_ES256 and 778 for
- * \ref COSE_ALGORITHM_ES512.
+ * user of stack It is 384 for \ref T_COSE_ALGORITHM_ES256 and 778 for
+ * \ref T_COSE_ALGORITHM_ES512.
  */
 
 

@@ -187,7 +187,7 @@ struct t_cose_header_location {
  */
 struct t_cose_parameter {
     /** Label indicating which parameter it is. Typically, one of
-     * COSE_HEADER_PARAM_XXXXX, such as \ref COSE_HEADER_PARAM_ALG
+     * T_COSE_HEADER_PARAM_XXXXX, such as \ref T_COSE_HEADER_PARAM_ALG
      */
     int64_t label;
 
@@ -588,7 +588,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      *
      * The macros like this
      * #define T_COSE_MAKE_ALG_ID_PARAM(alg_id) \
-     *    {COSE_HEADER_PARAM_ALG, \
+     *    {T_COSE_HEADER_PARAM_ALG, \
      *     true,\
      *     false,\
      *     {0,0},\
@@ -600,7 +600,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      *
      * The following is a compound literal.
      * #define T_COSE_MAKE_ALG_ID_PARAM(alg_id) \
-     *   (struct t_cose_parameter){COSE_HEADER_PARAM_ALG, \
+     *   (struct t_cose_parameter){T_COSE_HEADER_PARAM_ALG, \
      *     true,\
      *     false,\
      *     {0,0},\
@@ -626,7 +626,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
     parameter.in_protected     = true;
     parameter.location.index   = 0;
     parameter.location.nesting = 0;
-    parameter.label            = COSE_HEADER_PARAM_ALG;
+    parameter.label            = T_COSE_HEADER_PARAM_ALG;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
     parameter.value.i64        = alg_id;
     parameter.next             = NULL;
@@ -643,7 +643,7 @@ t_cose_make_ct_uint_parameter(uint32_t content_type)
     parameter.in_protected     = false;
     parameter.location.index   = 0;
     parameter.location.nesting = 0;
-    parameter.label            = COSE_HEADER_PARAM_CONTENT_TYPE;
+    parameter.label            = T_COSE_HEADER_PARAM_CONTENT_TYPE;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
     parameter.value.i64        = (int32_t)content_type;
     parameter.next             = NULL;
@@ -660,7 +660,7 @@ t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type)
     parameter.in_protected     = false;
     parameter.location.index   = 0;
     parameter.location.nesting = 0;
-    parameter.label            = COSE_HEADER_PARAM_CONTENT_TYPE;
+    parameter.label            = T_COSE_HEADER_PARAM_CONTENT_TYPE;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_TEXT_STRING;
     parameter.value.string     = content_type;
     parameter.next             = NULL;
@@ -677,7 +677,7 @@ t_cose_make_kid_parameter(struct q_useful_buf_c kid)
     parameter.in_protected     = false;
     parameter.location.index   = 0;
     parameter.location.nesting = 0;
-    parameter.label            = COSE_HEADER_PARAM_KID;
+    parameter.label            = T_COSE_HEADER_PARAM_KID;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
     parameter.value.string     = kid;
     parameter.next             = NULL;
@@ -694,7 +694,7 @@ t_cose_make_iv_parameter(struct q_useful_buf_c iv)
     parameter.in_protected     = false;
     parameter.location.index   = 0;
     parameter.location.nesting = 0;
-    parameter.label            = COSE_HEADER_PARAM_IV;
+    parameter.label            = T_COSE_HEADER_PARAM_IV;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
     parameter.value.string     = iv;
     parameter.next             = NULL;
@@ -711,7 +711,7 @@ t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv)
     parameter.in_protected     = false;
     parameter.location.index   = 0;
     parameter.location.nesting = 0;
-    parameter.label            = COSE_HEADER_PARAM_PARTIAL_IV;
+    parameter.label            = T_COSE_HEADER_PARAM_PARTIAL_IV;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
     parameter.value.string     = iv;
     parameter.next             = NULL;

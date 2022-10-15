@@ -148,7 +148,7 @@ decode_critical_parameter(QCBORDecodeContext       *decode_context,
     /* Assume that decoder has been entered into the parameters map */
 
     /* Find and enter the array that is the critical parameters parameter */
-    QCBORDecode_EnterArrayFromMapN(decode_context, COSE_HEADER_PARAM_CRIT);
+    QCBORDecode_EnterArrayFromMapN(decode_context, T_COSE_HEADER_PARAM_CRIT);
 
     cbor_result = QCBORDecode_GetAndResetError(decode_context);
     if(cbor_result == QCBOR_ERR_LABEL_NOT_FOUND) {
@@ -274,7 +274,7 @@ encode_crit_parameter(QCBOREncodeContext            *encode_context,
 {
     const struct t_cose_parameter *p_param;
 
-    QCBOREncode_OpenArrayInMapN(encode_context, COSE_HEADER_PARAM_CRIT);
+    QCBOREncode_OpenArrayInMapN(encode_context, T_COSE_HEADER_PARAM_CRIT);
     for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
         if(p_param->critical) {
             QCBOREncode_AddInt64(encode_context, p_param->label);
@@ -353,7 +353,7 @@ decode_parameters_bucket(QCBORDecodeContext               *decode_context,
             goto Done;
         }
 
-        if (item.label.int64 == COSE_HEADER_PARAM_CRIT) {
+        if (item.label.int64 == T_COSE_HEADER_PARAM_CRIT) {
             QCBORDecode_VGetNextConsume(decode_context, &item);
             /* ignore crit param because it was already processed .*/
             continue;
@@ -697,11 +697,11 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list)
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_find_parameter(parameter_list, COSE_HEADER_PARAM_ALG);
+    p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_ALG);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
        p_found->in_protected &&
-       p_found->value.i64 != COSE_ALGORITHM_RESERVED &&
+       p_found->value.i64 != T_COSE_ALGORITHM_RESERVED &&
        p_found->value.i64 < INT32_MAX) {
         return (int32_t)p_found->value.i64;
     } else {
@@ -719,7 +719,7 @@ t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_find_parameter(parameter_list, COSE_HEADER_PARAM_CONTENT_TYPE);
+    p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_CONTENT_TYPE);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
        p_found->value.i64 < UINT16_MAX) {
@@ -738,7 +738,7 @@ t_cose_find_parameter_content_type_tstr(const struct t_cose_parameter *parameter
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_find_parameter(parameter_list, COSE_HEADER_PARAM_CONTENT_TYPE);
+    p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_CONTENT_TYPE);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
         return p_found->value.string;
@@ -757,7 +757,7 @@ t_cose_find_parameter_kid(const struct t_cose_parameter *parameter_list)
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_find_parameter(parameter_list, COSE_HEADER_PARAM_KID);
+    p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_KID);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
         return p_found->value.string;
@@ -775,7 +775,7 @@ t_cose_find_parameter_iv(const struct t_cose_parameter *parameter_list)
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_find_parameter(parameter_list, COSE_HEADER_PARAM_IV);
+    p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_IV);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
         return p_found->value.string;
@@ -793,7 +793,7 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list)
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_find_parameter(parameter_list, COSE_HEADER_PARAM_PARTIAL_IV);
+    p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_PARTIAL_IV);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
         return p_found->value.string;
@@ -811,16 +811,16 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list)
  */
 static inline void clear_cose_parameters(struct t_cose_parameters *parameters)
 {
-#if COSE_ALGORITHM_RESERVED != 0
+#if T_COSE_ALGORITHM_RESERVED != 0
 #error Invalid algorithm designator not 0. Parameter list initialization fails.
 #endif
 
-#if T_COSE_ALGORITHM_NONE != COSE_ALGORITHM_RESERVED
-#error Constant for unset algorithm ID not aligned with COSE_ALGORITHM_RESERVED
+#if T_COSE_ALGORITHM_NONE != T_COSE_ALGORITHM_RESERVED
+#error Constant for unset algorithm ID not aligned with T_COSE_ALGORITHM_RESERVED
 #endif
 
     /* This clears all the useful_bufs to NULL_Q_USEFUL_BUF_C
-     * and the cose_algorithm_id to COSE_ALGORITHM_RESERVED
+     * and the cose_algorithm_id to T_COSE_ALGORITHM_RESERVED
      */
     memset(parameters, 0, sizeof(struct t_cose_parameters));
 
@@ -847,14 +847,14 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
     /* No duplicate detection is necessary because t_cose_headers_decode()
      * does it. */
     for(p = decoded_params; p != NULL; p = p->next) {
-        if(p->label == COSE_HEADER_PARAM_KID) {
+        if(p->label == T_COSE_HEADER_PARAM_KID) {
             if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
             returned_parameters->kid = p->value.string;
 
-        } else if(p->label == COSE_HEADER_PARAM_ALG) {
+        } else if(p->label == T_COSE_HEADER_PARAM_ALG) {
             if(p->value_type != T_COSE_PARAMETER_TYPE_INT64) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
@@ -863,20 +863,20 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
                 return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
                 goto Done;
             }
-            if(p->value.i64 == COSE_ALGORITHM_RESERVED || p->value.i64 > INT32_MAX) {
+            if(p->value.i64 == T_COSE_ALGORITHM_RESERVED || p->value.i64 > INT32_MAX) {
                 return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                 goto Done;
             }
             returned_parameters->cose_algorithm_id = (int32_t)p->value.i64;
 
-        } else if(p->label == COSE_HEADER_PARAM_IV) {
+        } else if(p->label == T_COSE_HEADER_PARAM_IV) {
             if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
             returned_parameters->iv = p->value.string;
 
-        } else if(p->label == COSE_HEADER_PARAM_PARTIAL_IV) {
+        } else if(p->label == T_COSE_HEADER_PARAM_PARTIAL_IV) {
             if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
@@ -884,7 +884,7 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
             returned_parameters->partial_iv = p->value.string;
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
-        } else if(p->label == COSE_HEADER_PARAM_CONTENT_TYPE) {
+        } else if(p->label == T_COSE_HEADER_PARAM_CONTENT_TYPE) {
             if(p->value_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
                 returned_parameters->content_type_tstr = p->value.string;
 
