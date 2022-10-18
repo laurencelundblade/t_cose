@@ -76,7 +76,7 @@ int32_t mini_sign_test(void) {
     struct q_useful_buf_c           verified_payload;
 
 
-    err = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    err = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
     if(err) {
         return 10;
     }
