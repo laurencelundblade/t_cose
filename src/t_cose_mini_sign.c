@@ -15,12 +15,24 @@
 #include "qcbor/UsefulBuf.h"
 
 /*
-Define one of these to configure the algorithm
+ * This could be modified to support other header parameters like the
+ * kid and the object code would still be bigger, but still very
+ * small.
+ *
+ * Or on the other hand, this could be modified to support only a
+ * fixed-size payload to make the object code even smaller.
+ */
+
+
+/*
+ * The algorithm is set at compile time for mini sign and can't be
+ * changed.  Define one of these to configure the algorithm.
 
 #define T_COSE_MINI_SIGN_SELECT_ES256
 #define T_COSE_MINI_SIGN_SELECT_ES384
 #define T_COSE_MINI_SIGN_SELECT_ES512
 */
+
 #define T_COSE_MINI_SIGN_SELECT_ES256
 
 
@@ -30,7 +42,7 @@ Define one of these to configure the algorithm
 #define MINI_SIGN_HASH_LEN       T_COSE_CRYPTO_SHA256_SIZE
 #define MINI_SIGN_ALG            T_COSE_ALGORITHM_ES256
 #define MINI_SIGN_ALG_ID_BYTES   0x26 /* The literal byte that appears in the CBOR encoding */
-#define MINI_SIGN_SIG_LEN        T_COSE_EC_P256_SIG_SIZE // Code below only works for lengths < 256
+#define MINI_SIGN_SIG_LEN        T_COSE_EC_P256_SIG_SIZE
 
 #elif defined(T_COSE_MINI_SIGN_SELECT_ES384)
 
@@ -38,7 +50,7 @@ Define one of these to configure the algorithm
 #define MINI_SIGN_HASH_LEN       T_COSE_CRYPTO_SHA384_SIZE
 #define MINI_SIGN_ALG            T_COSE_ALGORITHM_ES384
 #define MINI_SIGN_ALG_ID_BYTES   0x38, 0x22 /* The literal byte that appears in the CBOR encoding */
-#define MINI_SIGN_SIG_LEN        T_COSE_EC_P384_SIG_SIZE // Code below only works for lengths < 256
+#define MINI_SIGN_SIG_LEN        T_COSE_EC_P384_SIG_SIZE
 
 #elif defined(T_COSE_MINI_SIGN_SELECT_ES512)
 
@@ -46,7 +58,7 @@ Define one of these to configure the algorithm
 #define MINI_SIGN_HASH_LEN       T_COSE_CRYPTO_SHA512_SIZE
 #define MINI_SIGN_ALG            T_COSE_ALGORITHM_ES521
 #define MINI_SIGN_ALG_ID_BYTES   0x38, 0x23 /* The literal byte that appears in the CBOR encoding */
-#define MINI_SIGN_SIG_LEN        T_COSE_EC_P512_SIG_SIZE // Code below only works for lengths < 256
+#define MINI_SIGN_SIG_LEN        T_COSE_EC_P512_SIG_SIZE
 
 #endif
 
@@ -62,6 +74,7 @@ Define one of these to configure the algorithm
     0xA1, 0x01, \
     MINI_SIGN_ALG_ID_BYTES
 
+
 /*
  * This is hard-coded bytes for the start of the CBOR for the following
  * CBOR that are the to-be-signed bytes. Hard coding like this saves
@@ -75,7 +88,7 @@ Define one of these to configure the algorithm
  *    payload : bstr
  * ]
  */
-static uint8_t start_sig_struct[] = {
+static const uint8_t start_sig_struct[] = {
     0x84,
     0x6A,'S', 'i', 'g', 'n', 'a', 't', 'u', 'r', 'e', '1',
     PROT_HEADERS, // bstr wrapped protected header wtih algorithm ID
@@ -85,7 +98,7 @@ static uint8_t start_sig_struct[] = {
 /* The first part of a COSE_Sign1: the opening array,
  * the protected parameters and the unproteced parameters.
  */
-static uint8_t start_cose_sign1[] = {
+static const uint8_t start_cose_sign1[] = {
     0x84,
     PROT_HEADERS, // bstr wrapped protected header wtih algorithm ID
     0xa0, /* no unprotected headers, put some here if you want */
@@ -93,7 +106,7 @@ static uint8_t start_cose_sign1[] = {
 
 /* The Hard coded bytes for the CBOR head for the signature. It is less
  * code to hard code than to encode using encode_bstr_head() */
-static uint8_t cose_sign1_sig_start[] = {
+static const uint8_t cose_sign1_sig_start[] = {
     0x58, MINI_SIGN_SIG_LEN
 };
 
@@ -108,7 +121,7 @@ static uint8_t cose_sign1_sig_start[] = {
 
 
 /*
- * @brief Encode a CBOR head for a byte string of given length
+ * @brief Encode a CBOR head for a byte string of given length.
  *
  * @param[in] len         The length to encode.
  * @param[in] out_buffer  Pointer and length to write to.
@@ -117,30 +130,30 @@ static uint8_t cose_sign1_sig_start[] = {
  *           or \c NULL_Q_USEFUL_BUF_C if @c len is
  *           greater than 65355.
  *
- * This is a scaled-down specific version of QCBOREncode_EncodeHead()
+ * This is a scaled-down version of QCBOREncode_EncodeHead()
  * in QCBOR.
  */
 static inline struct q_useful_buf_c
 encode_bstr_head(const size_t len, const struct q_useful_buf out_buffer)
 {
-    uint8_t *bb = out_buffer.ptr;
+    uint8_t *out_buf = out_buffer.ptr;
 
     if(out_buffer.len < MAX_CBOR_HEAD) {
         return NULL_Q_USEFUL_BUF_C;
     }
 
     if(len < 24) { /* 24 is a special number in CBOR */
-        bb[0] = 0x40 + (uint8_t)len;
-        return (struct q_useful_buf_c){bb, 1};
+        out_buf[0] = 0x40 + (uint8_t)len;
+        return (struct q_useful_buf_c){out_buf, 1};
     } else if(len < 256) {
-        bb[0] = 0x58;
-        bb[1] = (uint8_t)len;
-        return (struct q_useful_buf_c){bb, 2};
+        out_buf[0] = 0x58;
+        out_buf[1] = (uint8_t)len;
+        return (struct q_useful_buf_c){out_buf, 2};
     } else  if(len < UINT16_MAX) {
-        bb[0] = 0x59;
-        bb[1] = (uint8_t)(len / 8);
-        bb[2] = (uint8_t)(len % 256);
-        return (struct q_useful_buf_c){bb, 3};
+        out_buf[0] = 0x59;
+        out_buf[1] = (uint8_t)(len / 256);
+        out_buf[2] = (uint8_t)(len % 256);
+        return (struct q_useful_buf_c){out_buf, 3};
     } else {
         return NULL_Q_USEFUL_BUF_C;
     }
@@ -152,7 +165,7 @@ encode_bstr_head(const size_t len, const struct q_useful_buf out_buffer)
  */
 enum t_cose_err_t
 t_cose_mini_sign(const struct q_useful_buf_c payload,
-                 struct t_cose_key           signing_key,
+                 const struct t_cose_key     signing_key,
                  const struct q_useful_buf   output_buffer,
                  struct q_useful_buf_c      *output)
 {
@@ -244,9 +257,13 @@ t_cose_mini_sign(const struct q_useful_buf_c payload,
     output->len = u_len + signature.len;
 
     /* I wrote this code without using UsefulBuf to save object code.
-     * It works and I saved object code, but I made about three
-     * mistakes with pointer math that I wouldn't have made
-     * with UsefulBuf that took a few hours of debugging to find.
+     * It works and I saved object code, but I made about four
+     * mistakes with pointer math that I wouldn't have made with
+     * UsefulBuf that took a few hours of debugging to find.  Or maybe
+     * I'm not as sharp as I used to be...
+     *
+     * Or said another way, this code doesn't have the same security /
+     * buffer level that QCBOR has, but it should be safe enough.
      */
 
 Done:

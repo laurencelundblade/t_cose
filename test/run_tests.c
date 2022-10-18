@@ -17,7 +17,7 @@
 
 #include "t_cose_test.h"
 #include "t_cose_sign_verify_test.h"
-#include "t_cose_austere_test.h"
+#include "t_cose_mini_sign_test.h"
 
 
 /*
@@ -63,7 +63,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_sig_fail_test),
     TEST_ENTRY(sign_verify_get_size_test),
     TEST_ENTRY(known_good_test),
-    TEST_ENTRY(austere_test),
+    TEST_ENTRY(mini_sign_test),
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN

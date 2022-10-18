@@ -8,6 +8,8 @@
  * See BSD-3-Clause license in README.md
  */
 
+// TODO: rename to mini_sign1
+
 #ifndef __T_COSE_MINI_SIGN_H__
 #define __T_COSE_MINI_SIGN_H__
 
@@ -32,7 +34,7 @@ extern "C" {
     3 + /* The CBOR head of the payload */ \
         /* The payload -- add this in yourself */ \
     2 + /* CBOR head of signature */ \
-    64 // T_COSE_EC_P256_SIG_SIZE
+    64  /* T_COSE_EC_P256_SIG_SIZE */
 
 #define T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES384 \
     1 + /* Open the array */ \
@@ -40,7 +42,7 @@ extern "C" {
     3 + /* The CBOR head of the payload */ \
         /* The payload -- add this in yourself */ \
     2 + /* CBOR head of signature */ \
-    T_COSE_EC_P384_SIG_SIZE
+    96 /* T_COSE_EC_P384_SIG_SIZE */
 
 #define T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES512 \
     1 + /* Open the array */ \
@@ -48,7 +50,7 @@ extern "C" {
     3 + /* The CBOR head of the payload */ \
         /* The payload -- add this in yourself */ \
     2 + /* CBOR head of signature */ \
-    T_COSE_EC_P512_SIG_SIZE
+    128 /* T_COSE_EC_P512_SIG_SIZE */
 
 
 /*
@@ -73,12 +75,9 @@ extern "C" {
  * This is roughly 500 bytes of object code versus 1,500 bytes for
  * t_cose_sign1_sign().
  *
- * One could modify the source to include fixed COSE header parameters
- * or even a variable header parameter like the kid and the object
- * code would still be small. I
- *
- * If modifications are made so the payload is fixed at compile time,
- * the object code could be reduced.
+ * See comments in the source code for changing the algorithm that
+ * is supported, adding support for headers or reducing the object
+ * code even futher.
  */
 enum t_cose_err_t
 t_cose_mini_sign(struct q_useful_buf_c  payload,
