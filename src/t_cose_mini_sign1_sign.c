@@ -1,5 +1,5 @@
 /*
- *  t_cose_mini_sign.c
+ *  t_cose_mini_sign1_sign.c
  *
  * Copyright 2022, Laurence Lundblade
  *
@@ -8,7 +8,7 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose/t_cose_mini_sign.h"
+#include "t_cose/t_cose_mini_sign1_sign.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose_crypto.h"
 
@@ -164,10 +164,10 @@ encode_bstr_head(const size_t len, const struct q_useful_buf out_buffer)
  * Public function.
  */
 enum t_cose_err_t
-t_cose_mini_sign(const struct q_useful_buf_c payload,
-                 const struct t_cose_key     signing_key,
-                 const struct q_useful_buf   output_buffer,
-                 struct q_useful_buf_c      *output)
+t_cose_mini_sign1_sign(const struct q_useful_buf_c payload,
+                       const struct t_cose_key     signing_key,
+                       const struct q_useful_buf   output_buffer,
+                       struct q_useful_buf_c      *output)
 {
     struct t_cose_crypto_hash  hash_ctx;
     enum t_cose_err_t          err;

@@ -1,5 +1,5 @@
 /*
- *  t_cose_mini_sign_test.c
+ *  t_cose_mini_sign1_sign_test.c
  *
  * Copyright 2022, Laurence Lundblade
  *
@@ -8,10 +8,10 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose_mini_sign_test.h"
+#include "t_cose_mini_sign1_sign_test.h"
 #include "t_cose_make_test_pub_key.h"
 
-#include "t_cose/t_cose_mini_sign.h"
+#include "t_cose/t_cose_mini_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
 
 static const uint8_t payload[] = {
@@ -66,7 +66,7 @@ static const uint8_t payload[] = {
 };
 
 
-int32_t mini_sign_test(void) {
+int32_t mini_sign1_sign_test(void) {
 
     enum t_cose_err_t               err;
     MakeUsefulBufOnStack(           output, sizeof(payload) + T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES256);
@@ -81,7 +81,7 @@ int32_t mini_sign_test(void) {
         return 10;
     }
 
-    err = t_cose_mini_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
+    err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
                            key_pair,
                            output,
                           &cose_sign1);

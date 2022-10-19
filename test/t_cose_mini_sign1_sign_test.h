@@ -16,6 +16,6 @@
 
 #include <stdint.h>
 
-int32_t mini_sign_test(void);
+int32_t mini_sign1_sign_test(void);
 
 #endif /* t_cose_mini_sign_test_h */

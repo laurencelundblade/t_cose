@@ -1,5 +1,5 @@
 /*
- *  t_cose_mini_sign.h
+ *  t_cose_mini_sign1_sign.h
  *
  * Copyright 2022, Laurence Lundblade
  *
@@ -8,7 +8,6 @@
  * See BSD-3-Clause license in README.md
  */
 
-// TODO: rename to mini_sign1
 
 #ifndef __T_COSE_MINI_SIGN_H__
 #define __T_COSE_MINI_SIGN_H__
@@ -80,7 +79,7 @@ extern "C" {
  * code even futher.
  */
 enum t_cose_err_t
-t_cose_mini_sign(struct q_useful_buf_c  payload,
+t_cose_mini_sign1_sign(struct q_useful_buf_c  payload,
                  struct t_cose_key      signing_key,
                  struct q_useful_buf    output_buffer,
                  struct q_useful_buf_c *output);
