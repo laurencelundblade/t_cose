@@ -52,7 +52,7 @@ extern "C" {
     128 /* T_COSE_EC_P512_SIG_SIZE */
 
 
-/*
+/**
  * @brief Create a COSE_Sign1 with fixed algorithm and no header parameters.
  *
  * @param[in] payload         The payload to sign.
@@ -74,15 +74,31 @@ extern "C" {
  * This is roughly 500 bytes of object code versus 1,500 bytes for
  * t_cose_sign1_sign().
  *
+ * Even if you don't need small object code, this is
+ * a super easy to use COSE Sign1 API if ES256 is good enough
+ * and you don't need any other header parameters.
+ *
+ * See \ref T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES256 for a compile time
+ * constant that gives the size over and above the payload size
+ * for the output buffer. If \ref output_buffer is too small
+ * an error will be returned.
+ *
+ * This works with either OpenSSL and PSA Crypto (MbedTLS). It
+ * is less object code with PSA Crypto.
+ *
+ * ES384 and ES512 are also supported, but you have to modify
+ * the source to switch to one of them. The source could be
+ * further modified to support RSA.
+ *
  * See comments in the source code for changing the algorithm that
  * is supported, adding support for headers or reducing the object
  * code even futher.
  */
 enum t_cose_err_t
 t_cose_mini_sign1_sign(struct q_useful_buf_c  payload,
-                 struct t_cose_key      signing_key,
-                 struct q_useful_buf    output_buffer,
-                 struct q_useful_buf_c *output);
+                       struct t_cose_key      signing_key,
+                       struct q_useful_buf    output_buffer,
+                       struct q_useful_buf_c *output);
 
 
 #ifdef __cplusplus
