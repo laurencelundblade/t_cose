@@ -51,11 +51,11 @@ This is the call back used to verify a COSE_Signature in a COSE_Sign.
 typedef enum t_cose_err_t
 (t_cose_signature_verify_callback)(struct t_cose_signature_verify   *me,
                                    bool                              run_crypto,
-                                   const struct t_cose_header_location      loc,
+                                   const struct t_cose_header_location loc,
                                    const struct q_useful_buf_c       protected_body_headers,
                                    const struct q_useful_buf_c       payload,
                                    const struct q_useful_buf_c       aad,
-                                   struct t_cose_parameter_storage *params,
+                                   struct t_cose_parameter_storage  *params,
                                    QCBORDecodeContext               *qcbor_decoder,
                                    struct t_cose_parameter         **decoded_signature_parameters);
 
@@ -77,13 +77,13 @@ typedef enum t_cose_err_t
  of this and passed in.
  */
 typedef enum t_cose_err_t
-(t_cose_signature_verify1_callback)(struct t_cose_signature_verify   *me,
-                                    const struct q_useful_buf_c       protected_body_headers,
-                                    const struct q_useful_buf_c       protected_signature_headers,
-                                    const struct q_useful_buf_c       payload,
-                                    const struct q_useful_buf_c       aad,
-                                    const struct t_cose_parameter *parameter_list,
-                                    const struct q_useful_buf_c       signature);
+(t_cose_signature_verify1_callback)(struct t_cose_signature_verify *me,
+                                    const struct q_useful_buf_c     protected_body_headers,
+                                    const struct q_useful_buf_c     protected_signature_headers,
+                                    const struct q_useful_buf_c     payload,
+                                    const struct q_useful_buf_c     aad,
+                                    const struct t_cose_parameter  *parameter_list,
+                                    const struct q_useful_buf_c     signature);
 
 
 

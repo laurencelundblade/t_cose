@@ -84,7 +84,7 @@ SRC_OBJ=src/t_cose_util.o \
 	src/t_cose_mac_compute.o \
 	src/t_cose_mac_validate.o
 
-.PHONY: all install install_headers install_so uninstall clean warn
+.PHONY: all install install_headers install_so uninstall clean
 
 all: libt_cose.a t_cose_test t_cose_basic_example_psa
 
@@ -103,12 +103,6 @@ t_cose_test: main.o $(TEST_OBJ) libt_cose.a
 
 t_cose_basic_example_psa: examples/t_cose_basic_example_psa.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
-
-
-# run "make warn" as a handy way to compile with the warning flags
-# used in the QCBOR release process. See CFLAGS above.
-warn:
-	make -f Makefile.psa CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
 
 # ---- Installation ----
@@ -170,7 +164,7 @@ src/t_cose_sign1_verify.o: src/t_cose_sign1_verify.c \
 		           inc/t_cose/q_useful_buf.h \
 			   inc/t_cose/t_cose_common.h \
                            inc/t_cose/t_cose_parameters.h \
-			   inc/t_cose/t_cose_standard_constants.h\
+			   inc/t_cose/t_cose_standard_constants.h \
 			   src/t_cose_crypto.h \
 			   src/t_cose_util.h \
 
@@ -180,7 +174,7 @@ src/t_cose_sign_verify.o: src/t_cose_sign_verify.c \
 			  inc/t_cose/t_cose_common.h \
 			  inc/t_cose/t_cose_signature_verify.h \
                           inc/t_cose/t_cose_parameters.h \
-			  inc/t_cose/t_cose_standard_constants.h\
+			  inc/t_cose/t_cose_standard_constants.h \
 			  src/t_cose_crypto.h \
 			  src/t_cose_util.h \
 
@@ -196,7 +190,7 @@ src/t_cose_sign1_sign.o: src/t_cose_sign1_sign.c \
 		         inc/t_cose/q_useful_buf.h \
 		 	 inc/t_cose/t_cose_common.h \
                          inc/t_cose/t_cose_parameters.h \
-			 inc/t_cose/t_cose_standard_constants.h\
+			 inc/t_cose/t_cose_standard_constants.h \
 			 src/t_cose_crypto.h \
 			 src/t_cose_util.h
 

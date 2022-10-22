@@ -97,9 +97,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
     param_storage[1] = t_cose_make_kid_parameter(me->kid);
     param_storage[0].next = &param_storage[1];
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-   // TODO: add the extra params in that will handle content type
-#endif
+    t_cose_parameter_list_append(&param_storage[0], me->added_body_parameters);
 
     return_value = t_cose_encode_headers(
         cbor_encode_ctx,

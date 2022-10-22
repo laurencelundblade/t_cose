@@ -616,8 +616,10 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      *
      * See also the definition of NULLUsefulBufC in UsefulBuf.h in QCBOR.
      *
-     * The inline functions work in both C and C++ because they
-     * are functions.
+     * In the end, I expect the optimizer produces good code for
+     * all of these constructs. For example the code produces whether
+     * this is created by a function, an initializer or a compound
+     * literal is hopefully the same.
      */
 
     struct t_cose_parameter parameter;

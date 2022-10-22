@@ -37,7 +37,7 @@ struct t_cose_signature_sign_short {
 
     int32_t                            cose_algorithm_id;
     struct q_useful_buf_c              kid;
-    struct t_cose_parameter         local_params[3];
+    struct t_cose_parameter         local_params[2];
     struct t_cose_parameter        *added_signer_params;
 };
 
