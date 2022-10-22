@@ -186,83 +186,9 @@ extern "C" {
 #define T_COSE_2
 
 
+/* Definitions of algorithm IDs is moved to t_cose_standard_constants.h */
 
-/**
- * \def T_COSE_ALGORITHM_ES256
- *
- * \brief Indicates ECDSA with SHA-256.
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * The COSE standard recommends a key using the secp256r1 curve with
- * this algorithm. This curve is also known as prime256v1 and P-256.
- */
-#define T_COSE_ALGORITHM_ES256 -7
-
-/**
- * \def T_COSE_ALGORITHM_ES384
- *
- * \brief Indicates ECDSA with SHA-384.
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * The COSE standard recommends a key using the secp384r1 curve with
- * this algorithm. This curve is also known as P-384.
- */
-#define T_COSE_ALGORITHM_ES384 -35
-
-/**
- * \def T_COSE_ALGORITHM_ES512
- *
- * \brief Indicates ECDSA with SHA-512.
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * The COSE standard recommends a key using the secp521r1 curve with
- * this algorithm. This curve is also known as P-521.
- */
-#define T_COSE_ALGORITHM_ES512 -36
-
-/**
- * \def T_COSE_ALGORITHM_HMAC256
- *
- * \brief Indicates HMAC with SHA256
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-256
- */
-#define T_COSE_ALGORITHM_HMAC256 5
-
-/**
- * \def T_COSE_ALGORITHM_HMAC384
- *
- * \brief Indicates HMAC with SHA384
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-384
- */
-#define T_COSE_ALGORITHM_HMAC384 6
-
-/**
- * \def T_COSE_ALGORITHM_HMAC512
- *
- * \brief Indicates HMAC with SHA512
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-512
- */
-#define T_COSE_ALGORITHM_HMAC512 7
-
-#define T_COSE_ALGORITHM_NONE 0
+ 
 
 
 
