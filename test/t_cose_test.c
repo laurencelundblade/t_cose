@@ -351,6 +351,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(  small_signed_cose_buffer, 15);
     struct q_useful_buf_c        signed_cose;
 
+
     /* -- Test bad algorithm ID 0 -- */
     /* Use reserved alg ID 0 to cause error. */
     t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, 0);
@@ -362,6 +363,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     if(result != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
         return -1;
     }
+
 
     /* -- Test bad algorithm ID -4444444 -- */
     /* Use unassigned alg ID -4444444 to cause error. */
@@ -722,7 +724,6 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
-    struct t_cose_parameters        old_parameters;
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -758,7 +759,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
                                        /* The returned payload */
                                        &payload,
                                        /* Don't return parameters */
-                                       &old_parameters);
+                                       NULL);
 
     return result;
 }
@@ -842,6 +843,7 @@ struct test_case {
 };
 
 static struct test_case bad_parameters_tests_table[] = {
+
     {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_UNSUPPORTED_HASH},
 
     {T_COSE_TEST_UNCLOSED_PROTECTED, T_COSE_ERR_PARAMETER_CBOR},
@@ -856,15 +858,11 @@ static struct test_case bad_parameters_tests_table[] = {
 
     {T_COSE_TEST_KID_IN_PROTECTED, T_COSE_ERR_DUPLICATE_PARAMETER},
 
-#ifdef TODO_CRIT_PARAM_FIXED
     {T_COSE_TEST_TOO_MANY_UNKNOWN, T_COSE_ERR_TOO_MANY_PARAMETERS},
-#endif
 
     {T_COSE_TEST_UNPROTECTED_NOT_MAP, T_COSE_ERR_PARAMETER_CBOR},
 
-#ifdef TODO_CRIT_PARAM_FIXED
     {T_COSE_TEST_BAD_CRIT_PARAMETER, T_COSE_ERR_CRIT_PARAMETER},
-#endif
 
     {T_COSE_TEST_NOT_WELL_FORMED_1, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
 
@@ -1027,15 +1025,6 @@ int_fast32_t content_type_test()
         return 6;
     }
 
-#ifndef T_COSE_2
-    /* This test is turned off for t_cose 2 because the behavior
-     * when setting the content type twice is different. For
-     * t_cose 2, the second call over writes the first. It is not
-     * worth replicating the t_cose 1 behavior to pass this test
-     * of a particular error. There are tests for duplicate
-     * errors possible in t_cose 2 elsewhere.
-     * TODO: implement these tests elsewhere
-     */
 
     /* -- content type in error -- */
     t_cose_sign1_sign_init(&sign_ctx,
@@ -1053,8 +1042,6 @@ int_fast32_t content_type_test()
     if(result != T_COSE_ERR_DUPLICATE_PARAMETER) {
         return 1;
     }
-#endif
-
     return 0;
 }
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
@@ -1069,7 +1056,7 @@ static struct sign1_sample sign1_sample_inputs[] = {
     /* 0. With an indefinite length string payload */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x5f, 0x00, 0xff, 0x40}, 7}, T_COSE_ERR_SIGN1_FORMAT},
     /* 1. Too few items in unprotected header parameters bucket */
-    { {(uint8_t[]){0x84, 0x40, 0xa3, 0x01, 0x40}, 5}, T_COSE_ERR_PARAMETER_CBOR},
+    { {(uint8_t[]){0x84, 0x40, 0xa3, 0x40, 0x40}, 5}, T_COSE_ERR_PARAMETER_CBOR},
     /* 2. Too few items in definite array */
     { {(uint8_t[]){0x83, 0x40, 0xa0, 0x40}, 4}, T_COSE_ERR_SIGN1_FORMAT},
     /* 3. Too-long signature */
@@ -1636,11 +1623,7 @@ int_fast32_t get_size_test()
 int_fast32_t indef_array_and_map_test()
 {
     enum t_cose_err_t  return_value;
-    #ifdef TODO_CRIT_PARAM_FIXED
     uint32_t           t_opts;
-    #endif
-
-
 
     /* This makes some COSEs with
      *  - The main array of four indefinite length
@@ -1655,7 +1638,6 @@ int_fast32_t indef_array_and_map_test()
         return 1000 + (int32_t) return_value;
     }
 
-#ifdef TODO_CRIT_PARAM_FIXED
     /* Test critical parameters encoded as indefinite length */
     t_opts = T_COSE_TEST_INDEFINITE_MAPS_ARRAYS |
              T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER;
@@ -1671,7 +1653,6 @@ int_fast32_t indef_array_and_map_test()
     if(return_value != T_COSE_SUCCESS) {
         return 3000 + (int32_t) return_value;
     }
-#endif
 
     return 0;
 }

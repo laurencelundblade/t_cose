@@ -21,8 +21,8 @@
  *
  * Stack usage to sign is dependent on the signing alg and key size
  * and type of hash implementation. t_cose_sign1_finish() is the main
- * user of stack It is 384 for \ref T_COSE_ALGORITHM_ES256 and 778 for
- * \ref T_COSE_ALGORITHM_ES512.
+ * user of stack It is 384 for \ref COSE_ALGORITHM_ES256 and 778 for
+ * \ref COSE_ALGORITHM_ES512.
  */
 
 
@@ -34,40 +34,36 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
                          bool                         payload_is_detached,
                          QCBOREncodeContext          *cbor_encode_ctx)
 {
-    enum t_cose_err_t              return_value;
-    struct t_cose_signature_sign  *signer;
-    struct t_cose_parameter       *sign1_parameters;
-    struct t_cose_parameter       *body_parameters;
+    enum t_cose_err_t                 return_value;
+    const struct t_cose_header_param *params_vector[3];
+    int                               vector_index;
+    struct t_cose_signature_sign     *signer;
 
     signer = me->signers;
     if(signer == NULL) {
         /* No signers configured. */
-        return_value = T_COSE_ERR_NO_SIGNERS;
+        return_value = 888;
         goto Done;
     }
 
-    sign1_parameters = NULL;
-    if((me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) == T_COSE_OPT_MESSAGE_TYPE_SIGN1) {
+    vector_index = 0;
+    if(me->option_flags & T_COSE_OPT_COSE_SIGN1) {
 
         /* For a COSE_Sign1, the header parameters go in the
          * main body header parameter section, not in the
          * signatures. Ask the first sigher for the header
          * parameters it wants to output. */
-        (signer->h_callback)(signer, &sign1_parameters);
+        (signer->h_callback)(signer, &params_vector[0]);
+        vector_index++;
         if(signer->next_in_list != NULL) {
             /* In COSE_Sign1 mode, but too many signers configured.*/
-            return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
+            return_value = 999;
             goto Done;
         }
     }
-
-    if(sign1_parameters == NULL) {
-        body_parameters = me->added_body_parameters;
-    } else {
-        body_parameters = sign1_parameters;
-        t_cose_parameter_list_append(body_parameters, me->added_body_parameters);
-    }
-
+    params_vector[vector_index] = me->added_body_parameters;
+    vector_index++;
+    params_vector[vector_index] = NULL;
     /* --- parameters are now all in params_vector -- */
 
 
@@ -82,7 +78,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
 
     /* --- Encode both proteced and unprotected headers --- */
     return_value = t_cose_encode_headers(cbor_encode_ctx,
-                                         body_parameters,
+                                         params_vector,
                                          &me->protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -142,12 +138,12 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
 
     /* --- Create the signature or signatures --- */
     signer = me->signers;
-    if((me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) !=  T_COSE_OPT_MESSAGE_TYPE_SIGN1) {
+    if(!(me->option_flags & T_COSE_OPT_COSE_SIGN1)) {
         /* What is needed here is to output an arrray of signers, each
          * of which is an array of Headers and signature. The surrounding
          * array is handed here.
          */
-        return_value = T_COSE_ERR_NO_SIGNERS;
+        return_value = 888; // TODO: error code for no signers
         QCBOREncode_OpenArray(cbor_encode_ctx);
         while(signer != NULL) {
             return_value = (signer->callback)(signer,

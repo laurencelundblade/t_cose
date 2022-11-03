@@ -2,7 +2,6 @@
  *  t_cose_util.c
  *
  * Copyright 2019-2021, Laurence Lundblade
- * Copyright (c) 2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,7 +11,7 @@
 #include "qcbor/qcbor.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose_util.h"
-#include "t_cose/t_cose_standard_constants.h"
+#include "t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 
 
@@ -39,72 +38,17 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
     /* ? : operator precedence is correct here. This makes smaller
      * code than a switch statement and is easier to read.
      */
-    return cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_ALGORITHM_SHA_256 :
+    return cose_algorithm_id == COSE_ALGORITHM_ES256 ? COSE_ALGORITHM_SHA_256 :
 #ifndef T_COSE_DISABLE_ES384
-           cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_ALGORITHM_SHA_384 :
+           cose_algorithm_id == COSE_ALGORITHM_ES384 ? COSE_ALGORITHM_SHA_384 :
 #endif
 #ifndef T_COSE_DISABLE_ES512
-           cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_ALGORITHM_SHA_512 :
+           cose_algorithm_id == COSE_ALGORITHM_ES512 ? COSE_ALGORITHM_SHA_512 :
 #endif
                                                        T_COSE_INVALID_ALGORITHM_ID;
 }
 
-#ifndef T_COSE_DISABLE_MAC0
-enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
-                             struct q_useful_buf_c           protected_headers,
-                             struct q_useful_buf_c          *tbm_first_part,
-                             enum t_cose_tbm_payload_mode_t  payload_mode,
-                             struct q_useful_buf_c           payload)
-{
-    QCBOREncodeContext cbor_encode_ctx;
-    QCBORError         qcbor_result;
-    size_t             bytes_to_omit;
 
-    /* This builds the CBOR-format to-be-maced bytes */
-    QCBOREncode_Init(&cbor_encode_ctx, tbm_first_part_buf);
-    QCBOREncode_OpenArray(&cbor_encode_ctx);
-    /* context */
-    QCBOREncode_AddSZString(&cbor_encode_ctx, COSE_MAC_CONTEXT_STRING_MAC0);
-    /* body_protected */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, protected_headers);
-
-    /* external_aad. There is none so an empty bstr */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
-
-    /* The short fake payload. */
-    if(payload_mode == T_COSE_TBM_PAYLOAD_IS_BSTR_WRAPPED) {
-        /* Fake payload is just an empty bstr. It is here only
-         * to make the array count right. It must be omitted
-         * in the actual MAC below
-         */
-        bytes_to_omit = 1;
-        QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
-    } else {
-        /* Fake payload is the type and length of the wrapping
-         * bstr. It gets MACed with the first part, so no
-         * bytes to omit.
-         */
-        bytes_to_omit = 0;
-        QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, payload);
-    }
-
-    /* Close of the array */
-    QCBOREncode_CloseArray(&cbor_encode_ctx);
-
-    /* get the encoded results, except for payload */
-    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, tbm_first_part);
-    if(qcbor_result) {
-        /* Mainly means that the protected_headers were too big
-         * (which should never happen)
-         */
-        return T_COSE_ERR_SIG_STRUCT;
-    }
-
-    tbm_first_part->len -= bytes_to_omit;
-
-    return T_COSE_SUCCESS;
-}
-#endif /* !T_COSE_DISABLE_MAC0 */
 
 
 /**
@@ -162,7 +106,7 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
  * COSE_Sign1 structure. This is a little hard to to understand in the
  * spec.
  */
-// TODO: replace aad, payload, protected with one tbs_input structure
+// TODO: replace aad, payload, protected with on tbs_input structure
 enum t_cose_err_t
 create_tbs_hash(const int32_t                cose_algorithm_id,
                 const struct q_useful_buf_c  body_protected_parameters,
@@ -274,7 +218,6 @@ static const uint8_t defined_short_circuit_kid[] = {
 
 static struct q_useful_buf_c short_circuit_kid;
 
-
 /*
  * Public function. See t_cose_util.h
  */
@@ -286,25 +229,3 @@ struct q_useful_buf_c get_short_circuit_kid(void)
     return short_circuit_kid;
 }
 #endif
-
-
-/*
- * Public function. See t_cose_util.h
- */
-enum t_cose_err_t
-qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t format_error)
-{
-    if(qcbor_error == QCBOR_ERR_TOO_MANY_TAGS) {
-        return T_COSE_ERR_TOO_MANY_TAGS;
-    }
-    if(QCBORDecode_IsNotWellFormedError(qcbor_error)) {
-        return T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-    }
-    if(qcbor_error == QCBOR_ERR_UNEXPECTED_TYPE || qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
-        return format_error;
-    }
-    if(qcbor_error != QCBOR_SUCCESS) {
-        return T_COSE_ERR_CBOR_DECODE;
-    }
-    return T_COSE_SUCCESS;
-}

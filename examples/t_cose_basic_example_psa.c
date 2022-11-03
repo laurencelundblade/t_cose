@@ -75,13 +75,13 @@
 enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                           struct t_cose_key *key_pair)
 {
-    psa_key_type_t       key_type;
-    psa_status_t         crypto_result;
-    psa_key_id_t         key_handle;
-    psa_algorithm_t      key_alg;
-    const uint8_t       *private_key;
-    size_t               private_key_len;
-    psa_key_attributes_t key_attributes;
+    psa_key_type_t        key_type;
+    psa_status_t          crypto_result;
+    mbedtls_svc_key_id_t  key_handle;
+    psa_algorithm_t       key_alg;
+    const uint8_t        *private_key;
+    size_t                private_key_len;
+    psa_key_attributes_t  key_attributes;
 
 
     static const uint8_t private_key_256[] = {PRIVATE_KEY_prime256v1};
@@ -180,7 +180,7 @@ enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
  */
 void free_psa_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-    psa_close_key((psa_key_id_t)key_pair.k.key_handle);
+    psa_close_key((mbedtls_svc_key_id_t)key_pair.k.key_handle);
 }
 
 
@@ -222,7 +222,7 @@ static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf
  * is simpler to use. In the code below constructed_payload_buffer is
  * the extra buffer that two-step signing avoids.
  */
-int32_t one_step_sign_example(void)
+int32_t one_step_sign_example()
 {
 
     struct t_cose_sign1_sign_ctx   sign_ctx;
@@ -407,7 +407,7 @@ Done:
  * constructed directly into the output buffer, uses less memory,
  * but is more complicated to use.
  */
-int two_step_sign_example(void)
+int two_step_sign_example()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     enum t_cose_err_t              return_value;
@@ -616,7 +616,7 @@ Done:
  * constructed directly into the output buffer, uses less memory,
  * but is more complicated to use.
  */
-int two_step_sign_example_new(void)
+int two_step_sign_example_new()
 {
     struct t_cose_sign_sign_ctx    sign_ctx;
     struct t_cose_signature_sign_ecdsa ecdsa_signer;
@@ -670,7 +670,7 @@ int two_step_sign_example_new(void)
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_COSE_SIGN1);
 
     t_cose_signature_sign_ecdsa_init(&ecdsa_signer, T_COSE_ALGORITHM_ES256);
 
@@ -826,7 +826,7 @@ Done:
  * constructed directly into the output buffer, uses less memory,
  * but is more complicated to use.
  */
-int two_step_sign_example_new_verify(void)
+int two_step_sign_example_new_verify()
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     enum t_cose_err_t              return_value;
@@ -977,7 +977,7 @@ int two_step_sign_example_new_verify(void)
      * key. Internally it must be in the format for the crypto library
      * used. It is passed straight through t_cose.
      */
-    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_COSE_SIGN1);
 
     struct t_cose_signature_verify_ecdsa verifier;
     t_cose_signature_verify_ecdsa_init(&verifier);

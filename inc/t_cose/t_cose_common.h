@@ -2,7 +2,8 @@
  * t_cose_common.h
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ *
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -15,11 +16,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "t_cose/q_useful_buf.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /*
  * API Design Overview
@@ -27,7 +27,7 @@ extern "C" {
  * t_cose is made up of a collection of objects (in the
  * object-oriented programming sense) that correspond to the main
  * objects defined in CDDL by the COSE standard (RFC 9052). These
- * objects come in pairs, one for the sending/signing/encrypting
+ * objects come in pairs, one for the sendi *ng/signing/encrypting
  * side and the other for the receiving/verifying/decrypting
  * side. Following is a high-level description of all of these and how
  * they connect up to each other.
@@ -77,17 +77,17 @@ extern "C" {
  * For COSE_Mac, t_cose_recipient_enc() and t_cose_recipient_dec()
  * implement COSE_recipient. (I’m pretty sure sharing t_cose_recipient
  * between COSE_MAC and COSE_Encrypt can work, but this needs to be
- * checked by actually designing and implementing it). These are not
+ * checked by actually de *signing and implementing it). These are not
  * needed for COSE_Mac0.
  *
  * 
  * COSE_Message
  *
  * t_cose_message_create() and t_cose_message_decode handle
- * COSE_Message. This is for handling COSE messages that might be signed,
+ * COSE_Message. This is for handling COSE messages that might signed,
  * encrypted, MACed or some combination of these. In the simplest case
- * they decode the CBOR tag number and switch off to one of the
- * above handlers. In more complicated cases they recursively handle
+ * they decode the CBOR tag n *umber and switch off to one of the
+ * above handlers. In more complicated cases they recursively handled
  * nested signing, encrypting and MACing. (Lots of work to do on
  * this…)
  *
@@ -101,7 +101,7 @@ extern "C" {
  * This also defines a data structure, t_cose_header_parameter that
  * holds one single parameter, for example an algorithm ID or a
  * kid. This structure is used to pass the parameters in and out of
- * all the methods above. It facilitates the general header
+ * all the methods above. It fa *cilitates the general header
  * parameter implementation and allows for custom and specialized
  * headers.
  *
@@ -118,7 +118,7 @@ extern "C" {
  * The concrete classes will generally correspond to groups of
  * algorithms. For example, there will likely be one for ECDSA,
  * t_cose_signature_sign_ecdsa, another for RSAPSS and a variety for
- * PQ. Perhaps there will be one for counter signatures of
+ * PQ. Perhaps there will be one fo *r counter signatures of
  * particular types.
  *
  * The user of t_cose will create instances of t_cose_signature and
@@ -179,16 +179,57 @@ extern "C" {
  */
 
 
+
+
 /**
- * This indicates this is t_cose 2.x, not 1.x. It should be forward compatible
- * with 1.x, but this is available in case it is not.
+ * \def T_COSE_ALGORITHM_ES256
+ *
+ * \brief Indicates ECDSA with SHA-256.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * The COSE standard recommends a key using the secp256r1 curve with
+ * this algorithm. This curve is also known as prime256v1 and P-256.
  */
-#define T_COSE_2
+#define T_COSE_ALGORITHM_ES256 -7
 
+/**
+ * \def T_COSE_ALGORITHM_ES384
+ *
+ * \brief Indicates ECDSA with SHA-384.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * The COSE standard recommends a key using the secp384r1 curve with
+ * this algorithm. This curve is also known as P-384.
+ */
+#define T_COSE_ALGORITHM_ES384 -35
 
-/* Definitions of algorithm IDs is moved to t_cose_standard_constants.h */
+/**
+ * \def T_COSE_ALGORITHM_ES512
+ *
+ * \brief Indicates ECDSA with SHA-512.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * The COSE standard recommends a key using the secp521r1 curve with
+ * this algorithm. This curve is also known as P-521.
+ */
+#define T_COSE_ALGORITHM_ES512 -36
 
- 
+/*!
+ * \brief HPKE ciphersuite
+ */
+struct t_cose_crypto_hpke_suite_t {
+    uint16_t    kem_id;  // Key Encryption Method id
+    uint16_t    kdf_id;  // Key Derivation Function id
+    uint16_t    aead_id; // Authenticated Encryption with Associated Data id
+};
+
+#define T_COSE_ALGORITHM_NONE 0
 
 
 
@@ -274,21 +315,13 @@ struct t_cose_key {
  */
 #define T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS (1+1+5+17)
 
-/* Private value. Intentionally not documented for Doxygen.
- * This is the size allocated for the encoded protected headers.  It
- * needs to be big enough for make_protected_header() to succeed. It
- * currently sized for one header with an algorithm ID up to 32 bits
- * long -- one byte for the wrapping map, one byte for the label, 5
- * bytes for the ID. If this is made accidentially too small, QCBOR will
- * only return an error, and not overrun any buffers.
- *
- * 9 extra bytes are added, rounding it up to 16 total, in case some
- * other protected header is to be added.
- */
-#define T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS (1 + 1 + 5 + 9)
 
-/* Six: an alg id, a kid, an iv, a content type, one custom, crit list */
-#define T_COSE_NUM_VERIFY_DECODE_HEADERS 6
+enum t_cose_key_usage_flags {
+    T_COSE_KEY_USAGE_FLAG_NONE = 0,
+    T_COSE_KEY_USAGE_FLAG_DECRYPT = 1,
+    T_COSE_KEY_USAGE_FLAG_ENCRYPT = 2
+};
+
 /**
  * Error codes return by t_cose.
  */
@@ -401,9 +434,10 @@ enum t_cose_err_t {
      /** The buffer passed in to receive the output is too small. */
     T_COSE_ERR_TOO_SMALL = 25,
 
-    /** More than \ref T_COSE_MAX_CRITICAL_PARAMS parameters
-     * listed in the "crit" parameter.
-     */
+    /** More parameters (more than \ref T_COSE_PARAMETER_LIST_MAX)
+     * than this implementation can handle. Note that all parameters
+     * need to be checked for criticality so all parameters need to be
+     * examined. */
     T_COSE_ERR_TOO_MANY_PARAMETERS = 26,
 
     /** A parameter was encountered that was unknown and also listed in
@@ -460,159 +494,106 @@ enum t_cose_err_t {
      * and related. */
     T_COSE_ERR_UNHANDLED_HEADER_PARAMETER = 38,
 
-    /** When encoding parameters, struct t_cose_header_parameter.parameter_type
+    /* When encoding parameters, struct t_cose_header_parameter.parameter_type
      * is not a valid type.
      */
     T_COSE_ERR_INVALID_PARAMETER_TYPE = 39,
 
-    /** Can't put critical parameters in the non-protected
-     * header bucket per section 3.1 of RFC 9052. */
+    /* Can't put critical parameters in the non-protected
+     * header bucket. */
     T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
 
     T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
 
-    /* A header parameter with a string label occurred and there
-     * is no support enabled for string labeled header parameters.
-     */
-    T_COSE_ERR_STRING_LABELED_PARAM = 42,
+    /** The requested key exchange algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG = 42,
 
-    /** No signers as in struct t_cose_signature_sign are  configured.
-     */
-    T_COSE_ERR_NO_SIGNERS = 43,
+    /** The requested encryption algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 43,
 
-    /** More than one signer configured when signing a
-     * COSE_Sign1 (multiple signers are OK for COSE_SIGN). */
-    T_COSE_ERR_TOO_MANY_SIGNERS = 44,
+    /** The requested key length is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEY_LENGTH = 44,
 
-    /** Mostly a verifier that is configured to look for kids
-     * before it acts didn't match the kid in the message. */
-    T_COSE_ERR_KID_UNMATCHED = 45,
+    /** Adding a recipient to the COSE_Encrypt0 structure is not allowed.  */
+    T_COSE_ERR_RECIPIENT_CANNOT_BE_ADDED = 45,
 
-    /** General CBOR decode error. */
-    T_COSE_ERR_CBOR_DECODE = 46,
+    /** The requested cipher algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_CIPHER_ALG = 46,
 
-    /** A COSE_Signature contains unexected data or types. */
-    T_COSE_ERR_SIGNATURE_FORMAT = 47,
+    /** Something went wrong in the crypto adaptor when
+     * encrypting data. */
+    T_COSE_ERR_ENCRYPT_FAIL = 47,
 
-    /**
-     * When verifying a \c COSE_Mac0, something is wrong with the
-     * format of the CBOR. For example, it is missing something like
-     * the payload.
-     */
-    T_COSE_ERR_MAC0_FORMAT = 48
+    /** Something went wrong in the crypto adaptor when
+     * decrypting data. */
+    T_COSE_ERR_DECRYPT_FAIL = 48,
+
+    /** Something went wrong in the crypto adaptor when
+     * invoking HPKE to encrypt data. */
+    T_COSE_ERR_HPKE_ENCRYPT_FAIL = 49,
+
+    /** Something went wrong in the crypto adaptor when
+     * invoking HPKE to decrypt data. */
+    T_COSE_ERR_HPKE_DECRYPT_FAIL = 50,
+
+    /** When decoding a CBOR structure, a mandatory field
+     *  was not found. */
+    T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING = 51,
+
+    /** When decoding the ephemeral key structure, the included
+     * public key is of incorrect or unexpected size. */
+    T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT = 52,
+
+    /** Cryptographic operations may require a key usage flags
+     * to be indicated. If the provided flags are unsupported,
+     * this error is returned. */
+    T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS = 53,
+
+    /** The key import failed. */
+    T_COSE_ERR_KEY_IMPORT_FAILED = 54,
+
+    /** Obtaining random bytes failed. */
+    T_COSE_ERR_RNG_FAILED = 55,
+
+    /** Export of the public key failed. */
+    T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED = 56,
+
+    /** Generating asymmetric key pair failed. */
+    T_COSE_ERR_KEY_GENERATION_FAILED = 57,
+
+    /** Export of the key failed. */
+    T_COSE_ERR_KEY_EXPORT_FAILED = 58,
+
+    /** Something went wrong with AES Key Wrap. */
+    T_COSE_ERR_AES_KW_FAILED = 59,
 };
 
 
-/**
- * TODO: this may not be implmented correctly yet
- *
- * In this tag decoding mode, there must be a tag number present in
- * the input CBOR. That tag number solely determines the COSE message
- * type that decoding expects.
- *
- * It is an error if there is no tag number.
- *
- * If a message type option like \ref T_COSE_OPT_MESSAGE_TYPE_SIGN is
- * set in the options, it is ignored.
- *
- * If there are nested tags, the inner most tag number, the one
- * closest to the array item (all COSE messages are arrays) is used.
- *
- * See also \ref T_COSE_OPT_TAG_PROHIBITED for another tag decoding
- * mode.
- *
- * If neither this or \ref T_COSE_OPT_TAG_PROHIBITED is set then the
- * message type will be determined by either the tag or or message
- * type option like \ref T_COSE_OPT_MESSAGE_TYPE_SIGN.  If neither are
- * available, then it is an error as the message type can't be
- * determined. If both are set, then the message type option overrules
- * the tag number. This is the default, but it is discouraged by
- * the CBOR standard as it is a bit ambigous and protocol definitions
- * should clearly state which they use. It is left as the default
- * here in t_cose because it will usually work out of the box.
- *
- * See t_cose_sign1_get_nth_tag() to get further tags that enclose
- * the COSE message.
- */
-#define T_COSE_OPT_TAG_REQUIRED  0x00000100
 
 
 /**
- * TODO: this may not be implmented correctly yet
+ * The maximum number of header parameters that can be handled during
+ * verification of a \c COSE_Sign1 message. \ref
+ * T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
+ * t_cose_sign1_verify() if the input message has more.
  *
- * In this tag decoding mode, there must be no tag number present in
- * the input CBOR.  Message type options like \ref
- * T_COSE_OPT_MESSAGE_TYPE_SIGN are solely relied on.
+ * There can be both \ref T_COSE_PARAMETER_LIST_MAX integer-labeled
+ * parameters and \ref T_COSE_PARAMETER_LIST_MAX string-labeled
+ * parameters.
  *
- * If a tag number is present, then \ref T_COSE_ERR_INCORRECTLY_TAGGED
- * is returned.
- *
- * If no Message type options like \ref T_COSE_OPT_MESSAGE_TYPE_SIGN
- * is set the TODO error is returned.
- *
- * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
+ * This is a hard maximum so the implementation doesn't need
+ * malloc. This constant can be increased if needed. Doing so will
+ * increase stack usage.
  */
-#define T_COSE_OPT_TAG_PROHIBITED  0x00000200
+#define T_COSE_PARAMETER_LIST_MAX 10
+
 
 
 /**
- * An \c option_flag to not add the CBOR type 6 tag number when
- * encoding a COSE message.  Some uses of COSE may require this tag
- * number be absent because its COSE message type is known from
- * surrounding context.
- *
- * Or said another way \c COSE_Xxxx_Tagged message is produced by
- * default and a \c COSE_Xxxx is produced when this flag is set (where
- * COSE_Xxxx is COSE_Sign, COSE_Mac0, ... as specified in CDDL in RFC
- * 9052).  The only difference is the presence of the CBOR tag number.
+ * The value of an unsigned integer content type indicating no content
+ * type.  See \ref t_cose_parameters.
  */
-#define T_COSE_OPT_OMIT_CBOR_TAG 0x00000400
-
-  
-/**
- * When verifying or signing a COSE message, cryptographic operations
- * like verification and decryption will not be performed. Keys needed
- * for these operations are not needed. This is useful to decode a
- * COSE message to get the header parameter(s) to lookup/find/identify
- * the required key(s) (e.g., the kid parameter).  Then the key(s)
- * are/is configured and the message is decoded again without this
- * option.
- *
- * Note that anything returned (parameters, payload) will not have
- * been verified and should be considered untrusted.
- */
-#define T_COSE_OPT_DECODE_ONLY  0x00000800
-
-
-/* The lower 8 bits of the options give the type of the
- * COSE message to decode.
- * TODO: this may not be implmented correctly yet
- */
-#define T_COSE_OPT_MESSAGE_TYPE_MASK 0x000000ff
-
-/* The following are possble values for the lower 8 bits
- * of option_flags. They are used to indicated what
- * type of messsage to output and what type of message
- * to expect when decoding and the tag number is
- * absent or being overriden. */
-#define T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED 00
-#define T_COSE_OPT_MESSAGE_TYPE_SIGN        98
-#define T_COSE_OPT_MESSAGE_TYPE_SIGN1       18
-#define T_COSE_OPT_MESSAGE_TYPE_ENCRYPT     96
-#define T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0    16
-#define T_COSE_OPT_MESSAGE_TYPE_MAC         97
-#define T_COSE_OPT_MESSAGE_TYPE_MAC0        17
-/* Not expecting any more. */
-
-
-/**
- * The error \ref T_COSE_ERR_NO_KID is returned if the kid parameter
- * is missing. Note that the kid parameter is primarily passed on to
- * the crypto layer so the crypto layer can look up the key. If the
- * verification key is determined by other than the kid, then it is
- * fine if there is no kid.
- */
-#define T_COSE_OPT_REQUIRE_KID 0x00001000
+#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 
 
 /**
@@ -631,6 +612,8 @@ enum t_cose_err_t {
  */
 bool
 t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
+
+
 
 #ifdef __cplusplus
 }

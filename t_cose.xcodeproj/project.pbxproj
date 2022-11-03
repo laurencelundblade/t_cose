@@ -47,17 +47,7 @@
 		E73CDABE23A7316700D262E0 /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E73CDABF23A7316700D262E0 /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
 		E73CDAD423AD4F3900D262E0 /* t_cose_psa_crypto.c in Sources */ = {isa = PBXBuildFile; fileRef = E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */; };
-		E73FDF9E28A38355002CF0CC /* t_cose_signature_verify_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC702892274F00420F6F /* t_cose_signature_verify_short.c */; };
-		E73FDF9F28A38358002CF0CC /* t_cose_signature_sign_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC712892274F00420F6F /* t_cose_signature_sign_short.c */; };
 		E74FFBBA263BAB38003B66FF /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E74FFBB8263BAB0D003B66FF /* libcrypto.a */; };
-		E762D6D628CC0BBD00A22792 /* t_cose_mac_compute.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D428CC0BBD00A22792 /* t_cose_mac_compute.c */; };
-		E762D6D728CC0BBD00A22792 /* t_cose_mac_validate.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D528CC0BBD00A22792 /* t_cose_mac_validate.c */; };
-		E762D6DB28CC0BEF00A22792 /* t_cose_mac_validate.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D528CC0BBD00A22792 /* t_cose_mac_validate.c */; };
-		E762D6DC28CC0BF100A22792 /* t_cose_mac_validate.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D528CC0BBD00A22792 /* t_cose_mac_validate.c */; };
-		E762D6DD28CC0BF600A22792 /* t_cose_mac_compute.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D428CC0BBD00A22792 /* t_cose_mac_compute.c */; };
-		E762D6DE28CC0BF700A22792 /* t_cose_mac_compute.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D428CC0BBD00A22792 /* t_cose_mac_compute.c */; };
-		E762D6DF28CC0BFD00A22792 /* t_cose_compute_validate_mac_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D928CC0BD700A22792 /* t_cose_compute_validate_mac_test.c */; };
-		E762D6E028CC0BFE00A22792 /* t_cose_compute_validate_mac_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D928CC0BD700A22792 /* t_cose_compute_validate_mac_test.c */; };
 		E772026F23CAEC84006E966E /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
 		E772027123CAEC84006E966E /* t_cose_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7F70AC52270DFAE007CE07F /* t_cose_test.c */; };
 		E772027323CAEC84006E966E /* t_cose_psa_crypto.c in Sources */ = {isa = PBXBuildFile; fileRef = E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */; };
@@ -70,13 +60,43 @@
 		E772027C23CAEC84006E966E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E7B226CB8400040613B /* main.c */; };
 		E772027D23CAEC84006E966E /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E772027E23CAEC84006E966E /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
-		E7AF703028D7E08800F07637 /* t_cose_signature_verify_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC562887D5A000420F6F /* t_cose_signature_verify_ecdsa.c */; };
-		E7AF703128D7E08C00F07637 /* t_cose_signature_sign_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC462887430700420F6F /* t_cose_signature_sign_ecdsa.c */; };
-		E7AF703228D7E24200F07637 /* t_cose_signature_sign_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC712892274F00420F6F /* t_cose_signature_sign_short.c */; };
-		E7AF703328D7E24600F07637 /* t_cose_signature_verify_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC702892274F00420F6F /* t_cose_signature_verify_short.c */; };
-		E7AF703628DADF5E00F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
-		E7AF703728DADFCF00F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
-		E7AF703828DADFD000F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
+		E7ABEDF82904B44B000F4BE5 /* t_cose_encryption_example_psa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDF72904B44B000F4BE5 /* t_cose_encryption_example_psa.c */; };
+		E7ABEDFD2904EC81000F4BE5 /* t_cose_encrypt_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDF92904EC80000F4BE5 /* t_cose_encrypt_enc.c */; };
+		E7ABEDFE2904EC81000F4BE5 /* t_cose_encrypt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFA2904EC80000F4BE5 /* t_cose_encrypt_dec.c */; };
+		E7ABEDFF2904EC81000F4BE5 /* t_cose_hpke.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFB2904EC80000F4BE5 /* t_cose_hpke.c */; };
+		E7ABEE002904EC81000F4BE5 /* t_cose_aes_kw.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFC2904EC81000F4BE5 /* t_cose_aes_kw.c */; };
+		E7ABEE012904EC87000F4BE5 /* t_cose_aes_kw.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFC2904EC81000F4BE5 /* t_cose_aes_kw.c */; };
+		E7ABEE022904EC8C000F4BE5 /* t_cose_aes_kw.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFC2904EC81000F4BE5 /* t_cose_aes_kw.c */; };
+		E7ABEE032904EC95000F4BE5 /* t_cose_encrypt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFA2904EC80000F4BE5 /* t_cose_encrypt_dec.c */; };
+		E7ABEE042904EC96000F4BE5 /* t_cose_encrypt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFA2904EC80000F4BE5 /* t_cose_encrypt_dec.c */; };
+		E7ABEE052904EC9A000F4BE5 /* t_cose_hpke.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFB2904EC80000F4BE5 /* t_cose_hpke.c */; };
+		E7ABEE062904EC9B000F4BE5 /* t_cose_hpke.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFB2904EC80000F4BE5 /* t_cose_hpke.c */; };
+		E7ABEE072904ECA7000F4BE5 /* t_cose_encrypt_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDF92904EC80000F4BE5 /* t_cose_encrypt_enc.c */; };
+		E7ABEE082904ECA8000F4BE5 /* t_cose_encrypt_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDF92904EC80000F4BE5 /* t_cose_encrypt_enc.c */; };
+		E7ABEE0B2908FB3C000F4BE5 /* t_cose_sign_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC452887430600420F6F /* t_cose_sign_sign.c */; };
+		E7ABEE0C2908FB3C000F4BE5 /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
+		E7ABEE0D2908FB3C000F4BE5 /* t_cose_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7F70AC52270DFAE007CE07F /* t_cose_test.c */; };
+		E7ABEE0E2908FB3C000F4BE5 /* t_cose_signature_verify_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC562887D5A000420F6F /* t_cose_signature_verify_ecdsa.c */; };
+		E7ABEE0F2908FB3C000F4BE5 /* t_cose_psa_crypto.c in Sources */ = {isa = PBXBuildFile; fileRef = E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */; };
+		E7ABEE102908FB3C000F4BE5 /* t_cose_util.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E89226CB9460040613B /* t_cose_util.c */; };
+		E7ABEE112908FB3C000F4BE5 /* t_cose_sign_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC5E288B266500420F6F /* t_cose_sign_verify.c */; };
+		E7ABEE122908FB3C000F4BE5 /* t_cose_encrypt_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDF92904EC80000F4BE5 /* t_cose_encrypt_enc.c */; };
+		E7ABEE132908FB3C000F4BE5 /* t_cose_encrypt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFA2904EC80000F4BE5 /* t_cose_encrypt_dec.c */; };
+		E7ABEE142908FB3C000F4BE5 /* t_cose_parameters.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_parameters.c */; };
+		E7ABEE152908FB3C000F4BE5 /* t_cose_sign_verify_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E721CB9423628D2600C7FD56 /* t_cose_sign_verify_test.c */; };
+		E7ABEE162908FB3C000F4BE5 /* t_cose_make_psa_test_key.c in Sources */ = {isa = PBXBuildFile; fileRef = E721CB9123628B5F00C7FD56 /* t_cose_make_psa_test_key.c */; };
+		E7ABEE172908FB3C000F4BE5 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = E730E60723612D2B00175CE0 /* sha256.c */; };
+		E7ABEE182908FB3C000F4BE5 /* t_cose_signature_sign_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC462887430700420F6F /* t_cose_signature_sign_ecdsa.c */; };
+		E7ABEE192908FB3C000F4BE5 /* t_cose_aes_kw.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFC2904EC81000F4BE5 /* t_cose_aes_kw.c */; };
+		E7ABEE1A2908FB3C000F4BE5 /* t_cose_make_test_messages.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F8B2FE8233C3DD600A22349 /* t_cose_make_test_messages.c */; };
+		E7ABEE1B2908FB3C000F4BE5 /* t_cose_hpke.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEDFB2904EC80000F4BE5 /* t_cose_hpke.c */; };
+		E7ABEE1C2908FB3C000F4BE5 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E7B226CB8400040613B /* main.c */; };
+		E7ABEE1D2908FB3C000F4BE5 /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
+		E7ABEE1E2908FB3C000F4BE5 /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
+		E7ABEE212908FB3C000F4BE5 /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7C960A527F7569500FB537C /* libqcbor.a */; };
+		E7ABEE282908FC8B000F4BE5 /* libmbedcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7ABEE272908FC8B000F4BE5 /* libmbedcrypto.a */; };
+		E7ABEE2B2908FDBA000F4BE5 /* t_cose_encrypt_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEE2A2908FDBA000F4BE5 /* t_cose_encrypt_test.c */; };
+		E7ABEE2C2908FDBA000F4BE5 /* t_cose_encrypt_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7ABEE2A2908FDBA000F4BE5 /* t_cose_encrypt_test.c */; };
 		E7C960A627F7569E00FB537C /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7C960A527F7569500FB537C /* libqcbor.a */; };
 		E7C960A727F7569F00FB537C /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7C960A527F7569500FB537C /* libqcbor.a */; };
 		E7C960A827F756A000FB537C /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7C960A527F7569500FB537C /* libqcbor.a */; };
@@ -92,6 +112,7 @@
 		E7E36EA5226CBB570040613B /* t_cose_openssl_crypto.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36EA3226CBB570040613B /* t_cose_openssl_crypto.c */; };
 		E7F70AC62270DFAE007CE07F /* t_cose_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7F70AC52270DFAE007CE07F /* t_cose_test.c */; };
 		E7FECC472887430700420F6F /* t_cose_sign_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC452887430600420F6F /* t_cose_sign_sign.c */; };
+		E7FECC482887430700420F6F /* t_cose_signature_sign_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC462887430700420F6F /* t_cose_signature_sign_ecdsa.c */; };
 		E7FECC49288754E200420F6F /* t_cose_sign_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC452887430600420F6F /* t_cose_sign_sign.c */; };
 		E7FECC4A288754E200420F6F /* t_cose_sign_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC452887430600420F6F /* t_cose_sign_sign.c */; };
 		E7FECC4B288754E300420F6F /* t_cose_sign_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC452887430600420F6F /* t_cose_sign_sign.c */; };
@@ -103,6 +124,7 @@
 		E7FECC51288754EA00420F6F /* t_cose_signature_sign_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC462887430700420F6F /* t_cose_signature_sign_ecdsa.c */; };
 		E7FECC52288754EA00420F6F /* t_cose_signature_sign_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC462887430700420F6F /* t_cose_signature_sign_ecdsa.c */; };
 		E7FECC5328877DFE00420F6F /* libmbedcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E751F9F027E1F90F00EBA5FA /* libmbedcrypto.a */; };
+		E7FECC572887D5A000420F6F /* t_cose_signature_verify_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC562887D5A000420F6F /* t_cose_signature_verify_ecdsa.c */; };
 		E7FECC582887D6AE00420F6F /* t_cose_signature_verify_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC562887D5A000420F6F /* t_cose_signature_verify_ecdsa.c */; };
 		E7FECC592887D6AF00420F6F /* t_cose_signature_verify_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC562887D5A000420F6F /* t_cose_signature_verify_ecdsa.c */; };
 		E7FECC5A2887D6B000420F6F /* t_cose_signature_verify_ecdsa.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC562887D5A000420F6F /* t_cose_signature_verify_ecdsa.c */; };
@@ -116,8 +138,6 @@
 		E7FECC64288B346400420F6F /* t_cose_sign_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC5E288B266500420F6F /* t_cose_sign_verify.c */; };
 		E7FECC722892275000420F6F /* t_cose_signature_verify_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC702892274F00420F6F /* t_cose_signature_verify_short.c */; };
 		E7FECC732892275000420F6F /* t_cose_signature_sign_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC712892274F00420F6F /* t_cose_signature_sign_short.c */; };
-		E7FECC74289B74D800420F6F /* t_cose_signature_sign_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC712892274F00420F6F /* t_cose_signature_sign_short.c */; };
-		E7FECC75289B74DC00420F6F /* t_cose_signature_verify_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC702892274F00420F6F /* t_cose_signature_verify_short.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -166,6 +186,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		E7ABEE222908FB3C000F4BE5 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		E7E36E76226CB8400040613B /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -182,6 +211,7 @@
 		0F8B2FE9233C3DD600A22349 /* t_cose_make_test_messages.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_make_test_messages.h; sourceTree = "<group>"; };
 		0F9105792321878F00008572 /* t_cose_parameters.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_parameters.c; sourceTree = "<group>"; };
 		E71D9E8E231C930B00A21F7F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		E71D9ECA23341D8200A21F7F /* t_cose_standard_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_standard_constants.h; sourceTree = "<group>"; };
 		E721CB9123628B5F00C7FD56 /* t_cose_make_psa_test_key.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_make_psa_test_key.c; sourceTree = "<group>"; };
 		E721CB9423628D2600C7FD56 /* t_cose_sign_verify_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_sign_verify_test.c; sourceTree = "<group>"; };
 		E721CB9523628D2700C7FD56 /* t_cose_sign_verify_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_sign_verify_test.h; sourceTree = "<group>"; };
@@ -234,18 +264,20 @@
 		E751F9ED27E1F85000EBA5FA /* crypto_builtin_primitives.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypto_builtin_primitives.h; path = ../../../../../usr/local/include/psa/crypto_builtin_primitives.h; sourceTree = "<group>"; };
 		E751F9EE27E1F85000EBA5FA /* crypto_values.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypto_values.h; path = ../../../../../usr/local/include/psa/crypto_values.h; sourceTree = "<group>"; };
 		E751F9F027E1F90F00EBA5FA /* libmbedcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmbedcrypto.a; path = ../../../../../usr/local/lib/libmbedcrypto.a; sourceTree = "<group>"; };
-		E762D6D228CC0BB000A22792 /* t_cose_mac_compute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_mac_compute.h; path = t_cose/t_cose_mac_compute.h; sourceTree = "<group>"; };
-		E762D6D328CC0BB000A22792 /* t_cose_mac_validate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_mac_validate.h; path = t_cose/t_cose_mac_validate.h; sourceTree = "<group>"; };
-		E762D6D428CC0BBD00A22792 /* t_cose_mac_compute.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_mac_compute.c; sourceTree = "<group>"; };
-		E762D6D528CC0BBD00A22792 /* t_cose_mac_validate.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_mac_validate.c; sourceTree = "<group>"; };
-		E762D6D828CC0BD700A22792 /* t_cose_compute_validate_mac_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_compute_validate_mac_test.h; sourceTree = "<group>"; };
-		E762D6D928CC0BD700A22792 /* t_cose_compute_validate_mac_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_compute_validate_mac_test.c; sourceTree = "<group>"; };
-		E762D6F128D0ADCF00A22792 /* encode_only_psa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encode_only_psa.c; path = tdv/encode_only_psa.c; sourceTree = "<group>"; };
-		E762D6F328D2C32E00A22792 /* decode_only_psa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = decode_only_psa.c; path = tdv/decode_only_psa.c; sourceTree = "<group>"; };
 		E772028523CAEC84006E966E /* t_cose_psa_noss */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_psa_noss; sourceTree = BUILT_PRODUCTS_DIR; };
-		E77F343028F979DF0089FC2A /* t_cose_standard_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_standard_constants.h; path = t_cose/t_cose_standard_constants.h; sourceTree = "<group>"; };
-		E7AF703428DADF5E00F07637 /* t_cose_param_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_param_test.h; sourceTree = "<group>"; };
-		E7AF703528DADF5E00F07637 /* t_cose_param_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_param_test.c; sourceTree = "<group>"; };
+		E7ABEDF32904B2A5000F4BE5 /* t_cose_encrypt_dec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_encrypt_dec.h; path = t_cose/t_cose_encrypt_dec.h; sourceTree = "<group>"; };
+		E7ABEDF42904B2A5000F4BE5 /* t_cose_aes_kw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_aes_kw.h; path = t_cose/t_cose_aes_kw.h; sourceTree = "<group>"; };
+		E7ABEDF52904B2A6000F4BE5 /* t_cose_encrypt_enc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_encrypt_enc.h; path = t_cose/t_cose_encrypt_enc.h; sourceTree = "<group>"; };
+		E7ABEDF62904B2A6000F4BE5 /* t_cose_hpke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_hpke.h; path = t_cose/t_cose_hpke.h; sourceTree = "<group>"; };
+		E7ABEDF72904B44B000F4BE5 /* t_cose_encryption_example_psa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_encryption_example_psa.c; sourceTree = "<group>"; };
+		E7ABEDF92904EC80000F4BE5 /* t_cose_encrypt_enc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_encrypt_enc.c; sourceTree = "<group>"; };
+		E7ABEDFA2904EC80000F4BE5 /* t_cose_encrypt_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_encrypt_dec.c; sourceTree = "<group>"; };
+		E7ABEDFB2904EC80000F4BE5 /* t_cose_hpke.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_hpke.c; sourceTree = "<group>"; };
+		E7ABEDFC2904EC81000F4BE5 /* t_cose_aes_kw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_aes_kw.c; sourceTree = "<group>"; };
+		E7ABEE262908FB3C000F4BE5 /* t_cose_psa hpke */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "t_cose_psa hpke"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7ABEE272908FC8B000F4BE5 /* libmbedcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmbedcrypto.a; path = "../../mbedtls-hpke/library/libmbedcrypto.a"; sourceTree = "<group>"; };
+		E7ABEE292908FDBA000F4BE5 /* t_cose_encrypt_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_encrypt_test.h; sourceTree = "<group>"; };
+		E7ABEE2A2908FDBA000F4BE5 /* t_cose_encrypt_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_encrypt_test.c; sourceTree = "<group>"; };
 		E7C960A527F7569500FB537C /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
 		E7E36E78226CB8400040613B /* t_cose_openssl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7E36E7B226CB8400040613B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
@@ -314,6 +346,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E7ABEE1F2908FB3C000F4BE5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E7ABEE282908FC8B000F4BE5 /* libmbedcrypto.a in Frameworks */,
+				E7ABEE212908FB3C000F4BE5 /* libqcbor.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E7E36E75226CB8400040613B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -343,6 +384,7 @@
 		E73CDAA123A082A500D262E0 /* examples */ = {
 			isa = PBXGroup;
 			children = (
+				E7ABEDF72904B44B000F4BE5 /* t_cose_encryption_example_psa.c */,
 				E73BF6F023B07AB200DF5C36 /* t_cose_basic_example_ossl.c */,
 				E73BF6D223AFFA6500DF5C36 /* t_cose_basic_example_psa.c */,
 			);
@@ -373,19 +415,9 @@
 			name = "PSA Interface";
 			sourceTree = "<group>";
 		};
-		E762D6F028D0ADAF00A22792 /* tdv */ = {
-			isa = PBXGroup;
-			children = (
-				E762D6F328D2C32E00A22792 /* decode_only_psa.c */,
-				E762D6F128D0ADCF00A22792 /* encode_only_psa.c */,
-			);
-			name = tdv;
-			sourceTree = "<group>";
-		};
 		E7E36E6F226CB8400040613B = {
 			isa = PBXGroup;
 			children = (
-				E762D6F028D0ADAF00A22792 /* tdv */,
 				E71D9E8E231C930B00A21F7F /* README.md */,
 				E73CDAA123A082A500D262E0 /* examples */,
 				E7E36E7B226CB8400040613B /* main.c */,
@@ -409,6 +441,7 @@
 				E73BF6EE23AFFB4100DF5C36 /* t_cose_basic_example_psa */,
 				E73BF71C23B07ACF00DF5C36 /* t_cose_basic_example_openssl */,
 				E772028523CAEC84006E966E /* t_cose_psa_noss */,
+				E7ABEE262908FB3C000F4BE5 /* t_cose_psa hpke */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -416,23 +449,24 @@
 		E7E36E82226CB9460040613B /* inc */ = {
 			isa = PBXGroup;
 			children = (
-				E77F343028F979DF0089FC2A /* t_cose_standard_constants.h */,
-				E762D6D228CC0BB000A22792 /* t_cose_mac_compute.h */,
-				E762D6D328CC0BB000A22792 /* t_cose_mac_validate.h */,
+				E7ABEDF42904B2A5000F4BE5 /* t_cose_aes_kw.h */,
+				E7ABEDF32904B2A5000F4BE5 /* t_cose_encrypt_dec.h */,
+				E7ABEDF52904B2A6000F4BE5 /* t_cose_encrypt_enc.h */,
+				E7ABEDF62904B2A6000F4BE5 /* t_cose_hpke.h */,
+				E7FECC6F2892260100420F6F /* t_cose_signature_sign_short.h */,
+				E7FECC6E2892260100420F6F /* t_cose_signature_verify_short.h */,
 				E72EC9EF242E74EE006D3DD3 /* q_useful_buf.h */,
 				E72EC9ED242E74EE006D3DD3 /* t_cose_common.h */,
-				E74F5A3B288105220092D141 /* t_cose_parameters.h */,
-				E74F5A3C28838B780092D141 /* t_cose_message.h */,
 				E74F5A3D2884CFE10092D141 /* t_cose_sign_sign.h */,
 				E74F5A40288518AF0092D141 /* t_cose_sign_verify.h */,
+				E74F5A3B288105220092D141 /* t_cose_parameters.h */,
 				E72EC9EC242E74EE006D3DD3 /* t_cose_sign1_sign.h */,
 				E72EC9EE242E74EE006D3DD3 /* t_cose_sign1_verify.h */,
+				E74F5A3C28838B780092D141 /* t_cose_message.h */,
 				E7FECC542887D49100420F6F /* t_cose_signature_verify.h */,
 				E74F5A3E2884CFE10092D141 /* t_cose_signature_sign.h */,
 				E74F5A3F2884CFE10092D141 /* t_cose_signature_sign_ecdsa.h */,
 				E7FECC5D288B08B800420F6F /* t_cose_signature_verify_ecdsa.h */,
-				E7FECC6E2892260100420F6F /* t_cose_signature_verify_short.h */,
-				E7FECC6F2892260100420F6F /* t_cose_signature_sign_short.h */,
 			);
 			path = inc;
 			sourceTree = "<group>";
@@ -440,8 +474,10 @@
 		E7E36E86226CB9460040613B /* src */ = {
 			isa = PBXGroup;
 			children = (
-				E762D6D428CC0BBD00A22792 /* t_cose_mac_compute.c */,
-				E762D6D528CC0BBD00A22792 /* t_cose_mac_validate.c */,
+				E7ABEDFC2904EC81000F4BE5 /* t_cose_aes_kw.c */,
+				E7ABEDFA2904EC80000F4BE5 /* t_cose_encrypt_dec.c */,
+				E7ABEDF92904EC80000F4BE5 /* t_cose_encrypt_enc.c */,
+				E7ABEDFB2904EC80000F4BE5 /* t_cose_hpke.c */,
 				E7FECC712892274F00420F6F /* t_cose_signature_sign_short.c */,
 				E7FECC702892274F00420F6F /* t_cose_signature_verify_short.c */,
 				E7FECC5E288B266500420F6F /* t_cose_sign_verify.c */,
@@ -454,6 +490,7 @@
 				E7E36E8C226CB9460040613B /* t_cose_util.h */,
 				E7E36E89226CB9460040613B /* t_cose_util.c */,
 				E7E36E8D226CB9460040613B /* t_cose_crypto.h */,
+				E71D9ECA23341D8200A21F7F /* t_cose_standard_constants.h */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -481,6 +518,7 @@
 		E7F70AB22270D989007CE07F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E7ABEE272908FC8B000F4BE5 /* libmbedcrypto.a */,
 				E7C960A527F7569500FB537C /* libqcbor.a */,
 				E751F9F027E1F90F00EBA5FA /* libmbedcrypto.a */,
 				E74FFBB8263BAB0D003B66FF /* libcrypto.a */,
@@ -491,8 +529,6 @@
 		E7F70AC32270DF90007CE07F /* test */ = {
 			isa = PBXGroup;
 			children = (
-				E762D6D928CC0BD700A22792 /* t_cose_compute_validate_mac_test.c */,
-				E762D6D828CC0BD700A22792 /* t_cose_compute_validate_mac_test.h */,
 				E72FB01B231ADAA8000970FE /* run_tests.h */,
 				E72FB01C231ADAA8000970FE /* run_tests.c */,
 				E7F70AC42270DFAE007CE07F /* t_cose_test.h */,
@@ -504,8 +540,8 @@
 				E721CB9723628E0B00C7FD56 /* t_cose_make_test_pub_key.h */,
 				E721CB9823628E9E00C7FD56 /* t_cose_make_openssl_test_key.c */,
 				E721CB9123628B5F00C7FD56 /* t_cose_make_psa_test_key.c */,
-				E7AF703428DADF5E00F07637 /* t_cose_param_test.h */,
-				E7AF703528DADF5E00F07637 /* t_cose_param_test.c */,
+				E7ABEE292908FDBA000F4BE5 /* t_cose_encrypt_test.h */,
+				E7ABEE2A2908FDBA000F4BE5 /* t_cose_encrypt_test.c */,
 			);
 			path = test;
 			sourceTree = "<group>";
@@ -598,6 +634,23 @@
 			productReference = E772028523CAEC84006E966E /* t_cose_psa_noss */;
 			productType = "com.apple.product-type.tool";
 		};
+		E7ABEE092908FB3C000F4BE5 /* t_cose_psa hpke */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E7ABEE232908FB3C000F4BE5 /* Build configuration list for PBXNativeTarget "t_cose_psa hpke" */;
+			buildPhases = (
+				E7ABEE0A2908FB3C000F4BE5 /* Sources */,
+				E7ABEE1F2908FB3C000F4BE5 /* Frameworks */,
+				E7ABEE222908FB3C000F4BE5 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "t_cose_psa hpke";
+			productName = t_cose;
+			productReference = E7ABEE262908FB3C000F4BE5 /* t_cose_psa hpke */;
+			productType = "com.apple.product-type.tool";
+		};
 		E7E36E77226CB8400040613B /* t_cose_openssl */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E7E36E7F226CB8400040613B /* Build configuration list for PBXNativeTarget "t_cose_openssl" */;
@@ -648,6 +701,7 @@
 				E73BF6D523AFFB4100DF5C36 /* t_cose_basic_example_psa */,
 				E73BF70523B07ACF00DF5C36 /* t_cose_basic_example_openssl */,
 				E772026D23CAEC84006E966E /* t_cose_psa_noss */,
+				E7ABEE092908FB3C000F4BE5 /* t_cose_psa hpke */,
 			);
 		};
 /* End PBXProject section */
@@ -659,23 +713,26 @@
 			files = (
 				E730E60B23612DAB00175CE0 /* t_cose_sign1_verify.c in Sources */,
 				E7FECC722892275000420F6F /* t_cose_signature_verify_short.c in Sources */,
-				E762D6D728CC0BBD00A22792 /* t_cose_mac_validate.c in Sources */,
+				E7ABEDFF2904EC81000F4BE5 /* t_cose_hpke.c in Sources */,
+				E7ABEDF82904B44B000F4BE5 /* t_cose_encryption_example_psa.c in Sources */,
 				E730E60C23612DAB00175CE0 /* run_tests.c in Sources */,
 				E730E62123612E3900175CE0 /* t_cose_test_crypto.c in Sources */,
+				E7FECC572887D5A000420F6F /* t_cose_signature_verify_ecdsa.c in Sources */,
 				E7FECC5F288B266500420F6F /* t_cose_sign_verify.c in Sources */,
+				E7ABEE2B2908FDBA000F4BE5 /* t_cose_encrypt_test.c in Sources */,
+				E7ABEDFD2904EC81000F4BE5 /* t_cose_encrypt_enc.c in Sources */,
 				E730E61123612DAB00175CE0 /* t_cose_parameters.c in Sources */,
 				E730E61223612DAB00175CE0 /* t_cose_make_test_messages.c in Sources */,
-				E7AF703028D7E08800F07637 /* t_cose_signature_verify_ecdsa.c in Sources */,
 				E730E61323612DAB00175CE0 /* t_cose_util.c in Sources */,
 				E730E61523612DAB00175CE0 /* sha256.c in Sources */,
+				E7ABEE002904EC81000F4BE5 /* t_cose_aes_kw.c in Sources */,
 				E730E61623612DAB00175CE0 /* t_cose_test.c in Sources */,
+				E7ABEDFE2904EC81000F4BE5 /* t_cose_encrypt_dec.c in Sources */,
 				E7FECC732892275000420F6F /* t_cose_signature_sign_short.c in Sources */,
 				E730E61823612DAB00175CE0 /* main.c in Sources */,
-				E762D6D628CC0BBD00A22792 /* t_cose_mac_compute.c in Sources */,
-				E7AF703628DADF5E00F07637 /* t_cose_param_test.c in Sources */,
 				E730E61923612DAB00175CE0 /* t_cose_sign1_sign.c in Sources */,
 				E7FECC472887430700420F6F /* t_cose_sign_sign.c in Sources */,
-				E7AF703128D7E08C00F07637 /* t_cose_signature_sign_ecdsa.c in Sources */,
+				E7FECC482887430700420F6F /* t_cose_signature_sign_ecdsa.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -686,13 +743,11 @@
 				E7FECC4B288754E300420F6F /* t_cose_sign_sign.c in Sources */,
 				E73BF6D723AFFB4100DF5C36 /* t_cose_sign1_verify.c in Sources */,
 				E73BF6DB23AFFB4100DF5C36 /* t_cose_psa_crypto.c in Sources */,
-				E7AF703228D7E24200F07637 /* t_cose_signature_sign_short.c in Sources */,
 				E7FECC5A2887D6B000420F6F /* t_cose_signature_verify_ecdsa.c in Sources */,
 				E73BF6DC23AFFB4100DF5C36 /* t_cose_util.c in Sources */,
 				E73BF6DE23AFFB4100DF5C36 /* t_cose_parameters.c in Sources */,
 				E7FECC62288B346300420F6F /* t_cose_sign_verify.c in Sources */,
 				E73BF6E023AFFB4100DF5C36 /* t_cose_basic_example_psa.c in Sources */,
-				E7AF703328D7E24600F07637 /* t_cose_signature_verify_short.c in Sources */,
 				E73BF6E323AFFB4100DF5C36 /* sha256.c in Sources */,
 				E73BF6E723AFFB4100DF5C36 /* t_cose_sign1_sign.c in Sources */,
 				E7FECC50288754E900420F6F /* t_cose_signature_sign_ecdsa.c in Sources */,
@@ -721,26 +776,24 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7FECC4A288754E200420F6F /* t_cose_sign_sign.c in Sources */,
-				E7FECC75289B74DC00420F6F /* t_cose_signature_verify_short.c in Sources */,
 				E73CDAAE23A7316700D262E0 /* t_cose_sign1_verify.c in Sources */,
 				E73CDAB023A7316700D262E0 /* t_cose_test.c in Sources */,
-				E7AF703828DADFD000F07637 /* t_cose_param_test.c in Sources */,
-				E7FECC74289B74D800420F6F /* t_cose_signature_sign_short.c in Sources */,
 				E7FECC5B2887D6B000420F6F /* t_cose_signature_verify_ecdsa.c in Sources */,
 				E73CDAD423AD4F3900D262E0 /* t_cose_psa_crypto.c in Sources */,
 				E73CDAB223A7316700D262E0 /* t_cose_util.c in Sources */,
 				E7FECC61288B346300420F6F /* t_cose_sign_verify.c in Sources */,
+				E7ABEE082904ECA8000F4BE5 /* t_cose_encrypt_enc.c in Sources */,
+				E7ABEE042904EC96000F4BE5 /* t_cose_encrypt_dec.c in Sources */,
 				E73CDAB623A7316700D262E0 /* t_cose_parameters.c in Sources */,
 				E73CDAB823A7316700D262E0 /* t_cose_sign_verify_test.c in Sources */,
 				E73CDAB923A7316700D262E0 /* t_cose_make_psa_test_key.c in Sources */,
 				E73CDABA23A7316700D262E0 /* sha256.c in Sources */,
 				E7FECC4F288754E900420F6F /* t_cose_signature_sign_ecdsa.c in Sources */,
-				E762D6DB28CC0BEF00A22792 /* t_cose_mac_validate.c in Sources */,
+				E7ABEE012904EC87000F4BE5 /* t_cose_aes_kw.c in Sources */,
 				E73CDABC23A7316700D262E0 /* t_cose_make_test_messages.c in Sources */,
-				E762D6DE28CC0BF700A22792 /* t_cose_mac_compute.c in Sources */,
+				E7ABEE062904EC9B000F4BE5 /* t_cose_hpke.c in Sources */,
 				E73CDABD23A7316700D262E0 /* main.c in Sources */,
 				E73CDABE23A7316700D262E0 /* run_tests.c in Sources */,
-				E762D6E028CC0BFE00A22792 /* t_cose_compute_validate_mac_test.c in Sources */,
 				E73CDABF23A7316700D262E0 /* t_cose_sign1_sign.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -768,28 +821,54 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E7ABEE0A2908FB3C000F4BE5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E7ABEE0B2908FB3C000F4BE5 /* t_cose_sign_sign.c in Sources */,
+				E7ABEE0C2908FB3C000F4BE5 /* t_cose_sign1_verify.c in Sources */,
+				E7ABEE0D2908FB3C000F4BE5 /* t_cose_test.c in Sources */,
+				E7ABEE2C2908FDBA000F4BE5 /* t_cose_encrypt_test.c in Sources */,
+				E7ABEE0E2908FB3C000F4BE5 /* t_cose_signature_verify_ecdsa.c in Sources */,
+				E7ABEE0F2908FB3C000F4BE5 /* t_cose_psa_crypto.c in Sources */,
+				E7ABEE102908FB3C000F4BE5 /* t_cose_util.c in Sources */,
+				E7ABEE112908FB3C000F4BE5 /* t_cose_sign_verify.c in Sources */,
+				E7ABEE122908FB3C000F4BE5 /* t_cose_encrypt_enc.c in Sources */,
+				E7ABEE132908FB3C000F4BE5 /* t_cose_encrypt_dec.c in Sources */,
+				E7ABEE142908FB3C000F4BE5 /* t_cose_parameters.c in Sources */,
+				E7ABEE152908FB3C000F4BE5 /* t_cose_sign_verify_test.c in Sources */,
+				E7ABEE162908FB3C000F4BE5 /* t_cose_make_psa_test_key.c in Sources */,
+				E7ABEE172908FB3C000F4BE5 /* sha256.c in Sources */,
+				E7ABEE182908FB3C000F4BE5 /* t_cose_signature_sign_ecdsa.c in Sources */,
+				E7ABEE192908FB3C000F4BE5 /* t_cose_aes_kw.c in Sources */,
+				E7ABEE1A2908FB3C000F4BE5 /* t_cose_make_test_messages.c in Sources */,
+				E7ABEE1B2908FB3C000F4BE5 /* t_cose_hpke.c in Sources */,
+				E7ABEE1C2908FB3C000F4BE5 /* main.c in Sources */,
+				E7ABEE1D2908FB3C000F4BE5 /* run_tests.c in Sources */,
+				E7ABEE1E2908FB3C000F4BE5 /* t_cose_sign1_sign.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E7E36E74226CB8400040613B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				E7E36E91226CB9460040613B /* t_cose_sign1_verify.c in Sources */,
-				E73FDF9E28A38355002CF0CC /* t_cose_signature_verify_short.c in Sources */,
 				E72FB01D231ADAA8000970FE /* run_tests.c in Sources */,
-				E73FDF9F28A38358002CF0CC /* t_cose_signature_sign_short.c in Sources */,
+				E7ABEE072904ECA7000F4BE5 /* t_cose_encrypt_enc.c in Sources */,
 				E721CB9A2362ABA400C7FD56 /* t_cose_make_openssl_test_key.c in Sources */,
 				E7E36EA5226CBB570040613B /* t_cose_openssl_crypto.c in Sources */,
 				0F91057A2321878F00008572 /* t_cose_parameters.c in Sources */,
 				E7FECC5C2887D6B100420F6F /* t_cose_signature_verify_ecdsa.c in Sources */,
-				E762D6DF28CC0BFD00A22792 /* t_cose_compute_validate_mac_test.c in Sources */,
+				E7ABEE052904EC9A000F4BE5 /* t_cose_hpke.c in Sources */,
+				E7ABEE022904EC8C000F4BE5 /* t_cose_aes_kw.c in Sources */,
 				0F8B2FEF2345A33A00A22349 /* t_cose_make_test_messages.c in Sources */,
+				E7ABEE032904EC95000F4BE5 /* t_cose_encrypt_dec.c in Sources */,
 				E7E36E90226CB9460040613B /* t_cose_util.c in Sources */,
 				E7FECC60288B346200420F6F /* t_cose_sign_verify.c in Sources */,
 				E721CB9B2362AC2A00C7FD56 /* t_cose_sign_verify_test.c in Sources */,
 				E7FECC4E288754E800420F6F /* t_cose_signature_sign_ecdsa.c in Sources */,
-				E7AF703728DADFCF00F07637 /* t_cose_param_test.c in Sources */,
 				E7FECC49288754E200420F6F /* t_cose_sign_sign.c in Sources */,
-				E762D6DC28CC0BF100A22792 /* t_cose_mac_validate.c in Sources */,
-				E762D6DD28CC0BF600A22792 /* t_cose_mac_compute.c in Sources */,
 				E7F70AC62270DFAE007CE07F /* t_cose_test.c in Sources */,
 				E7E36E7C226CB8400040613B /* main.c in Sources */,
 				E7E36E93226CB9460040613B /* t_cose_sign1_sign.c in Sources */,
@@ -933,6 +1012,51 @@
 				CODE_SIGN_STYLE = Automatic;
 				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/include";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library/";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		E7ABEE242908FB3C000F4BE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_ASSIGN_ENUM = YES;
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
+				CODE_SIGN_STYLE = Automatic;
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = T_COSE_USE_PSA_CRYPTO;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
+				HEADER_SEARCH_PATHS = (
+					"../../mbedtls-hpke/include",
+					inc,
+					/usr/local/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"../../mbedtls-hpke/library",
+					/usr/local/lib,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E7ABEE252908FB3C000F4BE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_ASSIGN_ENUM = YES;
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
+				HEADER_SEARCH_PATHS = (
+					"../../mbedtls-hpke/include",
+					inc,
+					/usr/local/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"../../mbedtls-hpke/library",
+					/usr/local/lib,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -1142,6 +1266,15 @@
 			buildConfigurations = (
 				E772028323CAEC84006E966E /* Debug */,
 				E772028423CAEC84006E966E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E7ABEE232908FB3C000F4BE5 /* Build configuration list for PBXNativeTarget "t_cose_psa hpke" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E7ABEE242908FB3C000F4BE5 /* Debug */,
+				E7ABEE252908FB3C000F4BE5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

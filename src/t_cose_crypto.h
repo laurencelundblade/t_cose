@@ -2,7 +2,8 @@
  * t_cose_crypto.h
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ *
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,14 +18,12 @@
 #include <stdbool.h>
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
-#include "t_cose/t_cose_standard_constants.h"
+#include "t_cose_standard_constants.h"
+#include "qcbor/qcbor.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-
 
 /**
  * \file t_cose_crypto.h
@@ -79,10 +78,10 @@ extern "C" {
  * new key types and sizes or the integration of cryptographic libraries
  * except on some occasions, this file as follows:
  *
- * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm
+ * - Support for a new COSE_ALGORITHM_XXX signature algorithm
  *    - See t_cose_algorithm_is_ecdsa()
  *    - If not ECDSA add another function like t_cose_algorithm_is_ecdsa()
- * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm is added
+ * - Support for a new COSE_ALGORITHM_XXX signature algorithm is added
  *    - See \ref T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
  * - Support larger key sizes (and thus signature sizes)
  *    - See \ref T_COSE_MAX_SIG_SIZE
@@ -98,6 +97,8 @@ extern "C" {
  * works, whether dead stripping of object code is on and such.
  */
 
+/* Constant for the maximum key size with encryption algorithms */
+#define T_COSE_ENCRYPTION_MAX_KEY_LENGTH 32
 
 /*
  * Says where a particular algorithm is supported or not.
@@ -109,11 +110,9 @@ extern "C" {
 bool
 t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id);
 
-
 #define T_COSE_EC_P256_SIG_SIZE 64  /* size for secp256r1 */
 #define T_COSE_EC_P384_SIG_SIZE 96  /* size for secp384r1 */
 #define T_COSE_EC_P512_SIG_SIZE 132 /* size for secp521r1 */
-
 
 /**
  * There is a stack variable to hold the output of the signing
@@ -140,8 +139,6 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id);
 #endif
 
 
-
-
 /**
  * \brief Returns the size of a signature given the key and algorithm.
  *
@@ -164,6 +161,141 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
                        struct t_cose_key  signing_key,
                        size_t            *sig_size);
 
+/**
+ * \brief Returns the requested number of random bytes.
+ *
+ * \param[in] buffer             Pointer and length of buffer into which
+ *                               the resulting random bytes are put.
+ * TBD:
+ * 
+ * This function will either return the requested number of random bytes,
+ * or produce an error.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully returned the requested number of random bytes.
+ * \retval T_COSE_ERR_RNG_FAILED
+ *         The random number generator failed to return the requested
+ *         number of bytes.
+ */
+
+enum t_cose_err_t
+t_cose_crypto_get_random(struct q_useful_buf    buffer,
+                         size_t                 number,
+                         struct q_useful_buf_c *random);
+
+/* TBD: Generate key */
+enum t_cose_err_t
+t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
+                           int32_t               cose_algorithm_id);
+
+/**
+ * \brief Exports the public key
+ *
+ * \param[in] key               Handle to key
+ * \param[in] pk_buffer         Pointer and length of buffer into which
+ *                              the resulting public key is put.
+ * \param[out] pk               Public Key
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully exported the public key.
+ * \retval T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED
+ *         The public key export operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_export_public_key(struct t_cose_key      key,
+                                struct q_useful_buf    pk_buffer,
+                                size_t                *pk_len);
+
+/**
+ * \brief Exports key
+ *
+ * \param[in] key               Handle to key
+ * \param[in] key_buffer        Pointer and length of buffer into which
+ *                              the resulting key is put.
+ * \param[out] key_len          Length of the returned key.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully exported the key.
+ * \retval T_COSE_ERR_KEY_EXPORT_FAILED
+ *         The key export operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_export_key(struct t_cose_key      key,
+                         struct q_useful_buf    key_buffer,
+                         size_t                *key_len);
+
+/**
+ * \brief Uses the AES key wrap algorithm defined in RFC 3394 to
+ *        encrypt the CEK. 
+ *
+ * \param[in] algorithm_id        Algorithm id
+ * \param[in] kek                 Key Encryption Key
+ * \param[in] plaintext           Plaintext
+ * \param[in] ciphertext_buffer   Ciphertext buffer
+ * \param[out] ciphertext_result  Resulting ciphertext
+ *
+ * \retval T_COSE_SUCCESS
+ *         Operation was successful.
+ * \retval T_COSE_ERR_AES_KW_FAILED
+ *         AES key wrap operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_aes_kw(int32_t                 algorithm_id,
+                     struct q_useful_buf_c   kek,
+                     struct q_useful_buf_c   plaintext,
+                     struct q_useful_buf     ciphertext_buffer,
+                     struct q_useful_buf_c  *ciphertext_result);
+
+/**
+ * \brief HPKE Decrypt Wrapper
+ *
+ * \param[in] cose_algorithm_id   COSE algorithm id
+ * \param[in] pkE                 pkE buffer
+ * \param[in] pkR                 pkR key
+ * \param[in] ciphertext          Ciphertext buffer
+ * \param[in] plaintext           Plaintext buffer
+ * \param[out] plaintext_len      Length of the returned plaintext
+ *
+ * \retval T_COSE_SUCCESS
+ *         HPKE decrypt operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
+ *         An unsupported algorithm was supplied to the function call.
+ * \retval T_COSE_ERR_HPKE_DECRYPT_FAIL
+ *         Decrypt operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
+                           struct q_useful_buf_c              pkE,
+                           struct t_cose_key                  pkR,
+                           struct q_useful_buf_c              ciphertext,
+                           struct q_useful_buf                plaintext,
+                           size_t                             *plaintext_len);
+
+/**
+ * \brief Returns the t_cose_key given an algorithm.and a symmetric key
+ *
+ * \param[in] cose_algorithm_id  COSE algorithm id
+ * \param[in] cek                Symmetric key
+ * \param[in] cek_len            Symmetric key length
+ * \param[in] flags              Key usage flags
+ * \param[out] key               Key in t_cose_key structure.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The key was successfully imported and is returned in the
+ *         t_cose_key format.
+ * \retval T_COSE_ERR_UNKNOWN_KEY
+ *         The provided symmetric key could not be imported.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported COSE algorithm was provided.
+ * \retval T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS
+ *         The provided key usage flags are unsupported.
+ */
+enum t_cose_err_t
+t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
+                           uint8_t              *cek,
+                           size_t               cek_len,
+                           uint8_t              flags,
+                           struct t_cose_key    *key);
 
 /**
  * \brief Perform public key signing. Part of the t_cose crypto
@@ -287,7 +419,77 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c signature);
 
 
+/**
+ * \brief Decrypt a ciphertext using an AEAD cipher. Part of the
+ * t_cose crypto adaptation layer.
+ *
+ * \param[in] cose_algorithm_id      The algorithm to use for decryption.
+ *                                   The IDs are defined in [COSE (RFC 8152)]
+ *                                   (https://tools.ietf.org/html/rfc8152)
+ *                                    or in the [IANA COSE Registry]
+ *                                   (https://www.iana.org/assignments/cose/cose.xhtml).
+ * \param[in] key                    The decryption key to use.
+ * \param[in] nonce                  The nonce used as input to the decryption operation.
+ * \param[in] add_data               Additional data used for decryption.
+ * \param[in] ciphertext             The ciphertext to decrypt.
+ * \param[in] plaintext_buffer       Buffer where the plaintext will be put.
+ * \param[out] plaintext_output_len  The size of the plaintext.
+ *
+ * The key provided must be a symmetric key of the correct type for
+ * \c cose_algorithm_id.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The decryption operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported cipher algorithm was provided.
+ * \retval T_COSE_ERR_DECRYPT_FAIL
+ *         The decryption operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
+                      struct t_cose_key      key,
+                      struct q_useful_buf_c  nonce,
+                      struct q_useful_buf_c  add_data,
+                      struct q_useful_buf_c  ciphertext,
+                      struct q_useful_buf    plaintext_buffer,
+                      size_t                 *plaintext_output_len);
 
+/**
+ * \brief Encrypt plaintext using an AEAD cipher. Part of the
+ * t_cose crypto adaptation layer.
+ *
+ * \param[in] cose_algorithm_id      The algorithm to use for encryption.
+ *                                   The IDs are defined in [COSE (RFC 8152)]
+ *                                   (https://tools.ietf.org/html/rfc8152)
+ *                                    or in the [IANA COSE Registry]
+ *                                   (https://www.iana.org/assignments/cose/cose.xhtml).
+ * \param[in] key                    The encryption key to use.
+ * \param[in] nonce                  The nonce used as input to the encryption operation.
+ * \param[in] add_data               Additional data used for encryption.
+ * \param[in] plaintext              The plaintext to encrypt.
+ * \param[in] ciphertext_buffer      Buffer where the ciphertext will be put.
+ * \param[out] ciphertext_output_len The size of the ciphertext.
+ *
+ * The key provided must be a symmetric key of the correct type for
+ * \c cose_algorithm_id.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The decryption operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported cipher algorithm was provided.
+ * \retval T_COSE_ERR_KEY_IMPORT_FAILED
+ *         The provided key could not be imported.
+ * \retval T_COSE_ERR_ENCRYPT_FAIL
+ *         The encryption operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
+                      struct q_useful_buf_c  key,
+                      struct q_useful_buf_c  nonce,
+                      struct q_useful_buf_c  add_data,
+                      struct q_useful_buf_c  plaintext,
+                      struct q_useful_buf    ciphertext_buffer,
+                      size_t                 *ciphertext_output_len);
 
 #ifdef T_COSE_USE_PSA_CRYPTO
 #include "psa/crypto.h"
@@ -371,23 +573,16 @@ struct t_cose_crypto_hash {
 
 };
 
-/**
- * The context for use with the HMAC adaptation layer here.
- * Borrow the structure of t_cose_crypto_hash.
- */
-struct t_cose_crypto_hmac {
+struct t_cose_crypto_encryption {
+
     #ifdef T_COSE_USE_PSA_CRYPTO
         /* --- The context for PSA Crypto (MBed Crypto) --- */
-        psa_mac_operation_t op_ctx;
-    #else
-        /* --- Default: generic pointer / handle --- */
-        union {
-            void    *ptr;
-            uint64_t handle;
-        } context;
-        int64_t status;
-    #endif
+
+        psa_hash_operation_t ctx;
+        psa_status_t         status;
+   #endif
 };
+
 
 /**
  * The size of the output of SHA-256.
@@ -408,25 +603,6 @@ struct t_cose_crypto_hmac {
  */
 #define T_COSE_CRYPTO_SHA512_SIZE 64
 
-/**
- * Size of the signature (tag) output for the HMAC-SHA256.
- */
-#define T_COSE_CRYPTO_HMAC256_TAG_SIZE   T_COSE_CRYPTO_SHA256_SIZE
-
-/**
- * Size of the signature (tag) output for the HMAC-SHA384.
- */
-#define T_COSE_CRYPTO_HMAC384_TAG_SIZE   T_COSE_CRYPTO_SHA384_SIZE
-
-/**
- * Size of the signature (tag) output for the HMAC-SHA512.
- */
-#define T_COSE_CRYPTO_HMAC512_TAG_SIZE   T_COSE_CRYPTO_SHA512_SIZE
-
-/**
- * Max size of the tag output for the HMAC operations.
- */
-#define T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE  T_COSE_CRYPTO_SHA512_SIZE
 
 /**
  * The maximum needed to hold a hash. It is smaller and less stack is needed
@@ -538,108 +714,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
                           struct q_useful_buf        buffer_to_hold_result,
                           struct q_useful_buf_c     *hash_result);
 
-/**
- * \brief Set up a multipart HMAC calculation operation
- *
- * \param[in,out] hmac_ctx           Pointer to the HMAC context.
- * \param[in] signing_key            The key for the HMAC operation
- * \param[in] cose_alg_id            The algorithm used in HMAC.
- *
- * \retval T_COSE_SUCCESS
- *         Tag calculation succeeds.
- * \retval T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
- *         The algorithm is unsupported.
- * \retval T_COSE_ERR_INVALID_ARGUMENT
- *         Invalid arguments.
- * \retval T_COSE_ERR_FAIL
- *         Some general failure of the HMAC function.
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_sign_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                              struct t_cose_key          signing_key,
-                              const int32_t              cose_alg_id);
 
-/**
- * \brief Add a message fragment to a multipart HMAC operation
- *
- * \param[in,out] hmac_ctx           Pointer to the HMAC context.
- * \param[in] payload                Pointer and length of payload
- *
- * \retval T_COSE_SUCCESS
- *         Tag calculation succeeds.
- * \retval T_COSE_ERR_SIG_BUFFER_SIZE
- *         The size of the buffer to hold the tag result was too small.
- * \retval T_COSE_ERR_INVALID_ARGUMENT
- *         Invalid arguments.
- * \retval T_COSE_ERR_FAIL
- *         Some general failure of the HMAC function.
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
-                          struct q_useful_buf_c      payload);
-
-/**
- * \brief Finish the calculation of the HMAC of a message.
- *
- * \param[in,out] hmac_ctx           Pointer to the HMAC context.
- * \param[in] tag_buf                Pointer and length into which
- *                                   the resulting tag is put.
- * \param[out] tag                   Pointer and length of the
- *                                   resulting tag.
- *
- * \retval T_COSE_SUCCESS
- *         Tag calculation succeeds.
- * \retval T_COSE_ERR_SIG_BUFFER_SIZE
- *         The size of the buffer to hold the tag result was too small.
- * \retval T_COSE_ERR_INVALID_ARGUMENT
- *         Invalid arguments.
- * \retval T_COSE_ERR_FAIL
- *         Some general failure of the HMAC function.
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_sign_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                               struct q_useful_buf        tag_buf,
-                               struct q_useful_buf_c     *tag);
-
-/**
- * \brief Set up a multipart HMAC verification operation
- *
- * \param[in,out] hmac_ctx           Pointer to the HMAC context.
- * \param[in] cose_alg_id            The algorithm used in HMAC.
- * \param[in] verify_key             Key for HMAC verification
- *
- * \retval T_COSE_SUCCESS
- *         Operation succeeds.
- * \retval T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
- *         The algorithm is unsupported.
- * \retval T_COSE_ERR_INVALID_ARGUMENT
- *         Invalid arguments.
- * \retval T_COSE_ERR_FAIL
- *         Some general failure of the HMAC function.
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                const  int32_t             cose_alg_id,
-                                struct t_cose_key          verify_key);
-
-/**
- * \brief Finish the verification of the HMAC of a message.
- *
- * \param[in,out] hmac_ctx           Pointer to the HMAC context.
- * \param[in] tag                    Pointer and length of the tag.
- *
- * \retval T_COSE_SUCCESS
- *         Tag calculation succeeds.
- * \retval T_COSE_ERR_INVALID_ARGUMENT
- *         Invalid arguments.
- * \retval T_COSE_ERR_FAIL
- *         Some general failure of the HMAC function.
- * \retval PSA_ERROR_INVALID_SIGNATURE
- *         HMAC verification failed.
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_verify_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                 struct q_useful_buf_c      tag);
 
 /**
  * \brief Indicate whether a COSE algorithm is ECDSA or not.
@@ -698,48 +773,17 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 {
     /* The simple list of COSE alg IDs that use ECDSA */
     static const int32_t ecdsa_list[] = {
-        T_COSE_ALGORITHM_ES256,
+        COSE_ALGORITHM_ES256,
 #ifndef T_COSE_DISABLE_ES384
-        T_COSE_ALGORITHM_ES384,
+        COSE_ALGORITHM_ES384,
 #endif
 #ifndef T_COSE_DISABLE_ES512
-        T_COSE_ALGORITHM_ES512,
+        COSE_ALGORITHM_ES512,
 #endif
         0}; /* 0 is a reserved COSE alg ID ans will never be used */
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
-
-static inline size_t t_cose_tag_size(int32_t cose_alg_id)
-{
-    switch(cose_alg_id) {
-        case T_COSE_ALGORITHM_HMAC256:
-            return T_COSE_CRYPTO_HMAC256_TAG_SIZE;
-        case T_COSE_ALGORITHM_HMAC384:
-            return T_COSE_CRYPTO_HMAC384_TAG_SIZE;
-        case T_COSE_ALGORITHM_HMAC512:
-            return T_COSE_CRYPTO_HMAC512_TAG_SIZE;
-        default:
-            return INT32_MAX;
-    }
-}
-
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/*
- * Get the COSE Hash algorithm ID from the corresponding
- * COSE HMAC algorithm ID
- */
-static inline int32_t t_cose_hmac_to_hash_alg_id(int32_t cose_hamc_alg_id)
-{
-    switch(cose_hamc_alg_id) {
-        case T_COSE_ALGORITHM_HMAC256:
-            return T_COSE_ALGORITHM_SHA_256;
-
-        default:
-            return INT32_MAX;
-    }
-}
-#endif
 
 #ifdef __cplusplus
 }

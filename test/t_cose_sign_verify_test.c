@@ -2,7 +2,6 @@
  *  t_cose_sign_verify_test.c
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -77,7 +76,7 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
 
 Done:
     /* Many crypto libraries allocate memory, slots, etc for keys */
-    free_key(key_pair);
+    free_ecdsa_key_pair(key_pair);
 
     return return_value;
 }
@@ -86,7 +85,7 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_basic_test(void)
+int_fast32_t sign_verify_basic_test()
 {
     int_fast32_t return_value;
 
@@ -118,7 +117,7 @@ int_fast32_t sign_verify_basic_test(void)
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_sig_fail_test(void)
+int_fast32_t sign_verify_sig_fail_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -193,7 +192,7 @@ int_fast32_t sign_verify_sig_fail_test(void)
     return_value = 0;
 
 Done:
-    free_key(key_pair);
+    free_ecdsa_key_pair(key_pair);
 
     return return_value;
 }
@@ -202,7 +201,7 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_make_cwt_test(void)
+int_fast32_t sign_verify_make_cwt_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -335,7 +334,7 @@ int_fast32_t sign_verify_make_cwt_test(void)
 
 Done:
     /* Many crypto libraries allocate memory, slots, etc for keys */
-    free_key(key_pair);
+    free_ecdsa_key_pair(key_pair);
 
     return return_value;
 }
@@ -441,7 +440,7 @@ static int size_test(int32_t               cose_algorithm_id,
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_get_size_test(void)
+int_fast32_t sign_verify_get_size_test()
 {
     enum t_cose_err_t   return_value;
     struct t_cose_key   key_pair;
@@ -454,7 +453,7 @@ int_fast32_t sign_verify_get_size_test(void)
         }
 
         result = size_test(T_COSE_ALGORITHM_ES256, NULL_Q_USEFUL_BUF_C, key_pair);
-        free_key(key_pair);
+        free_ecdsa_key_pair(key_pair);
         if(result) {
             return 2000 + result;
         }
@@ -467,7 +466,7 @@ int_fast32_t sign_verify_get_size_test(void)
         }
 
         result = size_test(T_COSE_ALGORITHM_ES384, NULL_Q_USEFUL_BUF_C, key_pair);
-        free_key(key_pair);
+        free_ecdsa_key_pair(key_pair);
         if(result) {
             return 4000 + result;
         }
@@ -482,14 +481,14 @@ int_fast32_t sign_verify_get_size_test(void)
 
         result = size_test(T_COSE_ALGORITHM_ES512, NULL_Q_USEFUL_BUF_C, key_pair);
         if(result) {
-            free_key(key_pair);
+            free_ecdsa_key_pair(key_pair);
             return 6000 + result;
         }
 
         result = size_test(T_COSE_ALGORITHM_ES512,
                            Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
                            key_pair);
-        free_key(key_pair);
+        free_ecdsa_key_pair(key_pair);
         if(result) {
             return 7000 + result;
         }
@@ -602,7 +601,7 @@ int_fast32_t known_good_test(void)
              goto Done;
          }
 
-        free_key(key_pair);
+        free_ecdsa_key_pair(key_pair);
         ran_a_test = true;
     }
 
@@ -627,7 +626,7 @@ int_fast32_t known_good_test(void)
             return_value = 5100 + (int32_t)result;
             goto Done;
         }
-        free_key(key_pair);
+        free_ecdsa_key_pair(key_pair);
         ran_a_test = true;
     }
 
@@ -653,7 +652,7 @@ int_fast32_t known_good_test(void)
             goto Done;
         }
 
-        free_key(key_pair);
+        free_ecdsa_key_pair(key_pair);
         ran_a_test = true;
     }
 
