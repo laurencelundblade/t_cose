@@ -97,7 +97,15 @@ extern "C" {
  * works, whether dead stripping of object code is on and such.
  */
 
-/* Constant for the maximum key size with encryption algorithms */
+/* This sets the maximum key size for symmetric ciphers like AES and ChaCha20 (not supported yet).
+ * It is set to 32 to accommodate AES 256 and anything with a smaller
+ * key size. This is used to size stack buffers that hold keys.
+ * Attempts to use a symmetric key size larger than this will result in an error.
+ * Smaller keys sizes are no problem.
+ * This could be more dynamically sized based on which algorithms
+ * are turned on or off, but probably isn't necessary because
+ * it isn't very large and dynamic setting wouldn't save much stack.
+ */
 #define T_COSE_ENCRYPTION_MAX_KEY_LENGTH 32
 
 /*
@@ -778,6 +786,16 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
+
+#ifdef T_COSE_USE_PSA_CRYPTO
+#define T_COSE_ENCRYPT_OUTPUT_MAX_SIZE(x) \
+            PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(x)
+#else
+// TODO: this can be improved to use less stack
+#define T_COSE_ENCRYPT_OUTPUT_MAX_SIZE(x) (2 * x)
+#endif
+
+
 
 #ifdef __cplusplus
 }

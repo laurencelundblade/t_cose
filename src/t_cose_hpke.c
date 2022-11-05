@@ -217,8 +217,8 @@ enum t_cose_err_t t_cose_create_hpke_recipient(
     QCBOREncodeContext     ephemeral_key_struct;
     uint8_t                ephemeral_buf[100] = {0};
     struct q_useful_buf    e_buf = {ephemeral_buf, sizeof(ephemeral_buf)};
-    uint8_t                encrypted_cek[PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH)];
-    size_t                 encrypted_cek_len = PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    uint8_t                encrypted_cek[T_COSE_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH)];
+    size_t                 encrypted_cek_len = T_COSE_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
     UsefulBufC             cek_encrypted_cbor;
     size_t                 pkR_len = PSA_EXPORT_PUBLIC_KEY_MAX_SIZE;
     uint8_t                pkR[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};

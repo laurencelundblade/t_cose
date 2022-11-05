@@ -65,8 +65,8 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     UsefulBufC             add_data_buf;
     QCBOREncodeContext     additional_data;
     bool                   detached_mode;
-    uint8_t                cek[PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH)];
-    size_t                 cek_len = PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    uint8_t                cek[T_COSE_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH)];
+    size_t                 cek_len = T_COSE_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
     struct t_cose_key      cek_key;
 
     /* Initialize decoder */

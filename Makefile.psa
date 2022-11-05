@@ -37,13 +37,13 @@ QCBOR_LIB=-lqcbor
 # These two are for direct reference to Mbed Crypto that is not installed
 # in /usr/local/ /usr/local or some system location. The path names
 # may need to be adjusted for your location of Mbed Crypto
-CRYPTO_INC=-I ../../mbedtls-hpke/include/
-CRYPTO_LIB=../../mbedtls-hpke/library/libmbedcrypto.a
+#CRYPTO_INC=-I ../../mbedtls-hpke/include/
+#CRYPTO_LIB=../../mbedtls-hpke/library/libmbedcrypto.a
 
 # These two are for reference to Mbed Crypto that has been installed in
 # /usr/local/ or in some system location.
-#CRYPTO_LIB=-l mbedcrypto
-#CRYPTO_INC=-I /usr/local/include
+CRYPTO_LIB=-l mbedcrypto
+CRYPTO_INC=-I /usr/local/include
 
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_PSA_CRYPTO
 CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o

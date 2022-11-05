@@ -33,11 +33,8 @@ enum t_cose_err_t t_cose_create_aes_kw_recipient(
     enum t_cose_err_t      cose_result;
     size_t                 recipient_key_len;
 
-    /* TBD: Use a macro for the length of the recipient key buffer to
-     * accomodate for the different key lengths.
-     */
-    Q_USEFUL_BUF_MAKE_STACK_UB(recipient_key_buf, 16);
-    Q_USEFUL_BUF_MAKE_STACK_UB(encrypted_cek, PSA_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH));
+    Q_USEFUL_BUF_MAKE_STACK_UB(recipient_key_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    Q_USEFUL_BUF_MAKE_STACK_UB(encrypted_cek, T_COSE_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH));
     struct q_useful_buf_c  recipient_key_result={NULL,0};
     struct q_useful_buf_c  encrypted_cek_result={NULL,0};
 
