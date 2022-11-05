@@ -72,6 +72,9 @@ set(T_COSE_SRC_COMMON
     src/t_cose_signature_sign_ecdsa.c
     src/t_cose_sign_verify.c
     src/t_cose_signature_verify_ecdsa.c
+    src/t_cose_aes_kw.c
+    src/t_cose_encrypt_dec.c
+    src/t_cose_encrypt_enc.c
 )
 
 find_package(QCBOR REQUIRED)
