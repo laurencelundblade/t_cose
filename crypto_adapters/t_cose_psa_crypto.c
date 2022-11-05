@@ -211,6 +211,14 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
     mbedtls_nist_kw_context ctx;
     int                     ret;
     size_t                  res_len;
+    unsigned int            key_len;
+
+    /* This cast always works for keys up to 64K bits on 16-bit machines
+     * and there is never a problem on 32-bit and larger machines. If
+     * this wraps around on a 16-bit machine, it will just give a wrong
+     * key length that is too short which will cause a hard-to-find malfunction, but
+     * won't cause a security problem. */
+    key_len = (unsigned int)kek.len * 8;
 
     mbedtls_nist_kw_init(&ctx);
 
@@ -218,7 +226,7 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
     ret = mbedtls_nist_kw_setkey(&ctx,                    // Key wrapping context
                                  MBEDTLS_CIPHER_ID_AES,   // Block cipher
                                  kek.ptr,                 // Key Encryption Key (KEK)
-                                 kek.len * 8,             // KEK size in bits
+                                 key_len,                 // KEK size in bits
                                  MBEDTLS_ENCRYPT          // Operation within the context
                                 );
 
@@ -257,9 +265,12 @@ t_cose_crypto_export_key(struct t_cose_key      key,
                          struct q_useful_buf    key_buffer,
                          size_t                *key_len)
 {
-    psa_status_t      status;
+    psa_status_t         status;
+    mbedtls_svc_key_id_t psa_key_handle;
 
-    status = psa_export_key(key.k.key_handle,
+    psa_key_handle = (mbedtls_svc_key_id_t)key.k.key_handle;
+
+    status = psa_export_key(psa_key_handle,
                             (uint8_t *) key_buffer.ptr,
                             (size_t) key_buffer.len,
                             key_len);
@@ -279,10 +290,14 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
                                 struct q_useful_buf    pk_buffer,
                                 size_t                *pk_len)
 {
-    psa_status_t      status;
+    psa_status_t         status;
+    // TODO: why is this an mbedtls type?
+    mbedtls_svc_key_id_t psa_key_handle;
+
+    psa_key_handle = (mbedtls_svc_key_id_t)key.k.key_handle;
 
     /* Export public key */
-    status = psa_export_public_key(key.k.key_handle,
+    status = psa_export_public_key(psa_key_handle,
                                    pk_buffer.ptr, /* PK buffer */
                                    pk_buffer.len, /* PK buffer size */
                                    pk_len);       /* Result length */
@@ -331,6 +346,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
         goto Done;
     }
 
+    // TODO: when and why did this change to mbedtls_svc_key_id_t?
     verification_key_psa = (mbedtls_svc_key_id_t)verification_key.k.key_handle;
 
     psa_result = psa_verify_hash(verification_key_psa,
@@ -414,6 +430,8 @@ t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
         return(T_COSE_ERR_ENCRYPT_FAIL);
     }
 
+    psa_destroy_key(cek_handle);
+
     return(T_COSE_SUCCESS);
 }
 
@@ -491,9 +509,11 @@ t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
                       struct q_useful_buf    plaintext_buffer,
                       size_t *plaintext_output_len)
 {
-    psa_status_t           status;
-    psa_algorithm_t        psa_algorithm;
-    psa_key_type_t         psa_keytype;
+    psa_status_t         status;
+    psa_algorithm_t      psa_algorithm;
+    mbedtls_svc_key_id_t psa_key_handle;
+
+    psa_key_handle = (mbedtls_svc_key_id_t)key.k.key_handle;
 
     /* Set decryption algorithm information */
     switch (cose_algorithm_id) {
@@ -510,7 +530,7 @@ t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
     }
 
     status = psa_aead_decrypt(
-              key.k.key_handle,               // key
+              psa_key_handle,                 // key
               psa_algorithm,                  // algorithm
               nonce.ptr, nonce.len,           // nonce
               (const uint8_t *)

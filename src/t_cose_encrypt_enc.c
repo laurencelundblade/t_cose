@@ -74,7 +74,6 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
                    struct q_useful_buf            out_buf,
                    struct q_useful_buf_c         *result)
 {
-    psa_status_t           status;
     QCBOREncodeContext     additional_data;
     UsefulBufC             scratch;
     QCBORError             ret;
@@ -89,7 +88,6 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
     size_t                 add_data_len = sizeof(add_data);
     struct q_useful_buf    add_data_struct = {add_data, add_data_len};
 
-    size_t                 ciphertext_length;
     size_t                 key_bitlen;
     enum t_cose_err_t      cose_result;
     Q_USEFUL_BUF_MAKE_STACK_UB(random, 16);

@@ -191,3 +191,37 @@ int check_for_key_pair_leaks()
            stats.MBEDTLS_PRIVATE(half_filled_slots) +
            stats.MBEDTLS_PRIVATE(cache_slots));
 }
+
+
+static const uint8_t psk[] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+/* Make a symmetric key of requested length */
+enum t_cose_err_t
+make_symmetric_key(size_t requested_len_bits, struct t_cose_key *symmetric_key)
+{
+    psa_status_t         status;
+    psa_key_handle_t     psk_handle = 0;
+    psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
+
+    psa_crypto_init();
+
+    /* Import PSK */
+    psa_set_key_usage_flags(&psk_attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
+    psa_set_key_algorithm(&psk_attributes, PSA_ALG_GCM);
+    psa_set_key_type(&psk_attributes, PSA_KEY_TYPE_AES);
+    psa_set_key_bits(&psk_attributes, requested_len_bits);
+
+    status = psa_import_key(&psk_attributes,
+                            psk, requested_len_bits/8,
+                            &psk_handle);
+
+    if (status != PSA_SUCCESS) {
+        return T_COSE_ERR_FAIL; // TODO: better error code?
+    }
+
+    symmetric_key->k.key_handle = psk_handle;
+    symmetric_key->crypto_lib = T_COSE_CRYPTO_LIB_PSA;
+
+    return T_COSE_SUCCESS;
+}
+

@@ -29,9 +29,6 @@ enum t_cose_err_t t_cose_create_aes_kw_recipient(
                            struct q_useful_buf_c                plaintext,
                            QCBOREncodeContext                  *encrypt_ctx)
 {
-#if 0
-    UsefulBufC             scratch;
-    UsefulBufC             cek_encrypted_cbor;
     enum t_cose_err_t      return_value;
     enum t_cose_err_t      cose_result;
     size_t                 recipient_key_len;
@@ -77,7 +74,7 @@ enum t_cose_err_t t_cose_create_aes_kw_recipient(
 
     /* Add empty protected map encoded as bstr */
     QCBOREncode_BstrWrap(encrypt_ctx);
-    QCBOREncode_CloseBstrWrap2(encrypt_ctx, false, &scratch);
+    QCBOREncode_CloseBstrWrap2(encrypt_ctx, false, NULL);
 
     /* Add unprotected header alg and kid parameters */
     QCBOREncode_OpenMap(encrypt_ctx);
@@ -98,7 +95,6 @@ enum t_cose_err_t t_cose_create_aes_kw_recipient(
 
     /* Close recipient array */
     QCBOREncode_CloseArray(encrypt_ctx);
-#endif
     return(T_COSE_SUCCESS);
 
 }

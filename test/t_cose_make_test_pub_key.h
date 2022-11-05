@@ -1,5 +1,6 @@
 /*
  *  t_cose_make_test_pub_key.h
+ * TODO: rename this because it makes other kinds of keys
  *
  * Copyright 2019-2020, Laurence Lundblade
  *
@@ -10,6 +11,7 @@
 
 #include "t_cose/t_cose_common.h"
 #include <stdint.h>
+#include <stddef.h>
 
 /**
  * \file t_cose_make_test_pub_key.h
@@ -38,4 +40,6 @@ void free_ecdsa_key_pair(struct t_cose_key key_pair);
 int check_for_key_pair_leaks(void);
 
 
+enum t_cose_err_t
+make_symmetric_key(size_t requested_len, struct t_cose_key *symmetric_key);
 

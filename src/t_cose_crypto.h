@@ -238,6 +238,8 @@ t_cose_crypto_export_key(struct t_cose_key      key,
  *         Operation was successful.
  * \retval T_COSE_ERR_AES_KW_FAILED
  *         AES key wrap operation failed.
+ *
+ *         TODO: this should take a key handle and maybe we get rid of export_key() above (too bad PSA's API doesn't take a PSA key handle)
  */
 enum t_cose_err_t
 t_cose_crypto_aes_kw(int32_t                 algorithm_id,
@@ -481,6 +483,8 @@ t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
  *         The provided key could not be imported.
  * \retval T_COSE_ERR_ENCRYPT_FAIL
  *         The encryption operation failed.
+ *
+ *         TODO: rename this aead encrypt or such?
  */
 enum t_cose_err_t
 t_cose_crypto_encrypt(int32_t                cose_algorithm_id,

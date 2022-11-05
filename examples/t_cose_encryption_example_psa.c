@@ -75,8 +75,8 @@ int test_cose_encrypt(int options,
                       size_t *cose_encrypt_result_len,
                       uint8_t *encrypted_firmware, size_t encrypted_firmware_len,
                       size_t *encrypted_firmware_result_len,
-                      uint32_t algorithm,
-                      uint32_t key_exchange,
+                      int32_t algorithm,
+                      int32_t key_exchange,
                       struct t_cose_key recipient_key,
                       struct q_useful_buf_c kid
                      )

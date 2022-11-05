@@ -25,6 +25,8 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                    size_t plaintext_len,
                    size_t *plaintext_output_len)
 {
+#ifndef T_COSE_DISABLE_HPKE
+    // Turned off until HPKE stuff is factored out
     QCBORItem              protected_hdr;
     QCBORItem              inner_protected_hdr;
     UsefulBufC             nonce_cbor;
@@ -464,4 +466,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     }
 
     return(T_COSE_SUCCESS);
+#else /* T_COSE_DISABLE_HPKE */
+    return T_COSE_ERR_FAIL;
+#endif /* T_COSE_DISABLE_HPKE */
 }

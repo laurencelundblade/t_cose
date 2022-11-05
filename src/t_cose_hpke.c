@@ -22,7 +22,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_standard_constants.h"
 
-//#ifndef T_COSE_DISABLE_HPKE
+#ifndef T_COSE_DISABLE_HPKE
 
 /**
  * \brief Given a COSE HPKE algorithm id this function returns the
@@ -388,4 +388,4 @@ enum t_cose_err_t t_cose_create_hpke_recipient(
     return(T_COSE_SUCCESS);
 }
 
-//#endif
+#endif /* T_COSE_DISABLE_HPKE */

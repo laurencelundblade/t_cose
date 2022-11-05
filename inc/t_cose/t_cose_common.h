@@ -17,6 +17,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define T_COSE_DISABLE_HPKE
+
 #ifdef __cplusplus
 extern "C" {
 #endif
