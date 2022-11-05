@@ -577,16 +577,6 @@ struct t_cose_crypto_hash {
 
 };
 
-struct t_cose_crypto_encryption {
-
-    #ifdef T_COSE_USE_PSA_CRYPTO
-        /* --- The context for PSA Crypto (MBed Crypto) --- */
-
-        psa_hash_operation_t ctx;
-        psa_status_t         status;
-   #endif
-};
-
 
 /**
  * The size of the output of SHA-256.
