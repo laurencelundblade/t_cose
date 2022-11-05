@@ -271,8 +271,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
             }
         }
 
-    done_with_sigs:
-        QCBORDecode_ExitArray(&decode_context);
+    /* done_with_sigs:
+        QCBORDecode_ExitArray(&decode_context); */
     }
 
   continue_decode:
