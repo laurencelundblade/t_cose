@@ -31,7 +31,6 @@
 #CRYPTO_INC=-I ../../mbedtls/include/
 #CRYPTO_LIB=../../mbedtls/library/libmbedcrypto.a
 
-
 # ---- crypto configuration -----
 
 # These two are for direct reference to Mbed Crypto that is not installed
