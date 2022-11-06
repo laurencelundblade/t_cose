@@ -3,6 +3,8 @@
  *
  * Copyright 2019-2022, Laurence Lundblade
  *
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
+ *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * See BSD-3-Clause license in README.md

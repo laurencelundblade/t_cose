@@ -3,6 +3,7 @@
 #
 # Copyright (c) 2019-2021, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
+# Copyright (c) 2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -20,15 +21,15 @@
 # This is for direct reference to QCBOR that is not installed in
 # /usr/local or some system location. The path may need to be
 # adjusted for your location of QCBOR.
-QCBOR_DIR=../QCBOR
-QCBOR_INC=-I $(QCBOR_DIR)/inc
-QCBOR_LIB=$(QCBOR_DIR)/libqcbor.a
+#QCBOR_DIR=../../QCBOR/master
+#QCBOR_INC=-I $(QCBOR_DIR)/inc
+#QCBOR_LIB=$(QCBOR_DIR)/libqcbor.a
 
 # This is for reference to QCBOR that has been installed in
 # /usr/local/ or in some system location. This will typically
 # use dynamic linking if there is a libqcbor.so
-#QCBOR_INC=-I /usr/local/include
-#QCBOR_LIB=-lqcbor
+#CRYPTO_INC=-I ../../mbedtls/include/
+#CRYPTO_LIB=../../mbedtls/library/libmbedcrypto.a
 
 
 # ---- crypto configuration -----
@@ -36,13 +37,13 @@ QCBOR_LIB=$(QCBOR_DIR)/libqcbor.a
 # These two are for direct reference to Mbed Crypto that is not installed
 # in /usr/local/ /usr/local or some system location. The path names
 # may need to be adjusted for your location of Mbed Crypto
-CRYPTO_INC=-I ../mbedtls/build/include/
-CRYPTO_LIB=../mbedtls/build/library/libmbedcrypto.a
+#CRYPTO_INC=-I ../../mbedtls/include/
+#CRYPTO_LIB=../../mbedtls/library/libmbedcrypto.a
 
 # These two are for reference to Mbed Crypto that has been installed in
 # /usr/local/ or in some system location.
-#CRYPTO_LIB=-l mbedcrypto
-#CRYPTO_INC=-I /usr/local/include
+CRYPTO_LIB=-l mbedcrypto
+CRYPTO_INC=-I /usr/local/include
 
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_PSA_CRYPTO
 CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o
@@ -95,7 +96,7 @@ t_cose_encryption_example_psa: examples/t_cose_encryption_example_psa.o libt_cos
 
 # ---- Installation ----
 ifeq ($(PREFIX),)
-    PREFIX := /usr/local
+	PREFIX := /usr/local
 endif
 
 install: libt_cose.a install_headers
