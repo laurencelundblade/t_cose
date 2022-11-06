@@ -95,7 +95,7 @@ t_cose_encryption_example_psa: examples/t_cose_encryption_example_psa.o libt_cos
 
 # ---- Installation ----
 ifeq ($(PREFIX),)
-	PREFIX := /usr/local
+       PREFIX := /usr/local
 endif
 
 install: libt_cose.a install_headers
