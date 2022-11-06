@@ -583,6 +583,7 @@ t_cose_crypto_hmac_verify_finish(struct t_cose_crypto_hmac *hmac_ctx,
 
     return psa_status_to_t_cose_error_hmac(psa_ret);
 }
+#endif /* !T_COSE_DISABLE_MAC0 */
 
 
 
@@ -940,4 +941,3 @@ t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
 
     return(T_COSE_SUCCESS);
 }
-#endif /* !T_COSE_DISABLE_MAC0 */

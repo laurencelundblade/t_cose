@@ -20,7 +20,7 @@
 #include <stdbool.h>
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
-#include "t_cose_standard_constants.h"
+#include "t_cose/t_cose_standard_constants.h"
 
 #ifndef T_COSE_DISABLE_HPKE
 

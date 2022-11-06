@@ -250,43 +250,6 @@ t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx *context,
 }
 
 
-/**
- * \brief  Initialize to start creating a \c COSE_Encrypt0 structure.
- *
- * \param[in,out] context            The t_cose_encrypt_enc_ctx context.
- * \param[in] option_flags           One of \c T_COSE_OPT_XXXX.
- * \param[in] cose_algorithm_id      The algorithm to use for encrypting
- *                                   data, for example
- *                                   \ref COSE_ALGORITHM_A128GCM.
- * \param[in] kid                    The key identifier.
- *
- * Initializes the \ref t_cose_encrypt_enc_ctx context. No
- * \c option_flags are needed and 0 can be passed. A \c cose_algorithm_id
- * must always be given.
- *
- * The algorithm ID space is from
- * [COSE (RFC8152)](https://tools.ietf.org/html/rfc8152) and the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- * \ref COSE_ALGORITHM_A128GCM and a few others are defined here for
- * convenience. The supported algorithms depend on the
- * cryptographic library that t_cose is integrated with.
- */
-static void
-t_cose_encrypt_enc0_init( struct t_cose_encrypt_enc_ctx *context,
-                          uint32_t                       option_flags,
-                          int32_t                        cose_algorithm_id,
-                          struct q_useful_buf_c          kid
-                        )
-{
-
-    memset(context, 0, sizeof(*context));
-    context->cose_algorithm_id = cose_algorithm_id;
-    context->option_flags = option_flags;
-    context->recipients = 0;
-    memcpy(&context->kid, &kid, sizeof(struct q_useful_buf_c));
-}
-
-
 #ifdef __cplusplus
 }
 #endif

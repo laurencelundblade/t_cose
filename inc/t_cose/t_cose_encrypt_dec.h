@@ -102,7 +102,7 @@ extern "C" {
  */
 struct t_cose_encrypt_dec_ctx {
     /* Private data structure */
-    int32_t               key_distribution;
+    uint32_t              key_distribution;
     uint32_t              option_flags;
     struct q_useful_buf_c kid;
     struct t_cose_key     recipient_key;

@@ -8,7 +8,7 @@
  * See BSD-3-Clause license in README.md
  */
 #include "t_cose/t_cose_encrypt_enc.h"
-#include "t_cose_standard_constants.h"
+#include "t_cose/t_cose_standard_constants.h"
 #include "qcbor/qcbor.h"
 #include <stdio.h>
 #include <stdlib.h>
