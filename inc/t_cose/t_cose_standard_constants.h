@@ -136,7 +136,7 @@
  */
 
 /**
- * \def COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY
+ * \def T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY
  *
  * \brief CBOR map label of header algorithm parameter containing
  *        an ephemeral key.
@@ -145,7 +145,7 @@
  *
  * This implementation only supports a subset of the available algorithms.
  */
-#define COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY -1
+#define T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY -1
 
 /* ------------- COSE Algorithms ----------------------------
  * https://www.iana.org/assignments/cose/cose.xhtml#algorithms

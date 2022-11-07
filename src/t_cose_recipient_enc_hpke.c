@@ -11,8 +11,10 @@
 
 #include "t_cose/t_cose_recipient_enc.h"
 #include "t_cose/t_cose_recipient_enc_hpke.h"    /* The interface this implements */
+#ifndef T_COSE_DISABLE_HPKE
 // TODO: this dependency should move to the crypto adaptor
-//#include "mbedtls/hpke.h"   /* HPKE Interface */
+#include "mbedtls/hpke.h"   /* HPKE Interface */
+#endif
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_encrypt_enc.h"
@@ -45,16 +47,16 @@ t_cose_crypto_convert_hpke_algorithms(
                 int64_t                           *cose_algorithm_id)
 {
     switch (hpke_cose_algorithm_id) {
-    case COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
+    case T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
          *key_bitlen = 128;
-         *cose_algorithm_id = COSE_ALGORITHM_A128GCM;
+         *cose_algorithm_id = T_COSE_ALGORITHM_A128GCM;
          hpke_suite->kem_id = HPKE_KEM_ID_P256;
          hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA256;
          hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_128;
          break;
-    case COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
+    case T_COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
          *key_bitlen = 256;
-         *cose_algorithm_id = COSE_ALGORITHM_A256GCM;
+         *cose_algorithm_id = T_COSE_ALGORITHM_A256GCM;
          hpke_suite->kem_id = HPKE_KEM_ID_P521;
          hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA512;
          hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_256;
@@ -212,7 +214,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     QCBOREncode_OpenMap(encrypt_ctx);
 
     QCBOREncode_AddInt64ToMapN(encrypt_ctx,
-                               COSE_HEADER_PARAM_ALG,
+                               T_COSE_HEADER_PARAM_ALG,
                                context->cose_algorithm_id);
 
     QCBOREncode_CloseMap(encrypt_ctx);
@@ -231,18 +233,18 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* -- add kty paramter */
     QCBOREncode_AddInt64ToMapN(&ephemeral_key_struct,
-                               COSE_KEY_COMMON_KTY,
-                               COSE_KEY_TYPE_EC2);
+                               T_COSE_KEY_COMMON_KTY,
+                               T_COSE_KEY_TYPE_EC2);
 
     /* -- add crv parameter */
     if (key_bitlen == 128) {
         QCBOREncode_AddInt64ToMapN(&ephemeral_key_struct,
-                                   COSE_KEY_PARAM_CRV,
-                                   COSE_ELLIPTIC_CURVE_P_256);
+                                   T_COSE_KEY_PARAM_CRV,
+                                   T_COSE_ELLIPTIC_CURVE_P_256);
     } else if (key_bitlen == 256) {
         QCBOREncode_AddInt64ToMapN(&ephemeral_key_struct,
-                                   COSE_KEY_PARAM_CRV,
-                                   COSE_ELLIPTIC_CURVE_P_521);
+                                   T_COSE_KEY_PARAM_CRV,
+                                   T_COSE_ELLIPTIC_CURVE_P_521);
     } else {
         return(T_COSE_ERR_UNSUPPORTED_KEY_LENGTH);
     }
@@ -251,7 +253,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* -- add x parameter */
     QCBOREncode_AddBytesToMapN(&ephemeral_key_struct,
-                               COSE_KEY_PARAM_X_COORDINATE,
+                               T_COSE_KEY_PARAM_X_COORDINATE,
                                (struct q_useful_buf_c)
                                {
                                  pkE + 1,
@@ -261,7 +263,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* -- add y parameter */
     QCBOREncode_AddBytesToMapN(&ephemeral_key_struct,
-                               COSE_KEY_PARAM_Y_COORDINATE,
+                               T_COSE_KEY_PARAM_Y_COORDINATE,
                                (struct q_useful_buf_c)
                                {
                                  &pkE[(pkE_len - 1) / 2 + 1],
@@ -281,7 +283,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* Add ephemeral parameter to unprotected map */
     QCBOREncode_AddBytesToMapN(encrypt_ctx,
-                               COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY,
+                               T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY,
                                (struct q_useful_buf_c)
                                {
                                  scratch.ptr,
@@ -291,7 +293,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* Add kid to unprotected map  */
     QCBOREncode_AddBytesToMapN(encrypt_ctx,
-                               COSE_HEADER_PARAM_KID,
+                               T_COSE_HEADER_PARAM_KID,
                                context->kid);
 
     /* Close unprotected map */

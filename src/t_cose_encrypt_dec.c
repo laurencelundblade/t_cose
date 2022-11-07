@@ -224,7 +224,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
 
         /* get ephemeral */
         QCBORDecode_GetByteStringInMapN(&DC,
-                                        COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY,
+                                        T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY,
                                         &ephemeral);
 
         result = QCBORDecode_GetError(&DC);
@@ -464,6 +464,15 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
 
     return(T_COSE_SUCCESS);
 #else /* T_COSE_DISABLE_HPKE */
+    (void)me;
+    (void)cose;
+    (void)cose_len;
+    (void)detached_ciphertext;
+    (void)detached_ciphertext_len;
+    (void)plaintext;
+    (void)plaintext_len;
+    (void)plaintext_output_len;
+
     return T_COSE_ERR_FAIL;
 #endif /* T_COSE_DISABLE_HPKE */
 }
