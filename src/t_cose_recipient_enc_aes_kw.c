@@ -36,6 +36,9 @@ enum t_cose_err_t t_cose_create_recipient_aes_kw(
     size_t                 recipient_key_len;
     struct t_cose_encrypt_recipient_ctx *context=(struct t_cose_encrypt_recipient_ctx *) ctx;
 
+    // TODO: check the algorithm ID
+    (void)cose_algorithm_id;
+
     Q_USEFUL_BUF_MAKE_STACK_UB(recipient_key_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
     Q_USEFUL_BUF_MAKE_STACK_UB(encrypted_cek, T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH));
     struct q_useful_buf_c  recipient_key_result={NULL,0};

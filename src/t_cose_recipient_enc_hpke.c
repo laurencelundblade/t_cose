@@ -312,4 +312,9 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     return(T_COSE_SUCCESS);
 }
 
+#else
+
+/* Place holder for compiler tools that don't like files with no functions */
+void t_cose_recipient_enc_aes_kw_placeholder(void) {}
+
 #endif /* T_COSE_DISABLE_HPKE */

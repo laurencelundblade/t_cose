@@ -19,6 +19,8 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
 
+/* Place holder for compiler tools that don't like files with no functions */
+void t_cose_recipient_dec_aes_kw_placeholder(void) {}
 
 /* Nothing so far */
 

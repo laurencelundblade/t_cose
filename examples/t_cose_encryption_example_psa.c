@@ -167,21 +167,17 @@ int main(void)
     size_t result_len;
     size_t encrypted_firmware_result_len;
     int res = 0;
-    enum t_cose_err_t ret;
-    uint8_t plaintext[BUFFER_SIZE];
-    size_t plaintext_output_len;
-    psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
+   psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t psk_handle = 0;
 
     /* Key id for PSK */
     struct q_useful_buf_c kid1 = {psk_kid, psk_kid_len};
     /* Key id for public key */
-    struct q_useful_buf_c kid2 = {pk_kid, pk_kid_len};
     /* Key id for PSK 2 */
 
     struct t_cose_key t_cose_psk_key;
-    struct t_cose_encrypt_dec_ctx dec_ctx;
 
+#ifndef T_COSE_DISABLE_HPKE
     struct t_cose_key t_cose_pkR_key;
     psa_key_attributes_t pkR_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t pkR_handle = PSA_KEY_HANDLE_INIT;
@@ -189,6 +185,7 @@ int main(void)
     struct t_cose_key t_cose_skR_key;
     psa_key_attributes_t skR_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t skR_handle = PSA_KEY_HANDLE_INIT;
+#endif
 
     /* -------------------------------------------------------------------------*/
 
@@ -200,6 +197,8 @@ int main(void)
     if (status != PSA_SUCCESS) {
         return(EXIT_FAILURE);
     }
+
+#ifndef T_COSE_DISABLE_HPKE
 
     /* Import public key */
     psa_set_key_usage_flags(&pkR_attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_EXPORT);
@@ -235,6 +234,7 @@ int main(void)
 
     t_cose_skR_key.k.key_handle = skR_handle;
     t_cose_skR_key.crypto_lib = T_COSE_CRYPTO_LIB_PSA;
+    #endif
 
     /* Import PSK */
     psa_set_key_usage_flags(&psk_attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
@@ -439,8 +439,11 @@ int main(void)
     /* -------------------------------------------------------------------------*/
 
     psa_destroy_key(psk_handle);
+    #ifndef T_COSE_DISABLE_HPKE
+
     psa_destroy_key(skR_handle);
     psa_destroy_key(pkR_handle);
+#endif
 
     return(0);
 }

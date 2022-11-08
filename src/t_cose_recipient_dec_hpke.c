@@ -88,4 +88,9 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
     return(T_COSE_SUCCESS);
 }
 
-#endif /* #define T_COSE_DISABLE_HPKE */
+#else /* T_COSE_DISABLE_HPKE */
+
+/* Place holder for compiler tools that don't like files with no functions */
+void t_cose_recipient_dec_hpke(void) {}
+
+#endif /* T_COSE_DISABLE_HPKE */

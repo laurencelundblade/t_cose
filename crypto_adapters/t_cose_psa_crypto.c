@@ -674,6 +674,9 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
     int                     ret;
     size_t                  res_len;
 
+    // TODO: this needs to check the algorithm ID
+    (void)algorithm_id;
+
     mbedtls_nist_kw_init(&ctx);
 
     /* Configure KEK to be externally supplied symmetric key */
