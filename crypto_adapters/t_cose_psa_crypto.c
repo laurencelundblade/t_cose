@@ -74,7 +74,8 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 }
 
 
-
+/* Avoid compiler warning due to unused argument */
+#define ARG_UNUSED(arg) (void)(arg)
 
 #ifndef T_COSE_DISABLE_SIGN1
 /**
@@ -137,7 +138,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
 
     /* This implementation does no look up keys by kid in the key
      * store */
-    (void)kid;
+    ARG_UNUSED(kid);
 
     /* Convert to PSA algorithm ID scheme */
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);

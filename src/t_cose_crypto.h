@@ -98,6 +98,7 @@ extern "C" {
  * works, whether dead stripping of object code is on and such.
  */
 
+
 /* Says where a particular algorithm is supported or not.
  * Most useful for test code that wants to know if a
  * test should be attempted or not.
@@ -178,6 +179,7 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id);
         #define T_COSE_MAX_SIG_SIZE T_COSE_EC_P256_SIG_SIZE
     #endif
 #endif
+
 
 
 
