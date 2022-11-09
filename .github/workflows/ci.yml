@@ -24,7 +24,7 @@ jobs:
           container: ubuntu:20.04
           crypto-provider: MbedTLS
           crypto-provider-version: 'v2.28.0'
-          crypto-provider-extra: ''
+          crypto-provider-extra: '-DT_COSE_DISABLE_AES_KW'
         
         - os-image: ubuntu-latest
           container: ubuntu:20.04

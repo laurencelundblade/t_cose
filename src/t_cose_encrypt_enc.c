@@ -44,11 +44,15 @@ t_cose_encrypt_recipient_init(struct t_cose_encrypt_recipient_ctx *context,
         context->recipient_func = t_cose_create_recipient_hpke;
         break;
 #endif /* T_COSE_DISABLE_HPKE */
+
+#ifndef T_COSE_DISABLE_AES_KW
     case T_COSE_ALGORITHM_A256KW:
     case T_COSE_ALGORITHM_A192KW:
     case T_COSE_ALGORITHM_A128KW:
         context->recipient_func = t_cose_create_recipient_aes_kw;
         break;
+#endif /* T_COSE_DISABLE_AES_KW */
+            
     default:
         context->recipient_func = NULL;
     }

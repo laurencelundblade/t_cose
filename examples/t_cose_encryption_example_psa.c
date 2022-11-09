@@ -404,6 +404,7 @@ int main(void)
     memset(plaintext, 0, plaintext_output_len);
 #endif /* T_COSE_DISABLE_HPKE */
 
+#ifndef T_COSE_DISABLE_AES_KW
     /* -------------------------------------------------------------------------*/
 
     printf("\n-- 4a. Create COSE_Encrypt with detached payload using AES-KW --\n\n");
@@ -436,10 +437,11 @@ int main(void)
     memset(plaintext, 0, plaintext_output_len);
 #endif /* T_COSE_DISABLE_HPKE */
 
+#endif /* T_COSE_DISABLE_AES_KW */
     /* -------------------------------------------------------------------------*/
 
     psa_destroy_key(psk_handle);
-    #ifndef T_COSE_DISABLE_HPKE
+#ifndef T_COSE_DISABLE_HPKE
 
     psa_destroy_key(skR_handle);
     psa_destroy_key(pkR_handle);

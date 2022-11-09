@@ -25,7 +25,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                    size_t plaintext_len,
                    size_t *plaintext_output_len)
 {
-#ifndef T_COSE_DISABLE_HPKE
+#if !defined(T_COSE_DISABLE_HPKE) && !defined(T_COSE_DISABLE_AES_KW)
 
     QCBORItem              protected_hdr;
     UsefulBufC             nonce_cbor;

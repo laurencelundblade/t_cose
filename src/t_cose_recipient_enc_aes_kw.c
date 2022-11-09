@@ -20,6 +20,8 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
 
+
+#ifndef T_COSE_DISABLE_AES_KW
 /*
  * See documentation in t_cose_recipient_enc_aes_kw.h
  */
@@ -103,3 +105,10 @@ enum t_cose_err_t t_cose_create_recipient_aes_kw(
 
     return(T_COSE_SUCCESS);
 }
+
+#else /* T_COSE_DISABLE_AES_KW */
+
+/* Place holder for compiler tools that don't like files with no functions */
+void t_cose_recipient_enc_aes_placeholder(void) {}
+
+#endif /* T_COSE_DISABLE_AES_KW */
