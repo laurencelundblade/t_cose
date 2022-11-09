@@ -99,7 +99,8 @@ extern "C" {
  */
 
 
-/* Says where a particular algorithm is supported or not.
+/*
+ * Says where a particular algorithm is supported or not.
  * Most useful for test code that wants to know if a
  * test should be attempted or not.
  *
@@ -326,6 +327,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature);
+
 
 
 
