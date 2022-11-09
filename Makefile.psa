@@ -55,6 +55,14 @@ CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
 C_OPTS=-Os -fPIC
 
 
+# ---- other configuration ----
+# HPKE is disabled by default because it is not supported by common crypto
+# libraries. If you wish to use it remove this and find a version of
+# MbedTLS that supports it. For example: 
+# https://github.com/hannestschofenig/mbedtls/tree/hpke.
+OTHER_OPTS=-DT_COSE_DISABLE_HPKE 
+
+
 # ---- T_COSE Config and test options ----
 TEST_CONFIG_OPTS=
 TEST_OBJ=test/t_cose_test.o \
@@ -69,7 +77,7 @@ TEST_OBJ=test/t_cose_test.o \
 # ---- the main body that is invariant ----
 INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
-CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
+CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 
 SRC_OBJ=src/t_cose_util.o \
         src/t_cose_sign1_verify.o \

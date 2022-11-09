@@ -37,12 +37,10 @@
 
 #include "t_cose_crypto.h"  /* The interface this implements */
 #include <psa/crypto.h>     /* PSA Crypto Interface to mbed crypto or such */
+// TODO: isn't there a PSA API for AES (and key wrap?)
 #include <mbedtls/aes.h>
 #include <mbedtls/nist_kw.h>
 
-
-/* Avoid compiler warning due to unused argument */
-#define ARG_UNUSED(arg) (void)(arg)
 
 /*
  * See documentation in t_cose_crypto.h
@@ -77,8 +75,6 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 
 
 
-/* Avoid compiler warning due to unused argument */
-#define ARG_UNUSED(arg) (void)(arg)
 
 #ifndef T_COSE_DISABLE_SIGN1
 /**
@@ -141,7 +137,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
 
     /* This implementation does no look up keys by kid in the key
      * store */
-    ARG_UNUSED(kid);
+    (void)kid;
 
     /* Convert to PSA algorithm ID scheme */
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);

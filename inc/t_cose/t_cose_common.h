@@ -20,8 +20,6 @@
 extern "C" {
 #endif
 
-#define T_COSE_DISABLE_HPKE
-
 
 /*
  * API Design Overview
