@@ -138,7 +138,8 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
     QCBOREncode_OpenMap(&encrypt_ctx);
 
     /* Generate random nonce */
-    cose_result = t_cose_crypto_get_random(nonce, key_bitlen / 8, &nonce_result );
+    cose_result = t_cose_crypto_get_random(nonce, key_bitlen / 8,
+                                           &nonce_result );
 
     if (cose_result != T_COSE_SUCCESS) {
         return(cose_result);
@@ -285,11 +286,12 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
      * COSE_Encrypt, however, requires a recipient structure. Here we add it.
      */
     if ( (context->option_flags & T_COSE_OPT_COSE_ENCRYPT0) == 0) {
-        cose_result = context->recipient_ctx.recipient_func(&context->recipient_ctx,
-                                                       context->cose_algorithm_id,
-                                                       context->recipient_ctx.recipient_key,
-                                                       random_result,
-                                                       &encrypt_ctx);
+        cose_result = context->recipient_ctx.recipient_func(
+                                    &context->recipient_ctx,
+                                    context->cose_algorithm_id,
+                                    context->recipient_ctx.recipient_key,
+                                    random_result,
+                                    &encrypt_ctx);
 
         if (cose_result != T_COSE_SUCCESS) {
             return(cose_result);
@@ -310,10 +312,10 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 }
 
 enum t_cose_err_t
-t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx*   context,
-                             int32_t                          cose_algorithm_id,
-                             struct t_cose_key                recipient_key,
-                             struct q_useful_buf_c            kid)
+t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx* context,
+                             int32_t                        cose_algorithm_id,
+                             struct t_cose_key              recipient_key,
+                             struct q_useful_buf_c          kid)
 {
     enum t_cose_err_t result;
 

@@ -10,7 +10,7 @@
  */
 
 #include "t_cose/t_cose_recipient_enc.h"
-#include "t_cose/t_cose_recipient_enc_hpke.h"    /* The interface this implements */
+#include "t_cose/t_cose_recipient_enc_hpke.h" /* Interface implemented */
 #ifndef T_COSE_DISABLE_HPKE
 // TODO: this dependency should move to the crypto adaptor
 #include "mbedtls/hpke.h"   /* HPKE Interface */
@@ -129,11 +129,11 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
  * See documentation in t_cose_recipient_enc_hpke.h
  */
 enum t_cose_err_t t_cose_create_recipient_hpke(
-                           void                                 *ctx,
-                           int32_t                               cose_algorithm_id,
-                           struct t_cose_key                     recipient_key,
-                           struct q_useful_buf_c                 plaintext,
-                           QCBOREncodeContext                   *encrypt_ctx)
+                           void                  *ctx,
+                           int32_t                cose_algorithm_id,
+                           struct t_cose_key      recipient_key,
+                           struct q_useful_buf_c  plaintext,
+                           QCBOREncodeContext    *encrypt_ctx)
 {
     size_t                 key_bitlen;
     int64_t                algorithm_id;
@@ -167,7 +167,8 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     }
 
     /* Create ephemeral key */
-    return_value = t_cose_crypto_generate_key(&context->ephemeral_key, context->cose_algorithm_id);
+    return_value = t_cose_crypto_generate_key(&context->ephemeral_key,
+                                              context->cose_algorithm_id);
     if (return_value != T_COSE_SUCCESS) {
         return(return_value);
     }
@@ -197,7 +198,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
                         hpke_suite,
                         (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len},
                         context->ephemeral_key,
-                        (struct q_useful_buf_c) {.ptr = plaintext.ptr, .len = plaintext.len},
+                        plaintext,
                         (struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
                         &encrypted_cek_len);
 

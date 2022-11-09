@@ -10,7 +10,7 @@
  */
 
 #include "t_cose/t_cose_recipient_enc.h"
-#include "t_cose/t_cose_recipient_enc_aes_kw.h"    /* The interface this implements */
+#include "t_cose/t_cose_recipient_enc_aes_kw.h" /* Interface implemented */
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_encrypt_enc.h"
@@ -24,17 +24,17 @@
  * See documentation in t_cose_recipient_enc_aes_kw.h
  */
 enum t_cose_err_t t_cose_create_recipient_aes_kw(
-                           void                                *ctx,
-                           int32_t                              cose_algorithm_id,
-                           struct t_cose_key                    recipient_key,
-                           struct q_useful_buf_c                plaintext,
-                           QCBOREncodeContext                  *encrypt_ctx)
+                           void                   *ctx,
+                           int32_t                 cose_algorithm_id,
+                           struct t_cose_key       recipient_key,
+                           struct q_useful_buf_c   plaintext,
+                           QCBOREncodeContext     *encrypt_ctx)
 {
     UsefulBufC             scratch;
     enum t_cose_err_t      return_value;
     enum t_cose_err_t      cose_result;
     size_t                 recipient_key_len;
-    struct t_cose_encrypt_recipient_ctx *context=(struct t_cose_encrypt_recipient_ctx *) ctx;
+    struct t_cose_encrypt_recipient_ctx *context;
 
     // TODO: check the algorithm ID
     (void)cose_algorithm_id;
@@ -43,6 +43,8 @@ enum t_cose_err_t t_cose_create_recipient_aes_kw(
     Q_USEFUL_BUF_MAKE_STACK_UB(encrypted_cek, T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH));
     struct q_useful_buf_c  recipient_key_result={NULL,0};
     struct q_useful_buf_c  encrypted_cek_result={NULL,0};
+
+    context=(struct t_cose_encrypt_recipient_ctx *) ctx;
 
     if (context == NULL || encrypt_ctx == NULL) {
         return(T_COSE_ERR_INVALID_ARGUMENT);

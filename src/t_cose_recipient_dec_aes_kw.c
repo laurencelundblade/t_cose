@@ -9,7 +9,7 @@
  *
  */
 
-#include "t_cose/t_cose_recipient_dec_aes_kw.h"    /* The interface this implements */
+#include "t_cose/t_cose_recipient_dec_aes_kw.h" /* Interface implemented */
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_encrypt_enc.h"

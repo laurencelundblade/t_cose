@@ -9,7 +9,7 @@
  *
  */
 
-#include "t_cose/t_cose_recipient_dec_hpke.h"    /* The interface this implements */
+#include "t_cose/t_cose_recipient_dec_hpke.h"  /* Interface implemented */
 #ifndef T_COSE_DISABLE_HPKE
 // TODO: this dependency should only be in the crypto layer
 #include "mbedtls/hpke.h"   /* HPKE Interface */
@@ -29,12 +29,12 @@
  * See definition in t_cose_recipient_dec_hpke.h
  */
 enum t_cose_err_t
-t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
-                           struct q_useful_buf_c              pkE,
-                           struct t_cose_key                  pkR,
-                           struct q_useful_buf_c              ciphertext,
-                           struct q_useful_buf                plaintext,
-                           size_t                            *plaintext_len)
+t_cose_crypto_hpke_decrypt(int32_t                cose_algorithm_id,
+                           struct q_useful_buf_c  pkE,
+                           struct t_cose_key      pkR,
+                           struct q_useful_buf_c  ciphertext,
+                           struct q_useful_buf    plaintext,
+                           size_t                *plaintext_len)
 {
     hpke_suite_t           suite;
     size_t                 key_bitlen;
