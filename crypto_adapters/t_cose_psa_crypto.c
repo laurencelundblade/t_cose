@@ -37,9 +37,12 @@
 
 #include "t_cose_crypto.h"  /* The interface this implements */
 #include <psa/crypto.h>     /* PSA Crypto Interface to mbed crypto or such */
-// TODO: isn't there a PSA API for AES (and key wrap?)
-#include <mbedtls/aes.h>
+#include <mbedtls/aes.h> // TODO: Isn't there a PSA API for AES?
+
+#ifndef T_COSE_DISABLE_AES_KW
+// TODO: isn't there a PSA API for key wrap?
 #include <mbedtls/nist_kw.h>
+#endif /* T_COSE_DISABLE_AES_KW */
 
 
 /*
@@ -656,6 +659,7 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 }
 
 
+#ifndef T_COSE_DISABLE_AES_KW
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -710,7 +714,7 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
 
     return(T_COSE_SUCCESS);
 }
-
+#endif
 
 /*
  * See documentation in t_cose_crypto.h
