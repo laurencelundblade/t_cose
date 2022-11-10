@@ -35,7 +35,7 @@ if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     find_package(MbedTLS REQUIRED)
     set(CRYPTO_LIBRARY MbedTLS::MbedCrypto)
-    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1)
+    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
 elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
