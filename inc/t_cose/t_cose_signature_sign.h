@@ -21,7 +21,7 @@
  * and data structure that t_cose_sign_sign knows about to be able
  * to invoke each signer regardles of its type or algorithm.
  *
- * Each concrete signer (e.g., ECDSA signer, RSA signer,... must implement this. Each signer
+ * Each concrete signer must implement this. Each signer
  * also implements a few methods of its own beyond this
  * that it needs to work like those for initialization and
  * setting the key.
@@ -80,7 +80,7 @@ struct t_cose_signature_sign;
  *
  * @param [in] me   The context, the  t_cose_signature_sign instance. This will actully be some thing like
  *                         t_cose_signature_sign_ecdsa that inplements t_cose_signature_sign
- * @Param[in] sign_only TODO: 
+ * @Param[in] sign_only TODO:
  * @param[in] protected_body_headers  The COSE_Sign body headers that are covered by the signature
  * @param[in] payload                       The payload (regular or detaced) that is covered by the signature.
  * @param[in] aad                               The aad covered by the signature.
@@ -95,11 +95,11 @@ struct t_cose_signature_sign;
  */
 typedef enum t_cose_err_t
 t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
-                                 bool                          sign_only,
-                                 const struct q_useful_buf_c   protected_body_headers,
-                                 const struct q_useful_buf_c   payload,
-                                 const struct q_useful_buf_c   aad,
-                                 QCBOREncodeContext           *qcbor_encoder);
+                               bool                          sign_only,
+                               const struct q_useful_buf_c   protected_body_headers,
+                               const struct q_useful_buf_c   payload,
+                               const struct q_useful_buf_c   aad,
+                               QCBOREncodeContext           *qcbor_encoder);
 
 
 /* This callback is used to get the header parameters for a COSE_Sign1.
@@ -111,8 +111,8 @@ t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
  * is called. t_cose_signature_sign_callback is always called. (The
  * point of not returning an error here is to save object code) */
 typedef void
-(t_cose_signature_sign_h_callback)(struct t_cose_signature_sign *me,
-                                   struct t_cose_parameter     **header_params);
+t_cose_signature_sign_h_callback(struct t_cose_signature_sign *me,
+                                 struct t_cose_parameter     **header_params);
 
 
 /* The definition (not declaration) of the context that every
