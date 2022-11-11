@@ -77,6 +77,7 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 }
 
 
+
 /* Avoid compiler warning due to unused argument */
 #define ARG_UNUSED(arg) (void)(arg)
 
@@ -583,6 +584,7 @@ t_cose_crypto_hmac_verify_finish(struct t_cose_crypto_hmac *hmac_ctx,
 
     return psa_status_to_t_cose_error_hmac(psa_ret);
 }
+
 #endif /* !T_COSE_DISABLE_MAC0 */
 
 
