@@ -278,13 +278,13 @@ static inline enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
                             struct q_useful_buf_c          message,
                             struct q_useful_buf_c          aad,
-                            struct q_useful_buf_c          detatched_payload,
+                            struct q_useful_buf_c          detached_payload,
                             struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       message,
                                       aad,
-                                     &detatched_payload,
+                                     &detached_payload,
                                       parameters,
                                       true);
 }

@@ -257,6 +257,7 @@ t_cose_sign_one_short(struct t_cose_sign_sign_ctx *me,
     /* --- Sign and output signature to the encoder context --- */
     if(!payload_is_detached) {
         // TODO: combine with above?
+        payload = NULL_Q_USEFUL_BUF_C;
     }
     return_value = t_cose_sign_encode_finish(me,
                                              aad,
