@@ -82,6 +82,7 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
 
     kid = t_cose_find_parameter_kid(body_parameters);
 
+    // TODO: unify short-circuit kid 
     if(q_useful_buf_compare(kid, get_short_circuit_kid())) {
         return_value = T_COSE_ERR_KID_UNMATCHED;
         goto Done;

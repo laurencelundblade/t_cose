@@ -129,8 +129,8 @@ Done:
  * t_cose_short_signer_init().
  */
 static void
-t_cose_short_headers(struct t_cose_signature_sign      *me_x,
-                     struct t_cose_parameter **params)
+t_cose_short_headers(struct t_cose_signature_sign *me_x,
+                     struct t_cose_parameter     **params)
 {
     struct t_cose_signature_sign_short *me =
                                    (struct t_cose_signature_sign_short *)me_x;

@@ -39,17 +39,22 @@ struct t_cose_signature_verify;
 
 
 /**
- * This is the call back used to verify a COSE_Signature in a COSE_Sign.
+ * \brief Type definition of function used to verify a COSE_Signature in a COSE_Sign.
  *
- * @param[in] me  Instance of signature_verify
- * @param[in] run_crypto   If true, do the full sig verification. If not just decode parameters.
- * @param[in] loc          The location of the signature inside the COSE_Sign.
- * @param[in] protected_body_headers   Body headers from COSE_Signature to verify
- * @param[in] payload                  The payload to verify (regular or detached)
- * @param[in] aad                      The aad to verify
- * @param[in] params                   The place to put the decoded params.
- * @param[in] qcbor_decoder                     The decoder instance from where the COSE_Signature is decoded.
- * @param[out] decoded_signature_parameters Linked list of decoded parameters.
+ * \param[in] me                      The context, the  t_cose_signature_verify
+ *                                    instance. This  will actully be some thing like
+ *                                    t_cose_signature_verify_ecdsa that inplements
+ *                                    t_cose_signature_verify.
+ * \param[in] run_crypto              If true, do the full sig verification. If not
+ *                                    just decode parameters.
+ * \param[in] loc                     The location of the signature inside the COSE_Sign.
+ * \param[in] protected_body_headers  Body headers from COSE_Signature to verify
+ * \param[in] payload                 The payload to verify (regular or detached)
+ * \param[in] aad                     The aad to verify
+ * \param[in] params                  The place to put the decoded params.
+ * \param[in] qcbor_decoder           The decoder instance from where the
+ *                                     COSE_Signature is decoded.
+ * \param[out] decoded_signature_parameters  Linked list of decoded parameters.
  */
 typedef enum t_cose_err_t
 t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
@@ -63,21 +68,24 @@ t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
                                  struct t_cose_parameter         **decoded_signature_parameters);
 
 
-
-
-/* Verify the bare signature in COSE_Sign1.
-
- @param[in] me
- @param[in] protected_body_headers   Encoded body headers from COSE_Signature to verify
- @param[in] protected_signature_headers Headers from COSE_Signature.
- @param[in] payload                  The payload to verify (regular or detached)
- @param[in] aad                      The aad to verify
- @param[in] parameter_list           Parameter list in which algorithm and kid is found.
- @param[in] signature                The signature.
-
- This is very different from t_cose_signature_verify_callback because
- there is no header decoding to be done. Instead the headers are decoded outside
- of this and passed in.
+/**
+ * \brief Type definition of function to verify the bare signature in COSE_Sign1.
+ *
+ * \param[in] me                       The context, the  t_cose_signature_verify
+ *                                     instance. This  will actully be some thing like
+ *                                     t_cose_signature_verify_ecdsa that inplements
+ *                                     t_cose_signature_verify.
+ * \param[in] protected_body_headers   Encoded body headers from COSE_Signature to verify
+ * \param[in] protected_signature_headers Headers from COSE_Signature.
+ * \param[in] payload                  The payload to verify (regular or detached)
+ * \param[in] aad                      The aad to verify
+ * \param[in] parameter_list           Parameter list in which algorithm and kid is
+ *                                     found.
+ * \param[in] signature                The signature.
+ *
+ * This is very different from t_cose_signature_verify_callback
+ * because there is no header decoding to be done. Instead the headers
+ * are decoded outside of this and passed in.
  */
 typedef enum t_cose_err_t
 t_cose_signature_verify1_callback(struct t_cose_signature_verify *me,
@@ -89,9 +97,9 @@ t_cose_signature_verify1_callback(struct t_cose_signature_verify *me,
                                   const struct q_useful_buf_c     signature);
 
 
-
-/* The definition (not declaration) of the context that every
- * t_cose_signature_verify implemtation has.
+/**
+ * Data structture that must be the first part of every context of every concrete
+ * implementation of t_cose_signature_verify.
  */
 struct t_cose_signature_verify {
     t_cose_signature_verify_callback  *callback; /* some will call this a vtable with two entries */
