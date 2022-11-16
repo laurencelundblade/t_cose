@@ -15,14 +15,12 @@
 #include "t_cose_make_test_pub_key.h"
 #include "t_cose_compute_validate_mac_test.h"
 
-#include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
-
 #ifndef T_COSE_DISABLE_MAC0
 
 /*
- * Public function, see t_cose_compute_validate_mac_test.h
+ * Sign and validate a test COSE_Mac0 message with the selected MAC algorithm.
  */
-int_fast32_t sign_verify_basic_test_alg_mac(uint8_t cose_alg)
+static int_fast32_t compute_validate_basic_test_alg_mac(uint8_t cose_alg)
 {
     struct t_cose_mac_calculate_ctx   sign_ctx;
     int32_t                      return_value;
@@ -90,21 +88,21 @@ Done:
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t sign_verify_mac_basic_test()
+int_fast32_t compute_validate_mac_basic_test()
 {
     int_fast32_t return_value;
 
-    return_value  = sign_verify_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC256);
+    return_value  = compute_validate_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC256);
     if(return_value) {
         return 20000 + return_value;
     }
 
-    return_value  = sign_verify_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC384);
+    return_value  = compute_validate_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC384);
     if(return_value) {
         return 30000 + return_value;
     }
 
-    return_value  = sign_verify_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC512);
+    return_value  = compute_validate_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC512);
     if(return_value) {
         return 50000 + return_value;
     }
@@ -116,7 +114,7 @@ int_fast32_t sign_verify_mac_basic_test()
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t sign_verify_mac_sig_fail_test()
+int_fast32_t compute_validate_mac_sig_fail_test()
 {
     struct t_cose_mac_calculate_ctx   sign_ctx;
     QCBOREncodeContext           cbor_encode;
@@ -196,9 +194,7 @@ Done:
     return return_value;
 }
 
-/*
- * Public function, see t_cose_compute_validate_mac_test.h
- */
+
 static int size_test(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
                      struct t_cose_key     key_pair)
@@ -286,7 +282,7 @@ static int size_test(int32_t               cose_algorithm_id,
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t sign_verify_get_size_mac_test()
+int_fast32_t compute_validate_get_size_mac_test()
 {
     enum t_cose_err_t return_value;
     struct t_cose_key key_pair;
