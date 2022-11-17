@@ -20,7 +20,7 @@
 /*
  * Sign and validate a test COSE_Mac0 message with the selected MAC algorithm.
  */
-static int_fast32_t compute_validate_basic_test_alg_mac(uint8_t cose_alg)
+static int_fast32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
 {
     struct t_cose_mac_calculate_ctx   sign_ctx;
     int32_t                      return_value;
@@ -122,7 +122,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
     enum t_cose_err_t            result;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
     struct q_useful_buf_c        signed_cose;
-    struct t_cose_key            key_pair;
+    struct t_cose_key            key;
     struct q_useful_buf_c        payload;
     QCBORError                   cbor_error;
     struct t_cose_mac_validate_ctx verify_ctx;
@@ -132,7 +132,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
     /* Make an HMAC key that will be used for both signing and
      * verification.
      */
-    result = make_hmac_key(T_COSE_ALGORITHM_HMAC256,&key_pair);
+    result = make_hmac_key(T_COSE_ALGORITHM_HMAC256, &key);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -140,7 +140,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_mac_compute_init(&sign_ctx, 0, T_COSE_ALGORITHM_HMAC256);
-    t_cose_mac_set_computing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_mac_set_computing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
 
     result = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(result) {
@@ -174,7 +174,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
 
     t_cose_mac_validate_init(&verify_ctx, 0);
 
-    t_cose_mac_set_validate_key(&verify_ctx, key_pair);
+    t_cose_mac_set_validate_key(&verify_ctx, key);
 
     result = t_cose_mac_validate(&verify_ctx,
                                 signed_cose, /* COSE to verify */
@@ -189,7 +189,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
     return_value = 0;
 
 Done:
-    free_key(key_pair);
+    free_key(key);
 
     return return_value;
 }
@@ -197,7 +197,7 @@ Done:
 
 static int size_test(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
-                     struct t_cose_key     key_pair)
+                     struct t_cose_key     key)
 {
     struct t_cose_mac_calculate_ctx sign_ctx;
     QCBOREncodeContext         cbor_encode;
@@ -217,7 +217,7 @@ static int size_test(int32_t               cose_algorithm_id,
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
     t_cose_mac_compute_init(&sign_ctx,  0,  cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key_pair, kid);
+    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
 
     return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
@@ -240,7 +240,7 @@ static int size_test(int32_t               cose_algorithm_id,
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key_pair, kid);
+    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
 
     return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
@@ -261,7 +261,7 @@ static int size_test(int32_t               cose_algorithm_id,
 
     /* ---- Again with one-call API to make COSE_Mac0 ---- */\
     t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key_pair, kid);
+    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
     return_value = t_cose_mac_compute(&sign_ctx,
                                          NULL_Q_USEFUL_BUF_C,
                                          payload,
@@ -285,46 +285,46 @@ static int size_test(int32_t               cose_algorithm_id,
 int_fast32_t compute_validate_get_size_mac_test()
 {
     enum t_cose_err_t return_value;
-    struct t_cose_key key_pair;
+    struct t_cose_key key;
     int32_t           result;
 
-    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC256, &key_pair);
+    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC256, &key);
     if(return_value) {
         return 10000 + (int32_t)return_value;
     }
 
-    result = size_test(T_COSE_ALGORITHM_HMAC256, NULL_Q_USEFUL_BUF_C, key_pair);
-    free_key(key_pair);
+    result = size_test(T_COSE_ALGORITHM_HMAC256, NULL_Q_USEFUL_BUF_C, key);
+    free_key(key);
     if(result) {
         return 20000 + result;
     }
 
-    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC384, &key_pair);
+    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC384, &key);
     if(return_value) {
         return 30000 + (int32_t)return_value;
     }
 
-    result = size_test(T_COSE_ALGORITHM_HMAC384, NULL_Q_USEFUL_BUF_C, key_pair);
-    free_key(key_pair);
+    result = size_test(T_COSE_ALGORITHM_HMAC384, NULL_Q_USEFUL_BUF_C, key);
+    free_key(key);
     if(result) {
         return 40000 + result;
     }
 
-    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC512, &key_pair);
+    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC512, &key);
     if(return_value) {
         return 50000 + (int32_t)return_value;
     }
 
-    result = size_test(T_COSE_ALGORITHM_HMAC512, NULL_Q_USEFUL_BUF_C, key_pair);
+    result = size_test(T_COSE_ALGORITHM_HMAC512, NULL_Q_USEFUL_BUF_C, key);
     if(result) {
-        free_key(key_pair);
+        free_key(key);
         return 60000 + result;
     }
 
     result = size_test(T_COSE_ALGORITHM_HMAC512,
                        Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
-                       key_pair);
-    free_key(key_pair);
+                       key);
+    free_key(key);
     if(result) {
         return 70000 + result;
     }
