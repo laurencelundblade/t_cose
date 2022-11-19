@@ -134,10 +134,22 @@ install_headers: $(PUBLIC_INTERFACE)
 	install -d $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_common.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/q_useful_buf.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign1_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_parameters.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_sign_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_signature_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_signature_sign_short.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_signature_sign_ecdsa.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_sign_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_signature_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_signature_verify_short.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_signature_verify_ecdsa.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_standard_constants.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_encrypt_enc.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_encrypt_dec.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_mac_compute.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_mac_validate.h $(DESTDIR)$(PREFIX)/include/t_cose
 
 # The shared library is not installed by default because of platform variability.
 install_so: libt_cose.so install_headers
