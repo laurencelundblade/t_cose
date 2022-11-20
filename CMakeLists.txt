@@ -66,6 +66,7 @@ set(T_COSE_SRC_COMMON
     src/t_cose_parameters.c
     src/t_cose_sign1_verify.c
     src/t_cose_util.c
+<<<<<<< HEAD
     src/t_cose_sign_sign.c
     src/t_cose_mac_compute.c
     src/t_cose_signature_sign_ecdsa.c
@@ -74,6 +75,9 @@ set(T_COSE_SRC_COMMON
     src/t_cose_mac_validate.c
     src/t_cose_signature_verify_ecdsa.c
     src/t_cose_signature_verify_short.c
+=======
+    src/t_cose_short_circuit.c
+>>>>>>> master
 )
 
 find_package(QCBOR REQUIRED)

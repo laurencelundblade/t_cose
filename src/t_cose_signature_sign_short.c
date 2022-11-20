@@ -170,7 +170,7 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
                                     (struct t_cose_signature_sign_short *)me_x;
     enum t_cose_err_t                  return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_signature, T_COSE_MAX_SIG_SIZE);
+    struct q_useful_buf                buffer_for_signature;
     struct q_useful_buf_c              tbs_hash;
     struct q_useful_buf_c              signature;
     struct q_useful_buf_c              signer_protected_headers;
@@ -226,10 +226,21 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
             goto Done;
         }
 
+        /* The signature gets written directly into the output buffer.
+         * The matching QCBOREncode_CloseBytes call further down still needs do a
+         * memmove to make space for the CBOR header, but at least we avoid the need
+         * to allocate an extra buffer.
+         */
+        // TODO: does this mess up the size calculation mode?
+        // Check that it is OK in master branch too
+        QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
+
         return_value = short_circuit_fake_sign(me->cose_algorithm_id,
                                                tbs_hash,
                                                buffer_for_signature,
                                               &signature);
+        QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
+
     }
     QCBOREncode_AddBytes(qcbor_encoder, signature);
 

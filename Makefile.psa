@@ -77,6 +77,7 @@ TEST_OBJ=test/t_cose_test.o \
 # ---- the main body that is invariant ----
 INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
+<<<<<<< HEAD
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 
 SRC_OBJ=src/t_cose_util.o \
@@ -97,6 +98,11 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_recipient_enc_aes_kw.o \
         src/t_cose_recipient_dec_hpke.o \
         src/t_cose_recipient_enc_hpke.o
+=======
+CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
+
+SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o src/t_cose_short_circuit.o
+>>>>>>> master
 
 .PHONY: all install install_headers install_so uninstall clean
 
@@ -171,6 +177,7 @@ PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h \
                  inc/t_cose/t_cose_encrypt_enc.h
 
 # ---- source dependecies -----
+<<<<<<< HEAD
 src/t_cose_util.o: src/t_cose_util.c \
                    src/t_cose_util.h \
                    inc/t_cose/q_useful_buf.h \
@@ -261,14 +268,28 @@ src/t_cose_recipient_dec_aes_kw.o: inc/t_cose/t_cose_standard_constants.h src/t_
 src/t_cose_recipient_enc_aes_kw.o: inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_recipient_enc_aes_kw.h
 src/t_cose_recipient_dec_hpke.o: inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_recipient_dec_hpke.h
 src/t_cose_recipient_enc_hpke.o: inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_recipient_enc_hpke.h
+=======
+src/t_cose_util.o: src/t_cose_util.h src/t_cose_standard_constants.h inc/t_cose/t_cose_common.h src/t_cose_crypto.h
+src/t_cose_sign1_verify.o: inc/t_cose/t_cose_sign1_verify.h src/t_cose_crypto.h src/t_cose_util.h src/t_cose_parameters.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h src/t_cose_short_circuit.h
+src/t_cose_parameters.o: src/t_cose_parameters.h src/t_cose_standard_constants.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_common.h
+src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h src/t_cose_short_circuit.h
+src/t_cose_short_circuit.o: src/t_cose_short_circuit.h src/t_cose_standard_constants.h src/t_cose_crypto.h
+
+>>>>>>> master
 
 # ---- test dependencies -----
 test/t_cose_test.o: test/t_cose_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h $(PUBLIC_INTERFACE)
 test/t_cose_sign_verify_test.o: test/t_cose_sign_verify_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h test/t_cose_make_test_pub_key.h $(PUBLIC_INTERFACE)
+<<<<<<< HEAD
 test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
 test/run_test.o: test/run_test.h test/t_cose_test.h test/t_cose_hash_fail_test.h test/t_cose_compute_validate_mac_test.h
 test/t_cose_make_psa_test_key.o: test/t_cose_make_test_pub_key.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/t_cose_common.h
 test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h inc/t_cose/t_cose_mac_validate.h test/t_cose_make_test_pub_key.h test/t_cose_compute_validate_mac_test.h
+=======
+test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
+test/run_test.o: test/run_test.h test/t_cose_test.h test/t_cose_hash_fail_test.h
+test/t_cose_make_psa_test_key.o: test/t_cose_make_test_pub_key.h test/t_cose_rsa_test_key.h src/t_cose_standard_constants.h inc/t_cose/t_cose_common.h
+>>>>>>> master
 
 # ---- crypto dependencies ----
 crypto_adapters/t_cose_psa_crypto.o: src/t_cose_crypto.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/q_useful_buf.h

@@ -18,6 +18,30 @@
 
 
 /**
+ // TODO: rework and reformat this (was just copied from t_cose 1)
+* This selects a signing test mode called _short_ _circuit_
+* _signing_. This mode is useful when there is no signing key
+* available, perhaps because it has not been provisioned or
+* configured for the particular device. It may also be because the
+* public key cryptographic functions have not been connected up in
+* the cryptographic adaptation layer.
+*
+* It has no value for security at all. Data signed this way MUST NOT
+* be trusted as anyone can sign like this.
+*
+* In this mode, the signature is the hash of that which would
+* normally be signed by the public key algorithm. To make the
+* signature the correct size for the particular algorithm, instances
+* of the hash are concatenated to pad it out.
+*
+* This mode is very useful for testing because all the code except
+* the actual signing algorithm is run exactly as it would if a proper
+* signing algorithm was run. This can be used for end-end system
+* testing all the way to a server or relying party, not just for
+* testing device code as t_cose_sign1_verify() supports it too.
+*/
+
+/**
  * The context to perform short-circuit signing. This is a private
  * data structure.  The user of t_cose allocates this, often on the
  * stack.

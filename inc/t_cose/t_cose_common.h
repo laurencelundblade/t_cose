@@ -15,7 +15,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "t_cose/q_useful_buf.h"
+// TODO: don't think this is needed, but it was added
+//#include "t_cose/q_useful_buf.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -174,6 +176,15 @@ extern "C" {
  * of stack. No stack will be saved if \c T_COSE_DISABLE_ES512 is not
  * also defined.
  *
+ * \c T_COSE_DISABLE_PS256 -- Disables the COSE algorithm PS256
+ * algorithm.
+ *
+ * \c T_COSE_DISABLE_PS384 -- Disables the COSE algorithm PS384
+ * algorithm.
+ *
+ * \c T_COSE_DISABLE_PS512 -- Disables the COSE algorithm PS512
+ * algorithm.
+ *
  * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type
  * parameters for both signing and verifying.
  */
@@ -186,9 +197,6 @@ extern "C" {
 #define T_COSE_2
 
 
-/* Definitions of algorithm IDs is moved to t_cose_standard_constants.h */
-
- 
 
 
 
@@ -579,6 +587,13 @@ enum t_cose_err_t {
 
     /** Something went wrong with AES Key Wrap. */
     T_COSE_ERR_AES_KW_FAILED = 63,
+    /** The signature algorithm needs an extra buffer, but none was provided.
+     * See \ref t_cose_sign1_verify_set_auxiliary_buffer for more details.
+     */
+    T_COSE_ERR_NEED_AUXILIARY_BUFFER = 64,
+
+    /** The auxiliary buffer is too small */
+    T_COSE_ERR_AUXILIARY_BUFFER_SIZE = 65,
 };
 
 
@@ -717,6 +732,7 @@ enum t_cose_err_t {
  */
 bool
 t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
+
 
 #ifdef __cplusplus
 }
