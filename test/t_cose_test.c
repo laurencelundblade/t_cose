@@ -842,7 +842,8 @@ struct test_case {
 };
 
 static struct test_case bad_parameters_tests_table[] = {
-    {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_UNSUPPORTED_HASH},
+    // TODO: document that this is different than t_cose 1.0
+    {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_NO_ALG_ID},
 
     {T_COSE_TEST_UNCLOSED_PROTECTED, T_COSE_ERR_PARAMETER_CBOR},
 

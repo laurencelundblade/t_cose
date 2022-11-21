@@ -846,6 +846,7 @@ sign_verify_unsupported_test_alg(int32_t cose_alg,
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
     Q_USEFUL_BUF_MAKE_STACK_UB(    auxiliary_buffer, 100);
+    struct q_useful_buf_c          payload;
 
     result = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
     if(result) {
@@ -864,7 +865,7 @@ sign_verify_unsupported_test_alg(int32_t cose_alg,
     t_cose_sign1_verify_init(&verify_ctx, 0);
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
     t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, auxiliary_buffer);
-    result = t_cose_sign1_verify(&verify_ctx, signed_message, NULL, NULL);
+    result = t_cose_sign1_verify(&verify_ctx, signed_message, &payload, NULL);
     if (result != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
         return_value = 2000 + (int32_t)result;
         goto Done;
@@ -910,6 +911,8 @@ int_fast32_t sign_verify_bad_auxiliary_buffer(void)
     Q_USEFUL_BUF_MAKE_STACK_UB(    small_auxiliary_buffer, 5);
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
+    struct q_useful_buf_c          payload;
+
 
     /* Only EDDSA uses the auxiliary buffer, so this test is
      * meaning less if we don't support it.
@@ -928,7 +931,7 @@ int_fast32_t sign_verify_bad_auxiliary_buffer(void)
      */
     t_cose_sign1_verify_init(&verify_ctx, 0);
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
-    result = t_cose_sign1_verify(&verify_ctx, known_good_message, NULL, NULL);
+    result = t_cose_sign1_verify(&verify_ctx, known_good_message, &payload, NULL);
     if (result != T_COSE_ERR_NEED_AUXILIARY_BUFFER) {
         return_value = 2000 + (int32_t)result;
         goto Done;
@@ -941,7 +944,7 @@ int_fast32_t sign_verify_bad_auxiliary_buffer(void)
     t_cose_sign1_verify_init(&verify_ctx, 0);
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
     t_cose_sign1_verify_set_auxiliary_buffer(&verify_ctx, small_auxiliary_buffer);
-    result = t_cose_sign1_verify(&verify_ctx, known_good_message, NULL, NULL);
+    result = t_cose_sign1_verify(&verify_ctx, known_good_message, &payload, NULL);
     if (result != T_COSE_ERR_AUXILIARY_BUFFER_SIZE) {
         return_value = 3000 + (int32_t)result;
         goto Done;

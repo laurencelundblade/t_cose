@@ -72,6 +72,8 @@ t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
     }
 
     /* -- The signature -- */
+    QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
+
     if (QCBOREncode_IsBufferNULL(qcbor_encoder)) {
         /* Size calculation mode */
         signature.ptr = NULL;
@@ -106,7 +108,6 @@ t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
          * memmove to make space for the CBOR header, but at least we avoid the need
          * to allocate an extra buffer.
          */
-        QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
 
         return_value = t_cose_crypto_sign(me->cose_algorithm_id,
                                           me->signing_key,
@@ -114,8 +115,9 @@ t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
                                           buffer_for_signature,
                                           &signature);
 
-        QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
     }
+    QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
+
 
     /* -- If a COSE_Sign, close of the COSE_Signature */
     if(make_cose_signature) {

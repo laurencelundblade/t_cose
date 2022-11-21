@@ -669,7 +669,7 @@ int32_t dynamic_buffer_example(void)
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
     printf("Initialized t_cose for decoding\n");
 
-    return_value = t_cose_sign1_verify(&verify_ctx, signed_cose, NULL, NULL);
+    return_value = t_cose_sign1_verify(&verify_ctx, signed_cose, &returned_payload, NULL);
     printf("Decode-only complete: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
         goto Done;

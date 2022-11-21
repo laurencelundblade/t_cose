@@ -199,6 +199,8 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
     }
 
     /* -- The signature -- */
+    QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
+
     if (QCBOREncode_IsBufferNULL(qcbor_encoder)) {
         /* Size calculation mode */
         signature.ptr = NULL;
@@ -233,16 +235,14 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
          */
         // TODO: does this mess up the size calculation mode?
         // Check that it is OK in master branch too
-        QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
 
         return_value = short_circuit_fake_sign(me->cose_algorithm_id,
                                                tbs_hash,
                                                buffer_for_signature,
                                               &signature);
-        QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
 
     }
-    QCBOREncode_AddBytes(qcbor_encoder, signature);
+    QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
 
 
     /* -- If a COSE_Sign, close of the COSE_Signature */
