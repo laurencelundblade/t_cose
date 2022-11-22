@@ -36,7 +36,7 @@ do:
 * Build and test every combination of `#define` for configuration (this
   is what takes a long time)
 
-* Build for use in a c++ program
+* Build for use in a C++ program
 
 * Measure and output code size
 
