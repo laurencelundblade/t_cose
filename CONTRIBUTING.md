@@ -26,7 +26,7 @@ GitHub CI is used to build and test against several crypto libraries.
 ### tdv/b.sh tests
 
 In the "tdv" repository there are some makes files and build scripts
-that do some more thorough testing.  They are too large and take to
+that do some more thorough testing.  They are too large and take too
 long to run to make them part of normal CI. Here's a few things they
 do:
 
