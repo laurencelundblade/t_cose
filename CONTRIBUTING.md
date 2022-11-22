@@ -54,8 +54,8 @@ Here's a few notes on getting PRs merged:
   related to your change. Don't adjust tabs and spaces. Don't fix
   spelling mistakes or comment formatting that is not related to the
   change. This helps reduce merge conflicts and makes review
-  easier. And if you want to beautify and such, please do, but in
-  separate PRs.
+  easier. If you want to beautify and such, please do, but in
+  separate PRs so intent is clear.
 
 * Make sure all the tests mentioned above in Tests and CI are passing
 
