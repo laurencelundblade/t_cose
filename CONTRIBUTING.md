@@ -33,7 +33,7 @@ do:
 * Build with a fairly maximal set of compiler warning flags set (e.g.,
   -Wall)
 
-* Build and test every combination if #define for configuration (this
+* Build and test every combination of `#define` for configuration (this
   is what takes a long time)
 
 * Build for use in a c++ program
