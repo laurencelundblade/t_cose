@@ -46,7 +46,7 @@ do:
 I review PRs pretty thoroughly largely because I assume I am going to
 have to provide support for them long term as I aim to make sure this
 is high-quality, tested commercial code.  No one pays me for this and
-there is no team or company behing this.
+there is no team or company behind this.
 
 Here's a few notes on getting PR's merged:
 
