@@ -6,7 +6,7 @@ new 1.x release is made from the master branch.
 
 The "dev" branch is to become t_cose 2.0 when it gets to commercial
 quality. It is to support COSE_Mac, COSE_Encrypt, multiple signers and
-such.  PRs to mainly need to not break the build and the CI.
+such.  PRs to it mainly need to not break the build and the CI.
 
 
 ## Tests and CI
