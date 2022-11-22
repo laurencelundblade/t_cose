@@ -1,6 +1,6 @@
 ## Branch strategy
 
-The master branch is maintained at commercial quality. It only support
+The master branch is maintained at commercial quality. It only supports
 COSE_Sign1. Changes against it must be very complete. Periodically a
 new 1.x release is made from the master branch.
 
