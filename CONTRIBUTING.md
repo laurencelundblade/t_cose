@@ -60,7 +60,7 @@ Here's a few notes on getting PRs merged:
 * Make sure all the tests mentioned above in Tests and CI are passing
 
 * Target the right branch. It is fairly easy to change the target
-  branch of a PR in github.
+  branch of a PR in GitHub.
 
 
 
