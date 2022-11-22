@@ -48,7 +48,7 @@ have to provide support for them long term as I aim to make sure this
 is high-quality, tested commercial code.  No one pays me for this and
 there is no team or company behind this.
 
-Here's a few notes on getting PR's merged:
+Here's a few notes on getting PRs merged:
 
 * Only change what you need to. Don't beautify code that is not
   related to your change. Don't adjust tabs and spaces. Don't fix
