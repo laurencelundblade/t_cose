@@ -16,7 +16,7 @@ will be merged.
 
 ### Basic tests
 
-Running the standard make will produce t_cose_test for a particular
+Running the standard make will produce `t_cose_test` for a particular
 crypto library. It runs a thorough set of tests.
 
 ### CI tests
