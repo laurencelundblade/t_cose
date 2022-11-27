@@ -22,7 +22,7 @@ static void
 t_cose_eddsa_headers(struct t_cose_signature_sign   *me_x,
                      struct t_cose_parameter       **params)
 {
-    // TODO: this is the same as the general signer (formerly the ecdsa signer) reuse?
+    // TODO: this is the same as the main signer (formerly the ecdsa signer) reuse?
     struct t_cose_signature_sign_eddsa *me =
                                     (struct t_cose_signature_sign_eddsa *)me_x;
 

@@ -594,6 +594,8 @@ enum t_cose_err_t {
 
     /** The auxiliary buffer is too small */
     T_COSE_ERR_AUXILIARY_BUFFER_SIZE = 65,
+
+    T_COSE_ERR_NO_VERIFIERS = 66,
 };
 
 

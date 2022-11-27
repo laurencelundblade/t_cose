@@ -942,7 +942,7 @@ static inline int32_t t_cose_hmac_to_hash_alg_id(int32_t cose_hamc_alg_id)
  *         The random number generator failed to return the requested
  *         number of bytes.
  */
-
+//  TODO: just make it fill the buffer and get rid of number?
 enum t_cose_err_t
 t_cose_crypto_get_random(struct q_useful_buf    buffer,
                          size_t                 number,

@@ -810,6 +810,9 @@ int_fast32_t sign_verify_known_good_test(void)
     const struct test_case* tc;
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
+            if((1 + tc - test_cases) == 7) {
+                return_value = 9;
+            }
             return_value = known_good_test(tc->cose_algorithm_id,
                                            tc->known_good_message);
             if (return_value) {

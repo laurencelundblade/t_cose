@@ -25,6 +25,7 @@
  */
 static enum t_cose_err_t
 t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
+                               const bool                      run_crypto,
                                const struct q_useful_buf_c     protected_body_headers,
                                const struct q_useful_buf_c     protected_signature_headers,
                                const struct q_useful_buf_c     payload,
@@ -46,6 +47,18 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
         return_value = T_COSE_ERR_NO_ALG_ID;
         goto Done;
     }
+
+    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id) &&
+       !t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
+    if(!run_crypto) {
+        /* It's mainly EdDSA, not this, that runs when only decoding */
+        return T_COSE_SUCCESS;
+    }
+
     kid = t_cose_find_parameter_kid(parameter_list);
 
     /* --- Compute the hash of the to-be-signed bytes -- */
@@ -125,11 +138,8 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
     /* --- Done decoding the COSE_Signature --- */
 
 
-    if(!run_crypto) {
-        goto Done;
-    }
-
     return_value = t_cose_signature_verify1_ecdsa(me_x,
+                                                  run_crypto,
                                                   protected_body_headers,
                                                   protected_parameters,
                                                   payload,

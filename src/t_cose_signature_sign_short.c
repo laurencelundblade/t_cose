@@ -26,7 +26,7 @@ static const uint8_t defined_short_circuit_kid[] = {
 static struct q_useful_buf_c short_circuit_kid;
 
 /*
- * Public function.
+ * Public function (well maybe...)
  */
 struct q_useful_buf_c
 t_cose_get_short_circuit_kid_l(void)
@@ -45,10 +45,11 @@ static inline enum t_cose_err_t
 short_circuit_sig_size(int32_t cose_algorithm_id,
                        size_t *sig_size)
 {
+    /* sizes are 2x to simulate an ECDSA signature */
     *sig_size =
-        cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
-        cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
-        cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
+        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? 2 * 256/8 :
+        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? 2 * 384/8 :
+        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? 2 * 512/8 :
         0;
 
     return *sig_size == 0 ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG : T_COSE_SUCCESS;
@@ -220,8 +221,8 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
         return_value = create_tbs_hash(me->cose_algorithm_id,
                                        protected_body_headers,
                                        signer_protected_headers,
-                                       signed_payload,
                                        aad,
+                                       signed_payload,
                                        buffer_for_tbs_hash,
                                        &tbs_hash);
         if(return_value) {

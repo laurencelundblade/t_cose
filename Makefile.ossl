@@ -43,7 +43,7 @@ QCBOR_LIB=-lqcbor
 CRYPTO_LIB=-l crypto
 CRYPTO_INC=-I /usr/local/include
 
-CRYPTO_CONFIG_OPTS=-DT_COSE_USE_OPENSSL_CRYPTO
+CRYPTO_CONFIG_OPTS=-DT_COSE_USE_OPENSSL_CRYPTO 
 CRYPTO_OBJ=crypto_adapters/t_cose_openssl_crypto.o
 CRYPTO_TEST_OBJ=test/t_cose_make_openssl_test_key.o
 
@@ -54,7 +54,7 @@ C_OPTS=-Os -fPIC
 
 
 # ---- T_COSE Config and test options ----
-TEST_CONFIG_OPTS=-DT_COSE_DISABLE_MAC0
+TEST_CONFIG_OPTS=-DT_COSE_DISABLE_MAC0 -DT_COSE_DISABLE_HPKE
 TEST_OBJ=test/t_cose_test.o \
     test/run_tests.o \
     test/t_cose_sign_verify_test.o \
@@ -69,7 +69,6 @@ INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC) 
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
-<<<<<<< HEAD
 SRC_OBJ=src/t_cose_util.o \
         src/t_cose_sign1_verify.o \
         src/t_cose_sign1_sign.o \
@@ -78,13 +77,12 @@ SRC_OBJ=src/t_cose_util.o \
 	src/t_cose_signature_sign_short.o \
 	src/t_cose_signature_verify_short.o \
 	src/t_cose_signature_sign_ecdsa.o \
+	src/t_cose_signature_sign_eddsa.o \
         src/t_cose_sign_verify.o \
 	src/t_cose_signature_verify_ecdsa.o \
+	src/t_cose_signature_verify_eddsa.o \
 	src/t_cose_mac_compute.o \
 	src/t_cose_mac_validate.o
-=======
-SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o src/t_cose_short_circuit.o
->>>>>>> master
 
 .PHONY: all install install_headers install_so uninstall clean
 
@@ -143,7 +141,6 @@ clean:
 PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_parameters.h inc/t_cose/t_cose_standard_constants.h
 
 # ---- source dependecies -----
-<<<<<<< HEAD
 src/t_cose_util.o: src/t_cose_util.c \
                    src/t_cose_util.h \
                    inc/t_cose/q_useful_buf.h \
@@ -228,28 +225,15 @@ src/t_cose_mac_validate.o: inc/t_cose/t_cose_mac_validate.h \
 	src/t_cose_util.h \
 	inc/t_cose/t_cose_parameters.h \
 	inc/t_cose/t_cose_common.h
-=======
-src/t_cose_util.o: src/t_cose_util.h src/t_cose_standard_constants.h inc/t_cose/t_cose_common.h src/t_cose_crypto.h
-src/t_cose_sign1_verify.o: inc/t_cose/t_cose_sign1_verify.h src/t_cose_crypto.h src/t_cose_util.h src/t_cose_parameters.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h src/t_cose_short_circuit.h
-src/t_cose_parameters.o: src/t_cose_parameters.h src/t_cose_standard_constants.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_common.h
-src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h src/t_cose_short_circuit.h
-src/t_cose_short_circuit.o: src/t_cose_short_circuit.h src/t_cose_standard_constants.h src/t_cose_crypto.h
->>>>>>> master
 
 
 # ---- test dependencies -----
 test/t_cose_test.o: test/t_cose_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h $(PUBLIC_INTERFACE)
 test/t_cose_sign_verify_test.o: test/t_cose_sign_verify_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h test/t_cose_make_test_pub_key.h $(PUBLIC_INTERFACE)
-<<<<<<< HEAD
 test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
 test/run_test.o: test/run_test.h test/t_cose_test.h test/t_cose_hash_fail_test.h test/t_cose_compute_validate_mac_test.h
 test/t_cose_make_openssl_test_key.o: test/t_cose_make_test_pub_key.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/t_cose_common.h
 test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h inc/t_cose/t_cose_mac_validate.h test/t_cose_make_test_pub_key.h test/t_cose_compute_validate_mac_test.h
-=======
-test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
-test/run_test.o: test/run_test.h test/t_cose_test.h test/t_cose_hash_fail_test.h
-test/t_cose_make_openssl_test_key.o: test/t_cose_make_test_pub_key.h test/t_cose_rsa_test_key.h src/t_cose_standard_constants.h inc/t_cose/t_cose_common.h
->>>>>>> master
 
 # ---- crypto dependencies ----
 crypto_adapters/t_cose_openssl_crypto.o: src/t_cose_crypto.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/q_useful_buf.h

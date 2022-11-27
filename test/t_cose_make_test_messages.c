@@ -61,10 +61,10 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     size_t            amount_to_copy;
     size_t            sig_size;
 
-    sig_size = cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
-               cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
-               cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
-                                                           0;
+    sig_size = cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? 2*256/8 :
+               cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? 2*384/8 :
+               cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? 2*512/8 :
+                                                                         0;
 
     /* Check the signature length against buffer size*/
     if(sig_size == 0) {
@@ -467,7 +467,7 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
     /* The Unprotected parameters */
     /* Get the key id because it goes into the parameters that are about
      to be made. */
-    if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
+    if(t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         kid = get_short_circuit_kid();
 #else
@@ -572,7 +572,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      * public key operation and requires no key. It is just a test
      * mode that always works.
      */
-    if(!(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG)) {
+    if(!t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
         /* Normal, non-short-circuit signing */
         return_value = t_cose_crypto_sign(me->cose_algorithm_id,
                                           me->signing_key,

@@ -41,7 +41,7 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
 
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    if(option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
+    if(t_cose_algorithm_is_short_circuit(cose_algorithm_id)) {
         t_cose_signature_sign_short_init(&(me->signer.short_circuit),
                                          cose_algorithm_id);
 
@@ -72,8 +72,7 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
                              struct q_useful_buf_c         kid)
 {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
-
+    if(t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
         me->kid = kid; // TODO: is this needed?
         // tell the short circuit signer to put this kid in.
         me->signer.short_circuit.kid = kid; // TODO: fix layering violation?

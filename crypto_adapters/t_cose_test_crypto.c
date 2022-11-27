@@ -69,22 +69,6 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 int hash_test_mode = 0;
 #endif
 
-/*
- * See documentation in t_cose_crypto.h
- *
- * This will typically not be referenced and thus not linked,
- * for deployed code. This is mainly used for test.
- */
-bool
-t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
-{
-    static const int32_t supported_algs[] = {
-        COSE_ALGORITHM_SHA_256,
-        0 /* List terminator */
-    };
-
-    return t_cose_check_list(cose_algorithm_id, supported_algs);
-}
 
 
 /*
@@ -296,5 +280,25 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
     (void)signature;
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
+
+
+enum t_cose_err_t
+t_cose_crypto_get_random(struct q_useful_buf    buffer,
+                         size_t                 number,
+                         struct q_useful_buf_c *random)
+{
+    if (number > buffer.len) {
+        return(T_COSE_ERR_TOO_SMALL);
+    }
+
+    /* In test mode this just fills a buffer with 'x' */
+    memset(buffer.ptr, 'x', number);
+
+    random->ptr = buffer.ptr;
+    random->len = number;
+
+    return T_COSE_SUCCESS;
+}
+
 
 #endif /* T_COSE_DISABLE_EDDSA */

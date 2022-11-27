@@ -106,8 +106,8 @@ typedef enum t_cose_err_t
 t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
                                bool                        make_cose_signature,
                                const struct q_useful_buf_c   protected_body_headers,
-                               const struct q_useful_buf_c   payload,
                                const struct q_useful_buf_c   aad,
+                               const struct q_useful_buf_c   payload,
                                QCBOREncodeContext           *qcbor_encoder);
 
 

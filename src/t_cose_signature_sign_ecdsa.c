@@ -95,8 +95,8 @@ t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
         return_value = create_tbs_hash(me->cose_algorithm_id,
                                        protected_body_headers,
                                        signer_protected_headers,
-                                       signed_payload,
                                        aad,
+                                       signed_payload,
                                        buffer_for_tbs_hash,
                                        &tbs_hash);
         if(return_value) {

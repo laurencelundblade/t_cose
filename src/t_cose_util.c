@@ -15,6 +15,10 @@
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+#include "t_cose/t_cose_signature_sign_short.h"
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+
 
 /**
  * \file t_cose_util.c
@@ -97,7 +101,12 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
            cose_algorithm_id == T_COSE_ALGORITHM_PS512 ? T_COSE_ALGORITHM_SHA_512 :
 #endif
-                                                       T_COSE_INVALID_ALGORITHM_ID;
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? T_COSE_ALGORITHM_SHA_256 :
+           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? T_COSE_ALGORITHM_SHA_384 :
+           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? T_COSE_ALGORITHM_SHA_512 :
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+                                                         T_COSE_INVALID_ALGORITHM_ID;
 }
 
 #ifndef T_COSE_DISABLE_MAC0

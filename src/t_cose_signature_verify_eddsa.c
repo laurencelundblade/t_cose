@@ -26,6 +26,7 @@
  */
 static enum t_cose_err_t
 t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
+                               const bool                      run_crypto,
                                const struct q_useful_buf_c     protected_body_headers,
                                const struct q_useful_buf_c     protected_signature_headers,
                                const struct q_useful_buf_c     payload,
@@ -46,6 +47,11 @@ t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
         return_value = T_COSE_ERR_NO_ALG_ID;
         goto Done;
     }
+    if(cose_algorithm_id != T_COSE_ALGORITHM_EDDSA) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
     kid = t_cose_find_parameter_kid(parameter_list);
 
     /* We need to serialize the Sig_structure (rather than hashing it
@@ -75,7 +81,7 @@ t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
      */
     me->auxiliary_buffer_size = tbs.len;
 
-    if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
+    if(!run_crypto) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
@@ -148,12 +154,8 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify     *me_x,
     }
     /* --- Done decoding the COSE_Signature --- */
 
-
-    if(!run_crypto) {
-        goto Done;
-    }
-
     return_value = t_cose_signature_verify1_eddsa(me_x,
+                                                  run_crypto,
                                                   protected_body_headers,
                                                   protected_parameters,
                                                   payload,
@@ -173,4 +175,9 @@ t_cose_signature_verify_eddsa_init(struct t_cose_signature_verify_eddsa *me,
     me->s.callback   = t_cose_signature_verify_eddsa_cb;
     me->s.callback1  = t_cose_signature_verify1_eddsa;
     me->option_flags = option_flags;
+
+    /* Start with large (but NULL) auxiliary buffer.
+     * The Sig_Structure data will be serialized here.
+     */
+    me->auxiliary_buffer.len = SIZE_MAX;
 }

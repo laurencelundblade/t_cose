@@ -171,8 +171,8 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
                 signer,  /* context for signer with alg ID and signing keys */
                 true,    /* Output a full COSE_Signature, not signature bytes */
                 me->protected_parameters, /* Parameters covered by the sig */
-                signed_payload, /* Payload covered by the signature */
                 aad,            /* Additional Authenticated data (if any) covered by sig */
+                signed_payload, /* Payload covered by the signature */
                 cbor_encode_ctx /* Encoder context to output to */
             );
             if(return_value != T_COSE_SUCCESS) {
@@ -192,8 +192,8 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
             signer,    /* context for signer with alg ID and signing keys */
             false,     /* Output signature bytes; don't make a COSE_Sgnature */
             me->protected_parameters, /* Parameters covered by the signature */
-            signed_payload, /* Payload covered by the signature */
             aad,            /* Additional Authenticated data (if any) covered by sig */
+            signed_payload, /* Payload covered by the signature */
             cbor_encode_ctx /* Encoder context to output to */
         );
     }

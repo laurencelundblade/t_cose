@@ -61,6 +61,7 @@ Done:
 
 static enum t_cose_err_t
 t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
+                               const bool                      run_crypto,
                                const struct q_useful_buf_c     protected_body_headers,
                                const struct q_useful_buf_c     protected_signature_headers,
                                const struct q_useful_buf_c     payload,
@@ -78,7 +79,9 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
 
     /* --- Get the parameters values needed here --- */
     cose_algorithm_id = t_cose_find_parameter_alg_id(body_parameters);
-    // TODO: error check
+    if(!t_cose_algorithm_is_short_circuit(cose_algorithm_id)) {
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
 
     kid = t_cose_find_parameter_kid(body_parameters);
 
@@ -86,6 +89,10 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
     if(q_useful_buf_compare(kid, get_short_circuit_kid())) {
         return_value = T_COSE_ERR_KID_UNMATCHED;
         goto Done;
+    }
+
+    if(!run_crypto) {
+        return T_COSE_SUCCESS;
     }
 
     /* --- Compute the hash of the to-be-signed bytes -- */
@@ -160,11 +167,8 @@ t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
     /* --- Done decoding the COSE_Signature --- */
 
 
-    if(!run_crypto) {
-        goto Done;
-    }
-
     return_value = t_cose_signature_verify1_short(me_x,
+                                                  run_crypto,
                                                   protected_body_headers,
                                                   protected_parameters,
                                                   payload,
