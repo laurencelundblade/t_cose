@@ -323,6 +323,13 @@ add_unprotected_parameters(uint32_t              test_message_options,
         QCBOREncode_CloseArray(cbor_encode_ctx);
     }
 
+    if(test_message_options & T_COSE_TEST_KID_IN_PROTECTED) {
+        /* Duplicate here to be sure there is a dup parameter. */
+        QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
+                                   T_COSE_HEADER_PARAM_KID,
+                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("kid"));
+    }
+
 
     if(test_message_options & T_COSE_TEST_NOT_WELL_FORMED_2) {
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, 55);
@@ -467,15 +474,8 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
     /* The Unprotected parameters */
     /* Get the key id because it goes into the parameters that are about
      to be made. */
-    if(t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        kid = get_short_circuit_kid();
-#else
-        return T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
-#endif
-    } else {
+
         kid = me->kid;
-    }
 
     if( ! (test_mess_options & T_COSE_TEST_NO_UNPROTECTED_PARAMETERS)) {
         add_unprotected_parameters(test_mess_options, cbor_encode_ctx, kid);
@@ -572,21 +572,21 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      * public key operation and requires no key. It is just a test
      * mode that always works.
      */
-    if(!t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
+  //  if(!t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
         /* Normal, non-short-circuit signing */
         return_value = t_cose_crypto_sign(me->cose_algorithm_id,
                                           me->signing_key,
                                           tbs_hash,
                                           buffer_for_signature,
                                          &signature);
-    } else {
+  //  } else {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        return_value = short_circuit_sign(me->cose_algorithm_id,
-                                          tbs_hash,
-                                          buffer_for_signature,
-                                          &signature);
+   //     return_value = short_circuit_sign(me->cose_algorithm_id,
+     //                                     tbs_hash,
+       //                                   buffer_for_signature,
+         //                                 &signature);
 #endif
-    }
+    //}
 
     if(return_value) {
         goto Done;

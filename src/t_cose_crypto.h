@@ -845,7 +845,7 @@ t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id);
 static inline bool
 t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list)
 {
-    while(*list) {
+    while(*list != T_COSE_ALGORITHM_NONE) {
         if(*list == cose_algorithm_id) {
             return true;
         }
@@ -867,7 +867,7 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_ES512
         T_COSE_ALGORITHM_ES512,
 #endif
-        0}; /* 0 is a reserved COSE alg ID and will never be used */
+        T_COSE_ALGORITHM_NONE}; /* 0 is a reserved COSE alg ID and will never be used */
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
@@ -887,9 +887,22 @@ t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
         T_COSE_ALGORITHM_PS512,
 #endif
-        0}; /* 0 is a reserved COSE alg ID and will never be used */
+        T_COSE_ALGORITHM_NONE}; /* 0 is a reserved COSE alg ID and will never be used */
 
     return t_cose_check_list(cose_algorithm_id, rsa_list);
+}
+
+static inline bool
+t_cose_algorithm_is_short_circuit(int32_t cose_algorithm_id)
+{
+    /* The simple list of COSE alg IDs that use ECDSA */
+    static const int32_t ecdsa_list[] = {
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
+        T_COSE_ALGORITHM_NONE};
+
+    return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
 
 

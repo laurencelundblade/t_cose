@@ -23,8 +23,8 @@ struct t_cose_signature_sign_ecdsa {
     /* Private data structure */
 
     /* t_cose_signer must be the first item for the polymorphism to
-     * work.  This structure, t_cose_ecdsa_signer, will sometimes be
-     * uses as a t_cose_signer.
+     * work.  This structure, t_cose_signature_sign_ecdsa, will sometimes be
+     * uses as a t_cose_signature_sign.
      */
     struct t_cose_signature_sign s;
 

@@ -45,8 +45,7 @@ struct t_cose_signature_verify;
  *                                    instance. This  will actully be some thing like
  *                                    t_cose_signature_verify_ecdsa that inplements
  *                                    t_cose_signature_verify.
- * \param[in] run_crypto              If true, do the full sig verification. If not
- *                                    just decode parameters.
+ * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
  * \param[in] loc                     The location of the signature inside the COSE_Sign.
  * \param[in] protected_body_headers  Body headers from COSE_Signature to verify
  * \param[in] payload                 The payload to verify (regular or detached)
@@ -58,7 +57,7 @@ struct t_cose_signature_verify;
  */
 typedef enum t_cose_err_t
 t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
-                                 bool                              run_crypto,
+                                 uint32_t                          option_flags,
                                  const struct t_cose_header_location loc,
                                  const struct q_useful_buf_c       protected_body_headers,
                                  const struct q_useful_buf_c       payload,
@@ -75,7 +74,7 @@ t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
  *                                     instance. This  will actully be some thing like
  *                                     t_cose_signature_verify_ecdsa that inplements
  *                                     t_cose_signature_verify.
- * \param[in] run_crypto      If true, the crypto is run, otherwise decode only.
+ * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
  * \param[in] protected_body_headers   Encoded body headers from COSE_Signature to verify
  * \param[in] protected_signature_headers Headers from COSE_Signature.
  * \param[in] payload                  The payload to verify (regular or detached)
@@ -90,9 +89,7 @@ t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
  */
 typedef enum t_cose_err_t
 t_cose_signature_verify1_callback(struct t_cose_signature_verify *me,
-                                  bool                            run_crypto,
-                                  // TODO: invert this to be more understandable?
-                                  // TODO: just pass the whole options instead?
+                                  uint32_t                        option_flags,
                                   const struct q_useful_buf_c     protected_body_headers,
                                   const struct q_useful_buf_c     protected_signature_headers,
                                   const struct q_useful_buf_c     payload,

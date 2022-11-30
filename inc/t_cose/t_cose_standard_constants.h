@@ -383,6 +383,14 @@
 
 
 
+/* Randomly chosen algorithm IDs from the private use space.
+* TODO: fill out this documentation
+ */
+#define T_COSE_ALGORITHM_SHORT_CIRCUIT_256 -1000256
+#define T_COSE_ALGORITHM_SHORT_CIRCUIT_384 -1000384
+#define T_COSE_ALGORITHM_SHORT_CIRCUIT_512 -1000512
+
+
 #define T_COSE_ALGORITHM_NONE 0
 
 

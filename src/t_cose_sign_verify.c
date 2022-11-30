@@ -234,7 +234,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
              * will compute the tbs value and call the crypto.
              */
             verify_error = verifier->callback1(verifier,
-                 !(me->option_flags & T_COSE_OPT_DECODE_ONLY),
+                 me->option_flags,
                  protected_parameters, /* Protected body params cover by sig */
                  NULL_Q_USEFUL_BUF_C,  /* Protected COSE_Signature params covered by sig */
                 *payload, /* inline or detached payload covered by the sig */
@@ -262,7 +262,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         /* Nesting level is 1, index starts at 0 and gets incremented */
         header_location = (struct t_cose_header_location){.nesting = 1,
                                                           .index   = 0 };
-        bool decode_only = me->option_flags & T_COSE_OPT_DECODE_ONLY;
         while(1) { /* loop over COSE_Signatures */
             header_location.index++;
 
@@ -275,7 +274,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                 /* This call decodes one array entry containing a
                  * COSE_Signature. */
                 return_value = verifier->callback(verifier,
-                                                  !decode_only,
+                                                  me->option_flags,
                                                   header_location,
                                                   protected_parameters,
                                                  *payload,

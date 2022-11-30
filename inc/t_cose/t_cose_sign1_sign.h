@@ -101,7 +101,7 @@ struct t_cose_sign1_sign_ctx {
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key; // Used by make_test_message
     uint32_t              option_flags;
-    struct q_useful_buf_c kid;
+    struct q_useful_buf_c kid; // Used by make_test_message
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t              content_type_uint;
     const char *          content_type_tstr;

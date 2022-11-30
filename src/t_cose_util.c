@@ -15,9 +15,6 @@
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-#include "t_cose/t_cose_signature_sign_short.h"
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
 /**

@@ -71,6 +71,8 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
                              struct t_cose_key             signing_key,
                              struct q_useful_buf_c         kid)
 {
+    me->signing_key = signing_key; /* Used my make test message */
+    me->kid = kid;
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     if(t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
         me->kid = kid; // TODO: is this needed?

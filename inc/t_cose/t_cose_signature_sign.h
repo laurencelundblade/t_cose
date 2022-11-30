@@ -26,12 +26,17 @@
  * that it needs to work like those for initialization and
  * setting the key.
  *
- * Typically a signer will support one suite of algorithms,
- * but there is no requirement that this be so. It is OK
- * for a signer to implement several algorithms. The reason
+ * The reason
  * signers are abstracted out as they are here is in anticipation
  * of more complicated signers that support things like counter
  * signing, post-quantum signatures and certificate hierarchies.
+ * A signer may support only one signing algorithm, but that is
+ * not required. For examples the "main" signer supports basic
+ * ECDSA and RSA because they are very similar. The EdDSA signer
+ * is separate because it doesn't involve a hash. Counter signature
+ * are too complicated to support with custom parameters so
+ * they should implement a signer (need to validate the
+ * interface will work for them).
  *
  * t_cose_signer_callback is the type of a function that every
  * signer must implement. It takes as input the context
@@ -49,6 +54,16 @@
  * simple design that allows outputting a COSE_Sign that has multiple
  * signings by multiple aglorithms, for example an ECDSA signature and
  * an HSS/LMS signature.
+ *
+ * Because this design is based on dynamic linking there it gives
+ * some help dealing with code size and dependency on crypto libraries.
+ * If you don't call the init function for a signer or verifier
+ * it won't be linked and it was done with no #define. You can
+ * just leave out the source files for signers/verifiers you don't
+ * want and all will compile and link nicely without having to
+ * managed a #define. (This doesn't work to elimiate RSA if you use only ECDSA
+ * though because  they both go through the same layer
+ * in the crypto adaptation layer. It does work for EdDSA).
  *
  * What's really going on here is a bit of doing object orientation
  * implementned in C. This is an abstract base class, an object that
@@ -81,9 +96,7 @@ struct t_cose_signature_sign;
  *                                   instance. This will actuzlly be some
  *                                   thing like t_cose_signature_sign_ecdsa
  *                                   that inplements t_cose_signature_sign
- * \Param[in] make_cose_signature    If true output a full COSE_Signature. If
- *                                   false output the bare signature for a
- *                                   COSE_Sign1.
+ * \Param[in] option_flags    Option flags from t_cose_sign_verify_init(). Primarily to check whether to make a COSE_Sign or COSE_Sign1.
  * \param[in] protected_body_headers The COSE_Sign body headers covered by the
  *                                   signature
  * \param[in] payload                The payload (regular or detached) that
@@ -104,7 +117,7 @@ struct t_cose_signature_sign;
  */
 typedef enum t_cose_err_t
 t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
-                               bool                        make_cose_signature,
+                               uint32_t                      option_flags,
                                const struct q_useful_buf_c   protected_body_headers,
                                const struct q_useful_buf_c   aad,
                                const struct q_useful_buf_c   payload,

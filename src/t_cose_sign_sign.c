@@ -169,7 +169,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         while(signer != NULL) {
             return_value = signer->callback(
                 signer,  /* context for signer with alg ID and signing keys */
-                true,    /* Output a full COSE_Signature, not signature bytes */
+                me->option_flags, /* So callback knows COSE_Sign vs Sign1 */
                 me->protected_parameters, /* Parameters covered by the sig */
                 aad,            /* Additional Authenticated data (if any) covered by sig */
                 signed_payload, /* Payload covered by the signature */
@@ -190,7 +190,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
          */
         return_value = signer->callback(
             signer,    /* context for signer with alg ID and signing keys */
-            false,     /* Output signature bytes; don't make a COSE_Sgnature */
+            me->option_flags, /* So callback knows COSE_Sign vs Sign1 */
             me->protected_parameters, /* Parameters covered by the signature */
             aad,            /* Additional Authenticated data (if any) covered by sig */
             signed_payload, /* Payload covered by the signature */

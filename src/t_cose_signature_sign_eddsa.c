@@ -41,7 +41,7 @@ t_cose_eddsa_headers(struct t_cose_signature_sign   *me_x,
  * t_cose_eddsa_signer_init().  */
 static enum t_cose_err_t
 t_cose_eddsa_sign(struct t_cose_signature_sign  *me_x,
-                  bool                           make_cose_signature,
+                  uint32_t                       options,
                   const struct q_useful_buf_c    protected_body_headers,
                   const struct q_useful_buf_c    aad,
                   const struct q_useful_buf_c    signed_payload,
@@ -59,7 +59,7 @@ t_cose_eddsa_sign(struct t_cose_signature_sign  *me_x,
 
     /* -- The headers if if is a COSE_Sign -- */
     signer_protected_headers = NULLUsefulBufC;
-    if(make_cose_signature) {
+    if(T_COSE_OPT_IS_SIGN(options)) {
         /* COSE_Sign, so making a COSE_Signature  */
         QCBOREncode_OpenArray(qcbor_encoder);
 
@@ -123,7 +123,7 @@ t_cose_eddsa_sign(struct t_cose_signature_sign  *me_x,
 
 
     /* -- If a COSE_Sign, close of the COSE_Signature */
-    if(make_cose_signature) {
+    if(T_COSE_OPT_IS_SIGN(options)) {
         QCBOREncode_CloseArray(qcbor_encoder);
     }
     // TODO: lots of error handling

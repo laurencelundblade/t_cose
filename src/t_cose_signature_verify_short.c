@@ -21,47 +21,13 @@
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 
-/**
- * \brief Verify a short-circuit signature
- *
- * \param[in] hash_to_verify  Pointer and length of hash to verify.
- * \param[in] signature       Pointer and length of signature.
- *
- * \return This returns one of the error codes defined by \ref
- *         t_cose_err_t.
- *
- * See t_cose_sign1_sign_init() for description of the short-circuit
- * signature.
- */
-static inline enum t_cose_err_t
-t_cose_crypto_short_circuit_verify(struct q_useful_buf_c hash_to_verify,
-                                   struct q_useful_buf_c signature)
-{
-    struct q_useful_buf_c hash_from_sig;
-    enum t_cose_err_t     return_value;
-
-    hash_from_sig = q_useful_buf_head(signature, hash_to_verify.len);
-    if(q_useful_buf_c_is_null(hash_from_sig)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-        goto Done;
-    }
-
-    if(q_useful_buf_compare(hash_from_sig, hash_to_verify)) {
-        return_value = T_COSE_ERR_SIG_VERIFY;
-    } else {
-        return_value = T_COSE_SUCCESS;
-    }
-
-Done:
-    return return_value;
-}
 
 /* Warning: this is still early development. Documentation may be incorrect. */
 
 
 static enum t_cose_err_t
 t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
-                               const bool                      run_crypto,
+                               const uint32_t                  option_flags,
                                const struct q_useful_buf_c     protected_body_headers,
                                const struct q_useful_buf_c     protected_signature_headers,
                                const struct q_useful_buf_c     payload,
@@ -74,8 +40,12 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
     struct q_useful_buf_c       kid;
     Q_USEFUL_BUF_MAKE_STACK_UB( buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c       tbs_hash;
+    struct t_cose_key           dummy_key;
 
     (void)me_x;
+
+    dummy_key = T_COSE_NULL_KEY;
+
 
     /* --- Get the parameters values needed here --- */
     cose_algorithm_id = t_cose_find_parameter_alg_id(body_parameters);
@@ -91,7 +61,7 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
         goto Done;
     }
 
-    if(!run_crypto) {
+    if(option_flags & T_COSE_OPT_DECODE_ONLY) {
         return T_COSE_SUCCESS;
     }
 
@@ -108,7 +78,11 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
     }
 
     /* -- Verify the signature -- */
-    return_value = t_cose_crypto_short_circuit_verify(tbs_hash, signature);
+    return_value = t_cose_crypto_verify(cose_algorithm_id,
+                                        dummy_key,
+                                        kid,
+                                        tbs_hash,
+                                        signature);
 Done:
     return return_value;
 }
@@ -124,7 +98,7 @@ Done:
  */
 static enum t_cose_err_t
 t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
-                              const bool                        run_crypto,
+                              const uint32_t                  option_flags,
                               const struct t_cose_header_location      loc,
                               const struct q_useful_buf_c       protected_body_headers,
                               const struct q_useful_buf_c       payload,
@@ -168,7 +142,7 @@ t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
 
 
     return_value = t_cose_signature_verify1_short(me_x,
-                                                  run_crypto,
+                                                  option_flags,
                                                   protected_body_headers,
                                                   protected_parameters,
                                                   payload,

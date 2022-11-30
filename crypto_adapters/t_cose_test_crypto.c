@@ -13,6 +13,7 @@
 
 
 #include "t_cose_crypto.h"
+#include "t_cose/t_cose_standard_constants.h"
 
 
 /*
@@ -31,16 +32,19 @@
 
 
 /*
-* See documentation in t_cose_crypto.h
-*
-* This will typically not be referenced and thus not linked,
-* for deployed code. This is mainly used for test.
-*/
+ * See documentation in t_cose_crypto.h
+ *
+ * This will typically not be referenced and thus not linked,
+ * for deployed code. This is mainly used for test.
+ */
 bool
 t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 {
     static const int32_t supported_algs[] = {
         T_COSE_ALGORITHM_SHA_256,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
@@ -74,16 +78,21 @@ int hash_test_mode = 0;
 /*
  * See documentation in t_cose_crypto.h
  */
-enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
-                                         struct t_cose_key signing_key,
-                                         size_t           *sig_size)
+enum t_cose_err_t
+t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
+                       struct t_cose_key signing_key,
+                       size_t           *sig_size)
 {
-    (void)cose_algorithm_id;
     (void)signing_key;
 
-    *sig_size = T_COSE_MAX_ECDSA_SIG_SIZE;
+    /* sizes are 2x to simulate an ECDSA signature */
+    *sig_size =
+        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? 2 * 256/8 :
+        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? 2 * 384/8 :
+        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? 2 * 512/8 :
+        0;
 
-    return T_COSE_SUCCESS;
+    return *sig_size == 0 ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG : T_COSE_SUCCESS;
 }
 
 
@@ -97,12 +106,39 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature)
 {
-    (void)cose_algorithm_id;
-    (void)signing_key;
-    (void)hash_to_sign;
-    (void)signature_buffer;
-    (void)signature;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    enum t_cose_err_t return_value;
+    size_t            array_indx;
+    size_t            amount_to_copy;
+    size_t            sig_size;
+
+    return_value = t_cose_crypto_sig_size(cose_algorithm_id, signing_key, &sig_size);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* Check the signature length against buffer size */
+    if(sig_size > signature_buffer.len) {
+        /* Buffer too small for this signature type */
+        return_value = T_COSE_ERR_SIG_BUFFER_SIZE;
+        goto Done;
+    }
+
+    /* Loop concatening copies of the hash to fill out to signature size */
+    for(array_indx = 0; array_indx < sig_size; array_indx += hash_to_sign.len) {
+        amount_to_copy = sig_size - array_indx;
+        if(amount_to_copy > hash_to_sign.len) {
+            amount_to_copy = hash_to_sign.len;
+        }
+        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
+               hash_to_sign.ptr,
+               amount_to_copy);
+    }
+    signature->ptr = signature_buffer.ptr;
+    signature->len = sig_size;
+    return_value   = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
 }
 
 
@@ -116,26 +152,29 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
                      struct q_useful_buf_c  hash_to_verify,
                      struct q_useful_buf_c  signature)
 {
-    (void)cose_algorithm_id;
-    (void)verification_key;
-    (void)kid;
-    (void)hash_to_verify;
-    (void)signature;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    struct q_useful_buf_c hash_from_sig;
+    enum t_cose_err_t     return_value;
+
+    if(!t_cose_algorithm_is_short_circuit(cose_algorithm_id)) {
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
+
+    hash_from_sig = q_useful_buf_head(signature, hash_to_verify.len);
+    if(q_useful_buf_c_is_null(hash_from_sig)) {
+        return_value = T_COSE_ERR_SIG_VERIFY;
+        goto Done;
+    }
+
+    if(q_useful_buf_compare(hash_from_sig, hash_to_verify)) {
+        return_value = T_COSE_ERR_SIG_VERIFY;
+    } else {
+        return_value = T_COSE_SUCCESS;
+    }
+
+Done:
+    return return_value;
 }
 
-
-/*
- * Public function, see t_cose_make_test_pub_key.h
- */
-int check_for_key_pair_leaks(void)
-{
-    /* No check for leaks with this stubbed out crypto. With this test
-     crypto there is no file with code to make keys so there is no place
-     but here for this function to live.
-     */
-    return 0;
-}
 
 
 

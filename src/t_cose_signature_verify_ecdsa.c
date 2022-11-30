@@ -25,7 +25,7 @@
  */
 static enum t_cose_err_t
 t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
-                               const bool                      run_crypto,
+                               const uint32_t                  option_flags,
                                const struct q_useful_buf_c     protected_body_headers,
                                const struct q_useful_buf_c     protected_signature_headers,
                                const struct q_useful_buf_c     payload,
@@ -54,7 +54,7 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
         goto Done;
     }
 
-    if(!run_crypto) {
+    if(option_flags & T_COSE_OPT_DECODE_ONLY) {
         /* It's mainly EdDSA, not this, that runs when only decoding */
         return T_COSE_SUCCESS;
     }
@@ -96,7 +96,7 @@ Done:
  */
 static enum t_cose_err_t
 t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
-                              const bool                          run_crypto,
+                              const uint32_t                      option_flags,
                               const struct t_cose_header_location loc,
                               const struct q_useful_buf_c         protected_body_headers,
                               const struct q_useful_buf_c         payload,
@@ -139,7 +139,7 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
 
 
     return_value = t_cose_signature_verify1_ecdsa(me_x,
-                                                  run_crypto,
+                                                  option_flags,
                                                   protected_body_headers,
                                                   protected_parameters,
                                                   payload,

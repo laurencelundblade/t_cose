@@ -215,7 +215,12 @@ enum t_cose_crypto_lib_t {
     T_COSE_CRYPTO_LIB_OPENSSL = 1,
      /** \c key_handle is a \c psa_key_handle_t in Arm's Platform Security
       * Architecture */
-    T_COSE_CRYPTO_LIB_PSA = 2
+    T_COSE_CRYPTO_LIB_PSA = 2,
+
+    /** These are for the test crypto adapter layer. They are mostly fake, but useful
+     * for testing without a library and for testing some error conditions. */
+    T_COSE_CRYPTO_LIB_TEST = 3
+
 };
 
 
@@ -699,6 +704,7 @@ enum t_cose_err_t {
 #define T_COSE_OPT_MESSAGE_TYPE_MAC         97
 #define T_COSE_OPT_MESSAGE_TYPE_MAC0        17
 
+// TODO: more meaningful names
 #define T_COSE_OPT_IS_SIGN1(opts) \
    ((T_COSE_OPT_MESSAGE_TYPE_MASK & opts) == T_COSE_OPT_MESSAGE_TYPE_SIGN1)
 

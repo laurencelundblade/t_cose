@@ -38,88 +38,6 @@ t_cose_get_short_circuit_kid_l(void)
 }
 
 
-/*
- * Short-circuit signer can pretend to be ES256, ES384 or ES512.
- */
-static inline enum t_cose_err_t
-short_circuit_sig_size(int32_t cose_algorithm_id,
-                       size_t *sig_size)
-{
-    /* sizes are 2x to simulate an ECDSA signature */
-    *sig_size =
-        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? 2 * 256/8 :
-        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? 2 * 384/8 :
-        cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? 2 * 512/8 :
-        0;
-
-    return *sig_size == 0 ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG : T_COSE_SUCCESS;
-}
-
-
-/**
- * \brief Create a short-circuit signature.
- *
- * \param[in] cose_algorithm_id Algorithm ID. This is used only to make
- *                              the short-circuit signature the same size
- *                              as the real signature would be for the
- *                              particular algorithm.
- * \param[in] hash_to_sign      The bytes to sign. Typically, a hash of
- *                              a payload.
- * \param[in] signature_buffer  Pointer and length of buffer into which
- *                              the resulting signature is put.
- * \param[in] signature         Pointer and length of the signature
- *                              returned.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * This creates the short-circuit signature that is a concatenation of
- * hashes up to the expected size of the signature. This is a test
- * mode only has it has no security value. This is retained in
- * commercial production code as a useful test or demo that can run
- * even if key material is not set up or accessible.
- */
-static inline enum t_cose_err_t
-short_circuit_fake_sign(int32_t                cose_algorithm_id,
-                        struct q_useful_buf_c  hash_to_sign,
-                        struct q_useful_buf    signature_buffer,
-                        struct q_useful_buf_c *signature)
-{
-    /* approximate stack use on 32-bit machine: local use: 16 bytes
-     */
-    enum t_cose_err_t return_value;
-    size_t            array_indx;
-    size_t            amount_to_copy;
-    size_t            sig_size;
-
-    return_value = short_circuit_sig_size(cose_algorithm_id, &sig_size);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    /* Check the signature length against buffer size */
-    if(sig_size > signature_buffer.len) {
-        /* Buffer too small for this signature type */
-        return_value = T_COSE_ERR_SIG_BUFFER_SIZE;
-        goto Done;
-    }
-
-    /* Loop concatening copies of the hash to fill out to signature size */
-    for(array_indx = 0; array_indx < sig_size; array_indx += hash_to_sign.len) {
-        amount_to_copy = sig_size - array_indx;
-        if(amount_to_copy > hash_to_sign.len) {
-            amount_to_copy = hash_to_sign.len;
-        }
-        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
-               hash_to_sign.ptr,
-               amount_to_copy);
-    }
-    signature->ptr = signature_buffer.ptr;
-    signature->len = sig_size;
-    return_value   = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
 
 
 /**
@@ -161,7 +79,7 @@ t_cose_short_headers(struct t_cose_signature_sign *me_x,
  */
 static enum t_cose_err_t
 t_cose_short_sign(struct t_cose_signature_sign *me_x,
-                  bool                          make_cose_signature,
+                  uint32_t                      options,
                   const struct q_useful_buf_c   protected_body_headers,
                   const struct q_useful_buf_c   aad,
                   const struct q_useful_buf_c   signed_payload,
@@ -177,18 +95,21 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
     struct q_useful_buf_c              signer_protected_headers;
     size_t                             tmp_sig_size;
     struct t_cose_parameter           *parameter_list;
+    struct t_cose_key                  dummy_key;
+
+    dummy_key = T_COSE_NULL_KEY;
 
     /* Get the sig size to find out if this is an alg that short-circuit
      * signer can pretend to be.
      */
-    return_value = short_circuit_sig_size(me->cose_algorithm_id, &tmp_sig_size);
+    return_value = t_cose_crypto_sig_size(me->cose_algorithm_id, dummy_key, &tmp_sig_size);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
     /* -- The headers if it is a COSE_Sign -- */
     signer_protected_headers = NULL_Q_USEFUL_BUF_C;
-    if(make_cose_signature) { // TODO: better name for this variable
+    if(T_COSE_OPT_IS_SIGN(options)) {
         /* COSE_Sign, so making a COSE_Signature  */
         /* Open the array enclosing the two header buckets and the sig. */
         QCBOREncode_OpenArray(qcbor_encoder);
@@ -205,7 +126,7 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
     if (QCBOREncode_IsBufferNULL(qcbor_encoder)) {
         /* Size calculation mode */
         signature.ptr = NULL;
-        short_circuit_sig_size(me->cose_algorithm_id, &signature.len);
+        t_cose_crypto_sig_size(me->cose_algorithm_id, dummy_key, &signature.len);
 
         return_value = T_COSE_SUCCESS;
 
@@ -237,17 +158,17 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
         // TODO: does this mess up the size calculation mode?
         // Check that it is OK in master branch too
 
-        return_value = short_circuit_fake_sign(me->cose_algorithm_id,
-                                               tbs_hash,
-                                               buffer_for_signature,
-                                              &signature);
-
+        return_value = t_cose_crypto_sign(me->cose_algorithm_id,
+                                          dummy_key,
+                                          tbs_hash,
+                                          buffer_for_signature,
+                                          &signature);
     }
     QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
 
 
     /* -- If a COSE_Sign, close of the COSE_Signature */
-    if(make_cose_signature) {
+    if(T_COSE_OPT_IS_SIGN(options)) {
         /* Close the array enclosing the two header buckets and the sig. */
         QCBOREncode_CloseArray(qcbor_encoder);
     }

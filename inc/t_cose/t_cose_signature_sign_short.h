@@ -65,11 +65,6 @@ struct t_cose_signature_sign_short {
 };
 
 
-/* Randomly chosen algorithm IDs from the private use space.
- */
-#define T_COSE_ALGORITHM_SHORT_CIRCUIT_256 -1000256
-#define T_COSE_ALGORITHM_SHORT_CIRCUIT_384 -1000384
-#define T_COSE_ALGORITHM_SHORT_CIRCUIT_512 -1000512
 
 /**
  * \brief Initialize the short-circuit signer
@@ -193,15 +188,5 @@ t_cose_signature_sign_from_short(struct t_cose_signature_sign_short *me)
 }
 
 
-static inline bool
-t_cose_algorithm_is_short_circuit(int32_t cose_algorithm_id)
-{
-    if(cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ||
-       cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ||
-       cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512) {
-        return true;
-    }
-    return false;
-}
 
 #endif /* t_cose_signature_sign_short_h */

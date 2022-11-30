@@ -26,7 +26,7 @@
  */
 static enum t_cose_err_t
 t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
-                               const bool                      run_crypto,
+                               const uint32_t                  option_flags,
                                const struct q_useful_buf_c     protected_body_headers,
                                const struct q_useful_buf_c     protected_signature_headers,
                                const struct q_useful_buf_c     payload,
@@ -81,7 +81,7 @@ t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
      */
     me->auxiliary_buffer_size = tbs.len;
 
-    if(!run_crypto) {
+    if(option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
@@ -113,7 +113,7 @@ Done:
  */
 static enum t_cose_err_t
 t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify     *me_x,
-                              const bool                          run_crypto,
+                              const uint32_t                      option_flags,
                               const struct t_cose_header_location loc,
                               const struct q_useful_buf_c         protected_body_headers,
                               const struct q_useful_buf_c         payload,
@@ -155,7 +155,7 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify     *me_x,
     /* --- Done decoding the COSE_Signature --- */
 
     return_value = t_cose_signature_verify1_eddsa(me_x,
-                                                  run_crypto,
+                                                  option_flags,
                                                   protected_body_headers,
                                                   protected_parameters,
                                                   payload,
