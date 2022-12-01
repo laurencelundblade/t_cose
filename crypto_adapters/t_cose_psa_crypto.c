@@ -81,6 +81,11 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
         T_COSE_ALGORITHM_PS512,
 #endif
+#ifndef T_COSE_DISABLE_MAC0
+        T_COSE_ALGORITHM_HMAC256,
+        T_COSE_ALGORITHM_HMAC384,
+        T_COSE_ALGORITHM_HMAC512,
+#endif /* T_COSE_DISABLE_MAC0 */
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
@@ -274,8 +279,7 @@ Done:
 #endif /* !T_COSE_DISABLE_SIGN1 */
 
 
-#if !defined(T_COSE_DISABLE_SHORT_CIRCUIT_SIGN) || \
-    !defined(T_COSE_DISABLE_SIGN1)
+#if !defined(T_COSE_DISABLE_SIGN1)
 /**
  * \brief Convert COSE hash algorithm ID to a PSA hash algorithm ID
  *
@@ -391,7 +395,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 Done:
     return psa_status_to_t_cose_error_hash(hash_ctx->status);
 }
-#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN || !T_COSE_DISABLE_SIGN1 */
+#endif /* !T_COSE_DISABLE_SIGN1 */
 
 
 
@@ -444,9 +448,9 @@ psa_status_to_t_cose_error_hmac(psa_status_t status)
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_sign_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                              struct t_cose_key          signing_key,
-                              const int32_t              cose_alg_id)
+t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                                 struct t_cose_key          signing_key,
+                                 const int32_t              cose_alg_id)
 {
     psa_algorithm_t psa_alg;
     psa_status_t psa_ret;
@@ -496,9 +500,9 @@ t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_sign_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                               struct q_useful_buf        tag_buf,
-                               struct q_useful_buf_c     *tag)
+t_cose_crypto_hmac_compute_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                                  struct q_useful_buf        tag_buf,
+                                  struct q_useful_buf_c     *tag)
 {
     psa_status_t psa_ret;
 
@@ -516,9 +520,9 @@ t_cose_crypto_hmac_sign_finish(struct t_cose_crypto_hmac *hmac_ctx,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                const  int32_t             cose_alg_id,
-                                struct t_cose_key          verify_key)
+t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                                  const  int32_t             cose_alg_id,
+                                  struct t_cose_key          validation_key)
 {
     psa_algorithm_t psa_alg;
     psa_status_t psa_ret;
@@ -547,8 +551,8 @@ t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
     hmac_ctx->op_ctx = psa_mac_operation_init();
 
     psa_ret = psa_mac_verify_setup(&hmac_ctx->op_ctx,
-                                    (psa_key_id_t)verify_key.k.key_handle,
-                                    psa_alg);
+                                   (psa_key_id_t)validation_key.k.key_handle,
+                                   psa_alg);
 
     return psa_status_to_t_cose_error_hmac(psa_ret);
 }
@@ -558,8 +562,8 @@ t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_verify_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                 struct q_useful_buf_c      tag)
+t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                                   struct q_useful_buf_c      tag)
 {
     psa_status_t psa_ret;
 
