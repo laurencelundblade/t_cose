@@ -70,12 +70,10 @@ set(T_COSE_SRC_COMMON
     src/t_cose_mac_compute.c
     src/t_cose_signature_sign_ecdsa.c
     src/t_cose_signature_sign_eddsa.c
-    src/t_cose_signature_sign_short.c
     src/t_cose_sign_verify.c
     src/t_cose_mac_validate.c
     src/t_cose_signature_verify_ecdsa.c
     src/t_cose_signature_verify_eddsa.c
-    src/t_cose_signature_verify_short.c
 )
 
 find_package(QCBOR REQUIRED)
