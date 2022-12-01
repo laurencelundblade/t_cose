@@ -22,7 +22,6 @@
 #include "t_cose/t_cose_sign_verify.h"
 #include "t_cose/t_cose_signature_verify_ecdsa.h"
 #include "t_cose/t_cose_signature_verify_eddsa.h"
-#include "t_cose/t_cose_signature_verify_short.h"
 
 
 
@@ -79,7 +78,6 @@ struct t_cose_sign1_verify_ctx {
 
     struct t_cose_signature_verify_ecdsa general_verifier;
     struct t_cose_signature_verify_eddsa eddsa_verifier;
-    struct t_cose_signature_verify_short short_circuit_verifier;
 
     uint32_t                             option_flags;
     uint64_t                             auTags[T_COSE_MAX_TAGS_TO_RETURN];

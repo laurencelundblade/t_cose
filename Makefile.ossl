@@ -74,8 +74,6 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_sign1_sign.o \
         src/t_cose_parameters.o \
         src/t_cose_sign_sign.o \
-        src/t_cose_signature_sign_short.o \
-        src/t_cose_signature_verify_short.o \
         src/t_cose_signature_sign_ecdsa.o \
         src/t_cose_signature_sign_eddsa.o \
         src/t_cose_sign_verify.o \
@@ -122,12 +120,10 @@ install_headers: $(PUBLIC_INTERFACE)
 	install -m 644 inc/t_cose/t_cose_parameters.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_signature_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_sign_short.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_signature_sign_ecdsa.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_signature_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_verify_short.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_signature_verify_ecdsa.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_standard_constants.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_encrypt_enc.h $(DESTDIR)$(PREFIX)/include/t_cose

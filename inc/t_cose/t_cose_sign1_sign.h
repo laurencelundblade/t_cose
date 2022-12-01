@@ -19,7 +19,6 @@
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_sign_sign.h"
 #include "t_cose/t_cose_signature_sign_ecdsa.h"
-#include "t_cose/t_cose_signature_sign_short.h"
 #include "t_cose/t_cose_signature_sign_eddsa.h"
 #include "t_cose/t_cose_parameters.h"
 
@@ -81,13 +80,6 @@ struct t_cose_sign1_sign_ctx {
     union {
         struct t_cose_signature_sign_ecdsa general;
         struct t_cose_signature_sign_eddsa eddsa;
-
-            /* This is needed to implement the backwards compatibility
-             * based on t_cose_sign_sign.
-             */
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-            struct t_cose_signature_sign_short short_circuit;
-    #endif
     } signer;
 
     /* For compatibility implementation with t_cose_sign_sign.

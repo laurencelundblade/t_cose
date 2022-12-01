@@ -55,8 +55,6 @@ SRC_OBJ=src/t_cose_sign1_verify.o \
 	src/t_cose_signature_sign_eddsa.o \
 	src/t_cose_signature_verify_ecdsa.o \
 	src/t_cose_signature_verify_eddsa.o \
-	src/t_cose_signature_sign_short.o \
-	src/t_cose_signature_verify_short.o \
 	src/t_cose_util.o \
 	src/t_cose_parameters.o \
 	src/t_cose_mac_compute.o \

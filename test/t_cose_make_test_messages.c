@@ -25,78 +25,6 @@
  */
 
 
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/**
- * \brief Create a short-circuit signature
- *
- * \param[in] cose_algorithm_id Algorithm ID. This is used only to make
- *                              the short-circuit signature the same size
- *                              as the real signature would be for the
- *                              particular algorithm.
- * \param[in] hash_to_sign      The bytes to sign. Typically, a hash of
- *                              a payload.
- * \param[in] signature_buffer  Pointer and length of buffer into which
- *                              the resulting signature is put.
- * \param[in] signature         Pointer and length of the signature
- *                              returned.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * This creates the short-circuit signature that is a concatenation of
- * hashes up to the expected size of the signature. This is a test
- * mode only has it has no security value. This is retained in
- * commercial production code as a useful test or demo that can run
- * even if key material is not set up or accessible.
- */
-static inline enum t_cose_err_t
-short_circuit_sign(int32_t               cose_algorithm_id,
-                   struct q_useful_buf_c hash_to_sign,
-                   struct q_useful_buf   signature_buffer,
-                   struct q_useful_buf_c *signature)
-{
-    /* approximate stack use on 32-bit machine: local use: 16 bytes
-     */
-    enum t_cose_err_t return_value;
-    size_t            array_index;
-    size_t            amount_to_copy;
-    size_t            sig_size;
-
-    sig_size = cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? 2*256/8 :
-               cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? 2*384/8 :
-               cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? 2*512/8 :
-                                                                         0;
-
-    /* Check the signature length against buffer size*/
-    if(sig_size == 0) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
-
-    if(sig_size > signature_buffer.len) {
-        /* Buffer too small for this signature type */
-        return_value = T_COSE_ERR_SIG_BUFFER_SIZE;
-        goto Done;
-    }
-
-    /* Loop concatening copies of the hash to fill out to signature size */
-    for(array_index = 0; array_index < sig_size; array_index += hash_to_sign.len) {
-        amount_to_copy = sig_size - array_index;
-        if(amount_to_copy > hash_to_sign.len) {
-            amount_to_copy = hash_to_sign.len;
-        }
-        memcpy((uint8_t *)signature_buffer.ptr + array_index,
-               hash_to_sign.ptr,
-               amount_to_copy);
-    }
-    signature->ptr = signature_buffer.ptr;
-    signature->len = sig_size;
-    return_value   = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
 
 /**
  * \brief  Makes various protected parameters for various tests
@@ -562,31 +490,13 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      */
     QCBOREncode_OpenBytes(cbor_encode_ctx, &buffer_for_signature);
 
-    /* Compute the signature using public key crypto. The key selector
-     * and algorithm ID are passed in to know how and what to sign
-     * with. The hash of the TBS bytes are what is signed. A buffer in
-     * which to place the signature is passed in and the signature is
-     * returned.
-     *
-     * Short-circuit signing is invoked if requested. It does no
-     * public key operation and requires no key. It is just a test
-     * mode that always works.
-     */
-  //  if(!t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
-        /* Normal, non-short-circuit signing */
-        return_value = t_cose_crypto_sign(me->cose_algorithm_id,
-                                          me->signing_key,
-                                          tbs_hash,
-                                          buffer_for_signature,
-                                         &signature);
-  //  } else {
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-   //     return_value = short_circuit_sign(me->cose_algorithm_id,
-     //                                     tbs_hash,
-       //                                   buffer_for_signature,
-         //                                 &signature);
-#endif
-    //}
+
+    /* Normal, non-short-circuit signing */
+    return_value = t_cose_crypto_sign(me->cose_algorithm_id,
+                                      me->signing_key,
+                                      tbs_hash,
+                                      buffer_for_signature,
+                                     &signature);
 
     if(return_value) {
         goto Done;

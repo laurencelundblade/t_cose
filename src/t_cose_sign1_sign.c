@@ -40,15 +40,6 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
     t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
 
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    if(t_cose_algorithm_is_short_circuit(cose_algorithm_id)) {
-        t_cose_signature_sign_short_init(&(me->signer.short_circuit),
-                                         cose_algorithm_id);
-
-        t_cose_sign_add_signer(&(me->me2),
-                               t_cose_signature_sign_from_short(&(me->signer.short_circuit)));
-    } else
-#endif
     {
         if(cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
             t_cose_signature_sign_eddsa_init(&(me->signer.eddsa));
@@ -73,14 +64,6 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
 {
     me->signing_key = signing_key; /* Used by make test message */
     me->kid = kid; /* Used by make test message */
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    if(t_cose_algorithm_is_short_circuit(me->cose_algorithm_id)) {
-        me->kid = kid; // TODO: is this needed?
-        // tell the short circuit signer to put this kid in.
-        me->signer.short_circuit.kid = kid; // TODO: fix layering violation?
-
-    } else
-#endif
     {
         if(me->cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
             t_cose_signature_sign_eddsa_set_signing_key(&(me->signer.eddsa),

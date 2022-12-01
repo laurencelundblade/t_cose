@@ -457,13 +457,12 @@ int_fast32_t short_circuit_make_cwt_test()
     /* The first part, the intro and pararameters must be the same */
     struct q_useful_buf_c fp;
     if(cose_algorithm_id == T_COSE_ALGORITHM_ES256) {
-        /* What is actuall in the RFC */
-        // d28443a10126
-        const uint8_t fpx[] = {0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
+        /* What is actually in the RFC */
+        static const uint8_t fpx[] = {0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
         fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
     } else {
         /* A different algorithm ID than the RFC because it is short circuit sig */
-        const uint8_t fpx[] = {0xd2, 0x84, 0x47, 0xa1, 0x01, 0x3A,0x00, 0x0F, 0x43, 0x3F, 0xa0};
+        static const uint8_t fpx[] = {0xd2, 0x84, 0x47, 0xa1, 0x01, 0x3A,0x00, 0x0F, 0x43, 0x3F, 0xa0};
         fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
     }
     struct q_useful_buf_c head = q_useful_buf_head(signed_cose, fp.len);
@@ -1276,22 +1275,21 @@ int_fast32_t tags_test()
     /* --- Done making COSE Sign1 object tagged 900(901(18(0))) --- */
 
     /* --- Compare to expected from CWT RFC --- */
-    /* The first part, the intro and protected pararameters must be the same.
-     * This is 900(901(18([h'A1013A000F433F'. It needs 3 more items to be
-     * complete. A1013A000F433F decodes to {1: -1000256} */
-
-    /* The first part, the intro and pararameters must be the same */
+    /* The first part, the intro and protected pararameters, must be the same.
+     * This varies by algorithm ID so there's two. The one for ES256
+     * is the same as what's in the RFC example.
+     */
     struct q_useful_buf_c fp;
     if(cose_algorithm_id == T_COSE_ALGORITHM_ES256) {
-        const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
-                               0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
+        static const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
+                                      0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
         fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
 
     } else {
         /* A different algorithm ID than the RFC because it is short circuit sig */
-        const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
-                               0xd2, 0x84, 0x47, 0xa1, 0x01, 0x3A,
-                               0x00, 0x0F, 0x43, 0x3F};
+        static const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
+                                      0xd2, 0x84, 0x47, 0xa1, 0x01, 0x3A,
+                                      0x00, 0x0F, 0x43, 0x3F, 0xa0};
         fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
     }
     struct q_useful_buf_c head = q_useful_buf_head(signed_cose, fp.len);
@@ -1516,13 +1514,13 @@ int_fast32_t tags_test()
     /* The first part, the intro and pararameters must be the same */
     if(cose_algorithm_id == T_COSE_ALGORITHM_ES256) {
         // 0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85
-        const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
+        static const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
                                0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
         fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
 
     } else {
         /* A different algorithm ID than the RFC because it is short circuit sig */
-        const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
+        static const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
                                0x84, 0x47, 0xa1, 0x01, 0x3A,
                                0x00, 0x0F, 0x43, 0x3F};
         fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);

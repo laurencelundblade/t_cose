@@ -49,7 +49,10 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
     }
 
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id) &&
-       !t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+       !t_cose_algorithm_is_short_circuit(cose_algorithm_id) &&
+#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+       !t_cose_algorithm_is_rsassa_pss(cose_algorithm_id) ) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
