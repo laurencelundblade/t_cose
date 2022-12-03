@@ -94,8 +94,8 @@ struct t_cose_signature_sign;
  *
  * \param [in] me                    The context, the  t_cose_signature_sign
  *                                   instance. This will actuzlly be some
- *                                   thing like t_cose_signature_sign_ecdsa
- *                                   that inplements t_cose_signature_sign
+ *                                   thing like t_cose_signature_sign_main
+ *                                   that implements t_cose_signature_sign
  * \Param[in] option_flags    Option flags from t_cose_sign_verify_init(). Primarily to check whether to make a COSE_Sign or COSE_Sign1.
  * \param[in] protected_body_headers The COSE_Sign body headers covered by the
  *                                   signature
@@ -129,7 +129,7 @@ t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
  *
  * \param [in] me             The context, the  t_cose_signature_sign
  *                            instance. This  will actully be some thing like
- *                            t_cose_signature_sign_ecdsa that inplements
+ *                            t_cose_signature_sign_main that implements
  *                            t_cose_signature_sign.
  * \param[out] header_params  Linked list of header parameters to be encoded
  *                            and added to the body header params.

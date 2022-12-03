@@ -46,9 +46,9 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
             t_cose_sign_add_signer(&(me->me2),
                                    t_cose_signature_sign_from_eddsa(&(me->signer.eddsa)));
         } else {
-            t_cose_signature_sign_ecdsa_init(&(me->signer.general), me->cose_algorithm_id);
+            t_cose_signature_sign_main_init(&(me->signer.general), me->cose_algorithm_id);
             t_cose_sign_add_signer(&(me->me2),
-                                   t_cose_signature_sign_from_ecdsa(&(me->signer.general)));
+                                   t_cose_signature_sign_from_main(&(me->signer.general)));
         }
 
     }
@@ -71,7 +71,7 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
                                                          kid);
 
         } else {
-            t_cose_signature_sign_ecdsa_set_signing_key(&(me->signer.general),
+            t_cose_signature_sign_main_set_signing_key(&(me->signer.general),
                                                         signing_key,
                                                         kid);
         }

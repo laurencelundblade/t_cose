@@ -20,7 +20,7 @@
 #include "qcbor/qcbor_common.h"
 
 #include "t_cose/t_cose_sign_verify.h"
-#include "t_cose/t_cose_signature_verify_ecdsa.h"
+#include "t_cose/t_cose_signature_verify_main.h"
 #include "t_cose/t_cose_signature_verify_eddsa.h"
 
 
@@ -76,7 +76,7 @@ struct t_cose_sign1_verify_ctx {
     /* Private data structure */
     struct t_cose_sign_verify_ctx        me2;
 
-    struct t_cose_signature_verify_ecdsa general_verifier;
+    struct t_cose_signature_verify_main main_verifier;
     struct t_cose_signature_verify_eddsa eddsa_verifier;
 
     uint32_t                             option_flags;

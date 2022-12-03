@@ -267,9 +267,9 @@ can take care of this through the t_cose_crypto layer, though some
 adjustments may be necessary for it to be most effective.
 
 For example, the ECDSA algorithm is only called from
-t_cose_signature_sign_ecdsa and t_cose_signature_verify_ecdsa. If a
+t_cose_signature_sign_main and t_cose_signature_verify_main. If a
 user of t_cose never calls these, for example, never calls
-t_cose_signature_sign_ecdsa_init() it won't be linked and the
+t_cose_signature_sign_main_init() it won't be linked and the
 references to the of the algorithms won't be made.
 
 For this to work well, the t_cose_crypto layer needs to have separate

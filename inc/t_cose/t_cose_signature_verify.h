@@ -43,7 +43,7 @@ struct t_cose_signature_verify;
  *
  * \param[in] me                      The context, the  t_cose_signature_verify
  *                                    instance. This  will actully be some thing like
- *                                    t_cose_signature_verify_ecdsa that inplements
+ *                                    t_cose_signature_verify_main that inplements
  *                                    t_cose_signature_verify.
  * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
  * \param[in] loc                     The location of the signature inside the COSE_Sign.
@@ -72,7 +72,7 @@ t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
  *
  * \param[in] me                       The context, the  t_cose_signature_verify
  *                                     instance. This  will actully be some thing like
- *                                     t_cose_signature_verify_ecdsa that inplements
+ *                                     t_cose_signature_verify_main that inplements
  *                                     t_cose_signature_verify.
  * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
  * \param[in] protected_body_headers   Encoded body headers from COSE_Signature to verify

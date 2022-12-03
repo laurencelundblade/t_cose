@@ -18,7 +18,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_sign_sign.h"
-#include "t_cose/t_cose_signature_sign_ecdsa.h"
+#include "t_cose/t_cose_signature_sign_main.h"
 #include "t_cose/t_cose_signature_sign_eddsa.h"
 #include "t_cose/t_cose_parameters.h"
 
@@ -78,7 +78,7 @@ struct t_cose_sign1_sign_ctx {
     /* There is only one signer at a time, so a union works here.
      * Switch is on the cose_algorithm_id */
     union {
-        struct t_cose_signature_sign_ecdsa general;
+        struct t_cose_signature_sign_main general;
         struct t_cose_signature_sign_eddsa eddsa;
     } signer;
 

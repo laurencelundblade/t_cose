@@ -113,15 +113,15 @@ extern "C" {
  * t_cose_signature_sign and t_cose_signature_verify are abstract
  * bases classes for a set of implementations of COSE_Signature. This
  * design is chosen because there are a variety of signature schemes
- * to implement. Mostly th *ese correspond to different signing
+ * to implement. Mostly these correspond to different signing
  * algorithms, but there is enough variation from algorithm to
  * algorithm that the use of an abstract base class here makes sense.
  *
- * The concrete classes will generally correspond to groups of
- * algorithms. For example, there will likely be one for ECDSA,
- * t_cose_signature_sign_ecdsa, another for RSAPSS and a variety for
- * PQ. Perhaps there will be one for counter signatures of
- * particular types.
+ * Currently there is a "main" signer/verify that supports RSA
+ * and ECDSA. There is another one for EdDSA, because it is
+ * structurally different in not using a hash. Future
+ * signer/verifiers might include one for counter signatures
+ * and one for PQ.
  *
  * The user of t_cose will create instances of t_cose_signature and
  * configure them into t_cose_sign_sign() and t_cose_sign_verify().

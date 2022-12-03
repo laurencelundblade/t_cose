@@ -1,5 +1,5 @@
 /*
- * t_cose_signature_verify_ecdsa.c
+ * t_cose_signature_verify_main.c
  *
  * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 7/19/22.
@@ -10,7 +10,7 @@
  */
 
 
-#include "t_cose/t_cose_signature_verify_ecdsa.h"
+#include "t_cose/t_cose_signature_verify_main.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
 #include "qcbor/qcbor_decode.h"
@@ -24,7 +24,7 @@
  * This is an implementation of t_cose_signature_verify1_callback.
  */
 static enum t_cose_err_t
-t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
+t_cose_signature_verify1_main(struct t_cose_signature_verify *me_x,
                                const uint32_t                  option_flags,
                                const struct q_useful_buf_c     protected_body_headers,
                                const struct q_useful_buf_c     protected_signature_headers,
@@ -33,8 +33,8 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
                                const struct t_cose_parameter  *parameter_list,
                                const struct q_useful_buf_c     signature)
 {
-    const struct t_cose_signature_verify_ecdsa *me =
-                          (const struct t_cose_signature_verify_ecdsa *)me_x;
+    const struct t_cose_signature_verify_main *me =
+                          (const struct t_cose_signature_verify_main *)me_x;
     int32_t                      cose_algorithm_id;
     enum t_cose_err_t            return_value;
     struct q_useful_buf_c        kid;
@@ -98,7 +98,7 @@ Done:
  This is an implementation of t_cose_signature_verify_callback
  */
 static enum t_cose_err_t
-t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
+t_cose_signature_verify_main(struct t_cose_signature_verify     *me_x,
                               const uint32_t                      option_flags,
                               const struct t_cose_header_location loc,
                               const struct q_useful_buf_c         protected_body_headers,
@@ -108,8 +108,8 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
                               QCBORDecodeContext                 *qcbor_decoder,
                               struct t_cose_parameter           **decoded_signature_parameters)
 {
-    const struct t_cose_signature_verify_ecdsa *me =
-                            (const struct t_cose_signature_verify_ecdsa *)me_x;
+    const struct t_cose_signature_verify_main *me =
+                            (const struct t_cose_signature_verify_main *)me_x;
     QCBORError             qcbor_error;
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  protected_parameters;
@@ -141,7 +141,7 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
     /* --- Done decoding the COSE_Signature --- */
 
 
-    return_value = t_cose_signature_verify1_ecdsa(me_x,
+    return_value = t_cose_signature_verify1_main(me_x,
                                                   option_flags,
                                                   protected_body_headers,
                                                   protected_parameters,
@@ -155,9 +155,9 @@ Done:
 
 
 void
-t_cose_signature_verify_ecdsa_init(struct t_cose_signature_verify_ecdsa *me)
+t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *me)
 {
     memset(me, 0, sizeof(*me));
-    me->s.callback  = t_cose_signature_verify_ecdsa;
-    me->s.callback1 = t_cose_signature_verify1_ecdsa;
+    me->s.callback  = t_cose_signature_verify_main;
+    me->s.callback1 = t_cose_signature_verify1_main;
 }

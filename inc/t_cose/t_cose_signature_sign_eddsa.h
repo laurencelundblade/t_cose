@@ -141,13 +141,13 @@ t_cose_signature_sign_eddsa_auxiliary_buffer_size(struct t_cose_signature_sign_e
  *
  * t_cose calls signers as follows:
  *   struct t_cose_signature_sign *signer;
- *   signer = t_cose_signature_sign_from_ecdsa(me);
+ *   signer = t_cose_signature_sign_from_eddsa(me);
  *
  *   result = (signer->s.callback)(signer, ....);
  *
  * It makes use of the function pointer in signer->s. This callback is
- * when all the interesting work id done by
- * t_cose_signature_sign_ecdsa.
+ * where all the interesting work is done by
+ * t_cose_signature_sign_eddsa.
  *
  */
 static struct t_cose_signature_sign *

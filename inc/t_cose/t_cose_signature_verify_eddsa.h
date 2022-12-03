@@ -26,7 +26,7 @@ struct t_cose_signature_verify_eddsa {
     /* Private data structure */
 
     /* t_cose_signature_verify must be the first item for the polymorphism to work.
-     * This structure, t_cose_signature_verify_ecdsa, will sometimes be uses as
+     * This structure, t_cose_signature_verify_eddsa, will sometimes be uses as
      * a t_cose_signature_verify.
      */
     struct t_cose_signature_verify     s;
