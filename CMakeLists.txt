@@ -114,7 +114,6 @@ if (BUILD_TESTS)
         test/t_cose_make_test_messages.c
         test/t_cose_test.c
         test/t_cose_param_test.c
-        test/t_cose_make_test_test_key.c
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")
@@ -128,7 +127,7 @@ if (BUILD_TESTS)
         set(TEST_SRC_EXTRA test/t_cose_make_openssl_test_key.c)
         set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "Test")
-        set(TEST_SRC_EXTRA)
+        set(TEST_SRC_EXTRA test/t_cose_make_test_test_key.c)
         set(TEST_EXTRA_DEFS -DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS)
     else()
         message(FATAL_ERROR "Bug!")
