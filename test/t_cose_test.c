@@ -455,22 +455,25 @@ int_fast32_t short_circuit_make_cwt_test()
     /* --- Compare to expected from CWT RFC --- */
 
     /* The first part, the intro and pararameters must be the same */
-    struct q_useful_buf_c fp;
+    struct q_useful_buf_c first_part_expected;
+    struct q_useful_buf_c first_part_created;
+    /* What is actually in the RFC */
+    static const uint8_t fp_es[] = {0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
+    /* A different algorithm ID than the RFC because it is short circuit sig */
+    static const uint8_t fp_ss[] = {0xd2, 0x84, 0x47, 0xa1, 0x01, 0x3A,0x00, 0x0F, 0x43, 0x3F, 0xa0};
     if(cose_algorithm_id == T_COSE_ALGORITHM_ES256) {
-        /* What is actually in the RFC */
-        static const uint8_t fpx[] = {0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
-        fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
+        first_part_expected = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fp_es);
     } else {
-        /* A different algorithm ID than the RFC because it is short circuit sig */
-        static const uint8_t fpx[] = {0xd2, 0x84, 0x47, 0xa1, 0x01, 0x3A,0x00, 0x0F, 0x43, 0x3F, 0xa0};
-        fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
+        first_part_expected = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fp_ss);
     }
-    struct q_useful_buf_c head = q_useful_buf_head(signed_cose, fp.len);
-    if(q_useful_buf_compare(head, fp)) {
-        return -1;
+    first_part_created = q_useful_buf_head(signed_cose, first_part_expected.len);
+    if(q_useful_buf_compare(first_part_created, first_part_expected)) {
+        return -101;
     }
 
     /* Compare the payload */
+    struct q_useful_buf_c created_payload;
+    struct q_useful_buf_c expected_payload;
     const uint8_t rfc8392_payload_bytes[] = {
         0x58, 0x50, 0xa7, 0x01, 0x75, 0x63, 0x6f, 0x61, 0x70, 0x3a, 0x2f,
         0x2f, 0x61, 0x73, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
@@ -480,18 +483,15 @@ int_fast32_t short_circuit_make_cwt_test()
         0x65, 0x2e, 0x63, 0x6f, 0x6d, 0x04, 0x1a, 0x56, 0x12, 0xae, 0xb0,
         0x05, 0x1a, 0x56, 0x10, 0xd9, 0xf0, 0x06, 0x1a, 0x56, 0x10, 0xd9,
         0xf0, 0x07, 0x42, 0x0b, 0x71};
-
-    struct q_useful_buf_c fp2 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_payload_bytes);
-
-    struct q_useful_buf_c payload2 = q_useful_buf_tail(signed_cose,
-                                                       fp.len);
-    struct q_useful_buf_c pl3 = q_useful_buf_head(payload2,
-                                                sizeof(rfc8392_payload_bytes));
-    if(q_useful_buf_compare(pl3, fp2)) {
-        return -2;
+    expected_payload = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_payload_bytes);
+    created_payload = q_useful_buf_head(q_useful_buf_tail(signed_cose,
+                                                          first_part_expected.len),
+                                        sizeof(rfc8392_payload_bytes));
+    if(q_useful_buf_compare(created_payload, expected_payload)) {
+        return -102;
     }
-    /* Skip the signature because ECDSA signatures usually have a random
-     component */
+    /* Don't compare the signature because ECDSA signatures usually have a random
+     * component and we're not using the same key (yet) */
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
@@ -513,7 +513,7 @@ int_fast32_t short_circuit_make_cwt_test()
     /* Format the expected payload CBOR fragment */
 
     /* compare payload output to the one expected */
-    if(q_useful_buf_compare(payload, q_useful_buf_tail(fp2, 2))) {
+    if(q_useful_buf_compare(payload, q_useful_buf_tail(expected_payload, 2))) {
         return 5000;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
