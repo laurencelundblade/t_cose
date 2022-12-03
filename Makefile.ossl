@@ -121,10 +121,12 @@ install_headers: $(PUBLIC_INTERFACE)
 	install -m 644 inc/t_cose/t_cose_sign_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_signature_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_signature_sign_main.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_signature_sign_eddsa.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_signature_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_signature_verify_main.h $(DESTDIR)$(PREFIX)/include/t_cose
+	install -m 644 inc/t_cose/t_cose_signature_verify_eddsa.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_standard_constants.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_encrypt_enc.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_encrypt_dec.h $(DESTDIR)$(PREFIX)/include/t_cose
