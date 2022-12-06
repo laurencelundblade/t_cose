@@ -98,12 +98,13 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
     return t_cose_check_list(cose_algorithm_id, supported_algs);
 }
 
+
 /**
- * \brief Get the rounded up size of an ECDSA key in bytes.
+ * \brief Get the rounded-up size of an ECDSA key in bytes.
  */
 static unsigned ecdsa_key_size(EVP_PKEY *key_evp)
 {
-    int key_len_bits;
+    int      key_len_bits;
     unsigned key_len_bytes;
 
     key_len_bits = EVP_PKEY_bits(key_evp);
@@ -321,6 +322,7 @@ Done:
     return return_value;
 }
 
+
 /**
  * \brief Common checks and conversions for signing and verification key.
  *
@@ -352,6 +354,7 @@ key_convert(struct t_cose_key  t_cose_key, EVP_PKEY **return_ossl_ec_key)
 Done:
     return return_value;
 }
+
 
 /*
  * Public Interface. See documentation in t_cose_crypto.h
@@ -613,7 +616,6 @@ Done:
 Done2:
     return return_value;
 }
-
 
 
 /*
@@ -886,6 +888,7 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
+
 #ifndef T_COSE_DISABLE_EDDSA
 
 /*
@@ -947,6 +950,7 @@ Done:
 
     return return_value;
 }
+
 
 /*
  * See documentation in t_cose_crypto.h

@@ -20,7 +20,7 @@
  * This file is stub crypto for initial bring up and test of t_cose.
  * It is NOT intended for commercial use. When this file is used as
  * the crypto adapter, no external crypto library is necessary. This is
- * convenient because sometime it takes a while to sort out the crypto
+ * convenient because sometimes it takes a while to sort out the crypto
  * porting layer for a new platform. With this most of t_cose can be tested
  * and demo signatures (short-circuit signatures) can be generated to
  * simulate out this would work.
@@ -56,6 +56,7 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
     return false;
 }
 
+
 /* The Brad Conte hash implementaiton bundled with t_cose */
 #include "sha256.h"
 
@@ -72,7 +73,6 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
  */
 int hash_test_mode = 0;
 #endif
-
 
 
 /*
@@ -323,6 +323,9 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
 }
 
 
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_get_random(struct q_useful_buf    buffer,
                          size_t                 number,
@@ -340,6 +343,5 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 
     return T_COSE_SUCCESS;
 }
-
 
 #endif /* T_COSE_DISABLE_EDDSA */

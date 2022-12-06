@@ -160,7 +160,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
     psa_algorithm_t       psa_alg_id;
     psa_status_t          psa_result;
     enum t_cose_err_t     return_value;
-    psa_key_handle_t  verification_key_psa;
+    psa_key_handle_t      verification_key_psa;
 
     /* This implementation does no look up keys by kid in the key
      * store */
@@ -594,6 +594,7 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
     /* MbedTLS does not support EdDSA */
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
+
 
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,

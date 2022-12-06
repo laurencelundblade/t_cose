@@ -197,7 +197,7 @@ extern "C" {
 #define T_COSE_2
 
 
-
+/* Definition of algorithm IDs is moved to t_cose_standard_constants.h */
 
 
 /**

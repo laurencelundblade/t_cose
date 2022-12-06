@@ -73,6 +73,7 @@ enum t_cose_err_t make_ossl_key_pair(int32_t            cose_algorithm_id,
 
     case T_COSE_ALGORITHM_EDDSA:
         ossl_key_type = EVP_PKEY_ED25519;
+        ossl_curve_nid = NID_undef;
         break;
 
     default:
@@ -565,7 +566,7 @@ Done:
  * been used.
  *
  */
-int32_t dynamic_buffer_example(void)
+int32_t aux_buffer_example(void)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     enum t_cose_err_t              return_value;
@@ -729,5 +730,5 @@ int main(int argc, const char * argv[])
 
     one_step_sign_example();
     two_step_sign_example();
-    dynamic_buffer_example();
+    aux_buffer_example();
 }
