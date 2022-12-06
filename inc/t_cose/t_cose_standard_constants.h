@@ -382,15 +382,31 @@
 #define T_COSE_ALGORITHM_HMAC512 7
 
 
-
-/* Randomly chosen algorithm IDs from the private use space.
-* TODO: fill out this documentation
+/**
+ * \def T_COSE_ALGORITHM_SHORT_CIRCUIT_256
+ *
+ * \brief Special algorithm ID for test only
+ *
+ * This selects an algorithm that simulates an ECDSA signature.
+ * It is mplemented only by the test crypto adaptor. It has
+ * no security value, but is useful for testing and bringing
+ * t_cose up on a new target.
+ * The actual value is randomly selected from the COSE
+ * private ID space. It is not registered anywhere.
  */
+// TODO: reference to details of short-circuit signature.
 #define T_COSE_ALGORITHM_SHORT_CIRCUIT_256 -1000256
 #define T_COSE_ALGORITHM_SHORT_CIRCUIT_384 -1000384
 #define T_COSE_ALGORITHM_SHORT_CIRCUIT_512 -1000512
 
-
+/**
+ * \def T_COSE_ALGORITHM_NONE
+ *
+ * \brief Indicate no algorithm
+ *
+ * This can mean unset, or error or such.  This is a reserved
+ * value per the COSE standard and can never be assigned.
+ */
 #define T_COSE_ALGORITHM_NONE 0
 
 

@@ -50,19 +50,3 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
     t_cose_signature_verify_main_set_key(&(me->main_verifier), verification_key);
 }
 
-
-
-
-void
-t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *me,
-                                         struct q_useful_buf             auxiliary_buffer)
-{
-    t_cose_signature_verify_eddsa_set_auxiliary_buffer(&(me->eddsa_verifier), auxiliary_buffer);
-}
-
-
-size_t
-t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *me)
-{
-    return t_cose_signature_verify_eddsa_auxiliary_buffer_size(&(me->eddsa_verifier));
-}

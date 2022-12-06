@@ -311,7 +311,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 #endif
     }
 
-  continue_decode:
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);
 

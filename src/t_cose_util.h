@@ -141,9 +141,10 @@ enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
 /**
  * Serialize the to-be-signed (TBS) bytes for COSE.
  *
- * \param[in] protected_parameters  Full, CBOR encoded, protected parameters.
+ * \param[in] protected_parameters  Full, CBOR encoded, body protected parameters.
  * \param[in] aad                   Additional Authenitcated Data to be
  *                                  included in TBS.
+ * \param[in] sign_protected_parameters  Signature, CBOR encoded, protected parameters.
  * \param[in] payload               The CBOR-encoded payload.
  * \param[in] buffer_for_tbs        Pointer and length of buffer into which
  *                                  the resulting TBS bytes is put.
@@ -163,9 +164,11 @@ enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
  * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
  *
  * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
+ *  \c \sign_protected_parameters can be can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
 enum t_cose_err_t create_tbs(struct q_useful_buf_c  protected_parameters,
                              struct q_useful_buf_c  aad,
+                             const struct q_useful_buf_c  sign_protected_parameters,
                              struct q_useful_buf_c  payload,
                              struct q_useful_buf    buffer_for_tbs,
                              struct q_useful_buf_c *tbs);

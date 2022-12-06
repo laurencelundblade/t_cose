@@ -27,6 +27,8 @@
 enum t_cose_err_t make_key_pair(int32_t            cose_algorithm_id,
                                 struct t_cose_key *key_pair)
 {
+    (void)cose_algorithm_id;
+    
     key_pair->k.key_ptr  = NULL;
     key_pair->crypto_lib = T_COSE_CRYPTO_LIB_TEST;
 
@@ -41,7 +43,7 @@ enum t_cose_err_t make_key_pair(int32_t            cose_algorithm_id,
  */
 void free_key(struct t_cose_key key_pair)
 {
-
+    (void)key_pair;
 }
 
 

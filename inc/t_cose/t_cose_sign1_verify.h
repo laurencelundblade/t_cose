@@ -172,7 +172,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * \ref t_cose_sign1_verify_auxiliary_buffer_size.
  *
  */
-void
+static void
 t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *context,
                                          struct q_useful_buf             auxiliary_buffer);
 
@@ -195,7 +195,7 @@ t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *context
  * This function returns zero if the signature algorithm used does not
  * need an auxiliary buffer.
  */
-size_t
+static size_t
 t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *context);
 
 
@@ -441,6 +441,21 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
     return return_value;
 }
 
+
+
+static inline void
+t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *me,
+                                         struct q_useful_buf             auxiliary_buffer)
+{
+    t_cose_signature_verify_eddsa_set_auxiliary_buffer(&(me->eddsa_verifier), auxiliary_buffer);
+}
+
+
+static inline size_t
+t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *me)
+{
+    return t_cose_signature_verify_eddsa_auxiliary_buffer_size(&(me->eddsa_verifier));
+}
 
 #ifdef __cplusplus
 }

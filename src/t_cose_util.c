@@ -171,10 +171,11 @@ enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
  * Public function. See t_cose_util.h
  */
 // TODO: combine with create_tbm()
-// TODO: disable this when EdDSA is disabled
+// TODO: disable this when EdDSA is disabled?
 enum t_cose_err_t
 create_tbs(struct q_useful_buf_c  protected_parameters,
            struct q_useful_buf_c  aad,
+           const struct q_useful_buf_c  sign_protected_parameters,
            struct q_useful_buf_c  payload,
            struct q_useful_buf    buffer_for_tbs,
            struct q_useful_buf_c *tbs)
@@ -185,6 +186,9 @@ create_tbs(struct q_useful_buf_c  protected_parameters,
     QCBOREncode_OpenArray(&cbor_context);
     QCBOREncode_AddSZString(&cbor_context, COSE_SIG_CONTEXT_STRING_SIGNATURE1);
     QCBOREncode_AddBytes(&cbor_context, protected_parameters);
+    if(!q_useful_buf_c_is_null(sign_protected_parameters)) {
+        QCBOREncode_AddBytes(&cbor_context, sign_protected_parameters);
+    }
     QCBOREncode_AddBytes(&cbor_context, aad);
     QCBOREncode_AddBytes(&cbor_context, payload);
     QCBOREncode_CloseArray(&cbor_context);

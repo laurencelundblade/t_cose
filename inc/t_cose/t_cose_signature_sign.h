@@ -26,17 +26,16 @@
  * that it needs to work like those for initialization and
  * setting the key.
  *
- * The reason
- * signers are abstracted out as they are here is in anticipation
- * of more complicated signers that support things like counter
- * signing, post-quantum signatures and certificate hierarchies.
- * A signer may support only one signing algorithm, but that is
- * not required. For examples the "main" signer supports basic
- * ECDSA and RSA because they are very similar. The EdDSA signer
- * is separate because it doesn't involve a hash. Counter signature
- * are too complicated to support with custom parameters so
- * they should implement a signer (need to validate the
- * interface will work for them).
+ * The reason signers are abstracted out as they are here is in
+ * anticipation of more complicated signers that support things like
+ * counter signing, post-quantum signatures and certificate
+ * hierarchies.  A signer may support only one signing algorithm, but
+ * that is not required. For examples the "main" signer supports basic
+ * ECDSA and RSA because they are very similar. The EdDSA signer is
+ * separate because it doesn't involve a hash. Counter signature are
+ * too complicated to support with custom parameters so they should
+ * implement a signer (need to validate the interface will work for
+ * them).
  *
  * t_cose_signer_callback is the type of a function that every
  * signer must implement. It takes as input the context

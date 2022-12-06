@@ -77,6 +77,7 @@ t_cose_eddsa_sign(struct t_cose_signature_sign  *me_x,
      */
     return_value = create_tbs(protected_body_headers,
                               aad,
+                              signer_protected_headers,
                               signed_payload,
                               me->auxiliary_buffer,
                              &tbs);

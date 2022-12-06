@@ -63,6 +63,7 @@ t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
      */
     return_value = create_tbs(protected_body_headers,
                               aad,
+                              protected_signature_headers,
                               payload,
                               me->auxiliary_buffer,
                              &tbs);

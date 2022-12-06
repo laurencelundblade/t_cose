@@ -88,7 +88,6 @@ struct t_cose_sign1_sign_ctx {
      * t_cose_header_param. They don't know about it. */
     struct t_cose_parameter content_id_param;
 
-
     struct q_useful_buf_c protected_parameters; /* Encoded protected params */
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key; // Used by make_test_message
@@ -98,8 +97,6 @@ struct t_cose_sign1_sign_ctx {
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
 #endif
-
-
 };
 
 

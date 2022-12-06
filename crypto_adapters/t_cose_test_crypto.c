@@ -157,6 +157,9 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
     struct q_useful_buf_c hash_from_sig;
     enum t_cose_err_t     return_value;
 
+    (void)verification_key;
+    (void)kid;
+
     if(!t_cose_algorithm_is_short_circuit(cose_algorithm_id)) {
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }

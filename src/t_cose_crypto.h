@@ -97,16 +97,6 @@ extern "C" {
  */
 
 
-/*
- * Says where a particular algorithm is supported or not.
- * Most useful for test code that wants to know if a
- * test should be attempted or not.
- *
- * See t_cose_is_algorithm_supported()
- */
-bool
-t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id);
-
 
 /* This sets the maximum key size for symmetric ciphers like AES and ChaCha20 (not supported yet).
 * It is set to 32 to accommodate AES 256 and anything with a smaller
@@ -867,7 +857,7 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_ES512
         T_COSE_ALGORITHM_ES512,
 #endif
-        T_COSE_ALGORITHM_NONE}; /* 0 is a reserved COSE alg ID and will never be used */
+        T_COSE_ALGORITHM_NONE};
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
@@ -887,7 +877,7 @@ t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
         T_COSE_ALGORITHM_PS512,
 #endif
-        T_COSE_ALGORITHM_NONE}; /* 0 is a reserved COSE alg ID and will never be used */
+        T_COSE_ALGORITHM_NONE};
 
     return t_cose_check_list(cose_algorithm_id, rsa_list);
 }
