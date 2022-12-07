@@ -269,7 +269,9 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 
     key_type = psa_get_key_type(&key_attributes);
     key_len_bits = psa_get_key_bits(&key_attributes);
-    *sig_size = (size_t)PSA_SIGN_OUTPUT_SIZE(key_type, (int)key_len_bits, psa_alg_id);
+    *sig_size = (size_t)PSA_SIGN_OUTPUT_SIZE(key_type,
+                                             (int)key_len_bits,
+                                             psa_alg_id);
 
     return_value = T_COSE_SUCCESS;
 
@@ -707,12 +709,12 @@ t_cose_crypto_aes_kw(int32_t                 algorithm_id,
     mbedtls_nist_kw_init(&ctx);
 
     /* Configure KEK to be externally supplied symmetric key */
-    ret = mbedtls_nist_kw_setkey(&ctx,                    // Key wrapping context
-                                 MBEDTLS_CIPHER_ID_AES,   // Block cipher
-                                 kek.ptr,                 // Key Encryption Key (KEK)
+    ret = mbedtls_nist_kw_setkey(&ctx,                 // Key wrapping context
+                                 MBEDTLS_CIPHER_ID_AES, // Block cipher
+                                 kek.ptr,           // Key Encryption Key (KEK)
                                  (unsigned int)
-                                    kek.len * 8,          // KEK size in bits
-                                 MBEDTLS_ENCRYPT          // Operation within the context
+                                    kek.len * 8,    // KEK size in bits
+                                 MBEDTLS_ENCRYPT    // Operation within the context
                                 );
 
     if (ret != 0) {

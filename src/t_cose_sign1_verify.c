@@ -36,7 +36,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
 
     t_cose_signature_verify_eddsa_init(&(me->eddsa_verifier), option_flags);
     t_cose_sign_add_verifier(&(me->me2),
-                       t_cose_signature_verify_from_eddsa(&(me->eddsa_verifier)));
+                    t_cose_signature_verify_from_eddsa(&(me->eddsa_verifier)));
 }
 
 
@@ -46,7 +46,9 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
 {
     /* Set the same key for both. We don't know which verifier will be used
      * until decoding the input. There is only one key in t_cose_sign1(). */
-    t_cose_signature_verify_eddsa_set_key(&(me->eddsa_verifier), verification_key);
-    t_cose_signature_verify_main_set_key(&(me->main_verifier), verification_key);
+    t_cose_signature_verify_eddsa_set_key(&(me->eddsa_verifier),
+                                          verification_key);
+    t_cose_signature_verify_main_set_key(&(me->main_verifier),
+                                         verification_key);
 }
 

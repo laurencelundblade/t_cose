@@ -104,9 +104,9 @@ t_cose_main_sign(struct t_cose_signature_sign  *me_x,
         }
 
         /* The signature gets written directly into the output buffer.
-         * The matching QCBOREncode_CloseBytes call further down still needs do a
-         * memmove to make space for the CBOR header, but at least we avoid the need
-         * to allocate an extra buffer.
+         * The matching QCBOREncode_CloseBytes call further down still
+         * needs do a memmove to make space for the CBOR header, but
+         * at least we avoid the need to allocate an extra buffer.
          */
 
         return_value = t_cose_crypto_sign(me->cose_algorithm_id,
@@ -132,7 +132,7 @@ Done:
 
 void
 t_cose_signature_sign_main_init(struct t_cose_signature_sign_main *me,
-                                 int32_t                             cose_algorithm_id)
+                                int32_t                            cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
     me->s.callback        = t_cose_main_sign;

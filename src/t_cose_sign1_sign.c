@@ -18,7 +18,7 @@
 /**
  * \file t_cose_sign1_sign.c
  *
- * \brief This implements t_cose signing.
+ * \brief This implements the t_cose v1 interface for COSE_Sign1.
  */
 
 
@@ -40,21 +40,17 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
     t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
 
-    {
-        if(cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
-            t_cose_signature_sign_eddsa_init(&(me->signer.eddsa));
-            t_cose_sign_add_signer(&(me->me2),
-                                   t_cose_signature_sign_from_eddsa(&(me->signer.eddsa)));
-        } else {
-            t_cose_signature_sign_main_init(&(me->signer.general), me->cose_algorithm_id);
-            t_cose_sign_add_signer(&(me->me2),
-                                   t_cose_signature_sign_from_main(&(me->signer.general)));
-        }
-
+    if(cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
+        t_cose_signature_sign_eddsa_init(&(me->signer.eddsa));
+        t_cose_sign_add_signer(&(me->me2),
+                       t_cose_signature_sign_from_eddsa(&(me->signer.eddsa)));
+    } else {
+        t_cose_signature_sign_main_init(&(me->signer.general),
+                                        me->cose_algorithm_id);
+        t_cose_sign_add_signer(&(me->me2),
+                      t_cose_signature_sign_from_main(&(me->signer.general)));
     }
-
 }
-
 
 
 void
@@ -64,17 +60,14 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
 {
     me->signing_key = signing_key; /* Used by make test message */
     me->kid = kid; /* Used by make test message */
-    {
-        if(me->cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
-            t_cose_signature_sign_eddsa_set_signing_key(&(me->signer.eddsa),
-                                                         signing_key,
-                                                         kid);
-
-        } else {
-            t_cose_signature_sign_main_set_signing_key(&(me->signer.general),
-                                                        signing_key,
-                                                        kid);
-        }
+    if(me->cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
+        t_cose_signature_sign_eddsa_set_signing_key(&(me->signer.eddsa),
+                                                     signing_key,
+                                                     kid);
+    } else {
+        t_cose_signature_sign_main_set_signing_key(&(me->signer.general),
+                                                    signing_key,
+                                                    kid);
     }
 }
 
@@ -103,11 +96,11 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
 
 void
 t_cose_sign1_sign_set_auxiliary_buffer(struct t_cose_sign1_sign_ctx *me,
-                                       struct q_useful_buf           auxiliary_buffer)
+                                       struct q_useful_buf           aux_buffer)
 {
     if(me->cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
         t_cose_signature_sign_eddsa_set_auxiliary_buffer(&(me->signer.eddsa),
-                                                         auxiliary_buffer);
+                                                         aux_buffer);
     }
 }
 

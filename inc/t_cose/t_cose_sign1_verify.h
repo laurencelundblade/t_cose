@@ -445,9 +445,10 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
 
 static inline void
 t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *me,
-                                         struct q_useful_buf             auxiliary_buffer)
+                                         struct q_useful_buf        aux_buffer)
 {
-    t_cose_signature_verify_eddsa_set_auxiliary_buffer(&(me->eddsa_verifier), auxiliary_buffer);
+    t_cose_signature_verify_eddsa_set_auxiliary_buffer(&(me->eddsa_verifier),
+                                                       aux_buffer);
 }
 
 

@@ -113,7 +113,7 @@ Done:
  This is an implementation of t_cose_signature_verify_callback
  */
 static enum t_cose_err_t
-t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify     *me_x,
+t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
                               const uint32_t                      option_flags,
                               const struct t_cose_header_location loc,
                               const struct q_useful_buf_c         protected_body_headers,

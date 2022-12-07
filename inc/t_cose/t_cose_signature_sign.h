@@ -30,7 +30,7 @@
  * anticipation of more complicated signers that support things like
  * counter signing, post-quantum signatures and certificate
  * hierarchies.  A signer may support only one signing algorithm, but
- * that is not required. For examples the "main" signer supports basic
+ * that is not required. For examples the "main" signer supports
  * ECDSA and RSA because they are very similar. The EdDSA signer is
  * separate because it doesn't involve a hash. Counter signature are
  * too complicated to support with custom parameters so they should
@@ -45,19 +45,20 @@
  * encoder instance.
  *
  * t_cose_signature_sign_h_callback is a callback that signers
- * that support COSE_Sign1 must implement. It returns the
+ * that support COSE_Sign1 must implement in addition to
+ * t_cose_signer_callback. It returns the
  * headers that have to go in the COSE_Sign1 body.
  *
  * This design allows new signers for new algorithms to be added
- * without modifying or even recompiling t_cose.  It is a clean and
- * simple design that allows outputting a COSE_Sign that has multiple
+ * without modifying or even recompiling t_cose.  It is a
+ * design that allows outputting a COSE_Sign that has multiple
  * signings by multiple aglorithms, for example an ECDSA signature and
  * an HSS/LMS signature.
  *
- * Because this design is based on dynamic linking there it gives
+ * Because this design is based on dynamic linking it gives
  * some help dealing with code size and dependency on crypto libraries.
  * If you don't call the init function for a signer or verifier
- * it won't be linked and it was done with no #define. You can
+ * it won't be linked No disabling #define needed. You can
  * just leave out the source files for signers/verifiers you don't
  * want and all will compile and link nicely without having to
  * managed a #define. (This doesn't work to elimiate RSA if you use only ECDSA
@@ -67,15 +68,15 @@
  * What's really going on here is a bit of doing object orientation
  * implementned in C. This is an abstract base class, an object that
  * has no implementation of it's own. Each signer type, e.g., the
- * ECDSA signer, inherits from this and provides an
+ * main signer, inherits from this and provides an
  * implementation. The structure defined here holds the vtable for the
- * methods for the object. Only one method happens to be needed. It's
+ * methods for the object. Only two methods happen to be needed. It's
  * called a "callback" here, but it could also be called the abstract
  * sign method.
  *
  * Since C doesn't support object orientation there's a few tricks to
- * make this fly. The concrete instantiation (e.g., an ECDSA signer)
- * must make struct t_cose_signature_sign the first part of its
+ * make this fly. The concrete instantiation (e.g., the main signer)
+ * must make struct t_cose_signature_sign is the first part of its
  * context and there will be casts back and forth between this
  * abstraction and the real instantion of the signer. The other trick
  * is that struct here contains a pointer to a function and that makes
@@ -89,18 +90,22 @@ struct t_cose_signature_sign;
 
 
 /**
- * \brief Typedef of callback that makes a COSE_Signature.
+ * \brief Typedef of callback that  makes a COSE_Signature or the signature
+ *         for a COSE_Sign1.
  *
  * \param [in] me                    The context, the  t_cose_signature_sign
- *                                   instance. This will actuzlly be some
+ *                                   instance. This will actually be some
  *                                   thing like t_cose_signature_sign_main
  *                                   that implements t_cose_signature_sign
- * \Param[in] option_flags    Option flags from t_cose_sign_verify_init(). Primarily to check whether to make a COSE_Sign or COSE_Sign1.
+ * \Param[in] option_flags           Option flags from t_cose_sign_verify_init().
+ *                                   Primarily to check whether to make a
+ *                                   COSE_Sign or COSE_Sign1.
  * \param[in] protected_body_headers The COSE_Sign body headers covered by the
  *                                   signature
  * \param[in] payload                The payload (regular or detached) that
  *                                   is covered by the signature.
- * \param[in] aad                    The aad covered by the signature.
+ * \param[in] aad                    The aad covered by the signature. May
+ *                                   be \ref NULL_Q_USEFUL_BUF_C
  * \param[in] qcbor_encoder          The CBOR encoder context to ouput either
  *                                   a COSE_Signature or the simple byte
  *                                   string signature for a COSE_Sign1.
@@ -137,8 +142,8 @@ t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
  * there is an error here that needs to be returned, set it in the
  * instance context and then return it when
  * t_cose_signature_sign_callback is
- * called. t_cose_signature_sign_callback is always called. (The point
- * of not returning an error here is to save object code)
+ * called. t_cose_signature_sign_callback is always called (the point
+ * of not returning an error here is to save object code).
  *
  * This is never called for COSE_Sign.
 */
