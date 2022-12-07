@@ -120,12 +120,10 @@ struct t_cose_signature_sign;
  * being called in size calculation mode.
  */
 typedef enum t_cose_err_t
-t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
-                               uint32_t                      option_flags,
-                               const struct q_useful_buf_c   protected_body_headers,
-                               const struct q_useful_buf_c   aad,
-                               const struct q_useful_buf_c   payload,
-                               QCBOREncodeContext           *qcbor_encoder);
+t_cose_signature_sign_callback(struct t_cose_signature_sign    *me,
+                               uint32_t                         option_flags,
+                               const struct t_cose_sign_inputs *sign_input,
+                               QCBOREncodeContext              *qcbor_encoder);
 
 
 /**

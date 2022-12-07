@@ -59,9 +59,7 @@ typedef enum t_cose_err_t
 t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
                                  uint32_t                          option_flags,
                                  const struct t_cose_header_location loc,
-                                 const struct q_useful_buf_c       protected_body_headers,
-                                 const struct q_useful_buf_c       payload,
-                                 const struct q_useful_buf_c       aad,
+                                 const struct t_cose_sign_inputs *sign_inputs,
                                  struct t_cose_parameter_storage  *params,
                                  QCBORDecodeContext               *qcbor_decoder,
                                  struct t_cose_parameter         **decoded_signature_parameters);
@@ -90,10 +88,7 @@ t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
 typedef enum t_cose_err_t
 t_cose_signature_verify1_callback(struct t_cose_signature_verify *me,
                                   uint32_t                        option_flags,
-                                  const struct q_useful_buf_c     protected_body_headers,
-                                  const struct q_useful_buf_c     protected_signature_headers,
-                                  const struct q_useful_buf_c     payload,
-                                  const struct q_useful_buf_c     aad,
+                                  const struct t_cose_sign_inputs *sign_inputs,
                                   const struct t_cose_parameter  *parameter_list,
                                   const struct q_useful_buf_c     signature);
 

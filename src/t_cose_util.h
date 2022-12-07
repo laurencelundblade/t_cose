@@ -47,6 +47,8 @@ enum t_cose_tbm_payload_mode_t {
     T_COSE_TBM_BARE_PAYLOAD
 };
 
+
+
 /**
  * This value represents an invalid or in-error algorithm ID.  The
  * value selected is 0 as this is reserved in the IANA COSE algorithm
@@ -166,12 +168,9 @@ enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
  * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
  *  \c \sign_protected_parameters can be can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
-enum t_cose_err_t create_tbs(struct q_useful_buf_c  protected_parameters,
-                             struct q_useful_buf_c  aad,
-                             const struct q_useful_buf_c  sign_protected_parameters,
-                             struct q_useful_buf_c  payload,
-                             struct q_useful_buf    buffer_for_tbs,
-                             struct q_useful_buf_c *tbs);
+enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
+                             struct q_useful_buf              buffer_for_tbs,
+                             struct q_useful_buf_c           *tbs);
 
 
 /**
@@ -209,13 +208,10 @@ enum t_cose_err_t create_tbs(struct q_useful_buf_c  protected_parameters,
  *
  * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
-enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
-                                  struct q_useful_buf_c  body_protected_parameters,
-                                  struct q_useful_buf_c  sign_protected_parameters,
-                                  struct q_useful_buf_c  aad,
-                                  struct q_useful_buf_c  payload,
-                                  struct q_useful_buf    buffer_for_hash,
-                                  struct q_useful_buf_c *hash);
+enum t_cose_err_t create_tbs_hash(int32_t                   cose_algorithm_id,
+                                  const struct t_cose_sign_inputs *sign_inputs,
+                                  struct q_useful_buf       buffer_for_hash,
+                                  struct q_useful_buf_c    *hash);
 
 
 

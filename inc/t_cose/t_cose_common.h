@@ -16,7 +16,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 // TODO: don't think this is needed, but it was added
-//#include "t_cose/q_useful_buf.h"
+// This is now needed for sign_inputs (if it stays in common)
+#include "t_cose/q_useful_buf.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -740,6 +741,23 @@ enum t_cose_err_t {
  */
 bool
 t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
+
+
+/* Structure that holds all the inputs for signing that is
+ * used in a few places (so it ends up in t_cose_common.h.
+ * It is public because it is part of the signer/verify
+ * call back interface.
+ *
+ * These are the inputs to create a Sig_structure
+ * from section 4.4 in RFC 9052.
+ */
+struct t_cose_sign_inputs {
+    struct q_useful_buf_c  body_protected;
+    struct q_useful_buf_c  aad;
+    struct q_useful_buf_c  sign_protected;
+    struct q_useful_buf_c  payload;
+};
+
 
 
 #ifdef __cplusplus
