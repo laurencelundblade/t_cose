@@ -143,11 +143,7 @@ enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
 /**
  * Serialize the to-be-signed (TBS) bytes for COSE.
  *
- * \param[in] protected_parameters  Full, CBOR encoded, body protected parameters.
- * \param[in] aad                   Additional Authenitcated Data to be
- *                                  included in TBS.
- * \param[in] sign_protected_parameters  Signature, CBOR encoded, protected parameters.
- * \param[in] payload               The CBOR-encoded payload.
+ * \param[in] sign_inputs               The payload, AAD and header params to hash.
  * \param[in] buffer_for_tbs        Pointer and length of buffer into which
  *                                  the resulting TBS bytes is put.
  * \param[out] tbs                  Pointer and length of the
@@ -164,9 +160,6 @@ enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
  * and a few other things. These are known as the to-be-signed or "TBS"
  * bytes. The exact specification is in [RFC 8152 section
  * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
- *
- * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
- *  \c \sign_protected_parameters can be can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
 enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
                              struct q_useful_buf              buffer_for_tbs,
@@ -178,12 +171,7 @@ enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
  *
  * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
  *                                  determine which hash function to use.
- * \param[in] body_protected_parameters  Protected parameters from the body..
- * \param[in] sign_protected_parameters  Protected parameters from the COSE_Signer.
- *                                        May be NULL_Q_USEFUL_BUF_C for COSE_Sign1.
- * \param[in] aad                   Additional Authenitcated Data to be
- *                                  included in TBS.
- * \param[in] payload               The CBOR-encoded payload.
+ * \param[in] sign_inputs               The payload, AAD and header params to hash.
  * \param[in] buffer_for_hash       Pointer and length of buffer into which
  *                                  the resulting hash is put.
  * \param[out] hash                 Pointer and length of the
@@ -205,8 +193,6 @@ enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
  * and computes the hash of it. These are known as the to-be-signed or
  * "TBS" bytes. The exact specification is in [RFC 8152 section
  * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
- *
- * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
 enum t_cose_err_t create_tbs_hash(int32_t                   cose_algorithm_id,
                                   const struct t_cose_sign_inputs *sign_inputs,

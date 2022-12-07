@@ -750,6 +750,14 @@ t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
  *
  * These are the inputs to create a Sig_structure
  * from section 4.4 in RFC 9052.
+ *
+ * aad and sign_protected may be \ref NULL_Q_USEFUL_BUF_C.
+ *
+ * payload is a CBOR encoded byte string that may
+ * contain CBOR or other.
+ *
+ * body_protected are the byte-string wrapped protected
+ * header parameters from the COSE_Sign or COSE_Sign1.
  */
 struct t_cose_sign_inputs {
     struct q_useful_buf_c  body_protected;

@@ -73,9 +73,7 @@ t_cose_eddsa_sign(struct t_cose_signature_sign    *me_x,
      * If auxiliary_buffer.ptr is NULL this will succeed, computing
      * the necessary size.
      */
-    return_value = create_tbs(sign_inputs,
-                              me->auxiliary_buffer,
-                             &tbs);
+    return_value = create_tbs(sign_inputs, me->auxiliary_buffer, &tbs);
     if (return_value == T_COSE_ERR_TOO_SMALL) {
         /* Be a bit more specific about which buffer is too small */
         return_value = T_COSE_ERR_AUXILIARY_BUFFER_SIZE;
