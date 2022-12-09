@@ -18,12 +18,7 @@
 #include "t_cose_crypto.h"
 
 
-/* Warning: this is still early development. Documentation may be incorrect. */
-
-
-/*
- * This is an implementation of t_cose_signature_verify1_callback.
- */
+/** This is an implementation of \ref t_cose_signature_verify1_cb. */
 static enum t_cose_err_t
 t_cose_signature_verify1_eddsa_cb(struct t_cose_signature_verify *me_x,
                                   const uint32_t                  option_flags,
@@ -106,14 +101,15 @@ Done:
 
  This is an implementation of t_cose_signature_verify_callback
  */
+/** This is an implementation of \ref t_cose_signature_verify_cb. */
 static enum t_cose_err_t
 t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
-                                 const uint32_t                      option_flags,
+                                 const uint32_t                   option_flags,
                                  const struct t_cose_header_location loc,
-                                 const struct t_cose_sign_inputs    *sign_inputs,
-                                 struct t_cose_parameter_storage    *param_storage,
-                                 QCBORDecodeContext                 *qcbor_decoder,
-                                 struct t_cose_parameter           **decoded_signature_parameters)
+                                 const struct t_cose_sign_inputs *sign_inputs,
+                                 struct t_cose_parameter_storage *param_storage,
+                                 QCBORDecodeContext             *qcbor_decoder,
+                                 struct t_cose_parameter       **decoded_params)
 {
     const struct t_cose_signature_verify_eddsa *me =
                             (const struct t_cose_signature_verify_eddsa *)me_x;
@@ -130,7 +126,7 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
                                          me->reader,
                                          me->reader_ctx,
                                          param_storage,
-                                         decoded_signature_parameters,
+                                         decoded_params,
                                         &protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -148,9 +144,9 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
     /* --- Done decoding the COSE_Signature --- */
 
     return_value = t_cose_signature_verify1_eddsa_cb(me_x,
-                                                    option_flags,
-                                                    sign_inputs,
-                                                    *decoded_signature_parameters,
+                                                     option_flags,
+                                                     sign_inputs,
+                                                    *decoded_params,
                                                      signature);
 Done:
     return return_value;

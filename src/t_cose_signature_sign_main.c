@@ -77,7 +77,7 @@ t_cose_signature_sign1_main_cb(struct t_cose_signature_sign     *me_x,
         return_value = create_tbs_hash(me->cose_algorithm_id,
                                        sign_inputs,
                                        buffer_for_tbs_hash,
-                                       &tbs_hash);
+                                      &tbs_hash);
         if(return_value) {
             goto Done;
         }
@@ -130,7 +130,7 @@ t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
 
 void
 t_cose_signature_sign_main_init(struct t_cose_signature_sign_main *me,
-                                const int32_t                      cose_algorithm_id)
+                                const int32_t               cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
     me->s.headers_cb      = t_cose_signature_sign_headers_main_cb;

@@ -18,6 +18,7 @@
 #include "t_cose_util.h"
 
 
+/** This is an implementation of \ref t_cose_signature_sign_headers_cb */
 static void
 t_cose_signature_sign_headers_eddsa_cb(struct t_cose_signature_sign   *me_x,
                                        struct t_cose_parameter       **params)
@@ -36,6 +37,7 @@ t_cose_signature_sign_headers_eddsa_cb(struct t_cose_signature_sign   *me_x,
 }
 
 
+/** This is an implementation of \ref t_cose_signature_sign_cb */
 static enum t_cose_err_t
 t_cose_signature_sign1_eddsa_cb(struct t_cose_signature_sign    *me_x,
                                 const struct t_cose_sign_inputs *sign_inputs,
@@ -98,9 +100,7 @@ Done:
 
 }
 
-/* While this is a private function, it is called externally
- * as a callback via a function pointer that is set up in
- * t_cose_eddsa_signer_init().  */
+/** This is an implementation of \ref t_cose_signature_sign1_cb */
 static enum t_cose_err_t
 t_cose_signature_sign_eddsa_cb(struct t_cose_signature_sign  *me_x,
                                struct t_cose_sign_inputs     *sign_inputs,

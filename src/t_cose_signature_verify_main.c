@@ -18,9 +18,7 @@
 #include "t_cose_crypto.h"
 
 
-/*
- * This is an implementation of \ref t_cose_signature_verify1_cb.
- */
+/** This is an implementation of \ref t_cose_signature_verify1_cb. */
 static enum t_cose_err_t
 t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
                                  const uint32_t                   option_flags,
@@ -89,14 +87,16 @@ Done:
 
  This is an implementation of t_cose_signature_verify_cb
  */
+
+/** This is an implementation of \ref t_cose_signature_verify_cb. */
 static enum t_cose_err_t
-t_cose_signature_verify_main_cb(struct t_cose_signature_verify     *me_x,
-                                const uint32_t                      option_flags,
+t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
+                                const uint32_t                  option_flags,
                                 const struct t_cose_header_location loc,
-                                const struct t_cose_sign_inputs    *sign_inputs,
-                                struct t_cose_parameter_storage    *param_storage,
-                                QCBORDecodeContext                 *qcbor_decoder,
-                                struct t_cose_parameter           **decoded_signature_parameters)
+                                const struct t_cose_sign_inputs *sign_inputs,
+                                struct t_cose_parameter_storage *param_storage,
+                                QCBORDecodeContext              *qcbor_decoder,
+                                struct t_cose_parameter        **decoded_params)
 {
     const struct t_cose_signature_verify_main *me =
                             (const struct t_cose_signature_verify_main *)me_x;
@@ -113,7 +113,7 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify     *me_x,
                                          me->reader,
                                          me->reader_ctx,
                                          param_storage,
-                                         decoded_signature_parameters,
+                                         decoded_params,
                                         &protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -134,7 +134,7 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify     *me_x,
     return_value = t_cose_signature_verify1_main_cb(me_x,
                                                     option_flags,
                                                     sign_inputs,
-                                                   *decoded_signature_parameters,
+                                                   *decoded_params,
                                                     signature);
 Done:
     return return_value;
