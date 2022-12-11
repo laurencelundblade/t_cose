@@ -31,6 +31,7 @@ struct t_cose_signature_verify_main {
      */
     struct t_cose_signature_verify     s;
     struct t_cose_key                  verification_key;
+    void                              *crypto_context;
     t_cose_parameter_decode_callback  *reader;
     void                              *reader_ctx;
 };
@@ -45,9 +46,14 @@ t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
                                       struct t_cose_key verification_key);
 
 static void
+t_cose_signature_verify_main_set_crypto_context(struct t_cose_signature_verify_main *me,
+                                                void *crypto_context);
+
+
+static void
 t_cose_signature_verify_main_set_header_reader(struct t_cose_signature_verify_main *me,
-                                                t_cose_parameter_decode_callback                 *reader,
-                                                void                                 *reader_ctx);
+                                                t_cose_parameter_decode_callback   *reader,
+                                                void                               *reader_ctx);
 
 static struct t_cose_signature_verify *
 t_cose_signature_verify_from_main(struct t_cose_signature_verify_main *context);
@@ -72,8 +78,16 @@ t_cose_signature_verify_main_set_header_reader(struct t_cose_signature_verify_ma
                                                 t_cose_parameter_decode_callback *reader,
                                                 void *reader_ctx)
 {
-    me->reader = reader;
+    me->reader     = reader;
     me->reader_ctx = reader_ctx;
+}
+
+
+static inline void
+t_cose_signature_verify_main_set_crypto_context(struct t_cose_signature_verify_main *me,
+                                                void *crypto_context)
+{
+    me->crypto_context = crypto_context;
 }
 
 

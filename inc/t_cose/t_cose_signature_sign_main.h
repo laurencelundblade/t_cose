@@ -32,6 +32,7 @@ struct t_cose_signature_sign_main {
     int32_t                      cose_algorithm_id;
     struct q_useful_buf_c        kid;
     struct t_cose_key            signing_key;
+    void                        *crypto_context;
     uint32_t                     option_flags; // TODO: use or get rid of
     struct t_cose_parameter      local_params[2];
     struct t_cose_parameter     *added_signer_params;
@@ -54,6 +55,11 @@ static void
 t_cose_signature_sign_main_set_signing_key(struct t_cose_signature_sign_main *context,
                                             struct t_cose_key                   signing_key,
                                             struct q_useful_buf_c               kid);
+
+// TODO: documentation
+static void
+t_cose_signature_sign_main_set_crypto_context(struct t_cose_signature_sign_main *context,
+                                              void *crypto_context);
 
 
 /* The header parameter for the algorithm ID is generated automatically.
@@ -127,5 +133,14 @@ t_cose_signature_sign_main_set_header_parameter(struct t_cose_signature_sign_mai
 {
     me->added_signer_params = header_parameters;
 }
+
+
+static inline void
+t_cose_signature_sign_main_set_crypto_context(struct t_cose_signature_sign_main *me,
+                                              void *crypto_context)
+{
+    me->crypto_context = crypto_context;
+}
+
 
 #endif /* t_cose_signature_sign_main_h */
