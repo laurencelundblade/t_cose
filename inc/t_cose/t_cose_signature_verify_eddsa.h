@@ -31,7 +31,6 @@ struct t_cose_signature_verify_eddsa {
      */
     struct t_cose_signature_verify     s;
     struct t_cose_key                  verification_key;
-    void                              *crypto_context;
     t_cose_parameter_decode_callback  *reader;
     void                              *reader_ctx;
     uint32_t                           option_flags;

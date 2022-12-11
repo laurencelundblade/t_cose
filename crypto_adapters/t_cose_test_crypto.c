@@ -111,7 +111,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct q_useful_buf_c *signature)
 {
     enum t_cose_err_t return_value;
-    size_t            array_indx;
+    size_t            array_index;
     size_t            amount_to_copy;
     size_t            sig_size;
     struct t_cose_test_crypto_context *cc = (struct t_cose_test_crypto_context *)crypto_context;
@@ -136,12 +136,12 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     }
 
     /* Loop concatening copies of the hash to fill out to signature size */
-    for(array_indx = 0; array_indx < sig_size; array_indx += hash_to_sign.len) {
-        amount_to_copy = sig_size - array_indx;
+    for(array_index = 0; array_index < sig_size; array_index += hash_to_sign.len) {
+        amount_to_copy = sig_size - array_index;
         if(amount_to_copy > hash_to_sign.len) {
             amount_to_copy = hash_to_sign.len;
         }
-        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
+        memcpy((uint8_t *)signature_buffer.ptr + array_index,
                hash_to_sign.ptr,
                amount_to_copy);
     }
@@ -168,7 +168,6 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
     struct q_useful_buf_c hash_from_sig;
     enum t_cose_err_t     return_value;
     struct t_cose_test_crypto_context *cc = (struct t_cose_test_crypto_context *)crypto_context;
-
 
     (void)verification_key;
     (void)kid;
