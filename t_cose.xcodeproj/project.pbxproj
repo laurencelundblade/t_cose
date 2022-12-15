@@ -138,6 +138,8 @@
 		E7F17339293ED70E00E5ADF3 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E74FFBB8263BAB0D003B66FF /* libcrypto.a */; };
 		E7F1733A293ED83100E5ADF3 /* t_cose_basic_example_ossl.c in Sources */ = {isa = PBXBuildFile; fileRef = E73BF6F023B07AB200DF5C36 /* t_cose_basic_example_ossl.c */; };
 		E7F17343294967CD00E5ADF3 /* hpke.c in Sources */ = {isa = PBXBuildFile; fileRef = E7F17342294967CD00E5ADF3 /* hpke.c */; };
+		E7F17344294AF07200E5ADF3 /* hpke.c in Sources */ = {isa = PBXBuildFile; fileRef = E7F17342294967CD00E5ADF3 /* hpke.c */; };
+		E7F17345294AF18500E5ADF3 /* hpke.c in Sources */ = {isa = PBXBuildFile; fileRef = E7F17342294967CD00E5ADF3 /* hpke.c */; };
 		E7F70AC62270DFAE007CE07F /* t_cose_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7F70AC52270DFAE007CE07F /* t_cose_test.c */; };
 		E7FECC472887430700420F6F /* t_cose_sign_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC452887430600420F6F /* t_cose_sign_sign.c */; };
 		E7FECC49288754E200420F6F /* t_cose_sign_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC452887430600420F6F /* t_cose_sign_sign.c */; };
@@ -745,6 +747,7 @@
 				E771081A2917EDA900D8ADF4 /* t_cose_encrypt_dec.c in Sources */,
 				E771082C2917EDA900D8ADF4 /* t_cose_recipient_enc_hpke.c in Sources */,
 				E7F173082928557A00E5ADF3 /* t_cose_signature_verify_eddsa.c in Sources */,
+				E7F17344294AF07200E5ADF3 /* hpke.c in Sources */,
 				E730E61323612DAB00175CE0 /* t_cose_util.c in Sources */,
 				E730E61523612DAB00175CE0 /* sha256.c in Sources */,
 				E730E61623612DAB00175CE0 /* t_cose_test.c in Sources */,
@@ -887,6 +890,7 @@
 				0F8B2FEF2345A33A00A22349 /* t_cose_make_test_messages.c in Sources */,
 				E7E36E90226CB9460040613B /* t_cose_util.c in Sources */,
 				E7F1730A292DE5DF00E5ADF3 /* t_cose_signature_verify_eddsa.c in Sources */,
+				E7F17345294AF18500E5ADF3 /* hpke.c in Sources */,
 				E7FECC60288B346200420F6F /* t_cose_sign_verify.c in Sources */,
 				E721CB9B2362AC2A00C7FD56 /* t_cose_sign_verify_test.c in Sources */,
 				E77108212917EDA900D8ADF4 /* t_cose_recipient_dec_hpke.c in Sources */,

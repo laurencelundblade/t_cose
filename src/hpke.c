@@ -25,7 +25,7 @@
  *
  */
 
-//#if defined(MBEDTLS_HPKE_C)
+#ifndef T_COSE_DISABLE_HPKE
 
 #include "mbedtls/md.h"
 #include <stddef.h>
@@ -1563,4 +1563,5 @@ int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
                          cipherlen, cipher ); // ciphertext
 }
 
-//#endif /* MBEDTLS_HPKE_C */
+#endif /* T_COSE_DISABLE_HPKE */
+
