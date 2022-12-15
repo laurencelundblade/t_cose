@@ -74,6 +74,7 @@ set(T_COSE_SRC_COMMON
     src/t_cose_mac_validate.c
     src/t_cose_signature_verify_main.c
     src/t_cose_signature_verify_eddsa.c
+    src/hpke.c
 )
 
 find_package(QCBOR REQUIRED)
