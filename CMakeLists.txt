@@ -51,7 +51,7 @@ elseif(CRYPTO_PROVIDER STREQUAL "Test")
     target_include_directories(b_con_hash PUBLIC crypto_adapters/b_con_hash)
 
     set(CRYPTO_LIBRARY b_con_hash)
-    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_B_CON_SHA256 -DT_COSE_ENABLE_HASH_FAIL_TEST)
+    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_B_CON_SHA256 -DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_HPKE)
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_test_crypto.c)
 
 else()
