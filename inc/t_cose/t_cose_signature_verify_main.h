@@ -32,6 +32,7 @@ struct t_cose_signature_verify_main {
     struct t_cose_signature_verify  s;
     struct t_cose_key               verification_key;
     t_cose_parameter_decode_cb     *param_decode_cb;
+    void                              *crypto_context;
     void                           *param_decode_cb_context;
 };
 
@@ -43,6 +44,24 @@ t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *me);
 static void
 t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
                                       struct t_cose_key verification_key);
+
+/**
+ * \brief  Set the crypto context to be passed to the crypto library..
+ *
+ * \param[in] context The signer context.
+ * \param[in] crypto_context   Pointer to the crypto context.
+ *
+ * The crypto context will be passed down to the crypto adapter
+ * layer. It can be used to configure special features, track special
+ * state or to return information for the crypto library.  The
+ * structure pointed to by the crypto context is specific to the
+ * crypto adapter that is in use. Many crypto adapters don't support
+ * this at all as it is not needed for most use cases.
+ */
+static void
+t_cose_signature_verify_main_set_crypto_context(struct t_cose_signature_verify_main *context,
+                                                void *crypto_context);
+
 
 static void
 t_cose_signature_verify_main_set_param_decoder(struct t_cose_signature_verify_main *me,
@@ -74,6 +93,14 @@ t_cose_signature_verify_main_set_param_decoder(struct t_cose_signature_verify_ma
 {
     me->param_decode_cb         = decode_cb;
     me->param_decode_cb_context = decode_cb_context;
+}
+
+
+static inline void
+t_cose_signature_verify_main_set_crypto_context(struct t_cose_signature_verify_main *me,
+                                                void *crypto_context)
+{
+    me->crypto_context = crypto_context;
 }
 
 
