@@ -27,7 +27,6 @@
 
 #ifndef T_COSE_DISABLE_HPKE
 
-#include "mbedtls/md.h"
 #include <stddef.h>
 #include <string.h>
 #include "mbedtls/error.h"
