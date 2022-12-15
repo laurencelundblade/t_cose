@@ -32,7 +32,6 @@
 #ifndef HPKE_H_INCLUDED
 #define HPKE_H_INCLUDED
 
-#include "mbedtls/build_info.h"
 
 #include "psa/crypto.h"
 #include <stdint.h>
