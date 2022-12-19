@@ -141,8 +141,8 @@ hpke_kem_info_t hpke_kem_tab[]={
  * \brief info about a KDF
  */
 typedef struct {
-    uint16_t            kdf_id; // code point for KDF
-    size_t              Nh;     // length of hash/extract output
+    uint16_t            kdf_id; //< code point for KDF
+    size_t              Nh;     //< length of hash/extract output
 } hpke_kdf_info_t;
 
 /*!
@@ -323,6 +323,83 @@ exit:
 
 
 
+#include "q_useful_buf.h"
+#include <stddef.h>
+#include <stdint.h>
+
+
+
+static void
+append_suite_id(UsefulOutBuf *uob, uint16_t kem_id)
+{
+    // TODO: this is probably more complicated
+    UsefulOutBuf_AppendString(uob, "KEM");
+
+    // This is the same as I2OSP(L, 2). I2OSP serializes the
+    // integer as big endian. length 2 is uint16_t
+    UsefulOutBuf_AppendUint16(uob, (uint16_t)kem_id);
+}
+
+
+int mbedtls_hkdf_expand( const mbedtls_md_info_t *md, const unsigned char *prk,
+size_t prk_len, const unsigned char *info,
+size_t info_len, unsigned char *okm, size_t okm_len );
+
+// TODO: a t_cose error
+// TODO: what's the right ID space for the kdf ID in the t_cose crypto adaptor layer?
+int
+t_cose_crypto_hkdf_expand(int kdf,
+                          struct q_useful_buf_c prk,
+                          struct q_useful_buf_c info,
+                          struct q_useful_buf out_buf,
+                          struct q_useful_buf_c *result)
+{
+    int mbedtls_err;
+    const mbedtls_md_info_t *md;
+    mbedtls_md_type_t md_type;
+
+    // TODO: more efficient mapping, probably an indexed table
+    switch( kdf)
+    {
+    case HPKE_KDF_ID_HKDF_SHA256:
+        md_type = MBEDTLS_MD_SHA256;
+        break;
+    case HPKE_KDF_ID_HKDF_SHA384:
+        md_type = MBEDTLS_MD_SHA384;
+        break;
+    case HPKE_KDF_ID_HKDF_SHA512:
+        md_type = MBEDTLS_MD_SHA512;
+        break;
+    default:
+        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+    }
+
+    md = mbedtls_md_info_from_type( md_type );
+    if( md == NULL )
+    {
+        // TODO: the right error code
+        return 88;
+    }
+
+    mbedtls_err = mbedtls_hkdf_expand(md,
+                                      prk.ptr, prk.len,
+                                      info.ptr, info.len,
+                                      out_buf.ptr,
+                                      out_buf.len);
+
+    if(mbedtls_err) {
+        // TODO: translate error
+        return mbedtls_err;
+    }
+
+    result->ptr = out_buf.ptr;
+    result->len = out_buf.len;
+
+    return 0;
+}
+
+
+// TODO: this is labeled expand
 int mbedtls_hpke_expand( const hpke_suite_t suite, const int mode5869,
                          const unsigned char *prk, const size_t prklen,
                          const char *label, const size_t labellen,
@@ -342,7 +419,97 @@ int mbedtls_hpke_expand( const hpke_suite_t suite, const int mode5869,
         return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
+#ifndef NEW
+    // def LabeledExpand(prk, label, info, L):
+    //labeled_info = concat(I2OSP(L, 2), "HPKE-v1", suite_id,
+    //                      label, info)
+    // return Expand(prk, labeled_info, L)
+
+    struct q_useful_buf_c prk_b = (struct q_useful_buf_c){prk, prklen};
+    struct q_useful_buf_c label_b = (struct q_useful_buf_c){label, labellen};
+    struct q_useful_buf_c info_b = (struct q_useful_buf_c){info, infolen};
+    struct q_useful_buf_c labeled_info;
+    struct q_useful_buf   output_buf = (struct q_useful_buf) {out, L};
+    struct q_useful_buf_c output;
+
+    // TODO: very fancy macro that will calculate the actual
+    // size needed here.
+
+
+#define LABEL_BUF_LEN \
+    2 + \ // I2OSP(L, 2)
+    7 + \ // length of "HPKE-v1"
+    SUITE_LEN + \ // See function above
+    MAX_LABLEL_STR + \  // Max of all the str labels used -- "shared secret"
+    MAX_KEY // TODO:
+
+
+
+
+    MakeUsefulBufOnStack(labeled_info_buffer, 512);
+    UsefulOutBuf  labeled_info_buffer_uob;
+
+    UsefulOutBuf_Init(&labeled_info_buffer_uob, labeled_info_buffer);
+
+    // TODO check that this cast is OK
+    // This is the same as I2OSP(L, 2). I2OSP serializes the
+    // integer as big endian. length 2 is uint16_t
+    UsefulOutBuf_AppendUint16(&labeled_info_buffer_uob, (uint16_t)L);
+
+    UsefulOutBuf_AppendString(&labeled_info_buffer_uob, "HPKE-v1");
+
+    append_suite_id(&labeled_info_buffer_uob, suite.kem_id);
+
+    UsefulOutBuf_AppendUsefulBuf(&labeled_info_buffer_uob, label_b);
+
+    UsefulOutBuf_AppendUsefulBuf(&labeled_info_buffer_uob, info_b);
+
+    labeled_info = UsefulOutBuf_OutUBuf(&labeled_info_buffer_uob);
+
+    if(q_useful_buf_c_is_null(labeled_info)) {
+        // This will be NULL if the size calcuation was wrong
+        return 99; // TODO: proper error
+    }
+
+    int err = t_cose_crypto_hkdf_expand(suite.kdf_id, prk_b, labeled_info, output_buf, &output);
+    if(err) {
+        return err;
+    }
+
+    *outlen = output.len;
+
+    return 0;
+
+
+#endif
     // Allocate temporary buffer
+    /* What's in here:
+
+         MBEDTLS_SSL_HPKE_5869_MODE_FULL_MAX_LABEL_LEN  58 bytes for SHA-256
+
+            MBEDTLS_SSL_HPKE_MAX_LABEL_LEN
+                sizeof( union mbedtls_ssl_hpke_labels_union )
+                   13 max size of all the strings labels
+
+            MBEDTLS_MD_MAX_SIZE
+                e.g. 32 bytes for SHA-256
+
+            sizeof( mbedtls_ssl_hpke_labels.version )
+                7  the size of "HPKE-v1"
+
+            6 // size of kem_id,kdf_id,aead_id (2 bytes each for encoded integers)
+
+
+         labellen -- passed in as an argument
+             13 max size of all the label strings
+
+         infolen -- passed in as an argument
+             Seems to be at least 2x the hash (64 bytes) and maybe 3 x a key size
+
+        Grand total: 58 + 13 + 96 = 167 (256-bit)
+        Grand total: 84 + 13 + 192 = 289 (512-bit)
+
+     */
     p = mbedtls_calloc( 1, MBEDTLS_SSL_HPKE_LABEL_LEN( labellen, infolen ) );
 
     if( p == NULL )
@@ -539,7 +706,7 @@ static int hpke_aead_dec(
             unsigned char *key, size_t keylen,
             unsigned char *iv, size_t ivlen,
             unsigned char *aad, size_t aadlen,
-            const unsigned char *cipher, size_t cipherlen,
+            unsigned char *cipher, size_t cipherlen,
             unsigned char *plain, size_t *plainlen)
 {
     psa_key_attributes_t attr_ciphertext = PSA_KEY_ATTRIBUTES_INIT;
@@ -616,7 +783,7 @@ static int hpke_aead_enc(
             unsigned char *key, size_t keylen,
             unsigned char *iv, size_t ivlen,
             unsigned char *aad, size_t aadlen,
-            const unsigned char *plain, size_t plainlen,
+            unsigned char *plain, size_t plainlen,
             unsigned char *cipher, size_t *cipherlen )
 {
     psa_key_attributes_t attr_ciphertext = PSA_KEY_ATTRIBUTES_INIT;
@@ -693,11 +860,11 @@ static int hpke_aead_enc(
  * \param encrypting is 1 if we're encrypting, 0 for decrypting
  * \param suite is the ciphersuite 
  * key1 is the first key, for which we have the private value
- * \param own_public_key_len is the length of the encoded form of key1
- * \param own_public_key is the encoded form of key1
+ * \param key1enclen is the length of the encoded form of key1
+ * \param key1en is the encoded form of key1
  * key2 is the peer's key
- * \param peer_public_key_len is the length of the encoded form of key1
- * \param peer_public_key is the encoded form of key1
+ * \param key2enclen is the length of the encoded form of key1
+ * \param key2en is the encoded form of key1
  * akey is the authentication private key
  * \param apublen is the length of the encoded the authentication public key
  * \param apub is the encoded form of the authentication public key
@@ -709,8 +876,8 @@ static int hpke_aead_enc(
 static int hpke_do_kem( int encrypting,
                         hpke_suite_t suite,
                         psa_key_handle_t own_key_handle,
-                        size_t own_public_key_len, const uint8_t *own_public_key,
-                        size_t peer_public_key_len, const uint8_t *peer_public_key,
+                        size_t own_public_key_len, uint8_t *own_public_key,
+                        size_t peer_public_key_len, uint8_t *peer_public_key,
                         psa_key_handle_t apriv_handle,
                         size_t apublen, uint8_t *apub,
                         uint8_t **ss, size_t *sslen)
@@ -827,8 +994,8 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
                           char *pskid, size_t psklen, unsigned char *psk,
                           size_t pkS_len, unsigned char *pkS,
                           psa_key_handle_t skR_handle,
-                          size_t pkE_len, const unsigned char *pkE,
-                          size_t cipherlen, const unsigned char *cipher,
+                          size_t pkE_len, unsigned char *pkE,
+                          size_t cipherlen, unsigned char *cipher,
                           size_t aadlen, unsigned char *aad,
                           size_t infolen, unsigned char *info,
                           size_t *clearlen, unsigned char *clear )
@@ -1154,25 +1321,30 @@ int hpke_suite_check( hpke_suite_t suite )
  * \param pskid is the pskid string fpr a PSK mode (can be NULL)
  * \param psklen is the psk length
  * \param psk is the psk 
- * \param pkR_len is the length of the recipient public key
- * \param pkR is the encoded recipient public key
+ * \param publen is the length of the recipient public key
+ * \param pub is the encoded recipient public key
+ * \param privlen is the length of the private (authentication) key
+ * \param priv is the encoded private (authentication) key
  * \param clearlen is the length of the cleartext
  * \param clear is the encoded cleartext
  * \param aadlen is the lenght of the additional data (can be zero)
  * \param aad is the encoded additional data (can be NULL)
  * \param infolen is the lenght of the info data (can be zero)
  * \param info is the encoded info data (can be NULL)
- * \param pkE_len is the length of the input buffer for the sender's public key (length used on output)
- * \param pkE is the input buffer for ciphertext
+ * \param extsenderpublen is the length of the input buffer with the sender's public key 
+ * \param extsenderpub is the input buffer for sender public key
+ * \param extsenderpriv has the handle for the sender private key
+ * \param senderpublen is the length of the input buffer for the sender's public key (length used on output)
+ * \param senderpub is the input buffer for ciphertext
  * \param cipherlen is the length of the input buffer for ciphertext (length used on output)
  * \param cipher is the input buffer for ciphertext
  * \return 1 for good (OpenSSL style), not-1 for error
  */
 static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
                          char *pskid, size_t psklen, unsigned char *psk,
-                         size_t pkR_len, const unsigned char *pkR,
+                         size_t pkR_len, unsigned char *pkR,
                          psa_key_handle_t skS_handle,
-                         size_t clearlen, const unsigned char *clear,
+                         size_t clearlen, unsigned char *clear,
                          size_t aadlen, unsigned char *aad,
                          size_t infolen, unsigned char *info,
                          psa_key_handle_t ext_pkE_handle,
@@ -1446,9 +1618,9 @@ error:
 
 int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
                           char *pskid, size_t psklen, uint8_t *psk,
-                          size_t pkR_len, const uint8_t *pkR,
+                          size_t pkR_len, uint8_t *pkR,
                           psa_key_handle_t skI_handle,
-                          size_t clearlen, const uint8_t *clear,
+                          size_t clearlen, uint8_t *clear,
                           size_t aadlen, uint8_t *aad,
                           size_t infolen, uint8_t *info,
                           psa_key_handle_t ext_skE_handle,
