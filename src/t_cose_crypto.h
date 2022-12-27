@@ -1055,13 +1055,12 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
                            struct q_useful_buf                plaintext,
                            size_t                            *plaintext_len);
 
+
 /**
  * \brief Returns the t_cose_key given an algorithm.and a symmetric key
  *
  * \param[in] cose_algorithm_id  COSE algorithm id
- * \param[in] cek                Symmetric key
- * \param[in] cek_len            Symmetric key length
- * \param[in] flags              Key usage flags
+ * \param[in] symmetric_key                Symmetric key
  * \param[out] key               Key in t_cose_key structure.
  *
  * \retval T_COSE_SUCCESS
@@ -1075,11 +1074,9 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
  *         The provided key usage flags are unsupported.
  */
 enum t_cose_err_t
-t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
-                           uint8_t             *cek,
-                           size_t               cek_len,
-                           uint8_t              flags,
-                           struct t_cose_key   *key);
+t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
+                                        struct q_useful_buf_c symmetric_key,
+                                        struct t_cose_key     *key);
 
 
 /**
@@ -1096,10 +1093,14 @@ t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
  * \param[in] add_data               Additional data used for decryption.
  * \param[in] ciphertext             The ciphertext to decrypt.
  * \param[in] plaintext_buffer       Buffer where the plaintext will be put.
- * \param[out] plaintext_output_len  The size of the plaintext.
+ * \param[out] plaintext  Place to return the plaintext
  *
  * The key provided must be a symmetric key of the correct type for
  * \c cose_algorithm_id.
+ *
+ * A key handle is used even though it could be a buffer with a key in
+ * order to allow use of keys internal to the crypto library, crypto HW and
+ * such. See t_cose_crypto_make_symmetric_key_handle().
  *
  * \retval T_COSE_SUCCESS
  *         The decryption operation was successful.
@@ -1109,13 +1110,13 @@ t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
  *         The decryption operation failed.
  */
 enum t_cose_err_t
-t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
-                      struct t_cose_key      key,
-                      struct q_useful_buf_c  nonce,
-                      struct q_useful_buf_c  add_data,
-                      struct q_useful_buf_c  ciphertext,
-                      struct q_useful_buf    plaintext_buffer,
-                      size_t                *plaintext_output_len);
+t_cose_crypto_aead_decrypt(int32_t                cose_algorithm_id,
+                           struct t_cose_key      key,
+                           struct q_useful_buf_c  nonce,
+                           struct q_useful_buf_c  add_data,
+                           struct q_useful_buf_c  ciphertext,
+                           struct q_useful_buf    plaintext_buffer,
+                           struct q_useful_buf_c *plaintext);
 
 /**
  * \brief Encrypt plaintext using an AEAD cipher. Part of the
@@ -1131,10 +1132,14 @@ t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
  * \param[in] add_data               Additional data used for encryption.
  * \param[in] plaintext              The plaintext to encrypt.
  * \param[in] ciphertext_buffer      Buffer where the ciphertext will be put.
- * \param[out] ciphertext_output_len The size of the ciphertext.
+ * \param[out] ciphertext  Place to put pointer and length to ciphertext.
  *
  * The key provided must be a symmetric key of the correct type for
  * \c cose_algorithm_id.
+ *
+ * A key handle is used even though it could be a buffer with a key in
+ * order to allow use of keys internal to the crypto library, crypto HW and
+ * such. See t_cose_crypto_make_symmetric_key_handle().
  *
  * \retval T_COSE_SUCCESS
  *         The decryption operation was successful.
@@ -1146,13 +1151,13 @@ t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
  *         The encryption operation failed.
  */
 enum t_cose_err_t
-t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
-                      struct q_useful_buf_c  key,
-                      struct q_useful_buf_c  nonce,
-                      struct q_useful_buf_c  add_data,
-                      struct q_useful_buf_c  plaintext,
-                      struct q_useful_buf    ciphertext_buffer,
-                      size_t                *ciphertext_output_len);
+t_cose_crypto_aead_encrypt(int32_t                cose_algorithm_id,
+                           struct t_cose_key      key,
+                           struct q_useful_buf_c  nonce,
+                           struct q_useful_buf_c  add_data,
+                           struct q_useful_buf_c  plaintext,
+                           struct q_useful_buf    ciphertext_buffer,
+                           struct q_useful_buf_c *ciphertext);
 
 
 #ifdef __cplusplus

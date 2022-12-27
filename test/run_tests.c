@@ -332,7 +332,7 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
     PrintSize("sizeof(struct t_cose_sign1_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_sign_ctx),
               pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_signing_key)",
+    PrintSize("sizeof(struct t_cose_key)",
               (uint32_t)sizeof(struct t_cose_key),
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_crypto_hash)",

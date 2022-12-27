@@ -778,6 +778,7 @@ t_cose_crypto_export_key(struct t_cose_key      key,
     return(T_COSE_SUCCESS);
 }
 
+
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -807,75 +808,67 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
-                      struct q_useful_buf_c  key,
-                      struct q_useful_buf_c  nonce,
-                      struct q_useful_buf_c  add_data,
-                      struct q_useful_buf_c  plaintext,
-                      struct q_useful_buf    ciphertext_buffer,
-                      size_t                 *ciphertext_output_len)
+t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
+                                        struct q_useful_buf_c symmetric_key,
+                                        struct t_cose_key    *key_handle)
 {
-    psa_status_t           status;
     psa_algorithm_t        psa_algorithm;
-    psa_key_type_t         psa_keytype;
-    size_t                 key_bitlen;
-    psa_key_handle_t       cek_handle = 0;
+    psa_key_handle_t       psa_key_handle;
+    psa_status_t           status;
     psa_key_attributes_t   attributes = PSA_KEY_ATTRIBUTES_INIT;
+    size_t                 key_bitlen;
+    psa_key_type_t         psa_keytype;
 
-    /* Set encryption algorithm information */
     switch (cose_algorithm_id) {
-    case T_COSE_ALGORITHM_A128GCM:
-        psa_algorithm = PSA_ALG_GCM;
-        psa_keytype = PSA_KEY_TYPE_AES;
-        key_bitlen = 128;
-        break;
+        case T_COSE_ALGORITHM_A128GCM:
+            psa_algorithm = PSA_ALG_GCM;
+            psa_keytype = PSA_KEY_TYPE_AES;
+            key_bitlen = 128;
+            break;
 
-    case T_COSE_ALGORITHM_A256GCM:
-        psa_algorithm = PSA_ALG_GCM;
-        psa_keytype = PSA_KEY_TYPE_AES;
-        key_bitlen = 256;
-        break;
+        case T_COSE_ALGORITHM_A256GCM:
+            psa_algorithm = PSA_ALG_GCM;
+            psa_keytype = PSA_KEY_TYPE_AES;
+            key_bitlen = 256;
+            break;
 
-    default:
-        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
+            // TODO: support cha-cha?
+
+        default:
+            return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
 
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT);
+    /* t_cose doesn't make use of PSA's ability to check key usage. It
+     * just sets all possible usages needed for t_cose here. While this
+     * loses some guards, these are only gaurds against the programmer
+     * doing something wrong, not against bad input. This this particular
+     * function is also used primarily for only the CEK in t_cose. That means
+     * the programmer is the t_cose developer, not the t_cose user. Very
+     * little is lost and the object code is smaller.
+     *
+     * Note that all the key handles the user of t_cose passes into t_cose
+     * need to have key usage set right. These key handles pass through
+     * t_cose and the crypto adapter, so if the crypto lib enforces
+     * key usage, they will be in effect.
+     */
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
     psa_set_key_algorithm(&attributes, psa_algorithm);
     psa_set_key_type(&attributes, psa_keytype);
     psa_set_key_bits(&attributes, key_bitlen);
 
     status = psa_import_key(&attributes,
-                            key.ptr,
-                            key.len,
-                            &cek_handle);
+                             symmetric_key.ptr,
+                             symmetric_key.len,
+                            &psa_key_handle);
 
     if (status != PSA_SUCCESS) {
-        return(T_COSE_ERR_KEY_IMPORT_FAILED);
+        return T_COSE_ERR_KEY_IMPORT_FAILED; // TODO: do better with this error?
     }
 
-    status = psa_aead_encrypt(
-              cek_handle,                     // key
-              psa_algorithm,                  // algorithm
-              nonce.ptr, nonce.len,           // nonce
-              (const uint8_t *)
-                add_data.ptr,                 // additional data
-              add_data.len,                   // additional data length
-              plaintext.ptr, plaintext.len,   // plaintext
-              ciphertext_buffer.ptr,          // ciphertext
-              ciphertext_buffer.len,          // ciphertext length
-              ciphertext_output_len );        // length of output
+    key_handle->k.key_handle = psa_key_handle;
+    key_handle->crypto_lib = T_COSE_CRYPTO_LIB_PSA;
 
-    if (status != PSA_SUCCESS) {
-        return(T_COSE_ERR_ENCRYPT_FAIL);
-    }
-
-    status = psa_close_key(cek_handle);
-    if (status != PSA_SUCCESS) {
-        return(T_COSE_ERR_ENCRYPT_FAIL);
-    }
-
-    return(T_COSE_SUCCESS);
+    return T_COSE_SUCCESS;
 }
 
 
@@ -883,109 +876,104 @@ t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
-                           uint8_t              *cek,
-                           size_t               cek_len,
-                           uint8_t              flags,
-                           struct t_cose_key    *key)
+t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
+                           struct t_cose_key      key,
+                           struct q_useful_buf_c  nonce,
+                           struct q_useful_buf_c  aad,
+                           struct q_useful_buf_c  plaintext,
+                           struct q_useful_buf    ciphertext_buffer,
+                           struct q_useful_buf_c *ciphertext)
 {
-    psa_key_attributes_t   attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_status_t           status;
-    psa_algorithm_t        psa_algorithm;
-    psa_key_type_t         psa_keytype;
-    size_t                 key_bitlen;
-    psa_key_usage_t        usage_flags = T_COSE_KEY_USAGE_FLAG_NONE;
+    psa_algorithm_t   psa_algorithm_id;
+    psa_key_handle_t  psa_key_handle;
+    psa_status_t      status;
 
-    if (flags == T_COSE_KEY_USAGE_FLAG_DECRYPT) {
-        usage_flags = PSA_KEY_USAGE_DECRYPT;
-    } else if (flags == T_COSE_KEY_USAGE_FLAG_ENCRYPT) {
-        usage_flags = PSA_KEY_USAGE_ENCRYPT;
-    } else {
-        return(T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS);
+    if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
+        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
     }
 
-    /* Set algorithm information */
     switch (cose_algorithm_id) {
-    case T_COSE_ALGORITHM_A128GCM:
-        key_bitlen = 128;
-        psa_algorithm = PSA_ALG_GCM;
-        psa_keytype = PSA_KEY_TYPE_AES;
-        break;
+        case T_COSE_ALGORITHM_A128GCM:
+            psa_algorithm_id = PSA_ALG_GCM;
+            break;
 
-    case T_COSE_ALGORITHM_A256GCM:
-        key_bitlen = 256;
-        psa_algorithm = PSA_ALG_GCM;
-        psa_keytype = PSA_KEY_TYPE_AES;
-        break;
+        case T_COSE_ALGORITHM_A256GCM:
+            psa_algorithm_id = PSA_ALG_GCM;
+            break;
 
-    default:
-        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
+        default:
+            return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
 
-    psa_set_key_usage_flags(&attributes, usage_flags);
-    psa_set_key_algorithm(&attributes, psa_algorithm);
-    psa_set_key_type(&attributes, psa_keytype);
-    psa_set_key_bits(&attributes, key_bitlen);
+    psa_key_handle = (psa_key_handle_t)key.k.key_handle;
 
-    status = psa_import_key(&attributes,
-                            cek,
-                            cek_len,
-                            (mbedtls_svc_key_id_t *) &key->k.key_handle);
+    status = psa_aead_encrypt(psa_key_handle,
+                              psa_algorithm_id,
+                              nonce.ptr, nonce.len,
+                              aad.ptr, aad.len,
+                              plaintext.ptr, plaintext.len,
+                              ciphertext_buffer.ptr, ciphertext_buffer.len,
+                             &ciphertext->len);
+
+    ciphertext->ptr = ciphertext_buffer.ptr;
 
     if (status != PSA_SUCCESS) {
-        return(T_COSE_ERR_UNKNOWN_KEY);
+        return T_COSE_ERR_ENCRYPT_FAIL;
     }
 
-    key->crypto_lib = T_COSE_CRYPTO_LIB_PSA;
-
-    return(T_COSE_SUCCESS);
+    return T_COSE_SUCCESS;
 }
+
 
 /*
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
-                      struct t_cose_key      key,
-                      struct q_useful_buf_c  nonce,
-                      struct q_useful_buf_c  add_data,
-                      struct q_useful_buf_c  ciphertext,
-                      struct q_useful_buf    plaintext_buffer,
-                      size_t *plaintext_output_len)
+t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
+                           struct t_cose_key      key,
+                           struct q_useful_buf_c  nonce,
+                           struct q_useful_buf_c  aad,
+                           struct q_useful_buf_c  ciphertext,
+                           struct q_useful_buf    plaintext_buffer,
+                           struct q_useful_buf_c *plaintext)
 {
-    psa_status_t           status;
-    psa_algorithm_t        psa_algorithm;
-
-    /* Set decryption algorithm information */
-    switch (cose_algorithm_id) {
-    case T_COSE_ALGORITHM_A128GCM:
-        psa_algorithm = PSA_ALG_GCM;
-        break;
-
-    case T_COSE_ALGORITHM_A256GCM:
-        psa_algorithm = PSA_ALG_GCM;
-        break;
-
-    default:
-        return(T_COSE_ERR_UNSUPPORTED_CIPHER_ALG);
+    psa_algorithm_t   psa_algorithm_id;
+    psa_key_handle_t  psa_key_handle;
+    psa_status_t      status;
+    
+    if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
+        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
     }
 
-    status = psa_aead_decrypt( (mbedtls_svc_key_id_t)
-                                key.k.key_handle,               // key handle
-                                psa_algorithm,                  // algorithm
-                                nonce.ptr, nonce.len,           // nonce
-                                (const uint8_t *)
-                                add_data.ptr,                   // additional data
-                                add_data.len,                   // additional data length
-                                ciphertext.ptr, ciphertext.len, // ciphertext
-                                plaintext_buffer.ptr,           // plaintext
-                                plaintext_buffer.len,           // plaintext length
-                                plaintext_output_len );         // length of output
+    switch (cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128GCM:
+            psa_algorithm_id = PSA_ALG_GCM;
+            break;
+
+        case T_COSE_ALGORITHM_A256GCM:
+            psa_algorithm_id = PSA_ALG_GCM;
+            break;
+
+        default:
+            return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+
+    psa_key_handle = (psa_key_handle_t)key.k.key_handle;
+
+    status = psa_aead_decrypt(psa_key_handle,
+                              psa_algorithm_id,
+                              nonce.ptr, nonce.len,
+                              aad.ptr, aad.len,
+                              ciphertext.ptr, ciphertext.len,
+                              plaintext_buffer.ptr, plaintext_buffer.len,
+                             &plaintext->len);
+
+    plaintext->ptr = plaintext_buffer.ptr;
 
     if (status != PSA_SUCCESS) {
-        return(T_COSE_ERR_DECRYPT_FAIL);
+        return T_COSE_ERR_DECRYPT_FAIL;
     }
 
-    return(T_COSE_SUCCESS);
+    return T_COSE_SUCCESS;
 }
 
