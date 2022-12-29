@@ -1102,6 +1102,9 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
  * order to allow use of keys internal to the crypto library, crypto HW and
  * such. See t_cose_crypto_make_symmetric_key_handle().
  *
+ * This does not need to support a size calculation mode as is
+ * required of t_cose_crypto_aead_encrypt().
+ *
  * \retval T_COSE_SUCCESS
  *         The decryption operation was successful.
  * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
@@ -1140,6 +1143,10 @@ t_cose_crypto_aead_decrypt(int32_t                cose_algorithm_id,
  * A key handle is used even though it could be a buffer with a key in
  * order to allow use of keys internal to the crypto library, crypto HW and
  * such. See t_cose_crypto_make_symmetric_key_handle().
+ *
+ * This must support a size calculation mode which is indicated
+ * by ciphertext_buffer.ptr == NULL and which fills the size
+ * in ciphertext->len.
  *
  * \retval T_COSE_SUCCESS
  *         The decryption operation was successful.

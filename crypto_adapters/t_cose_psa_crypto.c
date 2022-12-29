@@ -85,6 +85,10 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_HMAC256,
         T_COSE_ALGORITHM_HMAC384,
         T_COSE_ALGORITHM_HMAC512,
+        T_COSE_ALGORITHM_A128GCM,
+        T_COSE_ALGORITHM_A192GCM, /* For 9053 key wrap and direct, not HPKE */
+        T_COSE_ALGORITHM_A256GCM,
+
 #endif /* T_COSE_DISABLE_MAC0 */
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
@@ -135,7 +139,7 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
  *
  * \return The \ref t_cose_err_t.
  */
-static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
+enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
 {
     /* Intentionally keeping to fewer mapped errors to save object code */
     return err == PSA_SUCCESS                   ? T_COSE_SUCCESS :
@@ -145,6 +149,52 @@ static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
            err == PSA_ERROR_CORRUPTION_DETECTED ? T_COSE_ERR_TAMPERING_DETECTED :
                                                   T_COSE_ERR_SIG_FAIL;
 }
+
+enum t_cose_err_t moopmoop(psa_status_t err)
+{
+    /* Intentionally keeping to fewer mapped errors to save object code */
+    return err == PSA_SUCCESS                   ? T_COSE_SUCCESS :
+           err == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
+           //err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
+           err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
+           err == PSA_ERROR_INSUFFICIENT_MEMORY+1 ? T_COSE_ERR_INSUFFICIENT_MEMORY+1 :
+           err == PSA_ERROR_INSUFFICIENT_MEMORY+2 ? T_COSE_ERR_INSUFFICIENT_MEMORY+2 :
+           err == PSA_ERROR_CORRUPTION_DETECTED ? T_COSE_ERR_TAMPERING_DETECTED :
+                                                  T_COSE_ERR_SIG_FAIL;
+}
+
+int32_t meepmeep(const int32_t xx[][2], int32_t y)
+{
+    int i;
+    for(i = 0; xx[i][0] != INT32_MAX; i++) {
+        if(xx[i][0] == y) {
+            return xx[1][i];
+        }
+    }
+    return INT32_MAX;
+}
+
+enum t_cose_err_t mapmap(psa_status_t err)
+{
+    static const int32_t map[][2] = {
+      //  { PSA_SUCCESS                    , T_COSE_SUCCESS},
+       // { PSA_ERROR_INVALID_SIGNATURE    , T_COSE_ERR_SIG_VERIFY},
+       // { PSA_ERROR_INVALID_SIGNATURE    , T_COSE_ERR_SIG_VERIFY},
+        { PSA_ERROR_INVALID_SIGNATURE    , T_COSE_ERR_SIG_VERIFY},
+        { PSA_ERROR_INVALID_SIGNATURE    , T_COSE_ERR_SIG_VERIFY},
+        { INT32_MAX                      , INT32_MAX},
+
+
+    };
+
+    return (enum t_cose_err_t )meepmeep(map, (int32_t)err);
+ /*          err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
+           err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
+           err == PSA_ERROR_CORRUPTION_DETECTED ? T_COSE_ERR_TAMPERING_DETECTED :
+                                                  T_COSE_ERR_SIG_FAIL; */
+
+}
+
 
 
 /*
@@ -819,11 +869,21 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
     size_t                 key_bitlen;
     psa_key_type_t         psa_keytype;
 
+    /* TODO: remove this and put it somewhere common. */
+    psa_crypto_init();
+
+
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
             psa_algorithm = PSA_ALG_GCM;
             psa_keytype = PSA_KEY_TYPE_AES;
             key_bitlen = 128;
+            break;
+
+        case T_COSE_ALGORITHM_A192GCM:
+            psa_algorithm = PSA_ALG_GCM;
+            psa_keytype = PSA_KEY_TYPE_AES;
+            key_bitlen = 192;
             break;
 
         case T_COSE_ALGORITHM_A256GCM:
@@ -839,17 +899,19 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
     }
 
     /* t_cose doesn't make use of PSA's ability to check key usage. It
-     * just sets all possible usages needed for t_cose here. While this
-     * loses some guards, these are only gaurds against the programmer
-     * doing something wrong, not against bad input. This this particular
-     * function is also used primarily for only the CEK in t_cose. That means
-     * the programmer is the t_cose developer, not the t_cose user. Very
-     * little is lost and the object code is smaller.
+     * just sets all possible usages needed for t_cose here. While
+     * this loses some guards, these are only guards against the
+     * programmer doing something wrong, not against bad input. This
+     * particular function is also used primarily for only the CEK in
+     * t_cose. That means the programmer is the t_cose developer, not
+     * the t_cose user. Very little is lost and the object code is
+     * smaller.
      *
-     * Note that all the key handles the user of t_cose passes into t_cose
-     * need to have key usage set right. These key handles pass through
-     * t_cose and the crypto adapter, so if the crypto lib enforces
-     * key usage, they will be in effect.
+     * Note that all the key handles the user of t_cose passes into
+     * t_cose from the public interface (not the ones set up here)
+     * need to have key usage set right. These key handles pass
+     * through t_cose and the crypto adapter, so if the crypto lib
+     * enforces key usage like PSA does, they will be in effect.
      */
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
     psa_set_key_algorithm(&attributes, psa_algorithm);
@@ -872,6 +934,39 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 }
 
 
+/* Compute size of ciphertext, given size of plaintext. Returns
+ * SIZE_MAX if the algorithm is unknown. Also returns the tag
+ * length. */
+static size_t
+aead_byte_count(const int32_t cose_algorithm_id,
+                size_t        plain_text_len)
+{
+    /* So far this just works for GCM AEAD algorithms, but can be
+     * augmented for others.
+     *
+     * For GCM as used by COSE and HPKE, the authentication tag is
+     * appended to the end of the cipher text and is always 16 bytes.
+     * Since GCM is a variant of counter mode, the ciphertext length
+     * is the same as the plaintext length. (This is not true of other
+     * ciphers).
+     * https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+     */
+
+    /* The same tag length for all COSE and HPKE AEAD algorithms supported.*/
+    const size_t common_gcm_tag_length = 16;
+
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128GCM:
+            return plain_text_len + common_gcm_tag_length;
+        case T_COSE_ALGORITHM_A192GCM:
+            return plain_text_len + common_gcm_tag_length;
+        case T_COSE_ALGORITHM_A256GCM:
+            return plain_text_len + common_gcm_tag_length;
+        default: return SIZE_MAX;;
+    }
+}
+
+
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -888,15 +983,13 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     psa_key_handle_t  psa_key_handle;
     psa_status_t      status;
 
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
-
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
             psa_algorithm_id = PSA_ALG_GCM;
             break;
-
+        case T_COSE_ALGORITHM_A192GCM:
+            psa_algorithm_id = PSA_ALG_GCM;
+            break;
         case T_COSE_ALGORITHM_A256GCM:
             psa_algorithm_id = PSA_ALG_GCM;
             break;
@@ -905,6 +998,16 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
 
+    if(ciphertext_buffer.ptr == NULL) {
+        /* Called in length calculation mode. Return length & exit. */
+        ciphertext->len = aead_byte_count(cose_algorithm_id,
+                                          plaintext.len);;
+        return T_COSE_SUCCESS;
+    }
+
+    if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
+        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+    }
     psa_key_handle = (psa_key_handle_t)key.k.key_handle;
 
     status = psa_aead_encrypt(psa_key_handle,
@@ -914,14 +1017,16 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                               plaintext.ptr, plaintext.len,
                               ciphertext_buffer.ptr, ciphertext_buffer.len,
                              &ciphertext->len);
-
     ciphertext->ptr = ciphertext_buffer.ptr;
-
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_ENCRYPT_FAIL;
     }
 
     return T_COSE_SUCCESS;
+
+    /* If you want to feel good about how nice the PSA API for
+     * AEAD is, go look at the AEAD crypto adaptor for OpenSSL.
+     */
 }
 
 
@@ -940,16 +1045,14 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     psa_algorithm_t   psa_algorithm_id;
     psa_key_handle_t  psa_key_handle;
     psa_status_t      status;
-    
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
 
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
             psa_algorithm_id = PSA_ALG_GCM;
             break;
-
+        case T_COSE_ALGORITHM_A192GCM:
+            psa_algorithm_id = PSA_ALG_GCM;
+            break;
         case T_COSE_ALGORITHM_A256GCM:
             psa_algorithm_id = PSA_ALG_GCM;
             break;
@@ -958,6 +1061,9 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
 
+    if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
+        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+    }
     psa_key_handle = (psa_key_handle_t)key.k.key_handle;
 
     status = psa_aead_decrypt(psa_key_handle,
@@ -967,13 +1073,28 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                               ciphertext.ptr, ciphertext.len,
                               plaintext_buffer.ptr, plaintext_buffer.len,
                              &plaintext->len);
-
     plaintext->ptr = plaintext_buffer.ptr;
-
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_DECRYPT_FAIL;
     }
 
     return T_COSE_SUCCESS;
 }
+
+
+
+
+#ifdef XXX
+    static const int32_t map[][2] = {
+        { T_COSE_ALGORITHM_A128GCM    , PSA_ALG_GCM},
+        { T_COSE_ALGORITHM_A192GCM    , PSA_ALG_GCM},
+        { T_COSE_ALGORITHM_A256GCM    , PSA_ALG_GCM},
+        { INT32_MAX                      , INT32_MAX}
+    };
+
+    psa_algorithm_id = (psa_algorithm_t)meepmeep(map, cose_algorithm_id);
+    if(psa_algorithm_id == INT32_MAX) {
+        return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+#endif
 

@@ -20,6 +20,7 @@
 #include "t_cose_sign_verify_test.h"
 #include "t_cose_compute_validate_mac_test.h"
 #include "t_cose_param_test.h"
+#include "t_cose_crypto_test.h"
 
 
 /*
@@ -54,6 +55,8 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+
+    TEST_ENTRY(aead_test),
 
 #ifndef T_COSE_DISABLE_SIGN1
     // TODO: re enable this test when it is fixed

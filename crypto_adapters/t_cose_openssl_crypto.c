@@ -92,10 +92,81 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_EDDSA
         T_COSE_ALGORITHM_EDDSA,
 #endif
+        T_COSE_ALGORITHM_A128GCM,
+        T_COSE_ALGORITHM_A192GCM, /* For 9053 key wrap and direct, not HPKE */
+        T_COSE_ALGORITHM_A256GCM,
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
     return t_cose_check_list(cose_algorithm_id, supported_algs);
+}
+
+
+/* OpenSSL archaically uses int for lengths in some APIs. t_cose properly
+ * use size_t for lengths. While it is unlikely that this will ever
+ * be an issue because lengths are unlikely to be near SIZE_MAX or
+ * INT_MAX in size, this code aims for full correctness and to fully
+ * pass static analyzers. This requires checks before casting
+ * from int to size_t and vice versa.
+ *
+ * This function returns true if the value x can be safely cast
+ * to an integer.
+ *
+ * It shouldn't generate much object code (and if you really
+ * want you could just make it return true always and it would
+ * generate no object and some other code below would optimize out).
+ * In particular compilers should know if SIZE_MAX > INT_MAX at
+ * compile time and be able to optimize out half of this function.
+ * Then it probably gets inlined and is thus very little code.
+ *
+ * See also is_int_to_size_t_cast_ok().
+ *
+ * It is really unfortunate that OpenSSL is like this (and has other issues).
+ * See the AEAD crypto adapters for MbedTLS/PSA. They are less than
+ * half the code and complexity.
+ *
+ * https://stackoverflow.com/questions/131803/unsigned-int-vs-size-t
+ */
+static bool
+is_size_t_to_int_cast_ok(size_t x)
+{
+    if(SIZE_MAX > INT_MAX) {
+        /* The common case on a typical 64 or 32-bit CPU where
+         * SIZE_MAX is 0xffffffffffffffff or 0xffffffff and
+         * INT_MAX is 0x7fffffff
+         */
+        if(x > INT_MAX) {
+            return false;
+        } else {
+            return true;
+        }
+    } else {
+        /* It would be very weird for this to happen, but it is
+         * allowed by the C standard and this code aims for
+         * correctness against the C standard. */
+        return true;
+    }
+}
+
+
+/* See is_size_t_to_int_cast_ok() */
+static bool
+is_int_to_size_t_cast_ok(int x)
+{
+    /* See comments in is_size_t_to_int_cast_ok() */
+    if(SIZE_MAX > INT_MAX) {
+        if(x < 0) {
+            return false;
+        } else {
+            return true;
+        }
+    } else {
+        if(x < 0 || x > SIZE_MAX) {
+            return false;
+        } else {
+            return true;
+        }
+    }
 }
 
 
@@ -1033,207 +1104,6 @@ Done:
 
 #endif /* T_COSE_DISABLE_EDDSA */
 
-#if 0
-
-/**
- * @brief do the AEAD decryption
- * @param libctx is the context to use
- * @param propq is a properties string
- * @param suite is the ciphersuite
- * @param key is the secret
- * @param keylen is the length of the secret
- * @param iv is the initialisation vector
- * @param ivlen is the length of the iv
- * @param aad is the additional authenticated data
- * @param aadlen is the length of the aad
- * @param ct is the ciphertext buffer
- * @param ctlen is the ciphertext length (including tag).
- * @param pt is the output buffer
- * @param ptlen input/output, better be big enough on input, exact on output
- * @return 1 on success, 0 otherwise
- */
-static int hpke_aead_dec(OSSL_LIB_CTX *libctx, const char *propq,
-                         OSSL_HPKE_SUITE suite,
-                         const unsigned char *key, size_t keylen,
-                         const unsigned char *iv, size_t ivlen,
-                         const unsigned char *aad, size_t aadlen,
-                         const unsigned char *ct, size_t ctlen,
-                         unsigned char *pt, size_t *ptlen)
-{
-    int erv = 0;
-    EVP_CIPHER_CTX *ctx = NULL;
-    int len = 0;
-    size_t taglen;
-    EVP_CIPHER *enc = NULL;
-    const OSSL_HPKE_AEAD_INFO *aead_info = NULL;
-
-    if (pt == NULL || ptlen == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    aead_info = ossl_HPKE_AEAD_INFO_find_id(suite.aead_id);
-    if (aead_info == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    taglen = aead_info->taglen;
-    if (ctlen <= taglen || *ptlen < ctlen - taglen) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_PASSED_INVALID_ARGUMENT);
-        goto err;
-    }
-    /* Create and initialise the context */
-    if ((ctx = EVP_CIPHER_CTX_new()) == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    /* Initialise the encryption operation */
-    enc = EVP_CIPHER_fetch(libctx, aead_info->name, propq);
-    if (enc == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    if (EVP_DecryptInit_ex(ctx, enc, NULL, NULL, NULL) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    EVP_CIPHER_free(enc);
-    enc = NULL;
-    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    /* Initialise key and IV */
-    if (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    /* Provide AAD. */
-    if (aadlen != 0 && aad != NULL) {
-        if (EVP_DecryptUpdate(ctx, NULL, &len, aad, aadlen) != 1) {
-            ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-            goto err;
-        }
-    }
-    if (EVP_DecryptUpdate(ctx, pt, &len, ct, ctlen - taglen) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    *ptlen = len;
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG,
-                             taglen, (void *)(ct + ctlen - taglen))) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    /* Finalise decryption.  */
-    if (EVP_DecryptFinal_ex(ctx, pt + len, &len) <= 0) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    erv = 1;
-
-err:
-    if (erv != 1)
-        OPENSSL_cleanse(pt, *ptlen);
-    EVP_CIPHER_CTX_free(ctx);
-    EVP_CIPHER_free(enc);
-    return erv;
-}
-
-
-
-
-static int hpke_aead_enc(OSSL_LIB_CTX *libctx, const char *propq,
-                         OSSL_HPKE_SUITE suite,
-                         const unsigned char *key, size_t keylen,
-                         const unsigned char *iv, size_t ivlen,
-                         const unsigned char *aad, size_t aadlen,
-                         const unsigned char *pt, size_t ptlen,
-                         unsigned char *ct, size_t *ctlen)
-{
-    int erv = 0;
-    EVP_CIPHER_CTX *ctx = NULL;
-    int len;
-    size_t taglen = 0;
-    const OSSL_HPKE_AEAD_INFO *aead_info = NULL;
-    EVP_CIPHER *enc = NULL;
-    unsigned char tag[16];
-
-    if (ct == NULL || ctlen == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    aead_info = ossl_HPKE_AEAD_INFO_find_id(suite.aead_id);
-    if (aead_info == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    taglen = aead_info->taglen;
-    if (*ctlen <= taglen || ptlen > *ctlen - taglen) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_PASSED_INVALID_ARGUMENT);
-        goto err;
-    }
-    /* Create and initialise the context */
-    if ((ctx = EVP_CIPHER_CTX_new()) == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    /* Initialise the encryption operation. */
-    enc = EVP_CIPHER_fetch(libctx, aead_info->name, propq);
-    if (enc == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    if (EVP_EncryptInit_ex(ctx, enc, NULL, NULL, NULL) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    EVP_CIPHER_free(enc);
-    enc = NULL;
-    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivlen, NULL) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    /* Initialise key and IV */
-    if (EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    /* Provide any AAD data. */
-    if (aadlen != 0 && aad != NULL) {
-        if (EVP_EncryptUpdate(ctx, NULL, &len, aad, aadlen) != 1) {
-            ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-            goto err;
-        }
-    }
-    if (EVP_EncryptUpdate(ctx, ct, &len, pt, ptlen) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    *ctlen = len;
-    /* Finalise the encryption. */
-    if (EVP_EncryptFinal_ex(ctx, ct + len, &len) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    *ctlen += len;
-    /* Get tag. Not a duplicate so needs to be added to the ciphertext */
-    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, taglen, tag) != 1) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR);
-        goto err;
-    }
-    memcpy(ct + *ctlen, tag, taglen);
-    *ctlen += taglen;
-    erv = 1;
-
-err:
-    if (erv != 1)
-        OPENSSL_cleanse(ct, *ctlen);
-    EVP_CIPHER_CTX_free(ctx);
-    EVP_CIPHER_free(enc);
-    return erv;
-}
-#endif
-
 
 
 /*
@@ -1258,23 +1128,52 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 }
 
 
+/* Compute size of ciphertext, given size of plaintext. Returns
+ * SIZE_MAX if the algorithm is unknown. Also returns the tag
+ * length. */
 static size_t
 aead_byte_count(const int32_t cose_algorithm_id,
                 size_t        plain_text_len,
                 size_t       *tag_length)
 {
-    /* The same for all COSE and HPKE AEAD algorithms (so far) */
-    const size_t common_tag_length = 16;
+    /* So far this just works for GCM AEAD algorithms, but can be
+     * augmented for others.
+     *
+     * For GCM as used by COSE and HPKE, the authentication tag is
+     * appended to the end of the cipher text and is always 16 bytes.
+     * Since GCM is a variant of counter mode, the ciphertext length
+     * is the same as the plaintext length. (This is not true of other
+     * ciphers).
+     * https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+     */
 
-    // TODO: make sure this is correct
-    *tag_length = common_tag_length;
+    /* The same tag length for all COSE and HPKE AEAD algorithms supported.*/
+    const size_t common_gcm_tag_length = 16;
+
+    *tag_length = common_gcm_tag_length;
+
+    if(plain_text_len > (SIZE_MAX - common_gcm_tag_length)) {
+        /* The extremely rare case where plain_text_len
+         * is almost SIZE_MAX in length and the length
+         * additions below will fail. This error is not
+         * the right one, but the case is so rare that
+         * it's not worth the trouble of making up some
+         * other error. This check is here primarily
+         * for static analyzers. */
+        return SIZE_MAX;
+    }
+
     switch(cose_algorithm_id) {
-        case T_COSE_ALGORITHM_A128GCM: return plain_text_len + common_tag_length;
-        case T_COSE_ALGORITHM_A192GCM: return plain_text_len + common_tag_length;
-        case T_COSE_ALGORITHM_A256GCM: return plain_text_len + common_tag_length;
-        default: return 0;;
+        case T_COSE_ALGORITHM_A128GCM:
+            return plain_text_len + common_gcm_tag_length;
+        case T_COSE_ALGORITHM_A192GCM:
+            return plain_text_len + common_gcm_tag_length;
+        case T_COSE_ALGORITHM_A256GCM:
+            return plain_text_len + common_gcm_tag_length;
+        default: return SIZE_MAX;;
     }
 }
+
 
 /*
  * See documentation in t_cose_crypto.h
@@ -1298,21 +1197,15 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     int               dummy_length;
     size_t            expected_output_length;
     size_t            tag_length;
+    enum t_cose_err_t return_value;
 
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
 
-    switch(cose_algorithm_id) {
-        case T_COSE_ALGORITHM_A128GCM: evp_cipher = EVP_aes_128_gcm ();break;
-        case T_COSE_ALGORITHM_A192GCM: evp_cipher = EVP_aes_192_gcm ();break;
-        case T_COSE_ALGORITHM_A256GCM: evp_cipher = EVP_aes_256_gcm ();break;
-        default:return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
-    }
-
+    /* ------- Plaintext and ciphertext lengths -------*/
     /*
      This is the critical length check that makes the rest of the
-     calls to OpenSSL that write to the output buffer safe.
+     calls to OpenSSL that write to the output buffer safe because
+     OpenSSL by itself doesn't isn't safe. You cannot tell
+     it the length of the buffer it is writing to.
 
      Here's the text from the openssl documentation:
 
@@ -1321,94 +1214,130 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
 
       */
 
-    expected_output_length = aead_byte_count(T_COSE_ALGORITHM_A128GCM,
-                                                         plaintext.len,
-                                                         &tag_length);
-    if(expected_output_length == 0) {
-        return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    /* output-length-check */
+    /* This assumes that OpenSSL outputs exactly the number
+     * of bytes this call calculates. */
+    expected_output_length = aead_byte_count(cose_algorithm_id,
+                                             plaintext.len,
+                                            &tag_length);
+    if(expected_output_length == SIZE_MAX) {
+        return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+        goto Done3;
     }
     if(ciphertext_buffer.len < expected_output_length) {
-        return 11; // TODO: proper error code
+        /* Output buffer is too small */
+        return_value =  T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        goto Done3;
     }
-
-    /* Called in length calculation mode. */
+    /* Now it is established that the output buffer is big enough */
     if(ciphertext_buffer.ptr == NULL) {
+        /* Called in length calculation mode. Return length & exit. */
         ciphertext->len = expected_output_length;
-        return T_COSE_SUCCESS;
+        return_value = T_COSE_SUCCESS;
+        goto Done3;
     }
 
-
-
+    /* ------- Algorithm and key and IV length checks -------*/
+    switch(cose_algorithm_id) {
+         case T_COSE_ALGORITHM_A128GCM: evp_cipher = EVP_aes_128_gcm ();break;
+         case T_COSE_ALGORITHM_A192GCM: evp_cipher = EVP_aes_192_gcm ();break;
+         case T_COSE_ALGORITHM_A256GCM: evp_cipher = EVP_aes_256_gcm ();break;
+        default: return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG; goto Done3;
+     }
+    if(key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
+        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+    }
     /* This is a sanity check. OpenSSL doesn't provide this check
      * when using a key. It just assume you've provided the right key
-     * length to EVP_DecryptInit(). A bit unhygenic if you ask me. */
+     * length to EVP_EncryptInit(). A bit unhygenic if you ask me. */
     expected_key_length = EVP_CIPHER_key_length(evp_cipher);
     if(key.k.key_buffer.len != expected_key_length) {
-        return 10; // TODO error code.
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO error code.
+        goto Done2;
     }
-
     /* Same hygene check for IV/nonce length as for key */
     /* Assume that EVP_CIPHER_iv_length() won't ever return something
      * dumb like -1. It would be a bug in OpenSSL or such if it did.
      * This make the cast to size_t mostly safe. */
     expected_iv_length = (size_t)EVP_CIPHER_iv_length(evp_cipher);
     if(nonce.len < expected_iv_length){
-        return 10; // TODO: error code.
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: error code.
+        goto Done2;
     }
 
-
+    /* -------- Context initialization with key and IV ---------- */
     evp_context = EVP_CIPHER_CTX_new();
     if (evp_context == NULL) {
-        return 10; // TODO: error
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: error
+        goto Done2;
     }
-
     ossl_result = EVP_EncryptInit(evp_context,
                                   evp_cipher,
                                   key.k.key_buffer.ptr,
                                   nonce.ptr);
     if(ossl_result != 1) {
-        return 10; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        goto Done1;
     }
 
-
+    /* ---------- AAD ---------- */
     if (!q_useful_buf_c_is_null(aad)) {
-        /* TODO: check or justify cast of aad.len. This is check is security critical. */
+        if(!is_size_t_to_int_cast_ok(aad.len)) {
+            /* Cast to integer below would not be safe. */
+            return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+            goto Done1;
+        }
         /* The NULL output pointer seems to tell it that this is AAD. TODO: confirm this */
         ossl_result = EVP_EncryptUpdate(evp_context,
                                         NULL,
                                         &dummy_length,
                                         aad.ptr, (int)aad.len);
         if(ossl_result != 1) {
-            return 10; // TODO: proper error code
+            return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+            goto Done1;
         }
     }
 
+    /* ---------- Actual encryption of plaintext to cipher text ---------*/
+    if(!is_size_t_to_int_cast_ok(expected_output_length)) {
+        /* This tells us that it is not safe to track the output
+         * of the encryption in the integer variables buffer_bytes_used
+         * and bytes_output. */
+        return_value = 11;
+        goto Done1;
+    }
     buffer_bytes_used = 0;
-    /* TODO: check or justify cast of plaintext.len. This is check is security critical. */
-    // TODO: more to figure out about the buffer.
-    // TODO: not operating on block boundaries. Assuming a stream cipher.
-    // TODO: where's the length check on what this writes out?
-
-
+    /* This assumes a stream cipher and no need for handling blocks.
+     * The section above on lengths makes sure the buffer being written
+     * to is big enough and that the cast of plaintext.len is safe.
+     */
+    if(!is_size_t_to_int_cast_ok(plaintext.len)) {
+        /* Cast to integer below would not be safe. */
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        goto Done1;
+    }
     ossl_result = EVP_EncryptUpdate(evp_context,
                                     ciphertext_buffer.ptr,
                                     &bytes_output,
                                     plaintext.ptr, (int)plaintext.len);
     if(ossl_result != 1) {
-        return 10; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        goto Done1;
     }
 
-    buffer_bytes_used += bytes_output;
+    buffer_bytes_used += bytes_output; /* Safe becaue of output-length-check */
 
     // TODO: Final or Final_ex?
     ossl_result = EVP_EncryptFinal_ex(evp_context,
                                      (uint8_t *)ciphertext_buffer.ptr + buffer_bytes_used,
                                      &bytes_output);
     if(ossl_result != 1) {
-        return 10; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        goto Done1;
     }
-    buffer_bytes_used += bytes_output;
+    buffer_bytes_used += bytes_output; /* Safe becaue of output-length-check */
 
+    /* ---------- AEAD authentication tag and finish ----------- */
     /* Get tag. Not a duplicate so needs to be added to the ciphertext */
     /* Cast of tag_length to int is safe because we know that
      * symmetric_cipher_byte_count will only return small positive values. */
@@ -1417,15 +1346,27 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                                       (int)tag_length,
                                       (uint8_t *)ciphertext_buffer.ptr + buffer_bytes_used);
     if(ossl_result != 1) {
-        return 10; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        goto Done1;
     }
-    buffer_bytes_used += tag_length;
+    buffer_bytes_used += tag_length; /* Safe becaue of output-length-check */
 
-    ciphertext->ptr = ciphertext_buffer.ptr;
-    /* Cast is safe because buffer_bytes_used starts at 0 and is only incremented */
+    if(!is_int_to_size_t_cast_ok(buffer_bytes_used)) {
+        return_value = 11;
+        goto Done1;
+    }
     ciphertext->len = (size_t)buffer_bytes_used;
+    ciphertext->ptr = ciphertext_buffer.ptr;
 
-    return T_COSE_SUCCESS;
+    return_value = T_COSE_SUCCESS;
+
+Done1:
+    //EVP_CIPHER_CTX_free(evp_context);
+Done2:
+    /* Have to cast away the const here. Inconsistent OpenSSL API...*/
+    //EVP_CIPHER_meth_free((EVP_CIPHER *)evp_cipher);
+Done3:
+    return return_value;
 }
 
 
@@ -1449,109 +1390,158 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     int               bytes_output;
     int               dummy_length;
     size_t            tag_length;
+    enum t_cose_err_t return_value;
 
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
-
+    /* ------- Identify the algorithm -------*/
     switch(cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM: evp_cipher = EVP_aes_128_gcm ();break;
         case T_COSE_ALGORITHM_A192GCM: evp_cipher = EVP_aes_192_gcm ();break;
         case T_COSE_ALGORITHM_A256GCM: evp_cipher = EVP_aes_256_gcm ();break;
-        default: return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+        default: return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG; goto Done3;
+    }
+    tag_length = 16; /* The tag length for all the above ciphers is 16 */
+
+    /* ------- Length checks (since OpenSSL doesn't) -------*/
+    if(ciphertext.len < tag_length) { /* ciphertext-length-check */
+        /* All algorithms supported so far are AEAD, have a tag and thus
+         * have a minimum length of the tag_length. This check  makes the
+         * length calculation below safe. */
+        return_value = 11; // TODO: proper error code
+        goto Done2;
+    }
+    if(plaintext_buffer.len < ciphertext.len - tag_length) { /* plaintext-buffer-check */
+        /* The buffer to receive the plaintext is too small. This
+         * check assumes AEAD. See aead_byte_count(). */
+        return_value = 11;
+        goto Done2;
+    }
+    if(!is_size_t_to_int_cast_ok(plaintext_buffer.len)){
+        /* While plaintext_buffer.len is never cast to int,
+         * the length of bytes that are put in it are
+         * held by the integer bytes_output. This checks
+         * affirms that it is OK to hold that counter in an int. */
+        return_value = 11;
+        goto Done2;
     }
 
-    tag_length = 16; // TODO: get this from alg ID.
-
-
-    /* TODO: need some sort of check that the plaintext_buffer is big enough since OpenSSL probably won't do it. */
-
-    if(ciphertext.len < tag_length) {
-        return 11; // TODO: proper error code
+    /* ------- Algorithm and key and IV length checks -------*/
+    if(key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
+        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+        goto Done2;
     }
-
-
-
     /* This is a sanity check. OpenSSL doesn't provide this check
      * when using a key. It just assume you've provided the right key
      * length to EVP_DecryptInit(). A bit unhygenic if you ask me. */
     expected_key_length = EVP_CIPHER_key_length(evp_cipher);
     if(key.k.key_buffer.len != expected_key_length) {
-        return 10; // TODO error code.
+        return_value = 10; // TODO error code.
+        goto Done2;
     }
-
     /* Same hygene check for IV/nonce length as for key */
     /* Assume that EVP_CIPHER_iv_length() won't ever return something
      * dumb like -1. It would be a bug in OpenSSL or such if it did.
      * This make the cast to size_t mostly safe. */
     expected_iv_length = (size_t)EVP_CIPHER_iv_length(evp_cipher);
     if(nonce.len < expected_iv_length){
-        return 10; // TODO: error code.
+        return_value = 10; // TODO: error code.
+        goto Done2;
     }
 
-
-
+    /* -------- Context initialization with key and IV ---------- */
     evp_context = EVP_CIPHER_CTX_new();
     if (evp_context == NULL) {
-        return 10; // TODO: error
+        return_value = 10; // TODO: error
+        goto Done2;
     }
-
     ossl_result = EVP_DecryptInit(evp_context,
                                   evp_cipher,
                                   key.k.key_buffer.ptr,
                                   nonce.ptr);
     if(ossl_result != 1) {
-        return 10; // TODO: proper error code
+        return_value = 10; // TODO: proper error code
+        goto Done1;
     }
 
     // TODO: is this necessary? EVP_CIPHER_CTX_ctrl (evp_context, EVP_CTRL_GCM_SET_TAG, 16, ref_TAG);
 
 
-
+    /* ---------- AAD ---------- */
     if (!q_useful_buf_c_is_null(aad)) {
-        /* TODO: check or justify cast of aad.len. This is check is security critical. */
+        if(!is_size_t_to_int_cast_ok(aad.len)) {
+            /* Cast to integer below would not be safe. */
+            return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        }
         /* The NULL output pointer seems to tell it that this is AAD. TODO: confirm this */
         ossl_result = EVP_DecryptUpdate(evp_context,
                                         NULL,
                                         &dummy_length,
                                         aad.ptr, (int)aad.len);
         if(ossl_result != 1) {
-            return 10; // TODO: proper error code
+            return_value = 10; // TODO: proper error code
+            goto Done1;
         }
     }
 
-    /* Decrypt to get the actual plaintext */
+    /* ---------- Actual encryption of plaintext to cipher text ---------*/
+    /* Length subtraction safe because of ciphertext-length-check */
+    if(!is_size_t_to_int_cast_ok(ciphertext.len - tag_length)) {
+        /* Cast to integer below would not be safe. */
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        goto Done1;
+    }
     ossl_result = EVP_DecryptUpdate(evp_context,
                                     plaintext_buffer.ptr,
                                     &bytes_output,
                                     ciphertext.ptr,
                                     (int)(ciphertext.len - tag_length));
     if(ossl_result != 1) {
-        return 10; // TODO: proper error code
+        return_value = 10; // TODO: proper error code
+        goto Done1;
     }
 
-    /* Cast ot tag_length to int is OK because tag_length is always
-     * a smalll positive number. */
+
+    /* ---------- Process the authentication tag and finalize ---------*/
+    /* No check for cast safety of tag_length OK because it is always a smalll positive number.*/
+    /* The pointer math below is safe because it is calculating a pointer that is
+     * in input ciphertext data. */
     ossl_result = EVP_CIPHER_CTX_ctrl(evp_context,
                                       EVP_CTRL_AEAD_SET_TAG,
                                       (int)tag_length,
-                                      (uint8_t *)ciphertext.ptr + ciphertext.len - tag_length);
+                                      (uint8_t *)ciphertext.ptr + (ciphertext.len - tag_length));
     if(ossl_result != 1) {
-        return 10; // TODO: proper error code
+        return_value = 10; // TODO: proper error code
+        goto Done1;
     }
-
-
+    /* The pointer math is safe and this call won't write off the end of the buffer
+     * because of plaintext-buffer-check. Because this only implements
+     * AEAD this will not actually write anything. A block-mode cipher
+     * probably requires a little different code that doesn't assume
+     * this writes nothing (no dummy_length).
+     */
     ossl_result = EVP_DecryptFinal_ex(evp_context,
                                       plaintext_buffer.ptr + bytes_output,
                                       &dummy_length);
     if(ossl_result != 1) {
-        return 10; // TODO: proper error code
+        /* This is where an authentication failure is detected. */
+        return_value = 10; // TODO: proper error code
+        goto Done1;
     }
 
-    plaintext->ptr = plaintext_buffer.ptr;
-    /* TODO: justify cast */
+    /* ---------- Return pointer and length of plaintext ---------*/
+    if(!is_int_to_size_t_cast_ok(bytes_output)) {
+        return_value = 10; // TODO: proper error code
+        goto Done1;
+    }
     plaintext->len = (size_t)bytes_output;
+    plaintext->ptr = plaintext_buffer.ptr;
 
+    return_value = T_COSE_SUCCESS;
 
-    return T_COSE_SUCCESS;
+Done1:
+    EVP_CIPHER_CTX_free(evp_context);
+Done2:
+    /* Have to cast away the const here. Inconsistent OpenSSL API...*/
+    // EVP_CIPHER_meth_free((EVP_CIPHER *)evp_cipher);
+Done3:
+    return return_value;
 }
