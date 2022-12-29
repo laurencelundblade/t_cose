@@ -1444,5 +1444,12 @@ int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
                          cipherlen, cipher ); // ciphertext
 }
 
+#else
+
+void hpke_placeholder(void) {}
+
+
 #endif /* T_COSE_DISABLE_HPKE */
+
+
 
