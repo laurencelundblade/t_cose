@@ -298,7 +298,7 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
-    //free_psa_key(t_cose_pkR_key);
+    free_psa_key(t_cose_pkR_key);
 
     printf("COSE: ");
     print_bytestr(buffer, result_len);

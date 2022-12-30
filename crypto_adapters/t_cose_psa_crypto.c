@@ -139,7 +139,8 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
  *
  * \return The \ref t_cose_err_t.
  */
-enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
+static enum t_cose_err_t
+psa_status_to_t_cose_error_signing(psa_status_t err)
 {
     /* Intentionally keeping to fewer mapped errors to save object code */
     return err == PSA_SUCCESS                   ? T_COSE_SUCCESS :
@@ -148,51 +149,6 @@ enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
            err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
            err == PSA_ERROR_CORRUPTION_DETECTED ? T_COSE_ERR_TAMPERING_DETECTED :
                                                   T_COSE_ERR_SIG_FAIL;
-}
-
-enum t_cose_err_t moopmoop(psa_status_t err)
-{
-    /* Intentionally keeping to fewer mapped errors to save object code */
-    return err == PSA_SUCCESS                   ? T_COSE_SUCCESS :
-           err == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
-           //err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
-           err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
-           err == PSA_ERROR_INSUFFICIENT_MEMORY+1 ? T_COSE_ERR_INSUFFICIENT_MEMORY+1 :
-           err == PSA_ERROR_INSUFFICIENT_MEMORY+2 ? T_COSE_ERR_INSUFFICIENT_MEMORY+2 :
-           err == PSA_ERROR_CORRUPTION_DETECTED ? T_COSE_ERR_TAMPERING_DETECTED :
-                                                  T_COSE_ERR_SIG_FAIL;
-}
-
-int32_t meepmeep(const int32_t xx[][2], int32_t y)
-{
-    int i;
-    for(i = 0; xx[i][0] != INT32_MAX; i++) {
-        if(xx[i][0] == y) {
-            return xx[1][i];
-        }
-    }
-    return INT32_MAX;
-}
-
-enum t_cose_err_t mapmap(psa_status_t err)
-{
-    static const int32_t map[][2] = {
-      //  { PSA_SUCCESS                    , T_COSE_SUCCESS},
-       // { PSA_ERROR_INVALID_SIGNATURE    , T_COSE_ERR_SIG_VERIFY},
-       // { PSA_ERROR_INVALID_SIGNATURE    , T_COSE_ERR_SIG_VERIFY},
-        { PSA_ERROR_INVALID_SIGNATURE    , T_COSE_ERR_SIG_VERIFY},
-        { PSA_ERROR_INVALID_SIGNATURE    , T_COSE_ERR_SIG_VERIFY},
-        { INT32_MAX                      , INT32_MAX},
-
-
-    };
-
-    return (enum t_cose_err_t )meepmeep(map, (int32_t)err);
- /*          err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
-           err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
-           err == PSA_ERROR_CORRUPTION_DETECTED ? T_COSE_ERR_TAMPERING_DETECTED :
-                                                  T_COSE_ERR_SIG_FAIL; */
-
 }
 
 

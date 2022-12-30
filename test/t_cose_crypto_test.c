@@ -25,14 +25,16 @@ static const uint8_t aad[] = {
     0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
     0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
-
-
+#if 0
+/* From the GCM standard, but it doesn't match. Would like to know why... */
 static const uint8_t test_ciphertext[] = {
     0x72, 0x66, 0x23, 0x9A, 0x61, 0xCD, 0xB6, 0x6C, 0x3E, 0xB0, 0x8B, 0x58,
     0x72, 0x0D, 0x53, 0x4A, 0x0E, 0x4A, 0xEF, 0xC3, 0x55, 0xAC, 0x90, 0x4C,
     0x58, 0x1F
 };
+#endif
 
+/* This is what is output by both OpenSSL and MbedTLS (but different than what is in the GCM standard). */
 static const uint8_t expected_empty_tag[] = {
     0xC9, 0x4A, 0xA9, 0xF3, 0x22, 0x75, 0x73, 0x8C, 0xD5, 0xCC, 0x75, 0x01, 0xA4, 0x80, 0xBC, 0xF5};
 
@@ -55,7 +57,7 @@ int_fast32_t aead_test(void)
                                                   UsefulBuf_FROM_BYTE_ARRAY_LITERAL(test_key_0_128bit),
                                                  &key);
     if(err) {
-        return (int_fast32_t)err;
+        return 1000 + (int_fast32_t)err;
     }
 
     /* First the simplest case, no payload, no aad, just the tag */
@@ -67,7 +69,7 @@ int_fast32_t aead_test(void)
                                      ciphertext_buffer,
                                      &ciphertext);
     if(err) {
-        return (int_fast32_t)err;
+        return 2000 + (int_fast32_t)err;
     }
 
     /* TODO: proper define to know about test crypto */
@@ -78,7 +80,7 @@ int_fast32_t aead_test(void)
      * I don't know why. It seems like it should.
      */
     if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(expected_empty_tag), ciphertext)) {
-        return -99;
+        return -2001;
     }
 #else
     /* It's not really necessary to test the test crypto, but it is
@@ -96,13 +98,12 @@ int_fast32_t aead_test(void)
                                      &plaintext);
 
     if(err) {
-        return (int_fast32_t)err;
+        return 3000 + (int_fast32_t)err;
     }
 
     if(plaintext.len != 0) {
-        return -99;
+        return -3001;
     }
-
 
 
     /* Test with text and aad */
@@ -114,7 +115,7 @@ int_fast32_t aead_test(void)
                                      ciphertext_buffer,
                                      &ciphertext);
     if(err) {
-        return (int_fast32_t)err;
+        return 4000 + (int_fast32_t)err;
     }
 
     err = t_cose_crypto_aead_decrypt(cose_algorithm_id,
@@ -125,14 +126,17 @@ int_fast32_t aead_test(void)
                                      plaintext_buffer,
                                      &plaintext);
     if(err) {
-        return (int_fast32_t)err;
+        return 5000 + (int_fast32_t)err;
     }
 
     if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_SZ_LITERAL("plain text"), plaintext)) {
-        return -99;
+        return -5001;
     }
 
-    
+    /* TODO: test a lot more conditions like size calculation, overflow, modified tags...
+     * Most of these tests are aimed at OpenSSL because it has a terrible API and
+     * documentation for AEAD. */
+
     return 0;
 }
 
