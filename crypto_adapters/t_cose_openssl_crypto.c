@@ -1114,15 +1114,8 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                                         struct q_useful_buf_c symmetric_key,
                                         struct t_cose_key    *key_handle)
 {
-    key_handle->crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;
-
-    if(symmetric_key.len > UINT16_MAX) {
-        return 11; // TODO: error code
-    }
-
-    /* Cast is safe because of above check */
-    key_handle->k.key_buffer.len = (uint16_t)symmetric_key.len;
-    key_handle->k.key_buffer.ptr = symmetric_key.ptr;
+    key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_OPENSSL;
+    key_handle->k.key_buffer = symmetric_key;
 
     return T_COSE_SUCCESS;
 }
@@ -1273,12 +1266,26 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     }
     ossl_result = EVP_EncryptInit(evp_context,
                                   evp_cipher,
-                                  key.k.key_buffer.ptr,
-                                  nonce.ptr);
+                                  NULL,
+                                  NULL);
     if(ossl_result != 1) {
         return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
         goto Done1;
     }
+    // TODO: is this necessary? Can there be only one call to EVP_EncryptInit() that sets the key and iv?
+    // TODO: cast of nonce
+    ossl_result = EVP_CIPHER_CTX_ctrl(evp_context,
+                                      EVP_CTRL_AEAD_SET_IVLEN,
+                                      (int)nonce.len,
+                                      NULL);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        goto Done1;
+    }
+    ossl_result = EVP_EncryptInit(evp_context,
+                                  evp_cipher,
+                                  key.k.key_buffer.ptr,
+                                  nonce.ptr);
 
     /* ---------- AAD ---------- */
     if (!q_useful_buf_c_is_null(aad)) {
