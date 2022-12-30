@@ -265,10 +265,7 @@ struct t_cose_key {
         uint64_t key_handle;
         /** For pointer and length of actual key bytes. Length is a uint16_t to keep the
          * size of this struct down because it occurs on the stack. */
-        struct {
-            uint16_t       len;
-            const uint8_t *ptr;
-        } key_buffer;
+        struct q_useful_buf_c key_buffer;
     } k;
 };
 

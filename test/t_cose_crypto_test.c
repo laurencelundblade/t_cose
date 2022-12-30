@@ -1,10 +1,12 @@
-//
-//  t_cose_crypto_test.c
-//  t_cose
-//
-//  Created by Laurence Lundblade on 12/28/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ *  t_cose_crypto_test.c
+ *
+ * Copyright 2022, Laurence Lundblade
+ * Created by Laurence Lundblade on 12/28/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
 
 #include "t_cose_crypto_test.h"
 
@@ -15,22 +17,22 @@ static const uint8_t xkey[] = {
     0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
 static const uint8_t nonce[] = {
-0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
 static const uint8_t aad[] = {
-0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
 int_fast32_t aead_test(void)
 {
-    enum t_cose_err_t err;
-    int32_t cose_algorithm_id;
-    struct t_cose_key  key;
-    struct q_useful_buf_c ciphertext;
-    MakeUsefulBufOnStack(ciphertext_buffer, 300);
-    MakeUsefulBufOnStack(plaintext_buffer, 300);
-    struct q_useful_buf_c plaintext;
+    enum t_cose_err_t      err;
+    int32_t                cose_algorithm_id;
+    struct t_cose_key      key;
+    struct q_useful_buf_c  ciphertext;
+    MakeUsefulBufOnStack(  ciphertext_buffer, 300);
+    MakeUsefulBufOnStack(  plaintext_buffer, 300);
+    struct q_useful_buf_c  plaintext;
 
 
     cose_algorithm_id = T_COSE_ALGORITHM_A128GCM;
@@ -65,7 +67,6 @@ int_fast32_t aead_test(void)
     if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_SZ_LITERAL("plain text"), plaintext)) {
         return -99;
     }
-
     
     return 0;
 }
