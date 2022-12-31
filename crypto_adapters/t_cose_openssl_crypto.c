@@ -102,78 +102,81 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 }
 
 
-/* OpenSSL archaically uses int for lengths in some APIs. t_cose properly
- * use size_t for lengths. While it is unlikely that this will ever
- * be an issue because lengths are unlikely to be near SIZE_MAX or
- * INT_MAX in size, this code aims for full correctness and to fully
- * pass static analyzers. This requires checks before casting
+/* OpenSSL archaically uses int for lengths in some APIs. t_cose
+ * properly use size_t for lengths. While it is unlikely that this
+ * will ever be an issue because lengths are unlikely to be near
+ * SIZE_MAX or INT_MAX, this code is written for full correctness and
+ * to fully pass static analyzers. This requires checks before casting
  * from int to size_t and vice versa.
  *
- * This function returns true if the value x can be safely cast
- * to an integer.
+ * This function returns true if the value x can be safely cast to an
+ * integer.
  *
- * It shouldn't generate much object code (and if you really
- * want you could just make it return true always and it would
- * generate no object and some other code below would optimize out).
- * In particular compilers should know if SIZE_MAX > INT_MAX at
- * compile time and be able to optimize out half of this function.
- * Then it probably gets inlined and is thus very little code.
+ * It shouldn't generate much object code (and if you really want you
+ * could just make it return true always and it would generate no
+ * object code).  In particular compilers will know if SIZE_MAX >
+ * INT_MAX at compile time so half of this function is excluded.
+ *
+ * Note that it is allowed for INT_MAX to be 32,767. It is not out of
+ * the question that a ciphertext or plaintext is larger than
+ * that. Even though such a small INT_MAX is rare, the full
+ * correctness of this code requires the checks implemented here.
  *
  * See also is_int_to_size_t_cast_ok().
  *
- * It is really unfortunate that OpenSSL is like this (and has other issues).
- * See the AEAD crypto adapters for MbedTLS/PSA. They are less than
- * half the code and complexity.
+ * It is really unfortunate that OpenSSL is like this (and has other
+ * issues).  See the AEAD crypto adapters for MbedTLS/PSA. They are
+ * less than half the code and complexity.
  *
+ * https://stackoverflow.com/questions/1819189/what-range-of-values-can-integer-types-store-in-c
  * https://stackoverflow.com/questions/131803/unsigned-int-vs-size-t
  */
-static bool
+static inline bool
 is_size_t_to_int_cast_ok(size_t x)
 {
-    if(SIZE_MAX > INT_MAX) {
-        /* The common case on a typical 64 or 32-bit CPU where
-         * SIZE_MAX is 0xffffffffffffffff or 0xffffffff and
-         * INT_MAX is 0x7fffffff
-         */
-        if(x > INT_MAX) {
-            return false;
-        } else {
-            return true;
-        }
+#if SIZE_MAX > INT_MAX
+    /* The common case on a typical 64 or 32-bit CPU where SIZE_MAX is
+     * 0xffffffffffffffff or 0xffffffff and INT_MAX is 0x7fffffff.
+     */
+    if(x > INT_MAX) {
+        return false;
     } else {
-        /* It would be very weird for this to happen, but it is
-         * allowed by the C standard and this code aims for
-         * correctness against the C standard. */
         return true;
     }
+#else
+    /* It would be very weird for INT_MAX to be larger than SIZE_MAX,
+     * but it is allowed by the C standard and this code aims for
+     * correctness against the C standard. If this happens a size_t
+     * always fits in an int.
+     */
+    return true;
+#endif /* SIZE_MAX > INT_MAX */
 }
 
 
 /* See is_size_t_to_int_cast_ok() */
-static bool
+static inline bool
 is_int_to_size_t_cast_ok(int x)
 {
-    if(SIZE_MAX > INT_MAX) {
-        /* The common case on a typical 64 or 32-bit CPU where
-         * SIZE_MAX is 0xffffffffffffffff or 0xffffffff and
-         * INT_MAX is 0x7fffffff
-         */
-        if(x < 0) {
-            return false;
-        } else {
-            return true;
-        }
+#if SIZE_MAX > INT_MAX
+    /* The common case on a typical 64 or 32-bit CPU where SIZE_MAX is
+     * 0xffffffffffffffff or 0xffffffff and INT_MAX is 0x7fffffff.
+     */
+    if(x < 0) {
+        return false;
     } else {
-        /* It would be very weird for this to happen, but it is
-         * allowed by the C standard and this code aims for
-         * correctness against the C standard. */
-        // TODO: fix warning about this comparison. Not sure how yet.
-        if(x < 0 || x > SIZE_MAX) {
-            return false;
-        } else {
-            return true;
-        }
+        return true;
     }
+#else
+    /* It would be very weird for INT_MAX to be larger than SIZE_MAX,
+     * but it is allowed by the C standard and this code aims for
+     * correctness against the C standard. */
+    if(x < 0 || x > (int)SIZE_MAX) {
+        return false;
+    } else {
+        return true;
+    }
+#endif /* SIZE_MAX > INT_MAX */
 }
 
 
@@ -1297,6 +1300,11 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                                   key.k.key_buffer.ptr,
                                   nonce.ptr);
 
+    // TODO: I'm not sure this code is working right yet. The documentation
+    // is inadequate and it is complicated. More work is needed to
+    // examine documentation, examples and to especially test all the
+    // various cases and error conditions.
+
     /* ---------- AAD ---------- */
     if (!q_useful_buf_c_is_null(aad)) {
         if(!is_size_t_to_int_cast_ok(aad.len)) {
@@ -1378,7 +1386,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done1:
-    //EVP_CIPHER_CTX_free(evp_context);
+    EVP_CIPHER_CTX_free(evp_context);
 Done2:
     /* Have to cast away the const here. Inconsistent OpenSSL API...*/
     //EVP_CIPHER_meth_free((EVP_CIPHER *)evp_cipher);
@@ -1478,6 +1486,11 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
         return_value = 10; // TODO: proper error code
         goto Done1;
     }
+
+    // TODO: I'm not sure this code is working right yet. The documentation
+    // is inadequate and it is complicated. More work is needed to
+    // examine documentation, examples and to especially test all the
+    // various cases and error conditions.
 
     // TODO: is this necessary? EVP_CIPHER_CTX_ctrl (evp_context, EVP_CTRL_GCM_SET_TAG, 16, ref_TAG);
 
