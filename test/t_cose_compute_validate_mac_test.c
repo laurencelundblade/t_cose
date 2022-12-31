@@ -151,7 +151,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
     t_cose_mac_compute_init(&sign_ctx, 0, T_COSE_ALGORITHM_HMAC256);
     t_cose_mac_set_computing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
 
-    result = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    result = t_cose_mac_encode_parameters(&sign_ctx, false, &cbor_encode);
     if(result) {
         return_value = 2000 + (int32_t)result;
         goto Done;
@@ -159,7 +159,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
-    result = t_cose_mac_encode_tag(&sign_ctx, &cbor_encode);
+    result = t_cose_mac_encode_tag(&sign_ctx, NULL_Q_USEFUL_BUF_C, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
@@ -228,14 +228,14 @@ static int size_test(int32_t               cose_algorithm_id,
     t_cose_mac_compute_init(&sign_ctx,  0,  cose_algorithm_id);
     t_cose_mac_set_computing_key(&sign_ctx, key, kid);
 
-    return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_parameters(&sign_ctx, false, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
     }
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_mac_encode_tag(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&sign_ctx, NULL_Q_USEFUL_BUF_C, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -251,14 +251,14 @@ static int size_test(int32_t               cose_algorithm_id,
     t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
     t_cose_mac_set_computing_key(&sign_ctx, key, kid);
 
-    return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_parameters(&sign_ctx, false, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
     }
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    return_value = t_cose_mac_encode_tag(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&sign_ctx, NULL_Q_USEFUL_BUF_C, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
