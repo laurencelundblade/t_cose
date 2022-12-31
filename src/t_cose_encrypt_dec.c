@@ -147,6 +147,8 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         detached_mode = true;
     }
 
+    (void)detached_mode; // TODO: use this variable or get rid of it
+
     /* Two key distribution mechanisms are supported, namely
      *  - Direct key distribution (where no recipient info is included)
      *  - HPKE-based key distribution (which requires recipient info)

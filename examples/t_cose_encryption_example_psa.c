@@ -328,7 +328,7 @@ int main(void)
     }
 
     printf("\nPlaintext: ");
-    printf("%s\n", plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
+    printf("%s\n", (const char *)plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
 
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
@@ -377,7 +377,7 @@ int main(void)
     free_psa_key(t_cose_skR_key);
 
     printf("\nPlaintext: ");
-    printf("%s\n", plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
+    printf("%s\n", (const char *)plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
 
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
@@ -434,7 +434,7 @@ int main(void)
     }
 
     printf("\nPlaintext: ");
-    printf("%s\n", plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
+    printf("%s\n", (const char *)plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
 
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);

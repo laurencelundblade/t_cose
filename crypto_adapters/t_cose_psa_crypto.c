@@ -152,7 +152,6 @@ psa_status_to_t_cose_error_signing(psa_status_t err)
 }
 
 
-
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -825,7 +824,8 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
     size_t                 key_bitlen;
     psa_key_type_t         psa_keytype;
 
-    /* TODO: remove this and put it somewhere common. */
+    /* TODO: remove this and put it somewhere common. (It's OK to call twice,
+     * so having it here doesn't cause a problem in the short term */
     psa_crypto_init();
 
 
@@ -847,8 +847,6 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
             psa_keytype = PSA_KEY_TYPE_AES;
             key_bitlen = 256;
             break;
-
-            // TODO: support cha-cha?
 
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
@@ -884,7 +882,7 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
     }
 
     key_handle->k.key_handle = psa_key_handle;
-    key_handle->crypto_lib = T_COSE_CRYPTO_LIB_PSA;
+    key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_PSA;
 
     return T_COSE_SUCCESS;
 }
@@ -1036,21 +1034,3 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 
     return T_COSE_SUCCESS;
 }
-
-
-
-
-#ifdef XXX
-    static const int32_t map[][2] = {
-        { T_COSE_ALGORITHM_A128GCM    , PSA_ALG_GCM},
-        { T_COSE_ALGORITHM_A192GCM    , PSA_ALG_GCM},
-        { T_COSE_ALGORITHM_A256GCM    , PSA_ALG_GCM},
-        { INT32_MAX                      , INT32_MAX}
-    };
-
-    psa_algorithm_id = (psa_algorithm_t)meepmeep(map, cose_algorithm_id);
-    if(psa_algorithm_id == INT32_MAX) {
-        return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
-    }
-#endif
-

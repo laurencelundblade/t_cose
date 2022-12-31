@@ -379,6 +379,8 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                                         struct q_useful_buf_c symmetric_key,
                                         struct t_cose_key    *key_handle)
 {
+    (void)cose_algorithm_id;
+
     key_handle->k.key_buffer = symmetric_key;
     key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_TEST;
 
@@ -434,6 +436,11 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
 {
     struct q_useful_buf_c tag = Q_USEFUL_BUF_FROM_SZ_LITERAL(FAKE_TAG);
 
+    (void)nonce;
+    (void)aad;
+    (void)cose_algorithm_id;
+
+
     if(ciphertext_buffer.ptr == NULL) {
         /* Called in length calculation mode. Return length & exit. */
         ciphertext->len = aead_byte_count(cose_algorithm_id,
@@ -475,6 +482,11 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 {
     struct q_useful_buf_c expected_tag = Q_USEFUL_BUF_FROM_SZ_LITERAL(FAKE_TAG);
     struct q_useful_buf_c received_tag;
+    struct q_useful_buf_c received_plaintext;
+
+    (void)nonce;
+    (void)aad;
+    (void)cose_algorithm_id;
 
     if(key.crypto_lib != T_COSE_CRYPTO_LIB_TEST) {
         return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
@@ -482,12 +494,14 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 
     UsefulInputBuf UIB;
     UsefulInputBuf_Init(&UIB, ciphertext);
-    *plaintext = UsefulInputBuf_GetUsefulBuf(&UIB, ciphertext.len - expected_tag.len); // TODO: is subtraction safe?
+    received_plaintext = UsefulInputBuf_GetUsefulBuf(&UIB, ciphertext.len - expected_tag.len); // TODO: is subtraction safe?
     received_tag = UsefulInputBuf_GetUsefulBuf(&UIB, expected_tag.len);
 
     if(q_useful_buf_compare(expected_tag, received_tag)) {
         return 99; // TODO: error
     }
+
+    *plaintext = q_useful_buf_copy(plaintext_buffer, received_plaintext);
 
     if(q_useful_buf_c_is_null(*plaintext)) {
         return 99; // TODO: error

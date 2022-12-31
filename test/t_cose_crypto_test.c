@@ -34,10 +34,13 @@ static const uint8_t test_ciphertext[] = {
 };
 #endif
 
+
+/* TODO: proper define to know about test crypto */
+#ifndef T_COSE_USE_B_CON_SHA256
 /* This is what is output by both OpenSSL and MbedTLS (but different than what is in the GCM standard). */
 static const uint8_t expected_empty_tag[] = {
     0xC9, 0x4A, 0xA9, 0xF3, 0x22, 0x75, 0x73, 0x8C, 0xD5, 0xCC, 0x75, 0x01, 0xA4, 0x80, 0xBC, 0xF5};
-
+#endif
 
 int_fast32_t aead_test(void)
 {

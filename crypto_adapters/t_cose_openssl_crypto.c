@@ -153,14 +153,21 @@ is_size_t_to_int_cast_ok(size_t x)
 static bool
 is_int_to_size_t_cast_ok(int x)
 {
-    /* See comments in is_size_t_to_int_cast_ok() */
     if(SIZE_MAX > INT_MAX) {
+        /* The common case on a typical 64 or 32-bit CPU where
+         * SIZE_MAX is 0xffffffffffffffff or 0xffffffff and
+         * INT_MAX is 0x7fffffff
+         */
         if(x < 0) {
             return false;
         } else {
             return true;
         }
     } else {
+        /* It would be very weird for this to happen, but it is
+         * allowed by the C standard and this code aims for
+         * correctness against the C standard. */
+        // TODO: fix warning about this comparison. Not sure how yet.
         if(x < 0 || x > SIZE_MAX) {
             return false;
         } else {
@@ -1114,6 +1121,7 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                                         struct q_useful_buf_c symmetric_key,
                                         struct t_cose_key    *key_handle)
 {
+    (void)cose_algorithm_id;
     key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_OPENSSL;
     key_handle->k.key_buffer = symmetric_key;
 
@@ -1242,9 +1250,11 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     }
     /* This is a sanity check. OpenSSL doesn't provide this check
      * when using a key. It just assume you've provided the right key
-     * length to EVP_EncryptInit(). A bit unhygenic if you ask me. */
+     * length to EVP_EncryptInit(). A bit unhygenic if you ask me.
+     * Assuming that EVP_CIPHER_key_length() will always return
+     * a small positive integer so the cast to size_t is safe. */
     expected_key_length = EVP_CIPHER_key_length(evp_cipher);
-    if(key.k.key_buffer.len != expected_key_length) {
+    if(key.k.key_buffer.len != (size_t)expected_key_length) {
         return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO error code.
         goto Done2;
     }
@@ -1345,7 +1355,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     buffer_bytes_used += bytes_output; /* Safe becaue of output-length-check */
 
     /* ---------- AEAD authentication tag and finish ----------- */
-    /* Get tag. Not a duplicate so needs to be added to the ciphertext */
+    /* Get tag. */
     /* Cast of tag_length to int is safe because we know that
      * symmetric_cipher_byte_count will only return small positive values. */
     ossl_result = EVP_CIPHER_CTX_ctrl(evp_context,
@@ -1356,7 +1366,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
         return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
         goto Done1;
     }
-    buffer_bytes_used += tag_length; /* Safe becaue of output-length-check */
+    buffer_bytes_used += (int)tag_length; /* Safe becaue of output-length-check */
 
     if(!is_int_to_size_t_cast_ok(buffer_bytes_used)) {
         return_value = 11;
@@ -1440,7 +1450,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
      * when using a key. It just assume you've provided the right key
      * length to EVP_DecryptInit(). A bit unhygenic if you ask me. */
     expected_key_length = EVP_CIPHER_key_length(evp_cipher);
-    if(key.k.key_buffer.len != expected_key_length) {
+    if(key.k.key_buffer.len != (size_t)expected_key_length) {
         return_value = 10; // TODO error code.
         goto Done2;
     }
@@ -1511,10 +1521,15 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     /* No check for cast safety of tag_length OK because it is always a smalll positive number.*/
     /* The pointer math below is safe because it is calculating a pointer that is
      * in input ciphertext data. */
+    /* This is to cast away const without any warnings because the arg
+     * to EVP_CIPHER_CTX_ctrl is not const this is compiled with
+     * -Wcast-qual. */
+    void *tmp = (void *)(uintptr_t)((const uint8_t *)ciphertext.ptr +
+                                    (ciphertext.len - tag_length));
     ossl_result = EVP_CIPHER_CTX_ctrl(evp_context,
                                       EVP_CTRL_AEAD_SET_TAG,
                                       (int)tag_length,
-                                      (uint8_t *)ciphertext.ptr + (ciphertext.len - tag_length));
+                                      tmp);
     if(ossl_result != 1) {
         return_value = 10; // TODO: proper error code
         goto Done1;
@@ -1526,7 +1541,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
      * this writes nothing (no dummy_length).
      */
     ossl_result = EVP_DecryptFinal_ex(evp_context,
-                                      plaintext_buffer.ptr + bytes_output,
+                                      (uint8_t *)plaintext_buffer.ptr + bytes_output,
                                       &dummy_length);
     if(ossl_result != 1) {
         /* This is where an authentication failure is detected. */
