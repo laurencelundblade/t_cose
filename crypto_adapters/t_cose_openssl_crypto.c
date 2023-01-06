@@ -1124,7 +1124,7 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                                         struct q_useful_buf_c symmetric_key,
                                         struct t_cose_key    *key_handle)
 {
-    (void)cose_algorithm_id;
+    (void)cose_algorithm_id; // TODO: maybe check the algorithm is symmetric
     key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_OPENSSL;
     key_handle->k.key_buffer = symmetric_key;
 

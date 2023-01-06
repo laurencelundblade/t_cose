@@ -878,7 +878,7 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                             &psa_key_handle);
 
     if (status != PSA_SUCCESS) {
-        return T_COSE_ERR_KEY_IMPORT_FAILED; // TODO: do better with this error?
+        return T_COSE_ERR_KEY_IMPORT_FAILED;
     }
 
     key_handle->k.key_handle = psa_key_handle;
