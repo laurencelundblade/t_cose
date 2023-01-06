@@ -1099,18 +1099,27 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
  * \c cose_algorithm_id.
  *
  * A key handle is used even though it could be a buffer with a key in
- * order to allow use of keys internal to the crypto library, crypto HW and
- * such. See t_cose_crypto_make_symmetric_key_handle().
+ * order to allow use of keys internal to the crypto library, crypto
+ * HW and such. See t_cose_crypto_make_symmetric_key_handle().
  *
  * This does not need to support a size calculation mode as is
  * required of t_cose_crypto_aead_encrypt().
+ *
+ * One of the following errors should be returned. Other errors should
+ * not be returned.
  *
  * \retval T_COSE_SUCCESS
  *         The decryption operation was successful.
  * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
  *         An unsupported cipher algorithm was provided.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         The \c plaintext_buffer is too small.
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key is not right for the algorithm or is not allowed for decryption.
+ * \retval T_COSE_ERR_DATA_AUTH_FAILED
+ *         The data integrity check failed.
  * \retval T_COSE_ERR_DECRYPT_FAIL
- *         The decryption operation failed.
+ *         Decryption failed for a reason other than above.
  */
 enum t_cose_err_t
 t_cose_crypto_aead_decrypt(int32_t                cose_algorithm_id,
@@ -1141,21 +1150,26 @@ t_cose_crypto_aead_decrypt(int32_t                cose_algorithm_id,
  * \c cose_algorithm_id.
  *
  * A key handle is used even though it could be a buffer with a key in
- * order to allow use of keys internal to the crypto library, crypto HW and
- * such. See t_cose_crypto_make_symmetric_key_handle().
+ * order to allow use of keys internal to the crypto library, crypto
+ * HW and such. See t_cose_crypto_make_symmetric_key_handle().
  *
- * This must support a size calculation mode which is indicated
- * by ciphertext_buffer.ptr == NULL and which fills the size
- * in ciphertext->len.
+ * This must support a size calculation mode which is indicated by
+ * ciphertext_buffer.ptr == NULL and which fills the size in
+ * ciphertext->len.
+ *
+ * One of the following errors should be returned. Other errors should
+ * not be returned.
  *
  * \retval T_COSE_SUCCESS
  *         The decryption operation was successful.
  * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
  *         An unsupported cipher algorithm was provided.
- * \retval T_COSE_ERR_KEY_IMPORT_FAILED
- *         The provided key could not be imported.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         \c ciphertext_buffer is too small.
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key is not right for the algorithm or is not allowed for encryption.
  * \retval T_COSE_ERR_ENCRYPT_FAIL
- *         The encryption operation failed.
+ *         Encryption failed for a reason other than above.
  */
 enum t_cose_err_t
 t_cose_crypto_aead_encrypt(int32_t                cose_algorithm_id,

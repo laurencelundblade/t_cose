@@ -889,8 +889,8 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 
 
 /* Compute size of ciphertext, given size of plaintext. Returns
- * SIZE_MAX if the algorithm is unknown. Also returns the tag
- * length. */
+ * SIZE_MAX if the algorithm is unknown.
+ */
 static size_t
 aead_byte_count(const int32_t cose_algorithm_id,
                 size_t        plain_text_len)
@@ -921,6 +921,29 @@ aead_byte_count(const int32_t cose_algorithm_id,
 }
 
 
+static enum t_cose_err_t
+aead_psa_status_to_t_cose_err(psa_status_t status, enum t_cose_err_t deflt)
+{
+    switch(status) {
+        case PSA_SUCCESS : return  T_COSE_SUCCESS;
+
+        case PSA_ERROR_NOT_SUPPORTED: return  T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+
+        case PSA_ERROR_BUFFER_TOO_SMALL: return  T_COSE_ERR_TOO_SMALL;
+
+        case PSA_ERROR_INVALID_HANDLE: return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+
+        case PSA_ERROR_INVALID_ARGUMENT: return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+
+        case PSA_ERROR_NOT_PERMITTED: return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+
+        case PSA_ERROR_INVALID_SIGNATURE: return T_COSE_ERR_DATA_AUTH_FAILED;
+
+        default: return deflt;
+    }
+}
+
+
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -933,10 +956,10 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                            struct q_useful_buf    ciphertext_buffer,
                            struct q_useful_buf_c *ciphertext)
 {
-    psa_algorithm_t   psa_algorithm_id;
-    psa_key_handle_t  psa_key_handle;
-    psa_status_t      status;
+    psa_algorithm_t  psa_algorithm_id;
+    psa_status_t     status;
 
+    /* Pretty sure the optimizer will do good things with this switch. */
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
             psa_algorithm_id = PSA_ALG_GCM;
@@ -947,7 +970,6 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
         case T_COSE_ALGORITHM_A256GCM:
             psa_algorithm_id = PSA_ALG_GCM;
             break;
-
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
@@ -962,21 +984,18 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
         return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
     }
-    psa_key_handle = (psa_key_handle_t)key.k.key_handle;
 
-    status = psa_aead_encrypt(psa_key_handle,
+    status = psa_aead_encrypt((psa_key_handle_t)key.k.key_handle,
                               psa_algorithm_id,
                               nonce.ptr, nonce.len,
                               aad.ptr, aad.len,
                               plaintext.ptr, plaintext.len,
                               ciphertext_buffer.ptr, ciphertext_buffer.len,
                              &ciphertext->len);
-    ciphertext->ptr = ciphertext_buffer.ptr;
-    if (status != PSA_SUCCESS) {
-        return T_COSE_ERR_ENCRYPT_FAIL;
-    }
 
-    return T_COSE_SUCCESS;
+    ciphertext->ptr = ciphertext_buffer.ptr;
+
+    return aead_psa_status_to_t_cose_err(status, T_COSE_ERR_ENCRYPT_FAIL);
 
     /* If you want to feel good about how nice the PSA API for
      * AEAD is, go look at the AEAD crypto adaptor for OpenSSL.
@@ -996,9 +1015,8 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                            struct q_useful_buf    plaintext_buffer,
                            struct q_useful_buf_c *plaintext)
 {
-    psa_algorithm_t   psa_algorithm_id;
-    psa_key_handle_t  psa_key_handle;
-    psa_status_t      status;
+    psa_algorithm_t  psa_algorithm_id;
+    psa_status_t     status;
 
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
@@ -1010,7 +1028,6 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
         case T_COSE_ALGORITHM_A256GCM:
             psa_algorithm_id = PSA_ALG_GCM;
             break;
-
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
@@ -1018,9 +1035,8 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
         return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
     }
-    psa_key_handle = (psa_key_handle_t)key.k.key_handle;
 
-    status = psa_aead_decrypt(psa_key_handle,
+    status = psa_aead_decrypt((psa_key_handle_t)key.k.key_handle,
                               psa_algorithm_id,
                               nonce.ptr, nonce.len,
                               aad.ptr, aad.len,
@@ -1028,9 +1044,6 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                               plaintext_buffer.ptr, plaintext_buffer.len,
                              &plaintext->len);
     plaintext->ptr = plaintext_buffer.ptr;
-    if (status != PSA_SUCCESS) {
-        return T_COSE_ERR_DECRYPT_FAIL;
-    }
 
-    return T_COSE_SUCCESS;
+    return aead_psa_status_to_t_cose_err(status, T_COSE_ERR_DECRYPT_FAIL);
 }

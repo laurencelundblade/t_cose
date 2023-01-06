@@ -384,10 +384,11 @@ enum t_cose_err_t {
      * when verifying a \c COSE_Sign1. */
     T_COSE_ERR_NO_KID = 12,
 
-    /** Signature verification failed. For example, the cryptographic
-     * operations completed successfully but hash wasn't as
-     * expected. */
+    /** Signature verification or data authentication failed. For
+     * example, the cryptographic operations completed successfully
+     * but hash wasn't as expected. */
     T_COSE_ERR_SIG_VERIFY = 13,
+    T_COSE_ERR_DATA_AUTH_FAILED = 13,
 
     /** Verification of a short-circuit signature failed. */
     T_COSE_ERR_BAD_SHORT_CIRCUIT_KID = 14,

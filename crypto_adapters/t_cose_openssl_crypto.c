@@ -1206,17 +1206,20 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
 
     /* ------- Plaintext and ciphertext lengths -------*/
     /*
-     This is the critical length check that makes the rest of the
-     calls to OpenSSL that write to the output buffer safe because
-     OpenSSL by itself doesn't isn't safe. You cannot tell
-     it the length of the buffer it is writing to.
-
-     Here's the text from the openssl documentation:
-
-      For most ciphers and modes, the amount of data written can be anything from zero bytes to (inl + cipher_block_size - 1) bytes. For wrap cipher modes, the amount of data written can be anything from zero bytes to (inl + cipher_block_size) bytes. For stream ciphers, the amount of data written can be anything from zero bytes to inl bytes.
-
-
-      */
+     * This is the critical length check that makes the rest of the
+     * calls to OpenSSL that write to the output buffer safe because
+     * OpenSSL by itself doesn't isn't safe. You cannot tell it the
+     * length of the buffer it is writing to.
+     *
+     * Here's the text from the openssl documentation:
+     *
+     *    For most ciphers and modes, the amount of data written can
+     *    be anything from zero bytes to (inl + cipher_block_size - 1)
+     *    bytes. For wrap cipher modes, the amount of data written can
+     *    be anything from zero bytes to (inl + cipher_block_size)
+     *    bytes. For stream ciphers, the amount of data written can be
+     *    anything from zero bytes to inl bytes.
+     */
 
     /* output-length-check */
     /* This assumes that OpenSSL outputs exactly the number
@@ -1230,7 +1233,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     }
     if(ciphertext_buffer.len < expected_output_length) {
         /* Output buffer is too small */
-        return_value =  T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        return_value = T_COSE_ERR_TOO_SMALL;
         goto Done3;
     }
     /* Now it is established that the output buffer is big enough */
@@ -1243,22 +1246,22 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
 
     /* ------- Algorithm and key and IV length checks -------*/
     switch(cose_algorithm_id) {
-         case T_COSE_ALGORITHM_A128GCM: evp_cipher = EVP_aes_128_gcm ();break;
-         case T_COSE_ALGORITHM_A192GCM: evp_cipher = EVP_aes_192_gcm ();break;
-         case T_COSE_ALGORITHM_A256GCM: evp_cipher = EVP_aes_256_gcm ();break;
+         case T_COSE_ALGORITHM_A128GCM: evp_cipher = EVP_aes_128_gcm();break;
+         case T_COSE_ALGORITHM_A192GCM: evp_cipher = EVP_aes_192_gcm();break;
+         case T_COSE_ALGORITHM_A256GCM: evp_cipher = EVP_aes_256_gcm();break;
         default: return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG; goto Done3;
      }
     if(key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
         return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
     }
-    /* This is a sanity check. OpenSSL doesn't provide this check
-     * when using a key. It just assume you've provided the right key
+    /* This is a sanity check. OpenSSL doesn't provide this check when
+     * using a key. It just assume you've provided the right key
      * length to EVP_EncryptInit(). A bit unhygenic if you ask me.
-     * Assuming that EVP_CIPHER_key_length() will always return
-     * a small positive integer so the cast to size_t is safe. */
+     * Assuming that EVP_CIPHER_key_length() will always return a
+     * small positive integer so the cast to size_t is safe. */
     expected_key_length = EVP_CIPHER_key_length(evp_cipher);
     if(key.k.key_buffer.len != (size_t)expected_key_length) {
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO error code.
+        return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
         goto Done2;
     }
     /* Same hygene check for IV/nonce length as for key */
@@ -1267,14 +1270,14 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
      * This make the cast to size_t mostly safe. */
     expected_iv_length = (size_t)EVP_CIPHER_iv_length(evp_cipher);
     if(nonce.len < expected_iv_length){
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: error code.
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done2;
     }
 
     /* -------- Context initialization with key and IV ---------- */
     evp_context = EVP_CIPHER_CTX_new();
     if (evp_context == NULL) {
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: error
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done2;
     }
     ossl_result = EVP_EncryptInit(evp_context,
@@ -1282,7 +1285,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                                   NULL,
                                   NULL);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     // TODO: is this necessary? Can there be only one call to EVP_EncryptInit() that sets the key and iv?
@@ -1292,7 +1295,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                                       (int)nonce.len,
                                       NULL);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     ossl_result = EVP_EncryptInit(evp_context,
@@ -1309,7 +1312,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     if (!q_useful_buf_c_is_null(aad)) {
         if(!is_size_t_to_int_cast_ok(aad.len)) {
             /* Cast to integer below would not be safe. */
-            return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+            return_value = T_COSE_ERR_ENCRYPT_FAIL;
             goto Done1;
         }
         /* The NULL output pointer seems to tell it that this is AAD. TODO: confirm this */
@@ -1318,7 +1321,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                                         &dummy_length,
                                         aad.ptr, (int)aad.len);
         if(ossl_result != 1) {
-            return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+            return_value = T_COSE_ERR_ENCRYPT_FAIL;
             goto Done1;
         }
     }
@@ -1328,7 +1331,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
         /* This tells us that it is not safe to track the output
          * of the encryption in the integer variables buffer_bytes_used
          * and bytes_output. */
-        return_value = 11;
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     buffer_bytes_used = 0;
@@ -1338,7 +1341,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
      */
     if(!is_size_t_to_int_cast_ok(plaintext.len)) {
         /* Cast to integer below would not be safe. */
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     ossl_result = EVP_EncryptUpdate(evp_context,
@@ -1346,7 +1349,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                                     &bytes_output,
                                     plaintext.ptr, (int)plaintext.len);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
 
@@ -1357,7 +1360,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                                      (uint8_t *)ciphertext_buffer.ptr + buffer_bytes_used,
                                      &bytes_output);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     buffer_bytes_used += bytes_output; /* Safe becaue of output-length-check */
@@ -1371,13 +1374,13 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
                                       (int)tag_length,
                                       (uint8_t *)ciphertext_buffer.ptr + buffer_bytes_used);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     buffer_bytes_used += (int)tag_length; /* Safe becaue of output-length-check */
 
     if(!is_int_to_size_t_cast_ok(buffer_bytes_used)) {
-        return_value = 11;
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     ciphertext->len = (size_t)buffer_bytes_used;
@@ -1386,10 +1389,11 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done1:
+    /* https://stackoverflow.com/questions/26345175/correct-way-to-free-allocate-the-context-in-the-openssl */
     EVP_CIPHER_CTX_free(evp_context);
 Done2:
-    /* Have to cast away the const here. Inconsistent OpenSSL API...*/
-    //EVP_CIPHER_meth_free((EVP_CIPHER *)evp_cipher);
+    /* It seems that EVP_aes_128_gcm(), ... returns a const, non-allocated
+     * EVP_CIPHER and thus doesn't have to be freed. */
 Done3:
     return return_value;
 }
@@ -1431,13 +1435,13 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
         /* All algorithms supported so far are AEAD, have a tag and thus
          * have a minimum length of the tag_length. This check  makes the
          * length calculation below safe. */
-        return_value = 11; // TODO: proper error code
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
         goto Done2;
     }
     if(plaintext_buffer.len < ciphertext.len - tag_length) { /* plaintext-buffer-check */
         /* The buffer to receive the plaintext is too small. This
          * check assumes AEAD. See aead_byte_count(). */
-        return_value = 11;
+        return_value = T_COSE_ERR_TOO_SMALL;
         goto Done2;
     }
     if(!is_size_t_to_int_cast_ok(plaintext_buffer.len)){
@@ -1445,7 +1449,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
          * the length of bytes that are put in it are
          * held by the integer bytes_output. This checks
          * affirms that it is OK to hold that counter in an int. */
-        return_value = 11;
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
         goto Done2;
     }
 
@@ -1455,11 +1459,11 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
         goto Done2;
     }
     /* This is a sanity check. OpenSSL doesn't provide this check
-     * when using a key. It just assume you've provided the right key
+     * when using a key. It just assumes you've provided the right key
      * length to EVP_DecryptInit(). A bit unhygenic if you ask me. */
     expected_key_length = EVP_CIPHER_key_length(evp_cipher);
     if(key.k.key_buffer.len != (size_t)expected_key_length) {
-        return_value = 10; // TODO error code.
+        return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
         goto Done2;
     }
     /* Same hygene check for IV/nonce length as for key */
@@ -1468,14 +1472,14 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
      * This make the cast to size_t mostly safe. */
     expected_iv_length = (size_t)EVP_CIPHER_iv_length(evp_cipher);
     if(nonce.len < expected_iv_length){
-        return_value = 10; // TODO: error code.
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
         goto Done2;
     }
 
     /* -------- Context initialization with key and IV ---------- */
     evp_context = EVP_CIPHER_CTX_new();
     if (evp_context == NULL) {
-        return_value = 10; // TODO: error
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
         goto Done2;
     }
     ossl_result = EVP_DecryptInit(evp_context,
@@ -1483,7 +1487,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                                   key.k.key_buffer.ptr,
                                   nonce.ptr);
     if(ossl_result != 1) {
-        return_value = 10; // TODO: proper error code
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
         goto Done1;
     }
 
@@ -1499,7 +1503,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     if (!q_useful_buf_c_is_null(aad)) {
         if(!is_size_t_to_int_cast_ok(aad.len)) {
             /* Cast to integer below would not be safe. */
-            return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+            return_value = T_COSE_ERR_ENCRYPT_FAIL;
         }
         /* The NULL output pointer seems to tell it that this is AAD. TODO: confirm this */
         ossl_result = EVP_DecryptUpdate(evp_context,
@@ -1507,7 +1511,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                                         &dummy_length,
                                         aad.ptr, (int)aad.len);
         if(ossl_result != 1) {
-            return_value = 10; // TODO: proper error code
+            return_value = T_COSE_ERR_ENCRYPT_FAIL;
             goto Done1;
         }
     }
@@ -1516,7 +1520,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     /* Length subtraction safe because of ciphertext-length-check */
     if(!is_size_t_to_int_cast_ok(ciphertext.len - tag_length)) {
         /* Cast to integer below would not be safe. */
-        return_value = T_COSE_ERR_ENCRYPT_FAIL; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     ossl_result = EVP_DecryptUpdate(evp_context,
@@ -1525,15 +1529,16 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                                     ciphertext.ptr,
                                     (int)(ciphertext.len - tag_length));
     if(ossl_result != 1) {
-        return_value = 10; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
 
 
     /* ---------- Process the authentication tag and finalize ---------*/
-    /* No check for cast safety of tag_length OK because it is always a smalll positive number.*/
-    /* The pointer math below is safe because it is calculating a pointer that is
-     * in input ciphertext data. */
+    /* No check for cast safety of tag_length OK because it is always
+     * a smalll positive number. */
+    /* The pointer math below is safe because it is calculating a
+     * pointer that is in input ciphertext data. */
     /* This is to cast away const without any warnings because the arg
      * to EVP_CIPHER_CTX_ctrl is not const this is compiled with
      * -Wcast-qual. */
@@ -1547,11 +1552,11 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
         return_value = 10; // TODO: proper error code
         goto Done1;
     }
-    /* The pointer math is safe and this call won't write off the end of the buffer
-     * because of plaintext-buffer-check. Because this only implements
-     * AEAD this will not actually write anything. A block-mode cipher
-     * probably requires a little different code that doesn't assume
-     * this writes nothing (no dummy_length).
+    /* The pointer math is safe and this call won't write off the end
+     * of the buffer because of plaintext-buffer-check. Because this
+     * only implements AEAD this will not actually write anything. A
+     * block-mode cipher probably requires a little different code
+     * that doesn't assume this writes nothing (no dummy_length).
      */
     ossl_result = EVP_DecryptFinal_ex(evp_context,
                                       (uint8_t *)plaintext_buffer.ptr + bytes_output,
@@ -1564,7 +1569,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 
     /* ---------- Return pointer and length of plaintext ---------*/
     if(!is_int_to_size_t_cast_ok(bytes_output)) {
-        return_value = 10; // TODO: proper error code
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
         goto Done1;
     }
     plaintext->len = (size_t)bytes_output;
@@ -1573,10 +1578,11 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done1:
+    /* https://stackoverflow.com/questions/26345175/correct-way-to-free-allocate-the-context-in-the-openssl */
     EVP_CIPHER_CTX_free(evp_context);
 Done2:
-    /* Have to cast away the const here. Inconsistent OpenSSL API...*/
-    // EVP_CIPHER_meth_free((EVP_CIPHER *)evp_cipher);
+    /* It seems that EVP_aes_128_gcm(), ... returns a const, non-allocated
+     * EVP_CIPHER and thus doesn't have to be freed. */
 Done3:
     return return_value;
 }

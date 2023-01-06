@@ -461,7 +461,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     *ciphertext = UsefulOutBuf_OutUBuf(&UOB);
 
     if(q_useful_buf_c_is_null(*ciphertext)) {
-        return 99;
+        return T_COSE_ERR_TOO_SMALL;
     }
 
     return T_COSE_SUCCESS;
@@ -494,17 +494,20 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 
     UsefulInputBuf UIB;
     UsefulInputBuf_Init(&UIB, ciphertext);
-    received_plaintext = UsefulInputBuf_GetUsefulBuf(&UIB, ciphertext.len - expected_tag.len); // TODO: is subtraction safe?
+    if(ciphertext.len < expected_tag.len) {
+        return T_COSE_ERR_DECRYPT_FAIL;
+    }
+    received_plaintext = UsefulInputBuf_GetUsefulBuf(&UIB, ciphertext.len - expected_tag.len);
     received_tag = UsefulInputBuf_GetUsefulBuf(&UIB, expected_tag.len);
 
     if(q_useful_buf_compare(expected_tag, received_tag)) {
-        return 99; // TODO: error
+        return T_COSE_ERR_DATA_AUTH_FAILED;
     }
 
     *plaintext = q_useful_buf_copy(plaintext_buffer, received_plaintext);
 
     if(q_useful_buf_c_is_null(*plaintext)) {
-        return 99; // TODO: error
+        return T_COSE_ERR_TOO_SMALL;
     }
 
     return T_COSE_SUCCESS;
