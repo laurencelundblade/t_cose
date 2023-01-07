@@ -264,12 +264,21 @@ bool
 t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list);
 
 
-/*
+/**
+ * \brief Map a 16-bit integer like an error code to another.
  *
+ * \param[in] map   Two-dimentional array that is the mapping.
+ * \param[in] query  The input to map
+ *
+ * \returns The output of the mapping.
  *
  * This function maps one 16-bit integer to another and is
  * mostly used for mapping error codes and sometimes for
- * mapping algorithm IDs.
+ * mapping algorithm IDs. The map is an array of two-element
+ * arrays. The first element is matched against \c query.
+ * The second is returned on a match. The input map is terminated
+ * when the first element is INT16_MIN. When there is not
+ * match the value paired with the terminating INT16_MIN is returned.
  *
  * Both gcc and clang are good at optimizing switch statements
  * that map one integer to another so for some but not all uses the switch
