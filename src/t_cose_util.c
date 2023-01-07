@@ -26,40 +26,13 @@
  * primarily the to-be-signed bytes hashing.
  */
 
-/*
- * Public function. See t_cose_util.h
- */
-bool signature_algorithm_id_is_supported(int32_t cose_algorithm_id)
-{
-// TODO: disable ES256
-    return (cose_algorithm_id == T_COSE_ALGORITHM_ES256)
-#ifndef T_COSE_DISABLE_ES384
-           || (cose_algorithm_id == T_COSE_ALGORITHM_ES384)
-#endif
-#ifndef T_COSE_DISABLE_ES512
-           || (cose_algorithm_id == T_COSE_ALGORITHM_ES512)
-#endif
-#ifndef T_COSE_DISABLE_PS256
-           || (cose_algorithm_id == T_COSE_ALGORITHM_PS256)
-#endif
-#ifndef T_COSE_DISABLE_PS384
-           || (cose_algorithm_id == T_COSE_ALGORITHM_PS384)
-#endif
-#ifndef T_COSE_DISABLE_PS512
-           || (cose_algorithm_id == T_COSE_ALGORITHM_PS512)
-#endif
-#ifndef T_COSE_DISABLE_EDDSA
-           || (cose_algorithm_id == T_COSE_ALGORITHM_EDDSA)
-#endif
-           ;
-}
-
 
 /*
  * Public function.
  *
  * This is declared in t_cose_common.h, but there is no t_cose_common.c,
- * so this little function is put here.*/
+ * so this little function is put here as linkage glue to the
+ * crypto adaptor layer. */
 bool
 t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
 {
@@ -70,41 +43,47 @@ t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
 /*
  * Public function. See t_cose_util.h
  */
-int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
+// TODO: make this a private function by not calling from test. Then the compiler will probably inline it.
+int32_t
+hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 {
     /* If other hashes, particularly those that output bigger hashes
      * are added here, various other parts of this code have to be
      * changed to have larger buffers, in particular
      * \ref T_COSE_CRYPTO_MAX_HASH_SIZE.
      */
-    /* ? : operator precedence is correct here. This makes smaller
-     * code than a switch statement and is easier to read.
-     */
-    // TODO: disable ES256
-
-    return cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_ALGORITHM_SHA_256 :
+    // TODO: allows disabling ES256
+    static const int16_t hash_alg_map[][2] = {
+        { T_COSE_ALGORITHM_ES256 ,  T_COSE_ALGORITHM_SHA_256 },
 #ifndef T_COSE_DISABLE_ES384
-           cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_ALGORITHM_SHA_384 :
+        { T_COSE_ALGORITHM_ES384 , T_COSE_ALGORITHM_SHA_384 },
 #endif
 #ifndef T_COSE_DISABLE_ES512
-           cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_ALGORITHM_SHA_512 :
+        { T_COSE_ALGORITHM_ES512 , T_COSE_ALGORITHM_SHA_512},
 #endif
 #ifndef T_COSE_DISABLE_PS256
-           cose_algorithm_id == T_COSE_ALGORITHM_PS256 ? T_COSE_ALGORITHM_SHA_256 :
+        { T_COSE_ALGORITHM_PS256 , T_COSE_ALGORITHM_SHA_256 },
 #endif
 #ifndef T_COSE_DISABLE_PS384
-           cose_algorithm_id == T_COSE_ALGORITHM_PS384 ? T_COSE_ALGORITHM_SHA_384 :
+        { T_COSE_ALGORITHM_PS384 , T_COSE_ALGORITHM_SHA_384},
 #endif
 #ifndef T_COSE_DISABLE_PS512
-           cose_algorithm_id == T_COSE_ALGORITHM_PS512 ? T_COSE_ALGORITHM_SHA_512 :
+        { T_COSE_ALGORITHM_PS512 , T_COSE_ALGORITHM_SHA_512 },
 #endif
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? T_COSE_ALGORITHM_SHA_256 :
-           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? T_COSE_ALGORITHM_SHA_384 :
-           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? T_COSE_ALGORITHM_SHA_512 :
+        { T_COSE_ALGORITHM_SHORT_CIRCUIT_256 , T_COSE_ALGORITHM_SHA_256},
+        { T_COSE_ALGORITHM_SHORT_CIRCUIT_384 , T_COSE_ALGORITHM_SHA_384},
+        { T_COSE_ALGORITHM_SHORT_CIRCUIT_512 , T_COSE_ALGORITHM_SHA_512 },
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-                                                         T_COSE_INVALID_ALGORITHM_ID;
+        { INT16_MAX ,                   T_COSE_INVALID_ALGORITHM_ID}
+    };
+
+    /* If 16-bit inputs are to small for some, add a switch statement or such
+     * or be clever with bit masks if they input values don't overlap. */
+
+    return (int32_t)t_cose_int16_map(hash_alg_map, (int16_t)(cose_algorithm_id & 0xffff));
 }
+
 
 #ifndef T_COSE_DISABLE_MAC0
 // TODO: maybe this can be shared with similar function for EDDSA?
@@ -396,3 +375,35 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t for
     }
     return T_COSE_SUCCESS;
 }
+
+
+/*
+ * Public function. See t_cose_util.h
+ */
+bool
+t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list)
+{
+    while(*list != T_COSE_ALGORITHM_NONE) {
+        if(*list == cose_algorithm_id) {
+            return true;
+        }
+        list++;
+    }
+    return false;
+}
+
+
+/*
+ * Public function. See t_cose_util.h
+ */
+int16_t t_cose_int16_map(const int16_t map[][2], int16_t query)
+{
+    int i;
+    for(i = 0; map[i][0] != INT16_MIN; i++) {
+        if(map[i][0] == query) {
+            return map[i][1];
+        }
+    }
+    return INT16_MIN;
+}
+
