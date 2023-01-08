@@ -108,51 +108,33 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
  *
  * \return The PSA algorithm ID or 0 if this doesn't map the COSE ID.
  */
-#if 0
-static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
-{
-    /* The #ifdefs save a little code when algorithms are disabled */
-
-    return cose_alg_id == T_COSE_ALGORITHM_ES256 ? PSA_ALG_ECDSA(PSA_ALG_SHA_256) :
-#ifndef T_COSE_DISABLE_ES384
-           cose_alg_id == T_COSE_ALGORITHM_ES384 ? PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
-#endif
-#ifndef T_COSE_DISABLE_ES512
-           cose_alg_id == T_COSE_ALGORITHM_ES512 ? PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
-#endif
-#ifndef T_COSE_DISABLE_PS256
-           cose_alg_id == T_COSE_ALGORITHM_PS256 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_256) :
-#endif
-#ifndef T_COSE_DISABLE_PS384
-           cose_alg_id == T_COSE_ALGORITHM_PS384 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_384) :
-#endif
-#ifndef T_COSE_DISABLE_PS512
-           cose_alg_id == T_COSE_ALGORITHM_PS512 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_512) :
-#endif
-
-    0;
-    /* psa/crypto_values.h doesn't seem to define a "no alg" value,
-     * but zero seems OK for that use in the signing context. */
-}
-
-#else
 static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 {
     /* The #ifdefs save a little code when algorithms are disabled */
     switch(cose_alg_id) {
-        case T_COSE_ALGORITHM_ES256 : return PSA_ALG_ECDSA(PSA_ALG_SHA_256) ;
-        case T_COSE_ALGORITHM_ES384 : return PSA_ALG_ECDSA(PSA_ALG_SHA_384) ;
-        case T_COSE_ALGORITHM_ES512 : return PSA_ALG_ECDSA(PSA_ALG_SHA_512) ;
-        case T_COSE_ALGORITHM_PS256 : return PSA_ALG_RSA_PSS(PSA_ALG_SHA_256) ;
-        case T_COSE_ALGORITHM_PS384 : return PSA_ALG_RSA_PSS(PSA_ALG_SHA_384) ;
-        case T_COSE_ALGORITHM_PS512 : return PSA_ALG_RSA_PSS(PSA_ALG_SHA_512) ;
+        case T_COSE_ALGORITHM_ES256 : return PSA_ALG_ECDSA(PSA_ALG_SHA_256);
+#ifndef T_COSE_DISABLE_ES384
+        case T_COSE_ALGORITHM_ES384 : return PSA_ALG_ECDSA(PSA_ALG_SHA_384);
+#endif
+#ifndef T_COSE_DISABLE_ES512
+        case T_COSE_ALGORITHM_ES512 : return PSA_ALG_ECDSA(PSA_ALG_SHA_512);
+#endif
+#ifndef T_COSE_DISABLE_PS256
+        case T_COSE_ALGORITHM_PS256 : return PSA_ALG_RSA_PSS(PSA_ALG_SHA_256);
+#endif
+#ifndef T_COSE_DISABLE_PS384
+        case T_COSE_ALGORITHM_PS384 : return PSA_ALG_RSA_PSS(PSA_ALG_SHA_384);
+#endif
+#ifndef T_COSE_DISABLE_PS512
+        case T_COSE_ALGORITHM_PS512 : return PSA_ALG_RSA_PSS(PSA_ALG_SHA_512);
+#endif
         default: return 0;
     }
 
     /* psa/crypto_values.h doesn't seem to define a "no alg" value,
      * but zero seems OK for that use in the signing context. */
 }
-#endif
+
 
 /**
  * \brief Map a PSA error into a t_cose error for signing.

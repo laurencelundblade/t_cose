@@ -18,6 +18,7 @@
 #include "t_cose_crypto.h"
 
 
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 static bool
 t_cose_algorithm_is_short_circuit(int32_t cose_algorithm_id)
 {
@@ -30,6 +31,7 @@ t_cose_algorithm_is_short_circuit(int32_t cose_algorithm_id)
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
+#endif
 
 
 
