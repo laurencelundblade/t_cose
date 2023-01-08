@@ -43,7 +43,8 @@ t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
 /*
  * Public function. See t_cose_util.h
  */
-// TODO: make this a private function by not calling from test. Then the compiler will probably inline it.
+// TODO: make this a private function by not calling from test.
+// Then the compiler will probably inline it.
 int32_t
 hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 {
@@ -318,12 +319,15 @@ create_tbs_hash(const int32_t             cose_algorithm_id,
      */
 
     /* Hand-constructed CBOR for the array of 4 and the context string.
-     * \x84 or \x85 is an array of 4 or 5. \x6A is a text string of 10 bytes. */
+     * \x84 or \x85 is an array of 4 or 5. \x6A is a text string of 10 bytes.
+     */
     // TODO: maybe this can be optimized to one call to hash update
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
-        t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+        t_cose_crypto_hash_update(&hash_ctx,
+                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
     } else {
-        t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+        t_cose_crypto_hash_update(&hash_ctx,
+                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
 
     }
 

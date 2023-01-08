@@ -145,8 +145,8 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 static enum t_cose_err_t
 psa_status_to_t_cose_error_signing(psa_status_t err)
 {
-    /* See documentation for t_cose_int16_map(). It's use gives smaller object code than a
-     * switch statement here.
+    /* See documentation for t_cose_int16_map(). Its use gives smaller
+     * object code than a switch statement here.
      */
     static const int16_t error_map[][2] = {
         { PSA_SUCCESS                    , T_COSE_SUCCESS},

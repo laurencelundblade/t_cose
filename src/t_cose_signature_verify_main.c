@@ -18,46 +18,11 @@
 #include "t_cose_crypto.h"
 
 
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+/* The list of algorithms supported by this verifier. */
 static bool
-t_cose_algorithm_is_short_circuit(int32_t cose_algorithm_id)
+sig_algorithm_check(int32_t cose_algorithm_id)
 {
-    /* The simple list of COSE alg IDs that use ECDSA */
-    static const int32_t ecdsa_list[] = {
-        T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
-        T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
-        T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
-        T_COSE_ALGORITHM_NONE};
-
-    return t_cose_check_list(cose_algorithm_id, ecdsa_list);
-}
-#endif
-
-
-
-static bool
-t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
-{
-    /* The simple list of COSE alg IDs that use ECDSA */
-    static const int32_t ecdsa_list[] = {
-        T_COSE_ALGORITHM_ES256,
-#ifndef T_COSE_DISABLE_ES384
-        T_COSE_ALGORITHM_ES384,
-#endif
-#ifndef T_COSE_DISABLE_ES512
-        T_COSE_ALGORITHM_ES512,
-#endif
-        T_COSE_ALGORITHM_NONE};
-
-    return t_cose_check_list(cose_algorithm_id, ecdsa_list);
-}
-
-
-static bool
-t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id)
-{
-    /* The simple list of COSE alg IDs that use RSASSA-PSS */
-    static const int32_t rsa_list[] = {
+    static const int32_t supported_algorithms[] = {
 #ifndef T_COSE_DISABLE_PS256
         T_COSE_ALGORITHM_PS256,
 #endif
@@ -67,11 +32,23 @@ t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
         T_COSE_ALGORITHM_PS512,
 #endif
-        T_COSE_ALGORITHM_NONE};
+        T_COSE_ALGORITHM_ES256,
+#ifndef T_COSE_DISABLE_ES384
+        T_COSE_ALGORITHM_ES384,
+#endif
+#ifndef T_COSE_DISABLE_ES512
+        T_COSE_ALGORITHM_ES512,
+#endif
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
+#endif
+        T_COSE_ALGORITHM_NONE
+    };
 
-    return t_cose_check_list(cose_algorithm_id, rsa_list);
+    return t_cose_check_list(cose_algorithm_id, supported_algorithms);
 }
-
 
 
 /** This is an implementation of \ref t_cose_signature_verify1_cb. */
@@ -97,11 +74,7 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
         goto Done;
     }
 
-    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id) &&
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-       !t_cose_algorithm_is_short_circuit(cose_algorithm_id) &&
-#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-       !t_cose_algorithm_is_rsassa_pss(cose_algorithm_id) ) {
+    if(!sig_algorithm_check(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
