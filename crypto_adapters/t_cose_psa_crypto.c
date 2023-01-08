@@ -10,7 +10,6 @@
  */
 
 
-//#define ALG_MAP
 /**
  * \file t_cose_psa_crypto.c
  *
@@ -311,7 +310,6 @@ Done:
  * \return PSA-based hash algorithm ID, or USHRT_MAX on error.
  *
  */
-#ifndef ALG_MAP
 static psa_algorithm_t
 cose_hash_alg_id_to_psa(int32_t cose_hash_alg_id)
 {
@@ -324,19 +322,7 @@ cose_hash_alg_id_to_psa(int32_t cose_hash_alg_id)
 #endif
                                                         UINT16_MAX;
 }
-#else
-static psa_algorithm_t
-cose_hash_alg_id_to_psa(int32_t cose_hash_alg_id)
-{
-    static const int32_t hash_alg_id_map[][2] = {
-        {T_COSE_ALGORITHM_SHA_256 , PSA_ALG_SHA_256},
-        {T_COSE_ALGORITHM_SHA_384 , PSA_ALG_SHA_384},
-        {T_COSE_ALGORITHM_SHA_512 , PSA_ALG_SHA_512},
-        {INT16_MAX,                 PSA_ALG_NONE}
-    };
-    return (psa_algorithm_t)t_cose_int32_map(hash_alg_id_map, (int16_t)cose_hash_alg_id);
-}
-#endif
+
 
 /**
  * \brief Map a PSA error into a t_cose error for hashes.
@@ -445,8 +431,6 @@ Done:
  * \return PSA-based MAC algorithm ID, or a vendor flag in the case of error.
  *
  */
-#ifndef ALG_MAP
-
 static psa_algorithm_t cose_hmac_alg_id_to_psa(int32_t cose_hmac_alg_id)
 {
     switch(cose_hmac_alg_id) {
@@ -460,19 +444,6 @@ static psa_algorithm_t cose_hmac_alg_id_to_psa(int32_t cose_hmac_alg_id)
         return PSA_ALG_VENDOR_FLAG;
     }
 }
-#else
-static psa_algorithm_t cose_hmac_alg_id_to_psa(int32_t cose_hmac_alg_id)
-{
-    static const struct mm hmac_alg_id_map[] = {
-        {T_COSE_ALGORITHM_HMAC256 , PSA_ALG_HMAC(PSA_ALG_SHA_256)},
-        {T_COSE_ALGORITHM_HMAC384 , PSA_ALG_HMAC(PSA_ALG_SHA_384)},
-        {T_COSE_ALGORITHM_HMAC512 , PSA_ALG_HMAC(PSA_ALG_SHA_512)},
-        {INT16_MAX,                 PSA_ALG_NONE}
-    };
-
-    return (psa_algorithm_t)t_cose_int32_map2(hmac_alg_id_map, (int16_t)cose_hmac_alg_id);
-}
-#endif
 
 
 /**
@@ -485,17 +456,22 @@ static psa_algorithm_t cose_hmac_alg_id_to_psa(int32_t cose_hmac_alg_id)
 static enum t_cose_err_t
 psa_status_to_t_cose_error_hmac(psa_status_t status)
 {
-    /* Intentionally limited to just this minimum set of errors to
-     * save object code as hashes don't really fail much
+    /* See documentation for t_cose_int16_map(). It's use gives smaller
+     * object code than a switch statement here.
      */
-    return status == PSA_SUCCESS                   ? T_COSE_SUCCESS :
-           status == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_HASH :
-           status == PSA_ERROR_INVALID_ARGUMENT    ? T_COSE_ERR_INVALID_ARGUMENT :
-           status == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
-           status == PSA_ERROR_BUFFER_TOO_SMALL    ? T_COSE_ERR_TOO_SMALL :
-           status == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
-                                                     T_COSE_ERR_FAIL;
+    static const int16_t error_map[][2] = {
+        { PSA_SUCCESS,                   T_COSE_SUCCESS},
+        { PSA_ERROR_NOT_SUPPORTED,       T_COSE_ERR_UNSUPPORTED_HASH},
+        { PSA_ERROR_INVALID_ARGUMENT,    T_COSE_ERR_INVALID_ARGUMENT},
+        { PSA_ERROR_INSUFFICIENT_MEMORY, T_COSE_ERR_INSUFFICIENT_MEMORY},
+        { PSA_ERROR_BUFFER_TOO_SMALL,    T_COSE_ERR_TOO_SMALL},
+        { PSA_ERROR_INVALID_SIGNATURE,   T_COSE_ERR_SIG_VERIFY},
+        { INT16_MIN,                     T_COSE_ERR_SIG_FAIL},
+    };
+
+    return (enum t_cose_err_t )t_cose_int16_map(error_map, (int16_t)status);
 }
+
 
 /*
  * See documentation in t_cose_crypto.h
