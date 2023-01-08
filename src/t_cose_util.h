@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
-#include "qcbor/qcbor_common.h"
+#include "qcbor/qcbor_common.h" /* For QCBORError */
 
 #ifdef __cplusplus
 extern "C" {

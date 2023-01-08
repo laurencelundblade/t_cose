@@ -53,8 +53,13 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
      * \ref T_COSE_CRYPTO_MAX_HASH_SIZE.
      */
     // TODO: allows disabling ES256
+
+    /* Private-use algorithm IDs, those less than -65536, won't fit in
+     * the int16_t values in this table so a switch statement like
+     * that for T_COSE_ALGORITHM_SHORT_CIRCUIT_XXX will be needed.
+     */
     static const int16_t hash_alg_map[][2] = {
-        { T_COSE_ALGORITHM_ES256 ,  T_COSE_ALGORITHM_SHA_256 },
+        { T_COSE_ALGORITHM_ES256 , T_COSE_ALGORITHM_SHA_256 },
 #ifndef T_COSE_DISABLE_ES384
         { T_COSE_ALGORITHM_ES384 , T_COSE_ALGORITHM_SHA_384 },
 #endif
@@ -70,18 +75,38 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
         { T_COSE_ALGORITHM_PS512 , T_COSE_ALGORITHM_SHA_512 },
 #endif
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        { T_COSE_ALGORITHM_SHORT_CIRCUIT_256 , T_COSE_ALGORITHM_SHA_256},
-        { T_COSE_ALGORITHM_SHORT_CIRCUIT_384 , T_COSE_ALGORITHM_SHA_384},
-        { T_COSE_ALGORITHM_SHORT_CIRCUIT_512 , T_COSE_ALGORITHM_SHA_512 },
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-        { INT16_MAX ,                   T_COSE_INVALID_ALGORITHM_ID}
+        { INT16_MIN ,              T_COSE_INVALID_ALGORITHM_ID}
     };
 
-    /* If 16-bit inputs are to small for some, add a switch statement or such
-     * or be clever with bit masks if they input values don't overlap. */
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    /* T_COSE_ALGORITHM_SHORT_CIRCUIT_256 and related are outside of
+     * the standard allocation space and outside the range of int16_t
+     * so they are handled by a case statement (which usually optimize
+     * well).
+     */
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_256: return T_COSE_ALGORITHM_SHA_256;
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_384: return T_COSE_ALGORITHM_SHA_384;
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_512: return T_COSE_ALGORITHM_SHA_512;
+        default: break;/* intentional fall through */
+    }
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
-    return (int32_t)t_cose_int16_map(hash_alg_map, (int16_t)(cose_algorithm_id & 0xffff));
+
+#ifndef T_COSE_DISABLE_USE_GUARDS
+    /* This check can be disabled for tested apps using t_cose because
+     * they won't pass in bad algorithm IDs outside the range of an
+     * int16_t and even if they did it is unlikely it would fold into
+     * a valid ID and further unlikely it would be the hash required.
+     * It's pretty safe to disable this check even with use cases that
+     * arent' tested. */
+    if(cose_algorithm_id > INT16_MAX || cose_algorithm_id < INT16_MIN) {
+        return T_COSE_INVALID_ALGORITHM_ID;
+    }
+#endif
+
+    /* Cast to int16_t is safe because of check above */
+    return (int32_t)t_cose_int16_map(hash_alg_map, (int16_t)(cose_algorithm_id));
 }
 
 
@@ -399,11 +424,10 @@ t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list)
 int16_t t_cose_int16_map(const int16_t map[][2], int16_t query)
 {
     int i;
-    for(i = 0; map[i][0] != INT16_MIN; i++) {
-        if(map[i][0] == query) {
+    for(i = 0; ; i++) {
+        if(map[i][0] == query || map[i][0] == INT16_MIN) {
             return map[i][1];
         }
     }
-    return INT16_MIN;
 }
 

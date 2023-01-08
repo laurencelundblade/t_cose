@@ -391,8 +391,9 @@
  * It is mplemented only by the test crypto adaptor. It has
  * no security value, but is useful for testing and bringing
  * t_cose up on a new target.
- * The actual value is randomly selected from the COSE
- * private ID space. It is not registered anywhere.
+ * The actual value is selected from the COSE
+ * private ID space so that if you cast it as an int32_t
+ * to an int16_t you get the registered values these are supposed to fake.
  */
 // TODO: reference to details of short-circuit signature.
 #define T_COSE_ALGORITHM_SHORT_CIRCUIT_256 -1000256

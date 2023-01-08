@@ -69,7 +69,8 @@ t_cose_algorithm_is_short_circuit(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
         T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
         T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
-        T_COSE_ALGORITHM_NONE};
+        T_COSE_ALGORITHM_NONE
+    };
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
