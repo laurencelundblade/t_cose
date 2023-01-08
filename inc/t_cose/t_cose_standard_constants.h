@@ -593,6 +593,9 @@
  */
 #define COSE_SIG_CONTEXT_STRING_SIGNATURE1 "Signature1"
 
+#define COSE_SIG_CONTEXT_STRING_SIGNATURE "Signature"
+
+
 /**
  * \def COSE_MAC_CONTEXT_STRING_MAC0
  *

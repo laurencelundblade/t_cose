@@ -122,7 +122,7 @@ enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
     QCBOREncode_Init(&cbor_encode_ctx, tbm_first_part_buf);
     QCBOREncode_OpenArray(&cbor_encode_ctx);
     /* context */
-    QCBOREncode_AddSZString(&cbor_encode_ctx, COSE_MAC_CONTEXT_STRING_MAC0);
+    QCBOREncode_AddBytes(&cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_MAC_CONTEXT_STRING_MAC0));
     /* body_protected */
     QCBOREncode_AddBytes(&cbor_encode_ctx, protected_headers);
 
@@ -170,18 +170,25 @@ enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
 /*
  * Public function. See t_cose_util.h
  */
-// TODO: combine with create_tbm()
-// TODO: disable this when EdDSA is disabled?
+// TODO: combine with create_tbm() to save object code. Seems right...
+// TODO: disable this when EdDSA is disabled
 enum t_cose_err_t
 create_tbs(const struct t_cose_sign_inputs *sign_inputs,
-           struct q_useful_buf       buffer_for_tbs,
-           struct q_useful_buf_c    *tbs)
+           struct q_useful_buf              buffer_for_tbs,
+           struct q_useful_buf_c           *tbs)
 {
-    QCBOREncodeContext  cbor_context;
+    QCBOREncodeContext    cbor_context;
+    struct q_useful_buf_c s1;
+
     QCBOREncode_Init(&cbor_context, buffer_for_tbs);
 
     QCBOREncode_OpenArray(&cbor_context);
-    QCBOREncode_AddSZString(&cbor_context, COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
+        s1 = Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    } else {
+        s1 = Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_SIG_CONTEXT_STRING_SIGNATURE);
+    }
+    QCBOREncode_AddBytes(&cbor_context, s1);
     QCBOREncode_AddBytes(&cbor_context, sign_inputs->body_protected);
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
         QCBOREncode_AddBytes(&cbor_context, sign_inputs->sign_protected);
@@ -257,28 +264,25 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
  * spec.
  */
 enum t_cose_err_t
-create_tbs_hash(const int32_t             cose_algorithm_id,
+create_tbs_hash(const int32_t                    cose_algorithm_id,
                 const struct t_cose_sign_inputs *sign_inputs,
-                const struct q_useful_buf buffer_for_hash,
-                struct q_useful_buf_c    *hash)
+                const struct q_useful_buf        buffer_for_hash,
+                struct q_useful_buf_c           *hash)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
-     *   local vars                                     8           6
+     *   local vars                                    24          14
      *   hash_ctx                                   8-224       8-224
      *   hash function (a guess! variable!)        16-512      16-512
-     *   TOTAL                                     32-748      30-746
+     *   TOTAL                                     48-760      38-750
      */
     enum t_cose_err_t           return_value;
-    struct t_cose_crypto_hash   hash_ctx;
     int32_t                     hash_alg_id;
+    struct q_useful_buf_c       first_part;
+    struct t_cose_crypto_hash   hash_ctx;
 
     /* Start the hashing */
     hash_alg_id = hash_alg_id_from_sig_alg_id(cose_algorithm_id);
-    if (hash_alg_id == T_COSE_INVALID_ALGORITHM_ID) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
 
     /* Don't check hash_alg_id for failure. t_cose_crypto_hash_start()
      * will handle error properly. It was also checked earlier.
@@ -313,19 +317,20 @@ create_tbs_hash(const int32_t             cose_algorithm_id,
      * so this saves a lot of memory.
      */
 
-    /* Hand-constructed CBOR for the array of 4 and the context string.
-     * \x84 or \x85 is an array of 4 or 5. \x6A is a text string of 10 bytes. */
-    // TODO: maybe this can be optimized to one call to hash update
+    /* Hand-constructed CBOR for the array and the context string.*/
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
-        t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+        /* 0x85 is array of 5, 0x69 is length of a 9 byte string in CBOR */
+        first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x69" COSE_SIG_CONTEXT_STRING_SIGNATURE);
     } else {
-        t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
-
+        /* 0x84 is array of 4, 0x6a is length of a 10 byte string in CBOR */
+        first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1);
     }
+    t_cose_crypto_hash_update(&hash_ctx, first_part);
 
     /* body_protected */
     hash_bstr(&hash_ctx, sign_inputs->body_protected);
 
+    /* sign_protected */
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
         hash_bstr(&hash_ctx, sign_inputs->sign_protected);
     }

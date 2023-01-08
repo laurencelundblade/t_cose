@@ -169,21 +169,18 @@ enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
 /**
  * \brief Create the hash of the to-be-signed (TBS) bytes for COSE.
  *
- * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
- *                                  determine which hash function to use.
- * \param[in] sign_inputs               The payload, AAD and header params to hash.
- * \param[in] buffer_for_hash       Pointer and length of buffer into which
- *                                  the resulting hash is put.
- * \param[out] hash                 Pointer and length of the
- *                                  resulting hash.
+ * \param[in] cose_algorithm_id  The COSE signing algorithm ID. Used to
+ *                               determine which hash function to use.
+ * \param[in] sign_inputs        The payload, AAD and header params to hash.
+ * \param[in] buffer_for_hash    Pointer and length of buffer into which the
+ *                               resulting hash is put.
+ * \param[out] hash              Pointer and length of the resulting hash.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * \retval T_COSE_ERR_SIG_STRUCT
- *         Most likely this is because the protected_parameters passed in
- *         is larger than \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
  * \retval T_COSE_ERR_UNSUPPORTED_HASH
  *         If the hash algorithm is not known.
+ * \retval T_COSE_ERR_HASH_BUFFER_SIZE  
+ *         \c buffer_for_tbs is too small.
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  *
@@ -192,12 +189,22 @@ enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
  * algorithm ID and a few other things. This formats that structure
  * and computes the hash of it. These are known as the to-be-signed or
  * "TBS" bytes. The exact specification is in [RFC 8152 section
- * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
+ * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).  This is for
+ * both COSE_Sign1 and COSE_Sign. \c sign_inputs->sign_protected is
+ * \ref NULL_Q_USEFUL_BUF_C to indicate COSE_Sign1.
+ *
+ * \c cose_algorithm_id is a signing algorithm, not a hash algorithm.
+ * The hash algorithm will be determined from it.
+ *
+ * See also create_tbs() which does the same, but outputs the full
+ * encoded structure rather than a hash of the structure as needed for
+ * EdDSA.
  */
-enum t_cose_err_t create_tbs_hash(int32_t                   cose_algorithm_id,
-                                  const struct t_cose_sign_inputs *sign_inputs,
-                                  struct q_useful_buf       buffer_for_hash,
-                                  struct q_useful_buf_c    *hash);
+enum t_cose_err_t
+create_tbs_hash(int32_t                          cose_algorithm_id,
+                const struct t_cose_sign_inputs *sign_inputs,
+                struct q_useful_buf              buffer_for_hash,
+                struct q_useful_buf_c           *hash);
 
 
 
