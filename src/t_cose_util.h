@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -17,6 +17,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "qcbor/qcbor_common.h" /* For QCBORError */
+#include "t_cose/t_cose_signature_sign.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,26 +29,6 @@ extern "C" {
  * \brief Utility functions used internally by the t_cose implementation.
  *
  */
-
-
-/**
- * The modes in which the payload is passed to create_tbm().  This
- * exists so the ToBeMaced bytes can be hashed in two separate chunks and
- * avoids needing a second buffer the size of the payload in the
- * t_cose implementation.
- */
-// TODO: is this necessary?
-enum t_cose_tbm_payload_mode_t {
-    /** The bytes passed for the payload include a wrapping bstr so
-     * one does not need to be added.
-     */
-    T_COSE_TBM_PAYLOAD_IS_BSTR_WRAPPED,
-    /** The bytes passed for the payload do NOT have a wrapping bstr
-     * so one must be added.
-     */
-    T_COSE_TBM_BARE_PAYLOAD
-};
-
 
 
 /**
@@ -116,13 +97,9 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \brief Create the ToBeMaced (TBM) structure bytes for COSE.
  *
  * \param[in] tbm_first_part_buf  The buffer to contain the first part
- * \param[in] protected_headers   The CBOR encoded protected headers.
+ * \param[in] sign_inputs    The input to be mac'd -- payload, aad, protected headers.
  * \param[out] tbm_first_part     Pointer and length of buffer into which
  *                                the resulting TBM is put.
- * \param[in] payload_mode        See \ref t_cose_tbm_payload_mode_t.
- * \param[in] payload             The CBOR encoded payload. It may or may
- *                                not have a wrapping bstr per
- *                                \c payload_mode.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -134,11 +111,9 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  */
-enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
-                             struct q_useful_buf_c           protected_headers,
-                             struct q_useful_buf_c          *tbm_first_part,
-                             enum t_cose_tbm_payload_mode_t  payload_mode,
-                             struct q_useful_buf_c           payload);
+enum t_cose_err_t create_tbm(const struct t_cose_sign_inputs *sign_inputs,
+                             struct q_useful_buf              tbm_first_part_buf,
+                             struct q_useful_buf_c           *tbm_first_part);
 
 
 /**

@@ -16,6 +16,7 @@
 #include "t_cose/t_cose_parameters.h"
 
 
+
 /*
  * This is the abstract base class that t_cose_sign_verify
  * calls to run signature verification. A concrete
