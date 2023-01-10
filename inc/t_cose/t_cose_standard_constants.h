@@ -1,7 +1,7 @@
 /*
  * t_cose_standard_constants.h
  *
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  *

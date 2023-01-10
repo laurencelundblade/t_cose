@@ -114,9 +114,10 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_MAC0
 // TODO: try to combine with create_tbs_hash so that no buffer for headers
 // is needed. Make sure it doesn't make sign-only or mac-only object code big
-enum t_cose_err_t create_tbm(const struct t_cose_sign_inputs *sign_inputs,
-                             struct q_useful_buf             tbm_first_part_buf,
-                             struct q_useful_buf_c          *tbm_first_part)
+enum t_cose_err_t
+create_tbm(const struct t_cose_sign_inputs *sign_inputs,
+           struct q_useful_buf              tbm_first_part_buf,
+           struct q_useful_buf_c           *tbm_first_part)
 {
     QCBOREncodeContext cbor_encode_ctx;
     QCBORError         qcbor_result;
@@ -167,12 +168,12 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
     QCBOREncode_Init(&cbor_context, buffer_for_tbs);
 
     QCBOREncode_OpenArray(&cbor_context);
-    if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
+    if(q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
         s1 = Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_SIG_CONTEXT_STRING_SIGNATURE1);
     } else {
         s1 = Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_SIG_CONTEXT_STRING_SIGNATURE);
     }
-    QCBOREncode_AddBytes(&cbor_context, s1);
+    QCBOREncode_AddText(&cbor_context, s1);
     QCBOREncode_AddBytes(&cbor_context, sign_inputs->body_protected);
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
         QCBOREncode_AddBytes(&cbor_context, sign_inputs->sign_protected);
@@ -194,10 +195,10 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
 
 
 /**
- * \brief Hash an encoded bstr without actually encoding it in memory
+ * \brief Hash an encoded bstr without actually encoding it in memory.
  *
- * @param hash_ctx  Hash context to hash it into
- * @param bstr      Bytes of the bstr
+ * @param hash_ctx  Hash context to hash it into.
+ * @param bstr      Bytes of the bstr.
  *
  * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
  * hashed into the output.
@@ -295,7 +296,7 @@ create_tbs_hash(const int32_t                    cose_algorithm_id,
      * size of protected headers.
      */
 
-    /* Hand-constructed CBOR for the array and the context string.*/
+    /* Hand-constructed CBOR for the enclosing array and the context string */
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
         /* 0x85 is array of 5, 0x69 is length of a 9 byte string in CBOR */
         first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x69" COSE_SIG_CONTEXT_STRING_SIGNATURE);
