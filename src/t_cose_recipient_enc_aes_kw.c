@@ -9,6 +9,7 @@
  *
  */
 
+// TODO: remove some of these, they can't all be needed.
 #include "t_cose/t_cose_recipient_enc.h"
 #include "t_cose/t_cose_recipient_enc_aes_kw.h" /* Interface implemented */
 #include "qcbor/qcbor.h"
@@ -22,35 +23,27 @@
 
 
 #ifndef T_COSE_DISABLE_AES_KW
-/*
- * See documentation in t_cose_recipient_enc_aes_kw.h
- */
-enum t_cose_err_t t_cose_create_recipient_aes_kw(
-                           void                   *ctx,
-                           int32_t                 cose_algorithm_id,
-                           struct t_cose_key       recipient_key,
-                           struct q_useful_buf_c   plaintext,
-                           QCBOREncodeContext     *encrypt_ctx)
+
+static enum t_cose_err_t
+recipient_create_keywrap_cb(struct t_cose_recipient_enc  *me_x,
+                            struct t_cose_key       recipient_key,
+                            struct q_useful_buf_c   plaintext,
+                            QCBOREncodeContext     *cbor_encoder)
 {
     UsefulBufC             scratch;
     enum t_cose_err_t      return_value;
     enum t_cose_err_t      cose_result;
     size_t                 recipient_key_len;
-    struct t_cose_encrypt_recipient_ctx *context;
+    struct t_cose_recipient_enc_keywrap *context;
 
-    // TODO: check the algorithm ID
-    (void)cose_algorithm_id;
 
     Q_USEFUL_BUF_MAKE_STACK_UB(recipient_key_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
     Q_USEFUL_BUF_MAKE_STACK_UB(encrypted_cek, T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH));
     struct q_useful_buf_c  recipient_key_result={NULL,0};
     struct q_useful_buf_c  encrypted_cek_result={NULL,0};
 
-    context=(struct t_cose_encrypt_recipient_ctx *) ctx;
+    context=(struct t_cose_recipient_enc_keywrap *) me_x;
 
-    if (context == NULL || encrypt_ctx == NULL) {
-        return(T_COSE_ERR_INVALID_ARGUMENT);
-    }
 
     cose_result = t_cose_crypto_export_key(
                                     recipient_key,
@@ -77,33 +70,55 @@ enum t_cose_err_t t_cose_create_recipient_aes_kw(
     }
 
     /* Create recipient array */
-    QCBOREncode_OpenArray(encrypt_ctx);
+    QCBOREncode_OpenArray(cbor_encoder);
 
     /* Add empty protected map encoded as bstr */
-    QCBOREncode_BstrWrap(encrypt_ctx);
-    QCBOREncode_CloseBstrWrap2(encrypt_ctx, false, &scratch);
+    QCBOREncode_BstrWrap(cbor_encoder);
+    QCBOREncode_CloseBstrWrap2(cbor_encoder, false, &scratch);
 
     /* Add unprotected header alg and kid parameters */
-    QCBOREncode_OpenMap(encrypt_ctx);
+    QCBOREncode_OpenMap(cbor_encoder);
 
-    QCBOREncode_AddInt64ToMapN(encrypt_ctx,
+    // TODO: pretty sure algorithm ID has to be a protected parameter
+    QCBOREncode_AddInt64ToMapN(cbor_encoder,
                                T_COSE_HEADER_PARAM_ALG,
                                context->cose_algorithm_id);
 
-    QCBOREncode_AddBytesToMapN(encrypt_ctx,
+    QCBOREncode_AddBytesToMapN(cbor_encoder,
                                T_COSE_HEADER_PARAM_KID,
                                context->kid);
 
     /* Close protected header map */
-    QCBOREncode_CloseMap(encrypt_ctx);
+    QCBOREncode_CloseMap(cbor_encoder);
 
     /* Add encrypted CEK */
-    QCBOREncode_AddBytes(encrypt_ctx, encrypted_cek_result);
+    QCBOREncode_AddBytes(cbor_encoder, encrypted_cek_result);
 
     /* Close recipient array */
-    QCBOREncode_CloseArray(encrypt_ctx);
+    QCBOREncode_CloseArray(cbor_encoder);
 
     return(T_COSE_SUCCESS);
+}
+
+
+enum t_cose_err_t
+t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *me,
+                                  int32_t                              cose_algoroithm_id)
+{
+    me->e.creat_cb = recipient_create_keywrap_cb;
+    me->cose_algorithm_id = cose_algoroithm_id;
+
+    return T_COSE_SUCCESS;
+}
+
+
+enum t_cose_err_t
+t_cose_recipient_enc_keywrap_set_recipient_key(struct t_cose_recipient_enc_keywrap *me,
+                                               struct t_cose_key wrapping_key,
+                                               struct q_useful_buf_c kid)
+{
+    me->wrapping_key = wrapping_key;
+    me->kid          = kid;
 }
 
 #else /* T_COSE_DISABLE_AES_KW */

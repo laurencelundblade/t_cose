@@ -16,30 +16,35 @@
 #include <stdlib.h>
 #include "t_cose_parameters.h"
 #include "t_cose_crypto.h"
+#include "t_cose/t_cose_recipient_enc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * \brief Creating a COSE recipient for use with AES Key Wrap.
- *
- * \param[in] context                COSE context for use with AES-KW
- * \param[in] cose_algorithm_id      Algorithm id
- * \param[in] recipient_key          Recipient key (symmetric key, KEK)
- * \param[in] plaintext              Plaintext (typically the CEK)
- * \param[out] encrypt_ctx           Resulting encryption structure
- *
- * \retval T_COSE_SUCCESS
- *         Operation was successful.
- * \retval Error messages otherwise.
- */
-enum t_cose_err_t t_cose_create_recipient_aes_kw(
-                           void                                *context,
-                           int32_t                              cose_algorithm_id,
-                           struct t_cose_key                    recipient_key,
-                           struct q_useful_buf_c                plaintext,
-                           QCBOREncodeContext                  *encrypt_ctx);
+
+struct t_cose_recipient_enc_keywrap {
+    struct t_cose_recipient_enc e;
+
+    int32_t cose_algorithm_id;
+    struct t_cose_key wrapping_key;
+    struct q_useful_buf_c kid;
+};
+
+
+
+
+
+enum t_cose_err_t
+t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *me,
+                                  int32_t                              cose_algoroithm_id);
+
+
+enum t_cose_err_t
+t_cose_recipient_enc_keywrap_set_recipient_key(struct t_cose_recipient_enc_keywrap *me,
+                                               struct t_cose_key wrapping_key,
+                                               struct q_useful_buf_c kid);
+
 
 #ifdef __cplusplus
 }

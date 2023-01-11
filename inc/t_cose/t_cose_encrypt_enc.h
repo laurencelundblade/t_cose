@@ -156,14 +156,48 @@ extern "C" {
 struct t_cose_encrypt_enc_ctx {
     /* Private data structure */
     struct q_useful_buf_c               protected_parameters;
-    int32_t                             cose_algorithm_id;
+    int32_t                             payload_cose_algorithm_id;
     uint8_t                            *key;
     size_t                              key_len;
     uint32_t                            option_flags;
     struct q_useful_buf_c               kid;
     uint8_t                             recipients;
-    struct t_cose_encrypt_recipient_ctx recipient_ctx;
+    struct t_cose_recipient_enc        *recipients_list;
 };
+
+
+/**
+ * \brief  Initialize to start creating a \c COSE_Encrypt structure.
+ *
+ * \param[in,out] context        The t_cose_encrypt_enc_ctx context.
+ * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
+ * \param[in] payload_cose_algorithm_id  The algorithm to use for encrypting
+ *                               data, for example
+ *                               \ref COSE_ALGORITHM_A128GCM.
+ *
+ * Initializes the \ref t_cose_encrypt_enc_ctx context. No
+ * \c option_flags are needed and 0 can be passed. A \c cose_algorithm_id
+ * must always be given.
+ *
+ * The algorithm ID space is from
+ * [COSE (RFC8152)](https://tools.ietf.org/html/rfc8152) and the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ * \ref COSE_ALGORITHM_A128GCM and a few others are defined here for
+ * convenience. The supported algorithms depend on the
+ * cryptographic library that t_cose is integrated with.
+ * The algorithm ID given here is for the bulk encryption of the payload,
+ * typically an AES AEAD algorithm. (Non-recpient HPKE will be an exception
+ * here.)
+ *
+ * The algorithm ID for the COSE_Recipient is set in the particular
+ * t_cose_recipient_enc being used. You can even have serveral with
+ * different algorithms (but there can only be one payload encryption
+ * algorithm).
+ */
+void
+t_cose_encypt_enc_init(struct t_cose_encrypt_enc_ctx*   context,
+                       uint32_t                         option_flags,
+                       int32_t                          payload_cose_algorithm_id);
 
 
 /**
@@ -175,17 +209,10 @@ struct t_cose_encrypt_enc_ctx {
  *         multiple recipients.
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
- * \param[in] cose_algorithm_id        COSE algorithm id.
- * \param[in] recipient_key            Key used with the recipient.
- * \param[in] kid                      Key identifier.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
  */
-enum t_cose_err_t
+void
 t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx*   context,
-                             int32_t                          cose_algorithm_id,
-                             struct t_cose_key                recipient_key,
-                             struct q_useful_buf_c            kid);
+                             struct t_cose_recipient_enc     *recipient);
 
 
 /**
@@ -217,34 +244,18 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
                    struct q_useful_buf            out_buf,
                    struct q_useful_buf_c         *result);
 
-/**
- * \brief  Initialize to start creating a \c COSE_Encrypt structure.
- *
- * \param[in,out] context        The t_cose_encrypt_enc_ctx context.
- * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
- * \param[in] cose_algorithm_id  The algorithm to use for encrypting
- *                               data, for example
- *                               \ref COSE_ALGORITHM_A128GCM.
- *
- * Initializes the \ref t_cose_encrypt_enc_ctx context. No
- * \c option_flags are needed and 0 can be passed. A \c cose_algorithm_id
- * must always be given.
- *
- * The algorithm ID space is from
- * [COSE (RFC8152)](https://tools.ietf.org/html/rfc8152) and the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- * \ref COSE_ALGORITHM_A128GCM and a few others are defined here for
- * convenience. The supported algorithms depend on the
- * cryptographic library that t_cose is integrated with.
- */
+
+
+/* ----------------------- Private Implementations --------------------*/
+
 static inline void
-t_cose_encrypt_enc_init( struct t_cose_encrypt_enc_ctx *context,
-                         uint32_t                       option_flags,
-                         int32_t                        cose_algorithm_id
+t_cose_encrypt_enc_init(struct t_cose_encrypt_enc_ctx *context,
+                        uint32_t                       option_flags,
+                        int32_t                        payload_cose_algorithm_id
                        )
 {
     memset(context, 0, sizeof(*context));
-    context->cose_algorithm_id = cose_algorithm_id;
+    context->payload_cose_algorithm_id = payload_cose_algorithm_id;
     context->option_flags = option_flags;
     context->recipients = 0;
 }
