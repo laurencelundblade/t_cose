@@ -10,7 +10,7 @@
 
 #include "t_cose_crypto_test.h"
 
-#include "../src/t_cose_crypto.h" /* NOT a public interface so this test can't run an installed library */
+#include "../src/t_cose_crypto.h" /* NOT a public interface so this test can't run against an installed library */
 
 static const uint8_t test_key_0_128bit[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x010, 0x00,
