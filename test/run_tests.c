@@ -20,6 +20,7 @@
 #include "t_cose_sign_verify_test.h"
 #include "t_cose_compute_validate_mac_test.h"
 #include "t_cose_param_test.h"
+#include "t_cose_crypto_test.h"
 
 
 /*
@@ -54,6 +55,11 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+
+    TEST_ENTRY(aead_test),
+#ifndef T_COSE_DISABLE_AES_KW
+    TEST_ENTRY(kw_test),
+#endif
 
 #ifndef T_COSE_DISABLE_SIGN1
     // TODO: re enable this test when it is fixed
@@ -334,7 +340,7 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
     PrintSize("sizeof(struct t_cose_sign1_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_sign_ctx),
               pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_signing_key)",
+    PrintSize("sizeof(struct t_cose_key)",
               (uint32_t)sizeof(struct t_cose_key),
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_crypto_hash)",
@@ -348,5 +354,9 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_parameter)",
               (uint32_t)sizeof(struct t_cose_parameter),
-              pfOutput, pOutCtx);    (*pfOutput)("", pOutCtx, 1);
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_parameters)",
+              (uint32_t)sizeof(struct t_cose_parameters),
+              pfOutput, pOutCtx);
+    (*pfOutput)("", pOutCtx, 1);
 }

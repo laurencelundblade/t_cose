@@ -9,11 +9,11 @@
  *
  */
 
-#include "t_cose/t_cose_recipient_dec_hpke.h"  /* Interface implemented */
+
 #ifndef T_COSE_DISABLE_HPKE
-// TODO: this dependency should only be in the crypto layer
-#include "mbedtls/hpke.h"   /* HPKE Interface */
-#endif
+
+#include "t_cose/t_cose_recipient_dec_hpke.h"  /* Interface implemented */
+#include "hpke.h"
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_encrypt_enc.h"
@@ -23,7 +23,6 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
 
-#ifndef T_COSE_DISABLE_HPKE
 
 /**
  * See definition in t_cose_recipient_dec_hpke.h
@@ -60,6 +59,8 @@ t_cose_crypto_hpke_decrypt(int32_t                cose_algorithm_id,
         return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
     }
 
+    (void)key_bitlen; // TODO: use this or get rid of it.
+
     /* Execute HPKE */
     *plaintext_len = plaintext.len;
 
@@ -71,10 +72,9 @@ t_cose_crypto_hpke_decrypt(int32_t                cose_algorithm_id,
             (psa_key_handle_t)
             pkR.k.key_handle,                // skR handle
             pkE.len,                         // pkE_len
-            (unsigned char *) pkE.ptr,       // pkE
+            pkE.ptr,                         // pkE
             ciphertext.len,                  // Ciphertext length
-            (unsigned char *)
-                ciphertext.ptr,              // Ciphertext
+            ciphertext.ptr,                  // Ciphertext
             0, NULL,                         // Additional data
             0, NULL,                         // Info
             plaintext_len,                   // Plaintext length

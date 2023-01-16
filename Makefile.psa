@@ -51,16 +51,20 @@ CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
 
 
 # ---- compiler configuration -----
-# Optimize for size
+# This makefile uses a minimum of compiler flags so that it will
+# work out-of-the-box with a wide variety of compilers.  For example,
+# some compilers error out on some of the warnings flags gcc supports.
+# The $(CMD_LINE) variable allows passing in extra flags. This is
+# used on the stringent build script that is in
+# https://github.com/laurencelundblade/tdv.  This script is used
+# before pushes to master (though not yet through an automated build
+# process). See "warn:" below.
 C_OPTS=-Os -fPIC
 
 
 # ---- other configuration ----
-# HPKE is disabled by default because it is not supported by common crypto
-# libraries. If you wish to use it remove this and find a version of
-# MbedTLS that supports it. For example:
-# https://github.com/hannestschofenig/mbedtls/tree/hpke.
-OTHER_OPTS=-DT_COSE_DISABLE_HPKE -DT_COSE_DISABLE_AES_KW
+# HPKE is on for PSA, but needs some work...
+OTHER_OPTS=
 
 
 # ---- T_COSE Config and test options ----
@@ -70,6 +74,7 @@ TEST_OBJ=test/t_cose_test.o \
     test/t_cose_sign_verify_test.o \
     test/t_cose_compute_validate_mac_test.o \
     test/t_cose_make_test_messages.o \
+    test/t_cose_crypto_test.o \
     test/t_cose_param_test.o \
     $(CRYPTO_TEST_OBJ)
 
@@ -96,14 +101,21 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_recipient_dec_aes_kw.o \
         src/t_cose_recipient_enc_aes_kw.o \
         src/t_cose_recipient_dec_hpke.o \
-        src/t_cose_recipient_enc_hpke.o
+        src/t_cose_recipient_enc_hpke.o \
+        src/hpke.o
 
-.PHONY: all install install_headers install_so uninstall clean
+.PHONY: all install install_headers install_so uninstall clean warn
 
 all: libt_cose.a t_cose_test t_cose_basic_example_psa t_cose_encryption_example_psa
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
+
+# run "make warn" as a handy way to compile with the warning flags
+# used in the QCBOR release process. See CFLAGS above.
+warn:
+	make -f Makefile.psa CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
+
 
 # The shared library is not made by default because of platform
 # variability For example MacOS and Linux behave differently and some

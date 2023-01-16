@@ -33,13 +33,20 @@ CRYPTO_TEST_OBJ=
 
 
 # ---- compiler configuration -----
-# Optimize for size
+# This makefile uses a minimum of compiler flags so that it will
+# work out-of-the-box with a wide variety of compilers.  For example,
+# some compilers error out on some of the warnings flags gcc supports.
+# The $(CMD_LINE) variable allows passing in extra flags. This is
+# used on the stringent build script that is in
+# https://github.com/laurencelundblade/tdv.  This script is used
+# before pushes to master (though not yet through an automated build
+# process). See "warn:" below.
 C_OPTS=-Os -fPIC
 
 
 # ---- T_COSE Config and test options ----
 TEST_CONFIG_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS
-TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_make_test_messages.o test/t_cose_make_test_test_key.o test/t_cose_param_test.o $(CRYPTO_TEST_OBJ)
+TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_crypto_test.o test/t_cose_make_test_messages.o test/t_cose_make_test_test_key.o test/t_cose_param_test.o $(CRYPTO_TEST_OBJ)
 
 
 # ---- the main body that is invariant ----
@@ -58,15 +65,21 @@ SRC_OBJ=src/t_cose_sign1_verify.o \
 	src/t_cose_util.o \
 	src/t_cose_parameters.o \
 	src/t_cose_mac_compute.o \
-	src/t_cose_mac_validate.o
+	src/t_cose_mac_validate.o \
+        src/hpke.o
 
-.PHONY: all clean
+.PHONY: all clean warn
 
 all: libt_cose.a t_cose_test
 
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
+
+# run "make warn" as a handy way to compile with the warning flags
+# used in the QCBOR release process. See CFLAGS above.
+warn:
+	make -f Makefile.test CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
 libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 	cc $^ $(CFLAGS) -dead_strip -o $@ -shared $(QCBOR_LIB) $(CRYPTO_LIB)

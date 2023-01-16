@@ -795,121 +795,9 @@ enum t_cose_err_t
 t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
                                    struct q_useful_buf_c      tag);
 
-/**
- * \brief Indicate whether a COSE algorithm is ECDSA or not.
- *
- * \param[in] cose_algorithm_id    The algorithm ID to check.
- *
- * \returns This returns \c true if the algorithm is ECDSA and \c false if not.
- *
- * This is a convenience function to check whether a given
- * integer COSE algorithm ID uses the ECDSA signing algorithm
- * or not.
- *
- */
-static bool
-t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
-
-/**
- * \brief Indicate whether a COSE algorithm is RSASSA-PSS or not.
- *
- * \param[in] cose_algorithm_id    The algorithm ID to check.
- *
- * \returns This returns \c true if the algorithm is RSASSA-PSS
- * and \c false if not.
- *
- * This is a convenience function to check whether a given
- * integer COSE algorithm ID uses the RSASSA-PSS signing algorithm
- * or not.
- *
- */
-static bool
-t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id);
 
 
 
-
-/*
- * Inline implementations. See documentation above.
- */
-
-/**
- * \brief Look for an integer in a zero-terminated list of integers.
- *
- * \param[in] cose_algorithm_id    The algorithm ID to check.
- * \param[in] list                 zero-terminated list of algorithm IDs.
- *
- * \returns This returns \c true if an integer is in the list, \c false if not.
- *
- * Used to implement t_cose_algorithm_is_ecdsa() and in the future
- * _is_rsa() and such.
- *
- * Typically used once in the crypto adaptation layer, so defining it
- * inline rather than in a .c file is OK and saves creating a whole
- * new .c file just for this.
- */
-static inline bool
-t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list)
-{
-    while(*list != T_COSE_ALGORITHM_NONE) {
-        if(*list == cose_algorithm_id) {
-            return true;
-        }
-        list++;
-    }
-
-    return false;
-}
-
-static inline bool
-t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
-{
-    /* The simple list of COSE alg IDs that use ECDSA */
-    static const int32_t ecdsa_list[] = {
-        T_COSE_ALGORITHM_ES256,
-#ifndef T_COSE_DISABLE_ES384
-        T_COSE_ALGORITHM_ES384,
-#endif
-#ifndef T_COSE_DISABLE_ES512
-        T_COSE_ALGORITHM_ES512,
-#endif
-        T_COSE_ALGORITHM_NONE};
-
-    return t_cose_check_list(cose_algorithm_id, ecdsa_list);
-}
-
-
-static inline bool
-t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id)
-{
-    /* The simple list of COSE alg IDs that use RSASSA-PSS */
-    static const int32_t rsa_list[] = {
-#ifndef T_COSE_DISABLE_PS256
-        T_COSE_ALGORITHM_PS256,
-#endif
-#ifndef T_COSE_DISABLE_PS384
-        T_COSE_ALGORITHM_PS384,
-#endif
-#ifndef T_COSE_DISABLE_PS512
-        T_COSE_ALGORITHM_PS512,
-#endif
-        T_COSE_ALGORITHM_NONE};
-
-    return t_cose_check_list(cose_algorithm_id, rsa_list);
-}
-
-static inline bool
-t_cose_algorithm_is_short_circuit(int32_t cose_algorithm_id)
-{
-    /* The simple list of COSE alg IDs that use ECDSA */
-    static const int32_t ecdsa_list[] = {
-        T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
-        T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
-        T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
-        T_COSE_ALGORITHM_NONE};
-
-    return t_cose_check_list(cose_algorithm_id, ecdsa_list);
-}
 
 
 static inline size_t t_cose_tag_size(int32_t cose_alg_id)
@@ -978,7 +866,7 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
  * \param[in] key               Handle to key
  * \param[in] pk_buffer         Pointer and length of buffer into which
  *                              the resulting public key is put.
- * \param[out] pk               Public Key
+ * \param[out] pk_len               Length of public key out
  *
  * \retval T_COSE_SUCCESS
  *         Successfully exported the public key.
@@ -1008,27 +896,88 @@ t_cose_crypto_export_key(struct t_cose_key      key,
                          struct q_useful_buf    key_buffer,
                          size_t                *key_len);
 
+
 /**
  * \brief Uses the AES key wrap algorithm defined in RFC 3394 to
  *        encrypt the CEK.
  *
- * \param[in] algorithm_id        Algorithm id
- * \param[in] kek                 Key Encryption Key
- * \param[in] plaintext           Plaintext
- * \param[in] ciphertext_buffer   Ciphertext buffer
- * \param[out] ciphertext_result  Resulting ciphertext
+ * \param[in] cose_algorithm_id   A COSE key wrap algorithm id.
+ * \param[in] kek                 The key encryption key.
+ * \param[in] plaintext           The plaintext to encrypt, e.g. the CEK.
+ * \param[in] ciphertext_buffer   Buffer to hold ciphertext output.
+ * \param[out] ciphertext_result  Resulting ciphertext with wrapped key.
  *
  * \retval T_COSE_SUCCESS
  *         Operation was successful.
- * \retval T_COSE_ERR_AES_KW_FAILED
- *         AES key wrap operation failed.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         \c ciphertext_buffer was too smalll.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         The wrapping algorithm is not supported (this error code is borrowed to mean
+ *         wrapping algorithm)
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key is the wrong length for the algorithm.
+ * \retval T_COSE_ERR_KW_FAILED
+ *         Key wrap failed for other than the above reasons.
+ *
+ * This uses RFC 3394 to wrap a key, typically the CEK (content
+ * encryption key) using another key, the KEK (key encryption
+ * key). This key wrap provides both confidentiality and integrity.
+ *
+ * OIther than AES could work here, but in practice only AES is needed.
+ *
+ * Implementations of this must error out on incorrect algorithm IDs. They
+ * can't just assume AES and go off the key size. This is so callers of this
+ * can rely on this to check the algorithm ID and not have to check it.
  */
 enum t_cose_err_t
-t_cose_crypto_aes_kw(int32_t                 algorithm_id,
-                     struct q_useful_buf_c   kek,
-                     struct q_useful_buf_c   plaintext,
-                     struct q_useful_buf     ciphertext_buffer,
-                     struct q_useful_buf_c  *ciphertext_result);
+t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
+                      struct q_useful_buf_c   kek,
+                      struct q_useful_buf_c   plaintext,
+                      struct q_useful_buf     ciphertext_buffer,
+                      struct q_useful_buf_c  *ciphertext_result);
+
+
+/**
+ * \brief Uses the AES key wrap algorithm defined in RFC 3394 to
+ *        decrypt the CEK.
+ *
+ * \param[in] cose_algorithm_id   A COSE key wrap algorithm id.
+ * \param[in] kek                 The key encryption key.
+ * \param[in] ciphertext           The wrapped key.
+ * \param[in] plaintext_buffer   Buffer to hold plaintext output.
+ * \param[out] plaintext_result  Resulting plaintext, usually the CEK.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Operation was successful.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         \c plaintext_buffer was too smalll.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         The wrapping algorithm is not supported (this error code is borrowed to mean
+ *         wrapping algorithm)
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key is the wrong length for the algorithm.
+ * \retval T_COSE_ERR_DATA_AUTH_FAILED
+ *         The authentication of the wrapped key failed.
+ * \retval T_COSE_ERR_KW_FAILED
+ *         Key unwrap failed for other than the above reasons.
+ *
+ * This uses RFC 3394 to unwrap a key, typically the CEK (content
+ * encryption key) using another key, the KEK (key encryption
+ * key). This key wrap provides both confidentiality and integrity.
+ *
+ * OIther than AES could work here, but in practice only AES is needed.
+ *
+ * Implementations of this must error out on incorrect algorithm IDs. They
+ * can't just assume AES and go off the key size. This is so callers of this
+ * can rely on this to check the algorithm ID and not have to check it.
+ */
+enum t_cose_err_t
+t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
+                        struct q_useful_buf_c   kek,
+                        struct q_useful_buf_c   ciphertext,
+                        struct q_useful_buf     plaintext_buffer,
+                        struct q_useful_buf_c  *plaintext_result);
+
 
 /**
  * \brief HPKE Decrypt Wrapper
@@ -1055,31 +1004,46 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
                            struct q_useful_buf                plaintext,
                            size_t                            *plaintext_len);
 
+
 /**
- * \brief Returns the t_cose_key given an algorithm.and a symmetric key
+ * \brief Returns the t_cose_key given an algorithm and a symmetric key.
  *
  * \param[in] cose_algorithm_id  COSE algorithm id
- * \param[in] cek                Symmetric key
- * \param[in] cek_len            Symmetric key length
- * \param[in] flags              Key usage flags
+ * \param[in] symmetric_key                Symmetric key
  * \param[out] key               Key in t_cose_key structure.
  *
  * \retval T_COSE_SUCCESS
- *         The key was successfully imported and is returned in the
- *         t_cose_key format.
- * \retval T_COSE_ERR_UNKNOWN_KEY
- *         The provided symmetric key could not be imported.
+ *         The key was successfully imported and is returned as a
+ *         struct t_cose_key.
  * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
  *         An unsupported COSE algorithm was provided.
- * \retval T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS
- *         The provided key usage flags are unsupported.
+ * \retval T_COSE_ERR_KEY_IMPORT_FAILED
+ *         The provided symmetric key could not be imported.
+ *
+ * This is part of the crypto adaptor layer because there is an easy
+ * universal representation of a symmetric key -- a byte
+ * string (this is not true for public key algorithms, so
+ * there isn't similar for them (yet)).
+ *
+ * Some crypto libraries support key usage policy. For example, a key
+ * marked only to be used for decryption can't be used for
+ * encryption. The t_cose crypto adaptor layer doesn't support this
+ * for symmetric keys in the interest of code size, because it isn't
+ * universal and because it is not a critical security feature.  That
+ * is why this API has no usage flags and implementations of this for
+ * libraries that do have usage policy should allow all usage
+ * policies.
+ *
+ * Note however that many key handles used in t_cose just pass through
+ * to to the crypto library in a struct t_cose_key. For these the key
+ * usage will be enforced. For example, a signing key passed into to
+ * t_cose_sign will pass through to the library's sign API which will
+ * enforce the usage with t_cose non the wiser.
  */
 enum t_cose_err_t
-t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
-                           uint8_t             *cek,
-                           size_t               cek_len,
-                           uint8_t              flags,
-                           struct t_cose_key   *key);
+t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
+                                        struct q_useful_buf_c symmetric_key,
+                                        struct t_cose_key     *key);
 
 
 /**
@@ -1096,26 +1060,42 @@ t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
  * \param[in] add_data               Additional data used for decryption.
  * \param[in] ciphertext             The ciphertext to decrypt.
  * \param[in] plaintext_buffer       Buffer where the plaintext will be put.
- * \param[out] plaintext_output_len  The size of the plaintext.
+ * \param[out] plaintext  Place to return the plaintext
  *
  * The key provided must be a symmetric key of the correct type for
  * \c cose_algorithm_id.
+ *
+ * A key handle is used even though it could be a buffer with a key in
+ * order to allow use of keys internal to the crypto library, crypto
+ * HW and such. See t_cose_crypto_make_symmetric_key_handle().
+ *
+ * This does not need to support a size calculation mode as is
+ * required of t_cose_crypto_aead_encrypt().
+ *
+ * One of the following errors should be returned. Other errors should
+ * not be returned.
  *
  * \retval T_COSE_SUCCESS
  *         The decryption operation was successful.
  * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
  *         An unsupported cipher algorithm was provided.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         The \c plaintext_buffer is too small.
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key is not right for the algorithm or is not allowed for decryption.
+ * \retval T_COSE_ERR_DATA_AUTH_FAILED
+ *         The data integrity check failed.
  * \retval T_COSE_ERR_DECRYPT_FAIL
- *         The decryption operation failed.
+ *         Decryption failed for a reason other than above.
  */
 enum t_cose_err_t
-t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
-                      struct t_cose_key      key,
-                      struct q_useful_buf_c  nonce,
-                      struct q_useful_buf_c  add_data,
-                      struct q_useful_buf_c  ciphertext,
-                      struct q_useful_buf    plaintext_buffer,
-                      size_t                *plaintext_output_len);
+t_cose_crypto_aead_decrypt(int32_t                cose_algorithm_id,
+                           struct t_cose_key      key,
+                           struct q_useful_buf_c  nonce,
+                           struct q_useful_buf_c  add_data,
+                           struct q_useful_buf_c  ciphertext,
+                           struct q_useful_buf    plaintext_buffer,
+                           struct q_useful_buf_c *plaintext);
 
 /**
  * \brief Encrypt plaintext using an AEAD cipher. Part of the
@@ -1131,28 +1111,41 @@ t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
  * \param[in] add_data               Additional data used for encryption.
  * \param[in] plaintext              The plaintext to encrypt.
  * \param[in] ciphertext_buffer      Buffer where the ciphertext will be put.
- * \param[out] ciphertext_output_len The size of the ciphertext.
+ * \param[out] ciphertext  Place to put pointer and length to ciphertext.
  *
  * The key provided must be a symmetric key of the correct type for
  * \c cose_algorithm_id.
+ *
+ * A key handle is used even though it could be a buffer with a key in
+ * order to allow use of keys internal to the crypto library, crypto
+ * HW and such. See t_cose_crypto_make_symmetric_key_handle().
+ *
+ * This must support a size calculation mode which is indicated by
+ * ciphertext_buffer.ptr == NULL and which fills the size in
+ * ciphertext->len.
+ *
+ * One of the following errors should be returned. Other errors should
+ * not be returned.
  *
  * \retval T_COSE_SUCCESS
  *         The decryption operation was successful.
  * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
  *         An unsupported cipher algorithm was provided.
- * \retval T_COSE_ERR_KEY_IMPORT_FAILED
- *         The provided key could not be imported.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         \c ciphertext_buffer is too small.
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key is not right for the algorithm or is not allowed for encryption.
  * \retval T_COSE_ERR_ENCRYPT_FAIL
- *         The encryption operation failed.
+ *         Encryption failed for a reason other than above.
  */
 enum t_cose_err_t
-t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
-                      struct q_useful_buf_c  key,
-                      struct q_useful_buf_c  nonce,
-                      struct q_useful_buf_c  add_data,
-                      struct q_useful_buf_c  plaintext,
-                      struct q_useful_buf    ciphertext_buffer,
-                      size_t                *ciphertext_output_len);
+t_cose_crypto_aead_encrypt(int32_t                cose_algorithm_id,
+                           struct t_cose_key      key,
+                           struct q_useful_buf_c  nonce,
+                           struct q_useful_buf_c  add_data,
+                           struct q_useful_buf_c  plaintext,
+                           struct q_useful_buf    ciphertext_buffer,
+                           struct q_useful_buf_c *ciphertext);
 
 
 #ifdef __cplusplus

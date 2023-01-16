@@ -17,6 +17,7 @@
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose_crypto.h"
 
+#ifndef T_COSE_DISABLE_EDDSA
 
 /** This is an implementation of \ref t_cose_signature_verify1_cb. */
 static enum t_cose_err_t
@@ -124,8 +125,8 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
 
     return_value = t_cose_headers_decode(qcbor_decoder,
                                          loc,
-                                         me->reader,
-                                         me->reader_ctx,
+                                         me->param_decode_cb,
+                                         me->param_decode_cb_context,
                                          param_storage,
                                          decoded_params,
                                         &protected_parameters);
@@ -168,3 +169,9 @@ t_cose_signature_verify_eddsa_init(struct t_cose_signature_verify_eddsa *me,
      */
     me->auxiliary_buffer.len = SIZE_MAX;
 }
+
+#else
+
+void t_cose_signature_verify_eddsa_placeholder(void) {}
+
+#endif

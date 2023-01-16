@@ -1,7 +1,7 @@
 /*
  * t_cose_common.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -15,9 +15,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-// TODO: don't think this is needed, but it was added
-// This is now needed for sign_inputs (if it stays in common)
-#include "t_cose/q_useful_buf.h"
+#include "t_cose/q_useful_buf.h" /* For t_cose_key and t_cose_sign_inputs */
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -263,6 +262,9 @@ struct t_cose_key {
         void *key_ptr;
         /** For libraries that use an integer handle to the key */
         uint64_t key_handle;
+        /** For pointer and length of actual key bytes. Length is a uint16_t to keep the
+         * size of this struct down because it occurs on the stack. */
+        struct q_useful_buf_c key_buffer;
     } k;
 };
 
@@ -290,21 +292,6 @@ struct t_cose_key {
 #endif
 
 
-/* Private value. Intentionally not documented for Doxygen.  This is
- * the size allocated for the encoded protected header parameters.  It
- * needs to be big enough for encode_protected_parameters() to
- * succeed. It currently sized for one parameter with an algorithm ID
- * up to 32 bits long -- one byte for the wrapping map, one byte for
- * the label, 5 bytes for the ID. If this is made accidentally too
- * small, QCBOR will only return an error, and not overrun any
- * buffers.
- *
- * 17 extra bytes are added, rounding it up to 24 total, in case some
- * other protected header parameter is to be added and so the test
- * using T_COSE_TEST_CRIT_PARAMETER_EXIST can work.
- */
-#define T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS (1+1+5+17)
-
 /* Private value. Intentionally not documented for Doxygen.
  * This is the size allocated for the encoded protected headers.  It
  * needs to be big enough for make_protected_header() to succeed. It
@@ -320,6 +307,8 @@ struct t_cose_key {
 
 /* Six: an alg id, a kid, an iv, a content type, one custom, crit list */
 #define T_COSE_NUM_VERIFY_DECODE_HEADERS 6
+
+
 /**
  * Error codes return by t_cose.
  */
@@ -381,10 +370,11 @@ enum t_cose_err_t {
      * when verifying a \c COSE_Sign1. */
     T_COSE_ERR_NO_KID = 12,
 
-    /** Signature verification failed. For example, the cryptographic
-     * operations completed successfully but hash wasn't as
-     * expected. */
+    /** Signature verification or data authentication failed. For
+     * example, the cryptographic operations completed successfully
+     * but hash wasn't as expected. */
     T_COSE_ERR_SIG_VERIFY = 13,
+    T_COSE_ERR_DATA_AUTH_FAILED = 13,
 
     /** Verification of a short-circuit signature failed. */
     T_COSE_ERR_BAD_SHORT_CIRCUIT_KID = 14,
@@ -592,7 +582,7 @@ enum t_cose_err_t {
     T_COSE_ERR_KEY_EXPORT_FAILED = 62,
 
     /** Something went wrong with AES Key Wrap. */
-    T_COSE_ERR_AES_KW_FAILED = 63,
+    T_COSE_ERR_KW_FAILED = 63,
     /** The signature algorithm needs an extra buffer, but none was provided.
      * See \ref t_cose_sign1_verify_set_auxiliary_buffer for more details.
      */
@@ -744,9 +734,9 @@ t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
 
 
 /* Structure that holds all the inputs for signing that is
- * used in a few places (so it ends up in t_cose_common.h.
+ * used in a few places (so it ends up in t_cose_common.h).
  * It is public because it is part of the signer/verify
- * call back interface.
+ * call back interface. It is also used for MAC.
  *
  * These are the inputs to create a Sig_structure
  * from section 4.4 in RFC 9052.
