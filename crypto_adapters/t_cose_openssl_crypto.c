@@ -98,6 +98,13 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_A128GCM,
         T_COSE_ALGORITHM_A192GCM, /* For 9053 key wrap and direct, not HPKE */
         T_COSE_ALGORITHM_A256GCM,
+
+#ifndef T_COSE_DISABLE_AES_KW
+        T_COSE_ALGORITHM_A128KW,
+        T_COSE_ALGORITHM_A192KW,
+        T_COSE_ALGORITHM_A256KW,
+#endif /* T_COSE_DISABLE_AES_KW */
+
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
@@ -156,7 +163,7 @@ is_size_t_to_int_cast_ok(size_t x)
 #endif /* SIZE_MAX > INT_MAX */
 }
 
-
+#ifndef T_COSE_DISABLE_AES_KW
 static inline bool
 is_size_t_to_uint_cast_ok(size_t x)
 {
@@ -178,6 +185,7 @@ is_size_t_to_uint_cast_ok(size_t x)
     return true;
 #endif /* SIZE_MAX > INT_MAX */
 }
+#endif /* T_COSE_DISABLE_AES_KW */
 
 
 /* See is_size_t_to_int_cast_ok() */

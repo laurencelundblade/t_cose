@@ -96,11 +96,11 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_A256GCM,
         #endif /* T_COSE_DISABLE_MAC0 */
 
-#ifndef NO_MBED_KW_API
+#if !defined NO_MBED_KW_API & !defined T_COSE_DISABLE_AES_KW
         T_COSE_ALGORITHM_A128KW,
         T_COSE_ALGORITHM_A192KW,
         T_COSE_ALGORITHM_A256KW,
-#endif /* !NO_MBED_KW_API */
+#endif /* !(NO_MBED_KW_API && T_COSE_DISABLE_AES_KW) */
 
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
