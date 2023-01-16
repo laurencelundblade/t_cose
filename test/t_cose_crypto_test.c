@@ -145,6 +145,8 @@ int_fast32_t aead_test(void)
 
 
 
+#ifndef T_COSE_DISABLE_AES_KW
+
 int_fast32_t kw_test(void)
 {
     /* These are test vectors from RFC 3394 */
@@ -160,6 +162,17 @@ int_fast32_t kw_test(void)
 
     struct q_useful_buf_c ciphertext;
     struct q_useful_buf_c plaintext;
+
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+        /* This is necessary because MbedTLS 2.28 doesn't have
+         * nist KW enabled by default. The PSA crypto layer deals with
+         * this dynamically. The below tests will correctly link
+         * on 2.28, but will fail to run so this exception is needed.
+         */
+        return 0;
+    }
+
+    // TODO: test more sizes and algorithms
 
     e = t_cose_crypto_kw_wrap(T_COSE_ALGORITHM_A128KW,
                               kek,
@@ -213,3 +226,5 @@ int_fast32_t kw_test(void)
 
     return 0;
 }
+
+#endif /* !T_COSE_DISABLE_AES_KW */

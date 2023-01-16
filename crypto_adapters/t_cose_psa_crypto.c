@@ -45,6 +45,12 @@
 
 #include "t_cose_util.h"
 
+#if MBEDTLS_VERSION_MAJOR < 3
+#define NO_MBED_KW_API
+#warning "AES key wrap is unavailable with MbedTLS versions below 3"
+#warning "Use of COSE algorithms A128KW..A256KW will return an error"
+#endif /* MBEDTLS_VERSION_MAJOR < 3 */
+
 
 /* Avoid compiler warning due to unused argument */
 #define ARG_UNUSED(arg) (void)(arg)
@@ -86,10 +92,16 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_HMAC384,
         T_COSE_ALGORITHM_HMAC512,
         T_COSE_ALGORITHM_A128GCM,
-        T_COSE_ALGORITHM_A192GCM, /* For 9053 key wrap and direct, not HPKE */
+        T_COSE_ALGORITHM_A192GCM, /* For 9053 direct, not HPKE */
         T_COSE_ALGORITHM_A256GCM,
+        #endif /* T_COSE_DISABLE_MAC0 */
 
-#endif /* T_COSE_DISABLE_MAC0 */
+#ifndef NO_MBED_KW_API
+        T_COSE_ALGORITHM_A128KW,
+        T_COSE_ALGORITHM_A192KW,
+        T_COSE_ALGORITHM_A256KW,
+#endif /* !NO_MBED_KW_API */
+
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
@@ -742,6 +754,9 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
                       struct q_useful_buf     ciphertext_buffer,
                       struct q_useful_buf_c  *ciphertext_result)
 {
+#ifdef NO_MBED_KW_API
+    return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+#else
     mbedtls_nist_kw_context kw_context;
     int                     ret;
     size_t                  ciphertext_len;
@@ -801,6 +816,7 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
     mbedtls_nist_kw_free(&kw_context);
 
     return T_COSE_SUCCESS;
+#endif /* NO_MBED_KW_API */
 }
 
 
@@ -811,6 +827,9 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
                         struct q_useful_buf     plaintext_buffer,
                         struct q_useful_buf_c  *plaintext_result)
 {
+#ifdef NO_MBED_KW_API
+    return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+#else
     mbedtls_nist_kw_context kw_context;
     int                     ret;
     size_t                  plaintext_len;
@@ -875,6 +894,7 @@ Done:
     mbedtls_nist_kw_free(&kw_context);
 
     return return_value;
+#endif /* NO_MBED_KW_API */
 }
 #endif /* !T_COSE_DISABLE_AES_KW */
 
