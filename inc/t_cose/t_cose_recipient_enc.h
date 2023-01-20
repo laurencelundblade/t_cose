@@ -37,14 +37,12 @@ struct t_cose_recipient_enc;
  * \brief Function pointer for use with different key agreement / key transport
  *        schemes used within the recipient structure of COSE_Encrypt.
  *
- * \param[in] ...TBD...
  *
  * \return The \ref t_cose_err_t.
  */
 
 typedef enum t_cose_err_t
 t_cose_create_recipient(struct t_cose_recipient_enc  *me,
-                        struct t_cose_key             recipient_key,
                         struct q_useful_buf_c         cek,
                         QCBOREncodeContext           *cbor_encoder);
 
@@ -55,11 +53,12 @@ t_cose_create_recipient(struct t_cose_recipient_enc  *me,
  * The size of this structure is around 56 bytes.
  */
 struct t_cose_recipient_enc {
-    t_cose_create_recipient *creat_cb;
+    t_cose_create_recipient     *creat_cb;
     struct t_cose_recipient_enc *next_in_list;
     
     
     /* Private data structure */
+    // TODO: get rid of these
     int32_t                   cose_algorithm_id;
     struct q_useful_buf_c     kid;
     struct t_cose_key         cek;

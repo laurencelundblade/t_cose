@@ -2,6 +2,7 @@
  * t_cose_recipient_enc_aes_kw.h
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -24,26 +25,30 @@ extern "C" {
 
 
 struct t_cose_recipient_enc_keywrap {
+    /* Private data structure */
     struct t_cose_recipient_enc e;
 
-    int32_t cose_algorithm_id;
-    struct t_cose_key wrapping_key;
+    int32_t               cose_algorithm_id;
+    struct t_cose_key     wrapping_key;
     struct q_useful_buf_c kid;
 };
 
 
+/*
 
-
-
+ * @param[in]  cose_algorithm_id  The key wrap algorithm ID.
+ */
 enum t_cose_err_t
 t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *me,
-                                  int32_t                              cose_algoroithm_id);
+                                  int32_t                              cose_algorithm_id);
 
 
-enum t_cose_err_t
-t_cose_recipient_enc_keywrap_set_recipient_key(struct t_cose_recipient_enc_keywrap *me,
-                                               struct t_cose_key wrapping_key,
-                                               struct q_useful_buf_c kid);
+
+/* Maybe just roll this into _init(). You always have to call it.*/
+void
+t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *me,
+                                     struct t_cose_key                 wrapping_key,
+                                     struct q_useful_buf_c             kid);
 
 
 #ifdef __cplusplus

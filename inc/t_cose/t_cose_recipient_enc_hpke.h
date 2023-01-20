@@ -21,6 +21,28 @@
 extern "C" {
 #endif
 
+
+struct t_cose_recipient_enc_hpke {
+    struct t_cose_recipient_enc e;
+
+    struct t_cose_key           pkR; /* recipient public key */
+    struct q_useful_buf_c       kid;
+    int32_t                     cose_algorithm_id;
+};
+
+
+enum t_cose_err_t
+t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *me,
+                               int32_t                     cose_algorithm_id);
+
+
+
+void
+t_cose_recipient_enc_hpke_set_key(struct t_cose_recipient_enc_hpke *me,
+                                  struct t_cose_key                 recipient,
+                                  struct q_useful_buf_c             kid);
+
+
 /**
  * \brief Creating a COSE recipient for use with HPKE.
  *

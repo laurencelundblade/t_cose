@@ -9,14 +9,10 @@
  *
  */
 
-// TODO: remove some of these, they can't all be needed.
-#include "t_cose/t_cose_recipient_enc.h"
 #include "t_cose/t_cose_recipient_enc_aes_kw.h" /* Interface implemented */
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
-#include "t_cose/t_cose_encrypt_enc.h"
 #include <stdint.h>
-#include <stdbool.h>
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
@@ -26,7 +22,6 @@
 
 static enum t_cose_err_t
 recipient_create_keywrap_cb(struct t_cose_recipient_enc  *me_x,
-                            struct t_cose_key       recipient_key,
                             struct q_useful_buf_c   plaintext,
                             QCBOREncodeContext     *cbor_encoder)
 {
@@ -38,6 +33,7 @@ recipient_create_keywrap_cb(struct t_cose_recipient_enc  *me_x,
 
 
     Q_USEFUL_BUF_MAKE_STACK_UB(recipient_key_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    // TODO: make sure this has room for key wrap authentication tag
     Q_USEFUL_BUF_MAKE_STACK_UB(encrypted_cek, T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH));
     struct q_useful_buf_c  recipient_key_result={NULL,0};
     struct q_useful_buf_c  encrypted_cek_result={NULL,0};
@@ -46,7 +42,7 @@ recipient_create_keywrap_cb(struct t_cose_recipient_enc  *me_x,
 
 
     cose_result = t_cose_crypto_export_key(
-                                    recipient_key,
+                                    context->wrapping_key,
                                     recipient_key_buf,
                                     &recipient_key_len);
 
@@ -103,19 +99,20 @@ recipient_create_keywrap_cb(struct t_cose_recipient_enc  *me_x,
 
 enum t_cose_err_t
 t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *me,
-                                  int32_t                              cose_algoroithm_id)
+                                  int32_t                              cose_algorithm_id)
 {
+    memset(me, 0, sizeof(*me));
     me->e.creat_cb = recipient_create_keywrap_cb;
-    me->cose_algorithm_id = cose_algoroithm_id;
+    me->cose_algorithm_id = cose_algorithm_id;
 
     return T_COSE_SUCCESS;
 }
 
 
-enum t_cose_err_t
-t_cose_recipient_enc_keywrap_set_recipient_key(struct t_cose_recipient_enc_keywrap *me,
-                                               struct t_cose_key wrapping_key,
-                                               struct q_useful_buf_c kid)
+void
+t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *me,
+                                     struct t_cose_key wrapping_key,
+                                     struct q_useful_buf_c kid)
 {
     me->wrapping_key = wrapping_key;
     me->kid          = kid;

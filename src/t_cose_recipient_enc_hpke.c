@@ -29,9 +29,6 @@
  *        HPKE algorithm structure, the key length (in bits) and
  *        the COSE algorithm ID.
  *
- * \param[in] buffer             Pointer and length of buffer into which
- *                               the resulting random bytes are put.
- *
  * \retval T_COSE_SUCCESS
  *         Successfully produced the HPKE algorithm structure.
  * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
@@ -103,10 +100,10 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
             hpke_suite,                         // ciphersuite
             NULL, 0, NULL,                      // PSK
             pkR.len,                            // pkR length
-            (uint8_t *) pkR.ptr,                // pkR
+            pkR.ptr,                            // pkR
             0,                                  // skI
             plaintext.len,                      // plaintext length
-            (uint8_t *) plaintext.ptr,          // plaintext
+            plaintext.ptr,                      // plaintext
             0, NULL,                            // Additional data
             0, NULL,                            // Info
             (psa_key_handle_t)
@@ -126,8 +123,9 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
 /*
  * See documentation in t_cose_recipient_enc_hpke.h
  */
-enum t_cose_err_t t_cose_create_recipient_hpke(
-                           void                  *ctx,
+static enum t_cose_err_t
+t_cose_create_recipient_hpke2(
+                           struct t_cose_recipient_enc_hpke *context,
                            int32_t                cose_algorithm_id,
                            struct t_cose_key      recipient_key,
                            struct q_useful_buf_c  plaintext,
@@ -149,7 +147,10 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     uint8_t                pkE[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     enum t_cose_err_t      return_value;
     struct t_cose_crypto_hpke_suite_t hpke_suite;
-    struct t_cose_encrypt_recipient_ctx *context=(struct t_cose_encrypt_recipient_ctx *) ctx;
+    struct t_cose_key      ephemeral_key;
+
+    (void)cose_algorithm_id; // TODO: use this or get rid of it
+    (void)recipient_key; // TODO: use this or get rid of it
 
     if (context == NULL || encrypt_ctx == NULL) {
         return(T_COSE_ERR_INVALID_ARGUMENT);
@@ -165,7 +166,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     }
 
     /* Create ephemeral key */
-    return_value = t_cose_crypto_generate_key(&context->ephemeral_key,
+    return_value = t_cose_crypto_generate_key(&ephemeral_key,
                                               context->cose_algorithm_id);
     if (return_value != T_COSE_SUCCESS) {
         return(return_value);
@@ -173,7 +174,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* Export pkR */
     return_value = t_cose_crypto_export_public_key(
-                         context->recipient_key,
+                         context->pkR,
                          (struct q_useful_buf) {.ptr=pkR, .len=pkR_len},
                          &pkR_len);
 
@@ -183,7 +184,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* Export pkE */
     return_value = t_cose_crypto_export_public_key(
-                         context->ephemeral_key,
+                         ephemeral_key,
                          (struct q_useful_buf) {.ptr=pkE, .len=pkE_len},
                          &pkE_len);
 
@@ -195,7 +196,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     return_value = t_cose_crypto_hpke_encrypt(
                         hpke_suite,
                         (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len},
-                        context->ephemeral_key,
+                        ephemeral_key,
                         plaintext,
                         (struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
                         &encrypted_cek_len);
@@ -310,6 +311,48 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     return(T_COSE_SUCCESS);
 }
+
+
+static enum t_cose_err_t
+recipient_create_hpke_cb(struct t_cose_recipient_enc  *me_x,
+                         struct q_useful_buf_c         cek,
+                         QCBOREncodeContext           *cbor_encoder)
+{
+    enum t_cose_err_t err;
+    struct t_cose_recipient_enc_hpke *me;
+
+    me = (struct t_cose_recipient_enc_hpke *)me_x;
+
+    err = t_cose_create_recipient_hpke2(me,
+                                       0,
+                                       me->pkR,
+                                       cek,
+                                       cbor_encoder);
+
+    return err;
+}
+
+
+enum t_cose_err_t
+t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *me,
+                               int32_t cose_algorithm_id)
+{
+    me->e.creat_cb = recipient_create_hpke_cb;
+    me->cose_algorithm_id = cose_algorithm_id;
+    return T_COSE_SUCCESS;
+}
+
+
+void
+t_cose_recipient_enc_hpke_set_key(struct t_cose_recipient_enc_hpke *me,
+                                  struct t_cose_key                 pkR,
+                                  struct q_useful_buf_c             kid)
+{
+    me->pkR = pkR;
+    me->kid = kid;
+}
+
+
 
 #else
 

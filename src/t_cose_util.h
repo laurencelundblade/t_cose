@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -16,6 +16,8 @@
 #include <stdint.h>
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "qcbor/qcbor_common.h" /* For QCBORError */
+#include "t_cose/t_cose_signature_sign.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,26 +29,6 @@ extern "C" {
  * \brief Utility functions used internally by the t_cose implementation.
  *
  */
-
-
-/**
- * The modes in which the payload is passed to create_tbm().  This
- * exists so the ToBeMaced bytes can be hashed in two separate chunks and
- * avoids needing a second buffer the size of the payload in the
- * t_cose implementation.
- */
-// TODO: is this necessary?
-enum t_cose_tbm_payload_mode_t {
-    /** The bytes passed for the payload include a wrapping bstr so
-     * one does not need to be added.
-     */
-    T_COSE_TBM_PAYLOAD_IS_BSTR_WRAPPED,
-    /** The bytes passed for the payload do NOT have a wrapping bstr
-     * so one must be added.
-     */
-    T_COSE_TBM_BARE_PAYLOAD
-};
-
 
 
 /**
@@ -115,13 +97,9 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \brief Create the ToBeMaced (TBM) structure bytes for COSE.
  *
  * \param[in] tbm_first_part_buf  The buffer to contain the first part
- * \param[in] protected_headers   The CBOR encoded protected headers.
+ * \param[in] sign_inputs    The input to be mac'd -- payload, aad, protected headers.
  * \param[out] tbm_first_part     Pointer and length of buffer into which
  *                                the resulting TBM is put.
- * \param[in] payload_mode        See \ref t_cose_tbm_payload_mode_t.
- * \param[in] payload             The CBOR encoded payload. It may or may
- *                                not have a wrapping bstr per
- *                                \c payload_mode.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -133,11 +111,9 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  */
-enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
-                             struct q_useful_buf_c           protected_headers,
-                             struct q_useful_buf_c          *tbm_first_part,
-                             enum t_cose_tbm_payload_mode_t  payload_mode,
-                             struct q_useful_buf_c           payload);
+enum t_cose_err_t create_tbm(const struct t_cose_sign_inputs *sign_inputs,
+                             struct q_useful_buf              tbm_first_part_buf,
+                             struct q_useful_buf_c           *tbm_first_part);
 
 
 /**
@@ -169,21 +145,18 @@ enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
 /**
  * \brief Create the hash of the to-be-signed (TBS) bytes for COSE.
  *
- * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
- *                                  determine which hash function to use.
- * \param[in] sign_inputs               The payload, AAD and header params to hash.
- * \param[in] buffer_for_hash       Pointer and length of buffer into which
- *                                  the resulting hash is put.
- * \param[out] hash                 Pointer and length of the
- *                                  resulting hash.
+ * \param[in] cose_algorithm_id  The COSE signing algorithm ID. Used to
+ *                               determine which hash function to use.
+ * \param[in] sign_inputs        The payload, AAD and header params to hash.
+ * \param[in] buffer_for_hash    Pointer and length of buffer into which the
+ *                               resulting hash is put.
+ * \param[out] hash              Pointer and length of the resulting hash.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * \retval T_COSE_ERR_SIG_STRUCT
- *         Most likely this is because the protected_parameters passed in
- *         is larger than \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
  * \retval T_COSE_ERR_UNSUPPORTED_HASH
  *         If the hash algorithm is not known.
+ * \retval T_COSE_ERR_HASH_BUFFER_SIZE  
+ *         \c buffer_for_tbs is too small.
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  *
@@ -192,12 +165,22 @@ enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
  * algorithm ID and a few other things. This formats that structure
  * and computes the hash of it. These are known as the to-be-signed or
  * "TBS" bytes. The exact specification is in [RFC 8152 section
- * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
+ * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).  This is for
+ * both COSE_Sign1 and COSE_Sign. \c sign_inputs->sign_protected is
+ * \ref NULL_Q_USEFUL_BUF_C to indicate COSE_Sign1.
+ *
+ * \c cose_algorithm_id is a signing algorithm, not a hash algorithm.
+ * The hash algorithm will be determined from it.
+ *
+ * See also create_tbs() which does the same, but outputs the full
+ * encoded structure rather than a hash of the structure as needed for
+ * EdDSA.
  */
-enum t_cose_err_t create_tbs_hash(int32_t                   cose_algorithm_id,
-                                  const struct t_cose_sign_inputs *sign_inputs,
-                                  struct q_useful_buf       buffer_for_hash,
-                                  struct q_useful_buf_c    *hash);
+enum t_cose_err_t
+create_tbs_hash(int32_t                          cose_algorithm_id,
+                const struct t_cose_sign_inputs *sign_inputs,
+                struct q_useful_buf              buffer_for_hash,
+                struct q_useful_buf_c           *hash);
 
 
 
@@ -245,6 +228,48 @@ struct q_useful_buf_c get_short_circuit_kid(void);
  */
 enum t_cose_err_t
 qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t format_error);
+
+
+/**
+ * \brief Look for an integer in a zero-terminated list of integers.
+ *
+ * \param[in] cose_algorithm_id    The algorithm ID to check.
+ * \param[in] list                 zero-terminated list of algorithm IDs.
+ *
+ * \returns This returns \c true if an integer is in the list, \c false if not.
+ *
+ * Search a list terminated by \ref T_COSE_ALGORITHM_NONE (0) for
+ * \c cose_algorithm_id. It is typically used to determine if an algorithm
+ * is supported or not by looking it up in a list of algorithms.
+ */
+bool
+t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list);
+
+
+/**
+ * \brief Map a 16-bit integer like an error code to another.
+ *
+ * \param[in] map   Two-dimentional array that is the mapping.
+ * \param[in] query  The input to map
+ *
+ * \returns The output of the mapping.
+ *
+ * This function maps one 16-bit integer to another and is
+ * mostly used for mapping error codes and sometimes for
+ * mapping algorithm IDs. The map is an array of two-element
+ * arrays. The first element is matched against \c query.
+ * The second is returned on a match. The input map is terminated
+ * when the first element is INT16_MIN. When there is not
+ * match the value paired with the terminating INT16_MIN is returned.
+ *
+ * Both gcc and clang are good at optimizing switch statements
+ * that map one integer to another so for some but not all uses the switch
+ * statement generates less code than making a mapping array
+ * and using this function. Particularly, smaller mappings that
+ * are called once and get inlined are better as a case statement.
+ */
+int16_t
+t_cose_int16_map(const int16_t map[][2], int16_t query);
 
 
 #ifdef __cplusplus

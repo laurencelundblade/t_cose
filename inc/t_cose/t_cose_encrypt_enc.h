@@ -160,9 +160,10 @@ struct t_cose_encrypt_enc_ctx {
     uint8_t                            *key;
     size_t                              key_len;
     uint32_t                            option_flags;
-    struct q_useful_buf_c               kid;
     uint8_t                             recipients;
     struct t_cose_recipient_enc        *recipients_list;
+    struct t_cose_key                   cek;
+    struct q_useful_buf_c               cek_kid;
 };
 
 
@@ -215,6 +216,13 @@ t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx*   context,
                              struct t_cose_recipient_enc     *recipient);
 
 
+
+static void
+t_cose_encrypt_set_key(struct t_cose_encrypt_enc_ctx *context,
+                      struct t_cose_key                   cek,
+                      struct q_useful_buf_c               kid);
+
+
 /**
  * \brief  Create a \c COSE_Encrypt or \c COSE_Encrypt0 structure
  *  and encrypt the provided plaintext. Two variants are supported
@@ -240,7 +248,7 @@ enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
                    struct q_useful_buf_c          payload,
                    struct q_useful_buf            encrypted_payload,
-                   struct q_useful_buf           *encrypted_payload_final,
+                   struct q_useful_buf_c         *encrypted_payload_final,
                    struct q_useful_buf            out_buf,
                    struct q_useful_buf_c         *result);
 
@@ -260,6 +268,15 @@ t_cose_encrypt_enc_init(struct t_cose_encrypt_enc_ctx *context,
     context->recipients = 0;
 }
 
+
+static inline void
+t_cose_encrypt_set_key(struct t_cose_encrypt_enc_ctx *context,
+                       struct t_cose_key              cek,
+                       struct q_useful_buf_c          cek_kid)
+{
+    context->cek     = cek;
+    context->cek_kid = cek_kid;
+}
 
 #ifdef __cplusplus
 }

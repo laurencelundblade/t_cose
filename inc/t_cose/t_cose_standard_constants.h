@@ -1,7 +1,7 @@
 /*
  * t_cose_standard_constants.h
  *
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
@@ -305,6 +305,10 @@
  * \def COSE_ALGORITHM_A192GCM
  *
  * \brief AES-GCM mode w/ 192-bit key, 128-bit tag
+ *
+ * Note that while RFC 9180 (HPKE) doesn't define
+ * support of this, RFC 9053 (COSE) for direct
+ * and key wrap encryption.
  */
 #define T_COSE_ALGORITHM_A192GCM 2
 
@@ -592,6 +596,9 @@
  * COSE_Sign1 structures. See RFC 8152, section 4.4.
  */
 #define COSE_SIG_CONTEXT_STRING_SIGNATURE1 "Signature1"
+
+#define COSE_SIG_CONTEXT_STRING_SIGNATURE "Signature"
+
 
 /**
  * \def COSE_MAC_CONTEXT_STRING_MAC0
