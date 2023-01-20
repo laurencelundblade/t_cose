@@ -1159,6 +1159,29 @@ Done:
 #endif /* T_COSE_DISABLE_EDDSA */
 
 
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_get_random(struct q_useful_buf    buffer,
+                         size_t                 number,
+                         struct q_useful_buf_c *random)
+{
+    if (number > buffer.len) {
+        return(T_COSE_ERR_TOO_SMALL);
+    }
+
+    // TODO: make this actually get random bytes!
+
+    /* In test mode this just fills a buffer with 'x' */
+    memset(buffer.ptr, 'x', number);
+
+    random->ptr = buffer.ptr;
+    random->len = number;
+
+    return T_COSE_SUCCESS;
+}
+
 
 /*
  * See documentation in t_cose_crypto.h
@@ -1174,6 +1197,33 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 
     return T_COSE_SUCCESS;
 }
+
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_export_key(struct t_cose_key      key,
+                         struct q_useful_buf    key_buffer,
+                         size_t                *key_len)
+{
+    struct q_useful_buf_c copied_key;
+
+    if(key.crypto_lib  != T_COSE_CRYPTO_LIB_OPENSSL) {
+        return 1; // TODO: error code
+    }
+
+    copied_key = q_useful_buf_copy(key_buffer, key.k.key_buffer);
+    if(q_useful_buf_c_is_null(copied_key)) {
+        return 1;
+    }
+
+    *key_len = copied_key.len;
+
+    return T_COSE_SUCCESS;
+}
+
 
 
 /* Compute size of ciphertext, given size of plaintext. Returns

@@ -911,6 +911,8 @@ t_cose_crypto_export_key(struct t_cose_key      key,
  * \retval T_COSE_ERR_AES_KW_FAILED
  *         AES key wrap operation failed.
  */
+// TODO: change to a key handle so key doesn't have to be exported even though mbedtls doesn't support this yet?
+// Probably should to accommodate crypto engines that don't allow export, especially important for symmetric keys
 enum t_cose_err_t
 t_cose_crypto_aes_kw(int32_t                 algorithm_id,
                      struct q_useful_buf_c   kek,
