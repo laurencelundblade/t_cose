@@ -54,7 +54,7 @@ recipient_create_keywrap_cb(struct t_cose_recipient_enc  *me_x,
     recipient_key_result.len = recipient_key_len;
 
     /* AES key wrap encryption */
-    return_value = t_cose_crypto_aes_kw(
+    return_value = t_cose_crypto_kw_wrap(
                         0,
                         recipient_key_result,
                         plaintext,

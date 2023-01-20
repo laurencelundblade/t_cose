@@ -57,6 +57,9 @@ static test_entry2 s_tests2[] = {
 static test_entry s_tests[] = {
 
     TEST_ENTRY(aead_test),
+#ifndef T_COSE_DISABLE_AES_KW
+    TEST_ENTRY(kw_test),
+#endif
 
 #ifndef T_COSE_DISABLE_SIGN1
     // TODO: re enable this test when it is fixed
@@ -88,6 +91,8 @@ static test_entry s_tests[] = {
     TEST_ENTRY(compute_validate_mac_basic_test),
     TEST_ENTRY(compute_validate_mac_sig_fail_test),
     TEST_ENTRY(compute_validate_get_size_mac_test),
+    TEST_ENTRY(compute_validate_detached_content_mac_sig_fail_test),
+    TEST_ENTRY(compute_validate_get_size_detached_content_mac_test),
 #endif /* T_COSE_DISABLE_MAC0 */
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
