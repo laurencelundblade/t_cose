@@ -19,6 +19,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/aes.h>
+#include <openssl/rand.h>
 
 #include "t_cose_util.h"
 
@@ -1199,14 +1200,19 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
                          size_t                 number,
                          struct q_useful_buf_c *random)
 {
+    int ossl_result;
+
     if (number > buffer.len) {
-        return(T_COSE_ERR_TOO_SMALL);
+        return T_COSE_ERR_TOO_SMALL;
     }
 
-    // TODO: make this actually get random bytes!
-
-    /* In test mode this just fills a buffer with 'x' */
-    memset(buffer.ptr, 'x', number);
+    if(!is_size_t_to_int_cast_ok(number)) {
+        return T_COSE_ERR_FAIL;
+    }
+    ossl_result = RAND_bytes(buffer.ptr, (int)number);
+    if(ossl_result != 1) {
+        return T_COSE_ERR_RNG_FAILED;
+    }
 
     random->ptr = buffer.ptr;
     random->len = number;
@@ -1786,7 +1792,6 @@ t_cose_crypto_kw_wrap(int32_t                 algorithm_id,
         /* Cast to int isn't safe */
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
-    // TODO: get rid of this cast??
     key_size_in_bits = (int)kek_bytes.len * 8;
     if(key_size_in_bits != expected_kek_bits){
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
@@ -1863,7 +1868,6 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
     }
 
     /* Safely calculate bits in the KEK and check it */
-    // TODO: get rid of cast??
     if(kek_bytes.len > INT_MAX / 8) {
         /* Cast to int isn't safe */
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
