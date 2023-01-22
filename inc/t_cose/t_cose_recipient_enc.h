@@ -2,6 +2,7 @@
  * \file t_cose_recipient_enc_hpke.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,62 +13,48 @@
 #ifndef t_cose_recipient_enc_h
 #define t_cose_recipient_enc_h
 
+#include "qcbor/qcbor_encode.h"
 
-#include "t_cose_parameters.h"
-#include "t_cose_crypto.h"
 
+/* This is an "abstract base class" for all creators of COSE_Recipients
+* of all types for all algorithms. This is the interface
+* and data structure that t_cose_encrypt_enc knows about to be able
+* to create each type of COSE_Recipient regardles of its type or algorithm.
+*
+* See longer discussion in t_cose_signature_sign.h about this
+* approach.
+*/
+
+
+/* Forward declaration */
 struct t_cose_recipient_enc;
 
 
 /**
- * \brief Creating a COSE recipient for use with AES Key Wrap.
+ * \brief Typedef of callback that creates a COSE_Recipient.
  *
- * \param[in] context                COSE context for use with AES-KW
- * \param[in] cose_algorithm_id      Algorithm id
- * \param[in] recipient_key          Recipient key (symmetric key, KEK)
- * \param[in] plaintext              Plaintext (typically the CEK)
- * \param[out] encrypt_ctx           Resulting encryption structure
+ * \param[in] context                Context for create COSE_Recipient
+ * \param[in] cek              Plaintext (typically the CEK)
+ * \param[out] cbor_encoder           Resulting encryption structure
  *
  * \retval T_COSE_SUCCESS
  *         Operation was successful.
  * \retval Error messages otherwise.
  */
-
-/**
- * \brief Function pointer for use with different key agreement / key transport
- *        schemes used within the recipient structure of COSE_Encrypt.
- *
- *
- * \return The \ref t_cose_err_t.
- */
-
 typedef enum t_cose_err_t
-t_cose_create_recipient(struct t_cose_recipient_enc  *me,
-                        struct q_useful_buf_c         cek,
-                        QCBOREncodeContext           *cbor_encoder);
+t_cose_create_recipient_cb(struct t_cose_recipient_enc  *context,
+                           struct q_useful_buf_c         cek,
+                           QCBOREncodeContext           *cbor_encoder);
 
 
 /**
- * This is the context for storing a recipient structure for use with
- * HPKE and AES-KW. The caller should allocate it.
- * The size of this structure is around 56 bytes.
+ * Data structure that must be the first part of every context of every concrete
+ * implementation of t_cose_recipient_enc.
  */
 struct t_cose_recipient_enc {
-    t_cose_create_recipient     *creat_cb;
-    struct t_cose_recipient_enc *next_in_list;
-    
-    
-    /* Private data structure */
-    // TODO: get rid of these
-    int32_t                   cose_algorithm_id;
-    struct q_useful_buf_c     kid;
-    struct t_cose_key         cek;
-    uint32_t                  option_flags;
-    struct t_cose_key         ephemeral_key;
-    struct t_cose_key         recipient_key;
-    t_cose_create_recipient  *recipient_func;
+    t_cose_create_recipient_cb   *creat_cb;
+    struct t_cose_recipient_enc  *next_in_list;
 };
-
 
 
 #endif /* t_cose_recipient_enc_h */

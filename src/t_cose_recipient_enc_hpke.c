@@ -2,6 +2,7 @@
  * \file t_cose_recipient_enc_hpke.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -313,8 +314,8 @@ t_cose_create_recipient_hpke2(
 }
 
 
-static enum t_cose_err_t
-recipient_create_hpke_cb(struct t_cose_recipient_enc  *me_x,
+enum t_cose_err_t
+t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
                          struct q_useful_buf_c         cek,
                          QCBOREncodeContext           *cbor_encoder)
 {
@@ -332,25 +333,6 @@ recipient_create_hpke_cb(struct t_cose_recipient_enc  *me_x,
     return err;
 }
 
-
-enum t_cose_err_t
-t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *me,
-                               int32_t cose_algorithm_id)
-{
-    me->e.creat_cb = recipient_create_hpke_cb;
-    me->cose_algorithm_id = cose_algorithm_id;
-    return T_COSE_SUCCESS;
-}
-
-
-void
-t_cose_recipient_enc_hpke_set_key(struct t_cose_recipient_enc_hpke *me,
-                                  struct t_cose_key                 pkR,
-                                  struct q_useful_buf_c             kid)
-{
-    me->pkR = pkR;
-    me->kid = kid;
-}
 
 
 

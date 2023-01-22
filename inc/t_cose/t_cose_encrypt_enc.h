@@ -2,6 +2,7 @@
  * t_cose_encrypt_enc.h
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -157,8 +158,6 @@ struct t_cose_encrypt_enc_ctx {
     /* Private data structure */
     struct q_useful_buf_c               protected_parameters;
     int32_t                             payload_cose_algorithm_id;
-    uint8_t                            *key;
-    size_t                              key_len;
     uint32_t                            option_flags;
     uint8_t                             recipients;
     struct t_cose_recipient_enc        *recipients_list;
@@ -196,9 +195,9 @@ struct t_cose_encrypt_enc_ctx {
  * algorithm).
  */
 void
-t_cose_encypt_enc_init(struct t_cose_encrypt_enc_ctx*   context,
-                       uint32_t                         option_flags,
-                       int32_t                          payload_cose_algorithm_id);
+t_cose_encypt_enc_init(struct t_cose_encrypt_enc_ctx* context,
+                       uint32_t                       option_flags,
+                       int32_t                        payload_cose_algorithm_id);
 
 
 /**
@@ -210,17 +209,28 @@ t_cose_encypt_enc_init(struct t_cose_encrypt_enc_ctx*   context,
  *         multiple recipients.
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
+ *
+ * For multiple recipients this is called multiple times. For direct encryption
+ * this is not called.
  */
 void
-t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx*   context,
-                             struct t_cose_recipient_enc     *recipient);
+t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx  *context,
+                             struct t_cose_recipient_enc    *recipient);
 
 
 
+/**
+ * \brief Set the content-encryption key, the CEK
+ *
+ *
+ * This is required for direct encryption when there is no recipient.
+ * RFC 9052 discourages setting the kid here, but this implementation
+ * allows it. It is typically NULL here
+ */
 static void
 t_cose_encrypt_set_key(struct t_cose_encrypt_enc_ctx *context,
-                      struct t_cose_key                   cek,
-                      struct q_useful_buf_c               kid);
+                       struct t_cose_key              cek,
+                       struct q_useful_buf_c          kid);
 
 
 /**
@@ -243,6 +253,11 @@ t_cose_encrypt_set_key(struct t_cose_encrypt_enc_ctx *context,
  * \param[out] result                  COSE message with correct length.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * This is all the work gets done including calling the cryptographic algorithms.
+ * In most cases this will cause callbacks to the t_cose_recipient_enc object
+ * to be made to create the COSE_Recipients. Only when direct encryption
+ * is used are they not called.
  */
 enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
@@ -251,6 +266,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
                    struct q_useful_buf_c         *encrypted_payload_final,
                    struct q_useful_buf            out_buf,
                    struct q_useful_buf_c         *result);
+
 
 
 

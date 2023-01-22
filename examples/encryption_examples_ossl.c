@@ -111,8 +111,8 @@ direct_detached_example()
     t_cose_encrypt_dec_set_private_key(&dec_ctx, cek, NULL_Q_USEFUL_BUF_C);
 
     err = t_cose_encrypt_dec(&dec_ctx,
-                             encrypted_cose_message.ptr, encrypted_cose_message.len,
-                             encrypted_payload.ptr, encrypted_payload.len,
+                             (uint8_t *)(uintptr_t)encrypted_cose_message.ptr, encrypted_cose_message.len,
+                             (uint8_t *)(uintptr_t)encrypted_payload.ptr, encrypted_payload.len,
                              decrypted_payload_buf.ptr, decrypted_payload_buf.len,
                              &decrypted_cose_message);
 
@@ -125,7 +125,7 @@ direct_detached_example()
     print_bytestr(decrypted_cose_message.ptr, decrypted_cose_message.len);
 }
 
-#include "t_cose_recipient_enc_aes_kw.h"
+#include "t_cose/t_cose_recipient_enc_aes_kw.h"
 void key_wrap_example()
 {
     struct t_cose_recipient_enc_keywrap kw_recipient;

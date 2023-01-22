@@ -32,8 +32,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
     QCBORError             ret;
     QCBOREncodeContext     encrypt_ctx;
     struct q_useful_buf_c  nonce_result;
-    struct q_useful_buf_c  random_result={NULL,0};
-    size_t data_length;
+    struct q_useful_buf_c  cek_bytes={NULL,0};
 
     /* Additional data buffer */
     UsefulBufC             add_data_buf;
@@ -43,7 +42,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
     size_t                 key_bitlen;
     enum t_cose_err_t      cose_result;
-    Q_USEFUL_BUF_MAKE_STACK_UB(random, 16);
+    Q_USEFUL_BUF_MAKE_STACK_UB(cek_buffer, 16);
     Q_USEFUL_BUF_MAKE_STACK_UB(nonce, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
 
     /* Determine algorithm parameters */
@@ -184,14 +183,14 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
         /* For everything but direct encryption, we create a
          * random CEK and encrypt payload with CEK.
          */
-        cose_result = t_cose_crypto_get_random(random, 16, &random_result);
+        cose_result = t_cose_crypto_get_random(cek_buffer, 16, &cek_bytes);
         if (cose_result != T_COSE_SUCCESS) {
             return(cose_result);
         }
 
         cose_result = t_cose_crypto_make_symmetric_key_handle(context->payload_cose_algorithm_id,
-                                                random_result,
-                                                &cek_handle);
+                                                              cek_bytes,
+                                                             &cek_handle);
 
     } else {
         /* Direct encryption with recipient key. This requires us
@@ -199,17 +198,13 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
          * encryption.
          */
 
-        cose_result = t_cose_crypto_export_key(
-                                        context->cek,
-                                        random,
-                                        &data_length);
+        cose_result = t_cose_crypto_export_symmetric_key(context->cek,
+                                                         cek_buffer,
+                                                        &cek_bytes);
 
         if (cose_result != T_COSE_SUCCESS) {
             return(cose_result);
         }
-
-        random_result.ptr = random.ptr;
-        random_result.len = data_length;
 
         cek_handle = context->cek;
     }
@@ -252,7 +247,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
             /* This does the public-key crypto and outputs the COSE_Recipient */
             cose_result = recipient->creat_cb(recipient,
-                                              random_result,
+                                              cek_bytes,
                                               &encrypt_ctx);
             if(cose_result) {
                 // TODO: hard and soft errors
