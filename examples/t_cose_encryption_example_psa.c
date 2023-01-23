@@ -244,7 +244,7 @@ int test_cose_encrypt(uint32_t options,
 
 
 #include "t_cose/t_cose_recipient_enc_aes_kw.h"
-static int key_wrap_example()
+static int key_wrap_example(void)
 {
     struct t_cose_recipient_enc_keywrap kw_recipient;
     struct t_cose_encrypt_enc       enc_context;
@@ -334,7 +334,7 @@ static int key_wrap_example()
 
 
 static void
-direct_detached_example()
+direct_detached_example(void)
 {
     struct t_cose_encrypt_enc  enc_context;
     enum t_cose_err_t              err;
@@ -448,7 +448,8 @@ int main(void)
     struct q_useful_buf_c plain_text_ubc;
 
     /* Key id for PSK */
-    struct q_useful_buf_c kid1 = {psk_kid, psk_kid_len};
+    // TODO: sort out which kid for PSK
+    //struct q_useful_buf_c kid1 = {psk_kid, psk_kid_len};
     /* Key id for public key */
     /* Key id for PSK 2 */
 

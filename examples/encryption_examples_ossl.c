@@ -9,6 +9,7 @@
  */
 
 #include "encryption_examples_ossl.h"
+#include <stdio.h>
 
 
 #include "t_cose/t_cose_encrypt_enc.h"
