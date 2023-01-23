@@ -1247,12 +1247,12 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
                                    struct q_useful_buf_c *exported_key)
 {
     if(key.crypto_lib  != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return 1; // TODO: error code
+        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
     }
 
     *exported_key = q_useful_buf_copy(key_buffer, key.k.key_buffer);
     if(q_useful_buf_c_is_null(*exported_key)) {
-        return 1;
+        return T_COSE_ERR_TOO_SMALL;
     }
 
     return T_COSE_SUCCESS;
