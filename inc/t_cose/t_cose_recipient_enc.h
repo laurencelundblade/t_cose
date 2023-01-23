@@ -14,6 +14,7 @@
 #define t_cose_recipient_enc_h
 
 #include "qcbor/qcbor_encode.h"
+#include "t_cose/t_cose_common.h"
 
 
 /* This is an "abstract base class" for all creators of COSE_Recipients

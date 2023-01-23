@@ -16,7 +16,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "t_cose_parameters.h"
-#include "t_cose_crypto.h"
 #include "t_cose/t_cose_recipient_enc.h"
 
 #ifdef __cplusplus
