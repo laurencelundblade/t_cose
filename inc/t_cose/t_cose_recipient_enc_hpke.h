@@ -25,7 +25,7 @@ struct t_cose_recipient_enc_hpke {
     /* Private data structure */
 
     /* t_cose_recipient_enc must be the first item for the polymorphism to
-      * work.  This structure, t_cose_recipient_enc_keywrap, will sometimes be
+      * work.  This structure, t_cose_recipient_enc_hpke, will sometimes be
       * uses as a t_cose_recipient_enc.
       */
     struct t_cose_recipient_enc e;
@@ -52,7 +52,7 @@ struct t_cose_recipient_enc_hpke {
  * called and the error code will be returned there.
  */
 static void
-t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *me,
+t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *context,
                                int32_t                     cose_algorithm_id);
 
 
@@ -62,7 +62,7 @@ t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *me,
  * The kid is optional and can be NULL
  */
 static void
-t_cose_recipient_enc_hpke_set_key(struct t_cose_recipient_enc_hpke *me,
+t_cose_recipient_enc_hpke_set_key(struct t_cose_recipient_enc_hpke *context,
                                   struct t_cose_key                 recipient,
                                   struct q_useful_buf_c             kid);
 

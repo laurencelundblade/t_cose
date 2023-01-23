@@ -20,7 +20,7 @@
 
 
 enum t_cose_err_t
-t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
+t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                    struct q_useful_buf_c          payload,
                    struct q_useful_buf            encrypted_payload,
                    struct q_useful_buf_c         *encrypted_payload_final,
@@ -285,8 +285,8 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
 
 void
-t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx*   me,
-                             struct t_cose_recipient_enc     *recipient)
+t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc   *me,
+                             struct t_cose_recipient_enc *recipient)
 {
     if(me->recipients_list == NULL) {
         me->recipients_list = recipient;
@@ -297,7 +297,7 @@ t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx*   me,
 
 
 void
-t_cose_encypt_enc_init(struct t_cose_encrypt_enc_ctx*   context,
+t_cose_encypt_enc_init(struct t_cose_encrypt_enc*   context,
                        uint32_t                         option_flags,
                        int32_t                          payload_cose_algorithm_id)
 {

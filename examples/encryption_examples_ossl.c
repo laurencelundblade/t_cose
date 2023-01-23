@@ -1,10 +1,12 @@
-//
-//  encryption_examples_ossl.c
-//  t_cose_basic_example_openssl
-//
-//  Created by Laurence Lundblade on 1/20/23.
-//  Copyright © 2023 Laurence Lundblade. All rights reserved.
-//
+/*
+ *  encryption_examples_ossl.c
+ *
+ * Copyright 2023, Laurence Lundblade
+ * Created by Laurence Lundblade on 1/20/23.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
 
 #include "encryption_examples_ossl.h"
 
@@ -38,7 +40,7 @@ make_ossl_symmetric_key_handle(int32_t               cose_algorithm_id,
 void
 direct_detached_example()
 {
-    struct t_cose_encrypt_enc_ctx  enc_context;
+    struct t_cose_encrypt_enc  enc_context;
     enum t_cose_err_t              err;
     struct t_cose_key              cek;
     struct q_useful_buf_c          encrypted_cose_message;
@@ -129,7 +131,7 @@ direct_detached_example()
 void key_wrap_example()
 {
     struct t_cose_recipient_enc_keywrap kw_recipient;
-    struct t_cose_encrypt_enc_ctx       enc_context;
+    struct t_cose_encrypt_enc       enc_context;
     enum t_cose_err_t                   err;
     struct t_cose_key                   kek;
     struct q_useful_buf_c               encrypted_cose_message;

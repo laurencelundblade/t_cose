@@ -2,6 +2,7 @@
  *  t_cose_encryption_example_psa.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright 2023, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -169,7 +170,7 @@ int test_cose_encrypt(uint32_t options,
                       struct q_useful_buf_c kid
                      )
 {
-    struct t_cose_encrypt_enc_ctx enc_ctx;
+    struct t_cose_encrypt_enc enc_ctx;
     enum t_cose_err_t result;
     struct q_useful_buf_c encrypted_firmware_final;
     struct t_cose_recipient_enc_hpke recipient;
@@ -246,7 +247,7 @@ int test_cose_encrypt(uint32_t options,
 static int key_wrap_example()
 {
     struct t_cose_recipient_enc_keywrap kw_recipient;
-    struct t_cose_encrypt_enc_ctx       enc_context;
+    struct t_cose_encrypt_enc       enc_context;
     enum t_cose_err_t                   err;
     struct t_cose_key                   kek;
     struct q_useful_buf_c               encrypted_cose_message;
@@ -335,7 +336,7 @@ static int key_wrap_example()
 static void
 direct_detached_example()
 {
-    struct t_cose_encrypt_enc_ctx  enc_context;
+    struct t_cose_encrypt_enc  enc_context;
     enum t_cose_err_t              err;
     struct t_cose_key              cek;
     struct q_useful_buf_c          encrypted_cose_message;

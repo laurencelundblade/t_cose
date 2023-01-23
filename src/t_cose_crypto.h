@@ -935,7 +935,7 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
  * encryption key) using another key, the KEK (key encryption
  * key). This key wrap provides both confidentiality and integrity.
  *
- * OIther than AES is faciliated here, but in practice only AES is needed.
+ * OIther than AES is facilitated here, but in practice only AES is needed.
  *
  * Implementations of this must error out on incorrect algorithm IDs. They
  * can't just assume AES and go off the key size. This is so callers of this
@@ -977,7 +977,7 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
  * encryption key) using another key, the KEK (key encryption
  * key). This key wrap provides both confidentiality and integrity.
  *
- * OIther than AES could work here, but in practice only AES is needed.
+ * OIther than AES is facilitated here, but in practice only AES is needed.
  *
  * Implementations of this must error out on incorrect algorithm IDs. They
  * can't just assume AES and go off the key size. This is so callers of this

@@ -29,6 +29,7 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
     struct t_cose_parameter              params[2];
     struct q_useful_buf                  encrypted_cek_destiation;
     struct q_useful_buf_c                encrypted_cek_result;
+    struct q_useful_buf_c                protected_params_not;
 
     me = (struct t_cose_recipient_enc_keywrap *) me_x;
 
@@ -42,10 +43,14 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
         params[1] = t_cose_make_kid_parameter(me->kid);
         params[0].next = &params[1];
     }
-    // TODO: allow custom headers here
+    t_cose_parameter_list_append(params, me->added_params);
     // TODO: make sure no custom headers are protected because there is no protect with key wrap
-    return_value = t_cose_encode_headers(cbor_encoder, params, NULL);
+    return_value = t_cose_encode_headers(cbor_encoder, params, &protected_params_not);
     if (return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+    if(!q_useful_buf_c_is_null(protected_params_not)) {
+        return_value = T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED;
         goto Done;
     }
 
@@ -58,7 +63,7 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
                                          encrypted_cek_destiation,
                                         &encrypted_cek_result);
     QCBOREncode_CloseBytes(cbor_encoder, encrypted_cek_result.len);
-    /* Error is just returned directly and no need to skip CloseArray */
+    /* Error is just returned directly below and no need to skip CloseArray */
 
     /* Close recipient array */
     QCBOREncode_CloseArray(cbor_encoder);

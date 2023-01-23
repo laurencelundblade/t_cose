@@ -33,9 +33,10 @@ struct t_cose_recipient_enc_keywrap {
       */
     struct t_cose_recipient_enc e;
 
-    int32_t               keywrap_cose_algorithm_id;
-    struct t_cose_key     wrapping_key;
-    struct q_useful_buf_c kid;
+    int32_t                     keywrap_cose_algorithm_id;
+    struct t_cose_key           wrapping_key;
+    struct q_useful_buf_c       kid;
+    struct t_cose_parameter    *added_params;
 };
 
 
@@ -54,7 +55,7 @@ struct t_cose_recipient_enc_keywrap {
  * called and the error code will be returned there.
  */
 static void
-t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *me,
+t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *context,
                                   int32_t                              keywrap_cose_algorithm_id);
 
 
@@ -65,9 +66,46 @@ t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *me,
  * kid is optional.
  */
 static void
-t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *me,
+t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *context,
                                      struct t_cose_key                    wrapping_key,
                                      struct q_useful_buf_c                kid);
+
+
+/**
+ * \brief Add header parameters to the \c COSE_Recipient
+ *
+ * \param[in] context     The t_cose recipient context.
+ * \param[in] parameters  Linked list of parameters to add.
+ *
+ * For simple use cases it is not necessary to call this as the
+ * algorithm ID, the only mandatory parameter, is automatically
+ * added.
+ *
+ * It is not necessary to call this to add the kid either as that
+ * is handled by configuring the \ref t_cose_recipient_enc_keywrap_set_key with the kid.
+ *
+ * This adds a linked list of header parameters to the recipient. I
+ *
+ * Integer and string parameters are handled by filling in the
+ * members of the array.
+ *
+ * All the parameters must have a label and a value.
+ *
+ * Alternatively, and particularly for parameters that are not
+ * integers or strings the value may be a callback of type t_cose_parameter_encode_callback
+ * in which case the callback will be called when it is time
+ * to output the CBOR for the custom header. The callback should
+ * output the CBOR for the particular parameter.
+ *
+ * This supports only integer labels. (String labels could be added
+ * but would increase object code size).
+ *
+ * All parameters must be added in one call. Multiple calls to this
+ * don't accumlate parameters.
+ */
+static void
+t_cose_recipient_enc_add_params(struct t_cose_recipient_enc_keywrap *context,
+                                struct t_cose_parameter             *parameters);
 
 
 
@@ -93,7 +131,6 @@ t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *me,
 }
 
 
-
 static inline void
 t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *me,
                                      struct t_cose_key wrapping_key,
@@ -102,6 +139,17 @@ t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *me,
     me->wrapping_key = wrapping_key;
     me->kid          = kid;
 }
+
+
+static inline void
+t_cose_recipient_enc_add_params(struct t_cose_recipient_enc_keywrap *me,
+                                struct t_cose_parameter             *parameters)
+{
+    me->added_params = parameters;
+
+}
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -154,7 +154,7 @@ extern "C" {
  * The caller should allocate it and pass it to the functions here. This
  * is around 76 bytes, so it fits easily on the stack.
  */
-struct t_cose_encrypt_enc_ctx {
+struct t_cose_encrypt_enc {
     /* Private data structure */
     struct q_useful_buf_c               protected_parameters;
     int32_t                             payload_cose_algorithm_id;
@@ -195,9 +195,9 @@ struct t_cose_encrypt_enc_ctx {
  * algorithm).
  */
 void
-t_cose_encypt_enc_init(struct t_cose_encrypt_enc_ctx* context,
-                       uint32_t                       option_flags,
-                       int32_t                        payload_cose_algorithm_id);
+t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,
+                       uint32_t                   option_flags,
+                       int32_t                    payload_cose_algorithm_id);
 
 
 /**
@@ -214,8 +214,8 @@ t_cose_encypt_enc_init(struct t_cose_encrypt_enc_ctx* context,
  * this is not called.
  */
 void
-t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx  *context,
-                             struct t_cose_recipient_enc    *recipient);
+t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc    *context,
+                             struct t_cose_recipient_enc  *recipient);
 
 
 
@@ -228,9 +228,9 @@ t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx  *context,
  * allows it. It is typically NULL here
  */
 static void
-t_cose_encrypt_set_key(struct t_cose_encrypt_enc_ctx *context,
-                       struct t_cose_key              cek,
-                       struct q_useful_buf_c          kid);
+t_cose_encrypt_set_key(struct t_cose_encrypt_enc *context,
+                       struct t_cose_key          cek,
+                       struct q_useful_buf_c      kid);
 
 
 /**
@@ -260,8 +260,8 @@ t_cose_encrypt_set_key(struct t_cose_encrypt_enc_ctx *context,
  * is used are they not called.
  */
 enum t_cose_err_t
-t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
-                   struct q_useful_buf_c          payload,
+t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
+                   struct q_useful_buf_c      payload,
                    struct q_useful_buf            encrypted_payload,
                    struct q_useful_buf_c         *encrypted_payload_final,
                    struct q_useful_buf            out_buf,
@@ -273,22 +273,22 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 /* ----------------------- Private Implementations --------------------*/
 
 static inline void
-t_cose_encrypt_enc_init(struct t_cose_encrypt_enc_ctx *context,
-                        uint32_t                       option_flags,
-                        int32_t                        payload_cose_algorithm_id
+t_cose_encrypt_enc_init(struct t_cose_encrypt_enc *context,
+                        uint32_t                   option_flags,
+                        int32_t                    payload_cose_algorithm_id
                        )
 {
     memset(context, 0, sizeof(*context));
     context->payload_cose_algorithm_id = payload_cose_algorithm_id;
-    context->option_flags = option_flags;
-    context->recipients = 0;
+    context->option_flags              = option_flags;
+    context->recipients                = 0;
 }
 
 
 static inline void
-t_cose_encrypt_set_key(struct t_cose_encrypt_enc_ctx *context,
-                       struct t_cose_key              cek,
-                       struct q_useful_buf_c          cek_kid)
+t_cose_encrypt_set_key(struct t_cose_encrypt_enc *context,
+                       struct t_cose_key          cek,
+                       struct q_useful_buf_c      cek_kid)
 {
     context->cek     = cek;
     context->cek_kid = cek_kid;
