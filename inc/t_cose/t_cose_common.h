@@ -595,11 +595,11 @@ enum t_cose_err_t {
 
     /* A verifier declined to verify a COSE_Signature for a reason other
      * than algorithm ID or kid. */
-    T_COSE_ERR_DECLINE_TO_VERIFY = 67
+    T_COSE_ERR_DECLINE_TO_VERIFY = 67,
 
     /* Trying to protect a parameter when not possible, for example,
      * in an AES Keywrap COSE_Recipient. */
-    T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 68,
+    T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 68
 };
 
 
