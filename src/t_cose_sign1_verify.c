@@ -50,7 +50,8 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
      * until decoding the input. There is only one key in t_cose_sign1(). */
     t_cose_signature_verify_eddsa_set_key(&(me->eddsa_verifier),
                                           verification_key);
+    // TODO: should kid be handled here?
     t_cose_signature_verify_main_set_key(&(me->main_verifier),
-                                         verification_key);
+                                         verification_key, NULL_Q_USEFUL_BUF_C);
 }
 

@@ -145,7 +145,7 @@ t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *context,
  * t_cose_signature_sign_main. The concrete instance must be
  * configured with a key and algorithm ID before this is called.
  */
-void
+static void
 t_cose_sign_add_signer(struct t_cose_sign_sign_ctx   *context,
                        struct t_cose_signature_sign  *signer);
 
@@ -437,6 +437,14 @@ t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx *me,
     me->added_body_parameters = parameters;
 }
 
+
+static inline void
+t_cose_sign_add_signer(struct t_cose_sign_sign_ctx  *context,
+                       struct t_cose_signature_sign *signer)
+{
+    /* Use base class function to add a signer/recipient to the linked list. */
+    t_cose_link_rs((struct t_cose_rs_obj **)&context->signers, (struct t_cose_rs_obj *)signer);
+}
 
 #ifdef __cplusplus
 }

@@ -67,13 +67,18 @@ struct t_cose_sign_verify_ctx {
     struct t_cose_parameter_storage  *p_storage;
     t_cose_parameter_decode_cb       *param_decode_cb;
     void                             *param_decode_cb_context;
+
+    struct t_cose_signature_verify   *last_verifier; /* Last verifier that didn't succeed */
+
 };
 
 
 
 
-/* ALL signatures must be verified successfully */
-#define T_COSE_VERIFY_ALL                  0x0008000
+/* ALL signatures must be verified successfully. The default
+ * is that only the first must verify.
+ */
+#define T_COSE_VERIFY_ALL_SIGNATURES                  0x0008000
 
 
 /**
@@ -110,7 +115,7 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
  * more carefully through all the combinations of
  * multiple signatures and verifiers.
  */
-void
+static void
 t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
                          struct t_cose_signature_verify *verifier);
 
@@ -203,6 +208,9 @@ t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *context,
  * payload is an indefinite-length byte string, this error will be
  * returned.
  *
+ *
+ * 
+ *
  * See also t_cose_sign_verify_detached().
  */
 static enum t_cose_err_t
@@ -224,6 +232,12 @@ t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
                             struct t_cose_parameter      **parameters);
 
 
+
+/* Get a pointer to the last verifier that was called, the one that
+ * caused the error returned by t_cose_sign_verify(). */
+// TODO: maybe this should return the signature index too?
+static struct t_cose_signature_verify  *
+t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
 
 
 /* ------------------------------------------------------------------------
@@ -317,6 +331,23 @@ t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *me,
     me->param_decode_cb         = decode_cb;
     me->param_decode_cb_context = decode_cb_context;
 }
+
+
+static inline void
+t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *me,
+                         struct t_cose_signature_verify *verifier)
+{
+    /* Use base class function to add a signer/recipient to the linked list. */
+    t_cose_link_rs((struct t_cose_rs_obj **)&me->verifiers, (struct t_cose_rs_obj *)verifier);
+}
+
+
+static inline struct t_cose_signature_verify *
+t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx  *me)
+{
+    return me->last_verifier;
+}
+
 
 
 #ifdef __cplusplus

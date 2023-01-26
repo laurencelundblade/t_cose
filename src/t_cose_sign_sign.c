@@ -63,7 +63,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
          * contains a raw signature bytes, not an array of
          * COSE_Signature. */
         signer->headers_cb(signer, &sign1_parameters);
-        if(signer->next_in_list != NULL) {
+        if(signer->rs.next != NULL) {
             /* In COSE_Sign1 mode, but too many signers configured.*/
             return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
             goto Done;
@@ -176,7 +176,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
             if(return_value != T_COSE_SUCCESS) {
                 goto Done;
             }
-            signer = signer->next_in_list;
+            signer = (struct t_cose_signature_sign *)signer->rs.next;
         }
         QCBOREncode_CloseArray(cbor_encode_ctx);
 
@@ -268,21 +268,3 @@ Done:
     return return_value;
 }
 
-
-/*
- * Public function. See t_cose_sign_sign.h
- */
-void
-t_cose_sign_add_signer(struct t_cose_sign_sign_ctx  *context,
-                       struct t_cose_signature_sign *signer)
-{
-    // TODO: for COSE_Sign1 this can be tiny and inline
-
-    if(context->signers == NULL) {
-        context->signers = signer;
-    } else {
-        struct t_cose_signature_sign *t;
-        for(t = context->signers; t->next_in_list != NULL; t = t->next_in_list);
-        t->next_in_list = signer;
-    }
-}

@@ -31,8 +31,9 @@ struct t_cose_signature_verify_main {
      */
     struct t_cose_signature_verify  s;
     struct t_cose_key               verification_key;
+    struct q_useful_buf_c           verification_kid;
     t_cose_parameter_decode_cb     *param_decode_cb;
-    void                              *crypto_context;
+    void                           *crypto_context;
     void                           *param_decode_cb_context;
 };
 
@@ -43,7 +44,8 @@ t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *me);
 
 static void
 t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
-                                      struct t_cose_key verification_key);
+                                     struct t_cose_key                    verification_key,
+                                     struct q_useful_buf_c                verification_kid);
 
 /**
  * \brief  Set the crypto context to be passed to the crypto library..
@@ -80,9 +82,11 @@ t_cose_signature_verify_from_main(struct t_cose_signature_verify_main *context);
 
 static inline void
 t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
-                                      struct t_cose_key verification_key)
+                                     struct t_cose_key                    verification_key,
+                                     struct q_useful_buf_c                verification_kid)
 {
     me->verification_key = verification_key;
+    me->verification_kid = verification_kid;
 }
 
 

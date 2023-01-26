@@ -35,6 +35,7 @@ t_cose_signature_verify1_eddsa_cb(struct t_cose_signature_verify *me_x,
     struct q_useful_buf_c        tbs;
 
     /* --- Get the parameters values needed --- */
+    // TODO: this will look through all params, not just those of the this COSE_Signature
     cose_algorithm_id = t_cose_find_parameter_alg_id(parameter_list);
     if(cose_algorithm_id == T_COSE_ALGORITHM_NONE) {
         return_value = T_COSE_ERR_NO_ALG_ID;
@@ -103,7 +104,10 @@ Done:
 
  This is an implementation of t_cose_signature_verify_callback
  */
-/** This is an implementation of \ref t_cose_signature_verify_cb. */
+/** This is an implementation of \ref t_cose_signature_verify_cb. It will
+ * decode a COSE_Signature and if the algorithm is EdDSA it will verify it.
+ * It will also decode all headers and return them in a linked list.
+ */
 static enum t_cose_err_t
 t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
                                  const uint32_t                   option_flags,

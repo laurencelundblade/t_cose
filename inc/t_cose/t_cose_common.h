@@ -592,6 +592,10 @@ enum t_cose_err_t {
     T_COSE_ERR_AUXILIARY_BUFFER_SIZE = 65,
 
     T_COSE_ERR_NO_VERIFIERS = 66,
+
+    /* A verifier declined to verify a COSE_Signature for a reason other
+     * than algorithm ID or kid. */
+    T_COSE_ERR_DECLINE_TO_VERIFY = 67
 };
 
 
@@ -755,6 +759,41 @@ struct t_cose_sign_inputs {
     struct q_useful_buf_c  sign_protected;
     struct q_useful_buf_c  payload;
 };
+
+
+
+/* This is the base class for all implementations
+ * of COSE_Signature and COSE_Recipient. It implments what
+ * is common to them:
+ *   - The ability to identify the type of one
+ *   - The ability to make a linked list
+ *
+ * The linked list part saves object code because the same
+ * function to add to the linked list is used for all types
+ * of COSE_Recipient and COSE_Signature
+ *
+ * The identification part is to know the type of a concrete
+ * instance to be able to call some special methods it
+ * might implement, particularly for COSE_Signature verifiers
+ * and COSE_Recipient decryptors as the COSE_Sign verifier
+ * and COSE_Encrypt decryptor loops over a set of them.
+ */
+struct t_cose_rs_obj {
+    struct t_cose_rs_obj *next;
+    uint16_t              ident;
+};
+
+
+void
+t_cose_link_rs(struct t_cose_rs_obj **list, struct t_cose_rs_obj *new);
+
+
+/* This is just to make a simple 16 bit unique id for each recipient-signer object */
+#define TYPE_RS_SIGNER 's'
+#define TYPE_RS_VERIFIER 'v'
+#define TYPE_RS_RECIPIENT_CREATOR 'c'
+#define TYPE_RS_RECIPIENT_DECODER 'd'
+#define RS_IDENT(type, id1) (type + (id1 << 8))
 
 
 
