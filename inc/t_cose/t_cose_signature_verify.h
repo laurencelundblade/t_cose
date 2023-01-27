@@ -50,6 +50,8 @@ struct t_cose_signature_verify;
  * \param[in] qcbor_decoder           The decoder instance from where the
  *                                     COSE_Signature is decoded.
  * \param[out] decoded_params  Returned linked list of decoded parameters.
+ *
+ * This must return T_COSE_ERR_NO_MORE if there are no more COSE_Signatures.
  */
 typedef enum t_cose_err_t
 t_cose_signature_verify_cb(struct t_cose_signature_verify     *me,

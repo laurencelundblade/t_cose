@@ -599,7 +599,16 @@ enum t_cose_err_t {
 
     /* Trying to protect a parameter when not possible, for example,
      * in an AES Keywrap COSE_Recipient. */
-    T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 68
+    T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 68,
+
+    /* No more COSE_Signatures or COSE_Recipients. Returned by
+     * COSE_Signature and COSE_Recipient implementations. */
+    T_COSE_ERR_NO_MORE = 69,
+
+    /* A newer version of QCBOR is needed to processes multiple
+     * COSE_Signature or COSE_Recipients.  (As of Jan 2023, this
+     * QCBOR is not released) */
+    T_COSE_ERR_CANT_PROCESS_MULTIPLE = 70
 };
 
 

@@ -171,16 +171,16 @@ t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *context,
  *                          or \c COSE_Sign message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload      Pointer and length of the payload that is returned. Must not be \c NULL.
- * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
+ * \param[out] parameters   Place to return decoded parameters. May be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * See t_cose_sign1_set_verification_key() for discussion on where
+ * See t_cose_sign_set_verification_key() for discussion on where
  * the verification key comes from.
  *
  * Verification involves the following steps.
  *
- * - The CBOR-format \c COSE_Sign1 or \c COSE_Sign structure is parsed. This makes
+ * - The CBOR-format \c COSE_Sign1 or \c COSE_Sign structure is decoded. This makes
  * sure the CBOR is valid and follows the required structure.
  *
  * - The protected header parameters are decoded, particular the algorithm id.
@@ -238,6 +238,8 @@ t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
 // TODO: maybe this should return the signature index too?
 static struct t_cose_signature_verify  *
 t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
+
+
 
 
 /* ------------------------------------------------------------------------

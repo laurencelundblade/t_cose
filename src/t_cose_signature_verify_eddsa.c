@@ -35,7 +35,6 @@ t_cose_signature_verify1_eddsa_cb(struct t_cose_signature_verify *me_x,
     struct q_useful_buf_c        tbs;
 
     /* --- Get the parameters values needed --- */
-    // TODO: this will look through all params, not just those of the this COSE_Signature
     cose_algorithm_id = t_cose_find_parameter_alg_id(parameter_list);
     if(cose_algorithm_id == T_COSE_ALGORITHM_NONE) {
         return_value = T_COSE_ERR_NO_ALG_ID;
@@ -47,6 +46,14 @@ t_cose_signature_verify1_eddsa_cb(struct t_cose_signature_verify *me_x,
     }
 
     kid = t_cose_find_parameter_kid(parameter_list);
+    if(!q_useful_buf_c_is_null(me->verification_kid)) {
+        if(q_useful_buf_c_is_null(kid)) {
+            return T_COSE_ERR_NO_KID;
+        }
+        if(q_useful_buf_compare(kid, me->verification_kid)) {
+            return T_COSE_ERR_KID_UNMATCHED;
+        }
+    }
 
     /* We need to serialize the Sig_structure (rather than hashing it
      * incrementally) before signing. We do this before checking for
@@ -112,7 +119,7 @@ static enum t_cose_err_t
 t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
                                  const uint32_t                   option_flags,
                                  const struct t_cose_header_location loc,
-                                 const struct t_cose_sign_inputs *sign_inputs,
+                                 struct t_cose_sign_inputs       *sign_inputs,
                                  struct t_cose_parameter_storage *param_storage,
                                  QCBORDecodeContext             *qcbor_decoder,
                                  struct t_cose_parameter       **decoded_params)
@@ -126,6 +133,10 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
 
     /* --- Decode the COSE_Signature ---*/
     QCBORDecode_EnterArray(qcbor_decoder, NULL);
+    qcbor_error = QCBORDecode_GetError(qcbor_decoder);
+    if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
+        return T_COSE_ERR_NO_MORE;
+    }
 
     return_value = t_cose_headers_decode(qcbor_decoder,
                                          loc,
@@ -137,6 +148,8 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
+
+    sign_inputs->sign_protected = protected_parameters;
 
     /* --- The signature --- */
     QCBORDecode_GetByteString(qcbor_decoder, &signature);

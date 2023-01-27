@@ -1034,7 +1034,7 @@ int_fast32_t sign_verify_multi(void)
 
 
 
-    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN);
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN | T_COSE_VERIFY_ALL_SIGNATURES);
 
     t_cose_signature_verify_main_init(&verify1);
     t_cose_signature_verify_main_set_key(&verify1, key_pair1, Q_USEFUL_BUF_FROM_SZ_LITERAL("kid1"));

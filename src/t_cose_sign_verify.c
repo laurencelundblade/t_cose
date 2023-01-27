@@ -160,8 +160,11 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
                      enum t_cose_err_t                    *error_code)
 {
     struct t_cose_signature_verify *verifier;
+    SaveDecodeCursor saved_cursor;
 
-    // QCBORDecode_SaveCursor(&decode_context, &saved_cursor);
+#ifdef QCBOR_FOR_T_COSE_2
+    QCBORDecode_SaveCursor(qcbor_decoder, &saved_cursor);
+#endif
 
     for(verifier = me->verifiers; verifier != NULL; verifier = (struct t_cose_signature_verify *)verifier->rs.next) {
         *error_code = verifier->verify_cb(verifier,
@@ -178,7 +181,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
             return VERIFY_SUCCESS;
         }
 
-        if(*error_code == 99) { // TODO: which error code?
+        if(*error_code == T_COSE_ERR_NO_MORE) {
             return END_OF_SIGNATURES;
         }
 
@@ -204,8 +207,12 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
         }
 
         /* Go on to the next signature */
-
-        // QCBORDecode_RestoreCursor(&decode_context, &saved_cursor)
+#ifdef QCBOR_FOR_T_COSE_2
+        QCBORDecode_RestoreCursor(qcbor_decoder, &saved_cursor);
+#else
+        *error_code = T_COSE_ERR_CANT_PROCESS_MULTIPLE;
+        return UNABLE_TO_DECODE;
+#endif
     }
 
     /* Got to the end of the list without success. The last
@@ -259,8 +266,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
     /* --- The header parameters --- */
     /* The location of body header parameters is 0, 0 */
-    header_location = (struct t_cose_header_location){.nesting = 0,
-                                                      .index = 0};
+    header_location.nesting = 0;
+    header_location.index   = 0;
 
     return_value = t_cose_headers_decode(&decode_context,
                                           header_location,
@@ -361,6 +368,15 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
             }
             /* Now what's left is a success or decline */
 
+            if(s_s_e == VERIFY_SUCCESS) {
+                if(decoded_body_parameter_list == NULL) {
+                    decoded_body_parameter_list = decoded_sig_parameter_list;
+                } else {
+                    t_cose_parameter_list_append(decoded_body_parameter_list,
+                                                 decoded_sig_parameter_list);
+                }
+            }
+
             if(me->option_flags & T_COSE_VERIFY_ALL_SIGNATURES) {
                 if(s_s_e == DECLINE) {
                     /* When verifying all, there can be no declines */
@@ -386,23 +402,27 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);
 
+Done2:
+    if(returned_parameters != NULL) {
+        *returned_parameters = decoded_body_parameter_list;
+    }
+
 Done3:
     /* This check make sure the array only had the expected four
      * items. It works for definite and indefinte length arrays. Also
      * makes sure there were no extra bytes. Also maps the error code
      * for other decode errors detected above. */
     qcbor_error = QCBORDecode_Finish(&decode_context);
+    if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
+        // TODO: a bit worried whether this is the right thing to do
+        goto Done;
+    }
     if(qcbor_error != QCBOR_SUCCESS) {
         /* A decode error overrides other errors. */
         return_value = qcbor_decode_error_to_t_cose_error(qcbor_error,
                                                       T_COSE_ERR_SIGN1_FORMAT);
     }
     /* --- End of the decoding of the array of four --- */
-
-Done2:
-    if(returned_parameters != NULL) {
-        *returned_parameters = decoded_body_parameter_list;
-    }
 
 Done:
     return return_value;
