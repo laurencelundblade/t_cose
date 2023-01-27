@@ -160,9 +160,10 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
                      enum t_cose_err_t                    *error_code)
 {
     struct t_cose_signature_verify *verifier;
-    SaveDecodeCursor saved_cursor;
 
 #ifdef QCBOR_FOR_T_COSE_2
+    SaveDecodeCursor saved_cursor;
+
     QCBORDecode_SaveCursor(qcbor_decoder, &saved_cursor);
 #endif
 
