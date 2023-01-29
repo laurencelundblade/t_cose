@@ -286,3 +286,6 @@ t_cose_sign_add_signer(struct t_cose_sign_sign_ctx  *context,
         t->next_in_list = signer;
     }
 }
+
+void foo() {}
+

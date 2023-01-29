@@ -2,6 +2,7 @@
  * t_cose_encrypt_dec.h
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,16 +13,12 @@
 #define __T_COSE_ENCRYPT_DEC_H__
 
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include "t_cose_parameters.h"
+#include "t_cose/t_cose_recipient_dec.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifndef QCBOR_SPIFFY_DECODE
-#error This version of t_cose requires a version of QCBOR that supports spiffy decode
 #endif
 
 /**
@@ -102,10 +99,17 @@ extern "C" {
  */
 struct t_cose_encrypt_dec_ctx {
     /* Private data structure */
+    struct t_cose_recipient_dec *recipient_list;
+
     uint32_t              key_distribution;
     uint32_t              option_flags;
     struct q_useful_buf_c kid;
     struct t_cose_key     recipient_key;
+
+    struct t_cose_parameter_storage   params;
+    struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
+    struct t_cose_parameter_storage  *p_storage;
+
 };
 
 /**
@@ -191,6 +195,18 @@ t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx *context,
     context->recipient_key = recipient_key;
     memcpy(&context->kid, &kid, sizeof(struct q_useful_buf_c));
 }
+
+
+static inline void
+t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
+                                 struct t_cose_recipient_dec   *recipient)
+{
+    me->recipient_list = recipient;
+    // TODO: expand this to support multiple recipients in linked list.
+    // TODO: share link-list code among all six - sign, enc, mac
+}
+
+
 
 #ifdef __cplusplus
 }

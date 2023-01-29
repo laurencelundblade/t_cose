@@ -596,6 +596,9 @@ enum t_cose_err_t {
     /* Trying to protect a parameter when not possible, for example,
      * in an AES Keywrap COSE_Recipient. */
     T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 67,
+
+    T_COSE_ERR_RECIPIENT_FORMAT = 68,
+    
 };
 
 
