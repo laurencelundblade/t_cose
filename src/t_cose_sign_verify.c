@@ -140,11 +140,11 @@ is_soft_verify_error(enum t_cose_err_t error)
 
 
 enum sig_summary_error {
-    VERIFY_SUCCESS,
-    END_OF_SIGNATURES,
-    UNABLE_TO_DECODE,
-    DECLINE, /* algrothm */
-    VERIFY_FAIL, /* The algorithm, kid and such matched and the actual verification of byes via
+    VERIFY_ONE_SUCCESS,
+    VERIFY_ONE_END_OF_SIGNATURES,
+    VERIFY_ONE_UNABLE_TO_DECODE,
+    VERIFY_ONE_DECLINE, /* algorithm or kid mismatch or other  */
+    VERIFY_ONE_FAIL, /* The algorithm, kid and such matched and the actual verification of bytes via
                   crypto failed. */
 };
 
@@ -153,11 +153,11 @@ enum sig_summary_error {
  * bad. This is a seperate function for code readability. */
 static enum sig_summary_error
 verify_one_signature(struct t_cose_sign_verify_ctx       *me,
-                     const struct t_cose_header_location   header_location,
-                     struct t_cose_sign_inputs      *sign_inputs,
-                     QCBORDecodeContext                   *qcbor_decoder,
-                     struct t_cose_parameter             **decoded_sig_parameter_list,
-                     enum t_cose_err_t                    *error_code)
+                     const struct t_cose_header_location  header_location,
+                     struct t_cose_sign_inputs           *sign_inputs,
+                     QCBORDecodeContext                  *qcbor_decoder,
+                     struct t_cose_parameter            **decoded_sig_parameter_list,
+                     enum t_cose_err_t                   *error_code)
 {
     struct t_cose_signature_verify *verifier;
 
@@ -179,11 +179,11 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
             /* If here, then the decode was a success, the crypto
              * verified, and the signature CBOR was consumed. Nothing
              * to do but leave */
-            return VERIFY_SUCCESS;
+            return VERIFY_ONE_SUCCESS;
         }
 
         if(*error_code == T_COSE_ERR_NO_MORE) {
-            return END_OF_SIGNATURES;
+            return VERIFY_ONE_END_OF_SIGNATURES;
         }
 
         /* Remember the last verifier that failed. */
@@ -196,15 +196,14 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
              * cases the caller will want to fail the whole
              * thing if this happens.
              */
-            // TODO: an option to continue even if this occurs?
-            return VERIFY_FAIL;
+            return VERIFY_ONE_FAIL;
         }
 
 
         if(!is_soft_verify_error(*error_code)) {
             /* Something is very wrong. Need to abort the entire
              * COSE mesage. */
-            return UNABLE_TO_DECODE;
+            return VERIFY_ONE_UNABLE_TO_DECODE;
         }
 
         /* Go on to the next signature */
@@ -212,7 +211,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
         QCBORDecode_RestoreCursor(qcbor_decoder, &saved_cursor);
 #else
         *error_code = T_COSE_ERR_CANT_PROCESS_MULTIPLE;
-        return UNABLE_TO_DECODE;
+        return VERIFY_ONE_UNABLE_TO_DECODE;
 #endif
     }
 
@@ -221,7 +220,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
      * signature. We arrive here because there was no
      * verifier for the algorithm or the kid for the verification key
      * didn't match any of the signatures or general decline failure. */
-    return DECLINE;
+    return VERIFY_ONE_DECLINE;
 }
 
 
@@ -239,7 +238,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     QCBORDecodeContext              decode_context;
     struct q_useful_buf_c           protected_parameters;
     enum t_cose_err_t               return_value;
-    enum t_cose_err_t               verify_error;
     struct q_useful_buf_c           signature;
     QCBORError                      qcbor_error;
     struct t_cose_signature_verify *verifier;
@@ -255,7 +253,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* --- The array of 4 and tags --- */
     QCBORDecode_EnterArray(&decode_context, NULL);
     if(QCBORDecode_GetError(&decode_context)) {
-        return_value = T_COSE_SUCCESS; /* Needed to quite warnings about lack of initialization even though it will get set below. The compiler doesn't know about QCBOR internal error state */
+        return_value = T_COSE_SUCCESS; /* Needed to quiet warnings about lack of initialization even though it will get set below. The compiler doesn't know about QCBOR internal error state */
         goto Done3;
     }
 
@@ -313,7 +311,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
          * to verify until one succeeds. If none succeeded, the error
          * returned is from the last one called.
          */
-        verify_error = T_COSE_ERR_NO_VERIFIERS;
         for(verifier = me->verifiers; verifier != NULL; verifier = (struct t_cose_signature_verify *)verifier->rs.next) {
             /* Call the verifyer to attempt a verification. It
              * will compute the tbs and try to run the crypto.
@@ -352,6 +349,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
             header_location.index++;
             enum t_cose_err_t      sig_error_code;
 
+            sig_error_code = 0; // Stops complaints of lack of initalization (are they true??)
+
             s_s_e = verify_one_signature(me,
                                          header_location,
                                          &sign_inputs,
@@ -359,17 +358,17 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                                          &decoded_sig_parameter_list,
                                          &sig_error_code);
 
-            if(s_s_e == UNABLE_TO_DECODE || s_s_e == VERIFY_FAIL) {
+            if(s_s_e == VERIFY_ONE_UNABLE_TO_DECODE || s_s_e == VERIFY_ONE_FAIL) {
                 /* Exit entire message decode with failure */
                 return_value = sig_error_code;
                 goto Done;
             }
-            if(s_s_e == END_OF_SIGNATURES) {
+            if(s_s_e == VERIFY_ONE_END_OF_SIGNATURES) {
                 break;
             }
             /* Now what's left is a success or decline */
 
-            if(s_s_e == VERIFY_SUCCESS) {
+            if(s_s_e == VERIFY_ONE_SUCCESS) {
                 if(decoded_body_parameter_list == NULL) {
                     decoded_body_parameter_list = decoded_sig_parameter_list;
                 } else {
@@ -379,7 +378,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
             }
 
             if(me->option_flags & T_COSE_VERIFY_ALL_SIGNATURES) {
-                if(s_s_e == DECLINE) {
+                if(s_s_e == VERIFY_ONE_DECLINE) {
                     /* When verifying all, there can be no declines */
                     return_value = sig_error_code;
                     goto Done;
@@ -387,7 +386,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                     /* success. Continue on to be sure the rest succeed. */
                 }
             } else {
-                if(s_s_e == VERIFY_SUCCESS) {
+                if(s_s_e == VERIFY_ONE_SUCCESS) {
                     /* Just one success is enough to complete.*/
                     break;
                 } else {
@@ -403,7 +402,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);
 
-Done2:
     if(returned_parameters != NULL) {
         *returned_parameters = decoded_body_parameter_list;
     }

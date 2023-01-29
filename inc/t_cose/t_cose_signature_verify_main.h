@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_verify_main.h
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 7/22/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -38,10 +38,28 @@ struct t_cose_signature_verify_main {
 };
 
 
+
+/* This verifier supports ECDSA and RSA (but no EdDSA).
+ *
+ * The context initialized here can be cast to t_cose_signature_verify
+ * and given to t_cose_sign_verify which will invoke the verify through
+ * callback functions in this context. Those call back functions
+ * will perform the decoded of a COSE_Signature, hash the inputs
+ * and call the public key crypto algorithms to actually verify
+ * the signature.
+
+ * All that is necessary here is to initialize it and give it the
+ * key material.
+ */
 void
-t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *me);
+t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *context);
 
 
+/* Set the verification key and kid.
+ * Note that only one key may be set, but you can create multiple
+ * instances of this object, each with its own key and kid and
+ * t_cose_signature_verify will select the correct one by kid.
+ */
 static void
 t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
                                      struct t_cose_key                    verification_key,

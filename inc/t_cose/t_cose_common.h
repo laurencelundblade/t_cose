@@ -798,7 +798,7 @@ struct t_cose_rs_obj {
 
 
 void
-t_cose_link_rs(struct t_cose_rs_obj **list, struct t_cose_rs_obj *new);
+t_cose_link_rs(struct t_cose_rs_obj **list, struct t_cose_rs_obj *new_rs);
 
 
 /* This is just to make a simple 16 bit unique id for each recipient-signer object */

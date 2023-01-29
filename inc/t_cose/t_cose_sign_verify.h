@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign_verify.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  * Created by Laurence Lundblade on 7/17/22.
@@ -25,7 +25,7 @@ extern "C" {
 #endif
 #endif
 
-/* Warning: this is still early development. Documentation may be incorrect. */
+/* Warning: multiple signatures and verifiers are still early development. Documentation may be incorrect. */
 
 
 #define T_COSE_MAX_TAGS_TO_RETURN2 4
@@ -67,16 +67,14 @@ struct t_cose_sign_verify_ctx {
     struct t_cose_parameter_storage  *p_storage;
     t_cose_parameter_decode_cb       *param_decode_cb;
     void                             *param_decode_cb_context;
-
     struct t_cose_signature_verify   *last_verifier; /* Last verifier that didn't succeed */
-
 };
 
 
 
 
-/* ALL signatures must be verified successfully. The default
- * is that only the first must verify.
+/* Requires that ALL COSE_Signatures must be verified successfully. The default
+ * is that only the one must verify.
  */
 #define T_COSE_VERIFY_ALL_SIGNATURES                  0x0008000
 
@@ -110,10 +108,35 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
  * are added in they should be configured with any key
  * material (e.g., the verification key) needed.
  *
- * By default the overall result is success if at least
- * one of the signatures verifies. TODO: think
- * more carefully through all the combinations of
- * multiple signatures and verifiers.
+ * The verifiers added must be a complete concrete instance
+ * such as t_cose_signature_verify_main or t_cose_signature_verify_eddsa,
+ * not the abstract base object t_cose_signature_verify.
+ * Some verifiers like t_cose_signature_verify_main handle multiple
+ * cryptographic algorithms.
+ *
+ * For COSE_SIgn messages, t_cose_sign_verify() loops over
+ * all the COSE_Signatures. By default the verification is a success
+ * if one can be verified and there are no decoding errors. The
+ * option \ref T_COSE_VERIFY_ALL_SIGNATURES can be set
+ * to require that all the signatures verify for the overall COSE_Sign
+ * to be a success.
+ *
+ * For COSE_Sign1 messages t_cose_sign_verify() calls
+ * each verifier as described next.
+ *
+ * Each verifier added here is called on each COSE_Signature
+ * until one succeeds. An individual verifier may decline to
+ * attempt verification if it doesn't handle the particular
+ * algorithm, the kid doesn't match or for other reasons it
+ * may have after examining the header parameters in the
+ * COSE_Signature. If it declines, the next verifier will be
+ * invoked. If an individual verifier fails because of a CBOR
+ * decoding issue or if it attempts the actual signature
+ * cryptographic operation and that fails, processing of the
+ * whole COSE_Sign will fail.
+ *
+ * The header parameters for all the COSE_Signatures are
+ * returned in a linked list by t_cose_sign_verify().
  */
 static void
 t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
@@ -126,6 +149,8 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
  * \param[in] context     Signed message verification context.
  * \param[in] storage     The parameter storage to add.
  *
+ * This is optionally called to increase the number of storage
+ * nodes for COSE_Sign or COSE_Sign1 message with T_COSE_NUM_VERIFY_DECODE_HEADERS header parameters.
  * Decoded parameters are returned in a linked list of struct t_cose_parameter.
  * The storage for the nodes in the list is not dynamically allocated as there
  * is no dynamic storage allocation used here.
@@ -175,8 +200,9 @@ t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *context,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * See t_cose_sign_set_verification_key() for discussion on where
- * the verification key comes from.
+ * See t_cose_sign_add_verifier() for discussion on where
+ * the verification key comes from, algorithms, formats and
+ * handling of multiple signatures and multiple verifiers.
  *
  * Verification involves the following steps.
  *
@@ -207,9 +233,6 @@ t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *context,
  * they are in the input \c COSE_Sign1 messages. For example, if the
  * payload is an indefinite-length byte string, this error will be
  * returned.
- *
- *
- * 
  *
  * See also t_cose_sign_verify_detached().
  */
@@ -340,7 +363,8 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *me,
                          struct t_cose_signature_verify *verifier)
 {
     /* Use base class function to add a signer/recipient to the linked list. */
-    t_cose_link_rs((struct t_cose_rs_obj **)&me->verifiers, (struct t_cose_rs_obj *)verifier);
+    t_cose_link_rs((struct t_cose_rs_obj **)&me->verifiers,
+                   (struct t_cose_rs_obj *)verifier);
 }
 
 

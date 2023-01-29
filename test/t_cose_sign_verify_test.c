@@ -1000,6 +1000,7 @@ int_fast32_t sign_verify_multi(void)
     struct t_cose_signature_verify_main verify1;
     struct t_cose_signature_verify_main verify2;
     struct q_useful_buf_c          verified_payload;
+    struct q_useful_buf            empty_buf;
 
 
     result = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair1);
@@ -1026,12 +1027,27 @@ int_fast32_t sign_verify_multi(void)
                                                Q_USEFUL_BUF_FROM_SZ_LITERAL("kid2"));
     t_cose_sign_add_signer(&sign_ctx, (struct t_cose_signature_sign *)&signer2);
 
-    t_cose_sign_sign(&sign_ctx,
-                     NULL_Q_USEFUL_BUF_C,
-                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
-                     signed_cose_buffer,
-                     &signed_cose);
 
+    empty_buf = (struct q_useful_buf){NULL, SIZE_MAX};
+
+    result = t_cose_sign_sign(&sign_ctx,
+                               NULL_Q_USEFUL_BUF_C,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                               empty_buf,
+                              &signed_cose);
+    if(result) {
+        return 1;
+    }
+
+
+    result = t_cose_sign_sign(&sign_ctx,
+                               NULL_Q_USEFUL_BUF_C,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                               signed_cose_buffer,
+                              &signed_cose);
+    if(result) {
+        return 2;
+    }
 
 
     t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN | T_COSE_VERIFY_ALL_SIGNATURES);
@@ -1044,11 +1060,27 @@ int_fast32_t sign_verify_multi(void)
     t_cose_signature_verify_main_set_key(&verify2, key_pair2, Q_USEFUL_BUF_FROM_SZ_LITERAL("kid2"));
     t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify2);
 
-    t_cose_sign_verify(&verify_ctx,
-                       signed_cose,
-                       NULL_Q_USEFUL_BUF_C,
-                       &verified_payload,
-                       NULL);
+    result = t_cose_sign_verify(&verify_ctx,
+                                 signed_cose,
+                                 NULL_Q_USEFUL_BUF_C,
+                                &verified_payload,
+                                 NULL);
+
+#ifdef QCBOR_FOR_T_COSE_2
+    if(result) {
+        return 3;
+    }
+#else
+    if(result != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
+        return 33;
+    }
+#endif /* QCBOR_FOR_T_COSE_2 */
+
+
+    if(q_useful_buf_compare(verified_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))){
+        return 5;
+    }
+
 
     return 0;
 }

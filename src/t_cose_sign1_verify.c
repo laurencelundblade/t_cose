@@ -47,12 +47,13 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
                                   struct t_cose_key           verification_key)
 {
     /* Set the same key for both. We don't know which verifier will be used
-     * until decoding the input. There is only one key in t_cose_sign1(). */
+     * until decoding the input. There is only one key in t_cose_sign1().
+     * Also, t_cose_sign1 didn't do any kid matching, so it is NULL here.
+     */
     t_cose_signature_verify_eddsa_set_key(&(me->eddsa_verifier),
                                           verification_key,
                                           // TODO: should this be NULL?
                                           NULL_Q_USEFUL_BUF_C);
-    // TODO: should kid be handled here?
     t_cose_signature_verify_main_set_key(&(me->main_verifier),
                                          verification_key,
                                          NULL_Q_USEFUL_BUF_C);
