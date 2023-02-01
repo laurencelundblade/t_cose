@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
-#include "t_cose/t_cose_standard_constants.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_crypto.h"
@@ -28,7 +27,7 @@ t_cose_recipient_dec_kw_unwrap_cb_private(struct t_cose_recipient_dec *me_x,
                                           QCBORDecodeContext *cbor_decoder,
                                           struct q_useful_buf cek_buffer,
                                           struct t_cose_parameter_storage *p_storage,
-                                          struct t_cose_parameter *params,
+                                          struct t_cose_parameter **params,
                                           struct q_useful_buf_c *cek)
 {
     struct q_useful_buf_c  ciphertext;
@@ -42,18 +41,22 @@ t_cose_recipient_dec_kw_unwrap_cb_private(struct t_cose_recipient_dec *me_x,
 
     QCBORDecode_EnterArray(cbor_decoder, NULL);
 
+    // TODO: header decode call backs
+    *params = NULL;
     err = t_cose_headers_decode(cbor_decoder,
-                          loc,
-                          NULL,
-                          NULL,
-                          p_storage,
-                          &params,
-                          &protected_params);
+                                loc,
+                                NULL,
+                                NULL,
+                                p_storage,
+                                params,
+                               &protected_params);
+    if(err != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     if(!q_useful_buf_c_is_empty(protected_params)) {
         return T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED;
     }
-    // TODO: return the decoded headers
 
     QCBORDecode_GetByteString(cbor_decoder, &ciphertext);
     QCBORDecode_ExitArray(cbor_decoder);
@@ -62,7 +65,7 @@ t_cose_recipient_dec_kw_unwrap_cb_private(struct t_cose_recipient_dec *me_x,
         return qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_RECIPIENT_FORMAT);
     }
 
-    cose_algorithm_id = t_cose_find_parameter_alg_id(params);
+    cose_algorithm_id = t_cose_find_parameter_alg_id(*params);
 
     err = t_cose_crypto_kw_unwrap(cose_algorithm_id,
                                   me->kek,
@@ -70,6 +73,7 @@ t_cose_recipient_dec_kw_unwrap_cb_private(struct t_cose_recipient_dec *me_x,
                                   cek_buffer,
                                   cek);
 
+Done:
     return err;
 }
 

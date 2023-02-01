@@ -2,7 +2,8 @@
  * \file t_cose_recipient_dec_hpke.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
- *
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
+
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * See BSD-3-Clause license in README.md

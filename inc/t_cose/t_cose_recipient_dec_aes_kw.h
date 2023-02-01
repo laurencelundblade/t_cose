@@ -34,7 +34,7 @@ struct t_cose_recipient_dec_keywrap {
 };
 
 
-void
+static void
 t_cose_recipient_dec_keywrap_init(struct t_cose_recipient_dec_keywrap *context);
 
 
@@ -49,15 +49,15 @@ t_cose_recipient_dec_keywrap_set_key(struct t_cose_recipient_dec_keywrap *contex
 
 
 enum t_cose_err_t
-t_cose_recipient_dec_kw_unwrap_cb_private(struct t_cose_recipient_dec *me_x,
+t_cose_recipient_dec_kw_unwrap_cb_private(struct t_cose_recipient_dec        *me_x,
                                           const struct t_cose_header_location loc,
-                                          QCBORDecodeContext *cbor_decoder,
-                                          struct q_useful_buf cek_buffer,
-                                          struct t_cose_parameter_storage *p_storage,
-                                          struct t_cose_parameter *params,
-                                          struct q_useful_buf_c *cek);
+                                          QCBORDecodeContext                 *cbor_decoder,
+                                          struct q_useful_buf                 cek_buffer,
+                                          struct t_cose_parameter_storage    *p_storage,
+                                          struct t_cose_parameter           **params,
+                                          struct q_useful_buf_c              *cek);
 
-void
+static inline void
 t_cose_recipient_dec_keywrap_init(struct t_cose_recipient_dec_keywrap *me)
 {
     memset(me, 0, sizeof(*me));
@@ -72,7 +72,6 @@ t_cose_recipient_dec_keywrap_set_key(struct t_cose_recipient_dec_keywrap *me,
                                      struct t_cose_key key)
 {
     me->kek = key;
-
 }
 
 

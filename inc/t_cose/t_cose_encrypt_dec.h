@@ -147,6 +147,10 @@ t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx *context,
                                    struct q_useful_buf_c          kid);
 
 
+static void
+t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
+                                 struct t_cose_recipient_dec   *recipient);
+
 /**
  * \brief Decryption of a \c COSE_Encrypt0 or \c COSE_Encrypt structure.
  *
@@ -178,13 +182,15 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
  * Inline implementations of public functions defined above.
  */
 static inline void
-t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *context,
+t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *me,
                         uint32_t                       option_flags,
                         uint32_t                       key_distribution)
 {
-    memset(context, 0, sizeof(*context));
-    context->option_flags = option_flags;
-    context->key_distribution = key_distribution;
+    memset(me, 0, sizeof(*me));
+    T_COSE_PARAM_STORAGE_INIT(me->params, me->__params);
+    me->p_storage          = &(me->params);
+    me->option_flags = option_flags;
+    me->key_distribution = key_distribution;
 }
 
 static inline void
@@ -201,9 +207,9 @@ static inline void
 t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
                                  struct t_cose_recipient_dec   *recipient)
 {
-    me->recipient_list = recipient;
-    // TODO: expand this to support multiple recipients in linked list.
-    // TODO: share link-list code among all six - sign, enc, mac
+    /* Use base class function to add a signer/recipient to the linked list. */
+    t_cose_link_rs((struct t_cose_rs_obj **)&me->recipient_list,
+                   (struct t_cose_rs_obj *)recipient);
 }
 
 

@@ -244,16 +244,22 @@ int test_cose_encrypt(uint32_t options,
 
 
 #include "t_cose/t_cose_recipient_enc_aes_kw.h"
+#include "t_cose/t_cose_recipient_dec_aes_kw.h"
 static int key_wrap_example(void)
 {
     struct t_cose_recipient_enc_keywrap kw_recipient;
-    struct t_cose_encrypt_enc       enc_context;
+    struct t_cose_encrypt_enc           enc_context;
+    struct t_cose_recipient_dec_keywrap kw_unwrap_recipient;
+    struct t_cose_encrypt_dec_ctx       dec_context;
     enum t_cose_err_t                   err;
     struct t_cose_key                   kek;
     struct q_useful_buf_c               encrypted_cose_message;
     struct q_useful_buf_c               encrypted_payload;
+    struct q_useful_buf_c               decrypted_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB(         cose_message_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(         encrypted_payload_buf, 1024);
+    Q_USEFUL_BUF_MAKE_STACK_UB(         decrypted_payload_buf, 1024);
+
 
 
     printf("\n-- 4a. Create COSE_Encrypt with detached payload using AES-KW --\n\n");
@@ -326,6 +332,23 @@ static int key_wrap_example(void)
     printf("\n\nCiphertext: ");
     print_bytestr(encrypted_payload.ptr, encrypted_payload.len);
     printf("\n");
+
+
+    t_cose_encrypt_dec_init(&dec_context, 0, T_COSE_KEY_DISTRIBUTION_HPKE); // TODO: change design about how recipient type is specified
+
+    t_cose_recipient_dec_keywrap_init(&kw_unwrap_recipient);
+    t_cose_recipient_dec_keywrap_set_key(&kw_unwrap_recipient, kek);
+
+    t_cose_encrypt_dec_add_recipient(&dec_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
+
+    err = t_cose_encrypt_dec(&dec_context,
+                       encrypted_cose_message.ptr, /* ciphertext */
+                       encrypted_cose_message.len,
+                       NULL, /* aad */
+                       0,
+                       decrypted_payload_buf.ptr, decrypted_payload_buf.len,
+                             &decrypted_payload);
+
 
     return 0;
 }
@@ -527,7 +550,7 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
-#ifndef T_COSE_DISABLE_HPKE
+#ifdef T_COSE_DISABLE_HPKE
 
     /* -------------------------------------------------------------------------*/
 

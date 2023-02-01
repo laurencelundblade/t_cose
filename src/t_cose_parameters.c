@@ -467,13 +467,29 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
     struct t_cose_parameter  *decoded_protected;
     struct t_cose_parameter  *decoded_unprotected;
 
+    decoded_protected = NULL;
+
+    /* ---- Compenstate for QCBOR bug handling empty bstr-wrapped-cbor --- */
+    // TODO: make this conditional on CBOR version because it is much less
+    // efficient than the code for the repaired CBOR decoder.
+    // QCBORDecode_VPeekNext uses a lot of stack. It is less code
+    // here if the next 10 lines are deleted.
+    // TODO: this might need to handle an empty map too.
+    QCBORItem empty_protected_headers;
+    QCBORDecode_VPeekNext(cbor_decoder, &empty_protected_headers);
+    if(empty_protected_headers.uDataType == QCBOR_TYPE_BYTE_STRING &&
+       empty_protected_headers.val.string.len == 0) {
+        QCBORDecode_VGetNextConsume(cbor_decoder, &empty_protected_headers);
+        goto SkipProtected;
+    }
+
 
     /* --- The protected parameters --- */
      QCBORDecode_EnterBstrWrapped(cbor_decoder,
                                   QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                   protected_parameters);
 
-     decoded_protected = NULL;
+    // TODO: accept both zero-length byte string and zero-length map
      if(protected_parameters->len) {
          return_value = decode_parameters_bucket(cbor_decoder,
                                                  location,
@@ -489,6 +505,7 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
      }
      QCBORDecode_ExitBstrWrapped(cbor_decoder);
 
+SkipProtected:
      /* ---  The unprotected parameters --- */
     return_value = decode_parameters_bucket(cbor_decoder,
                                             location,
@@ -551,6 +568,24 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
     const struct t_cose_parameter  *p_param;
     bool                            criticals_present;
     enum t_cose_err_t               return_value;
+
+    /* Check whether there are any protected parameters. */
+    if(is_protected_bucket) {
+        /* Section 3 of RFC 9052 says there should not be an empty
+         * map when there are no protected parameters. An empty
+         * map however is allowed so this code could be disabled
+         * to reduce object code size.
+         */
+        for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
+            if(p_param->in_protected) {
+                break;
+            }
+        }
+        if(p_param == NULL) {
+            /* There are no protected parameters to encode. */
+            return T_COSE_SUCCESS;
+        }
+    }
 
     /* Protected and unprotected parameters are a map of label/value pairs */
     QCBOREncode_OpenMap(cbor_encoder);
@@ -685,7 +720,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list)
     p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_ALG);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
-       p_found->in_protected &&
+       // p_found->in_protected &&
        p_found->value.i64 != T_COSE_ALGORITHM_RESERVED &&
        p_found->value.i64 < INT32_MAX) {
         return (int32_t)p_found->value.i64;

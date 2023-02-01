@@ -78,6 +78,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     }
 
     /* Re-initialize to parse protected header */
+    kid_cbor = NULL_Q_USEFUL_BUF_C;
     QCBORDecode_Init(&DC2,
                      (UsefulBufC)
                      {
@@ -108,9 +109,11 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     }
 
     if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_DIRECT) {
+        // TODO: not sure that the kid is mandatory here.
         QCBORDecode_GetByteStringInMapN(&DC, T_COSE_HEADER_PARAM_KID, &kid_cbor);
 
         if (QCBORDecode_GetError(&DC) !=0 ) {
+            // TODO: not sure this is the right error code
              return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
     }
@@ -140,27 +143,26 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
      *  - HPKE-based key distribution (which requires recipient info)
      */
     if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_DIRECT) {
-        if (kid_cbor.len == 0 ||
-            strncmp(me->kid.ptr, kid_cbor.ptr, me->kid.len) != 0
-           ) {
-                return(T_COSE_ERR_UNKNOWN_KEY);
+        if ( q_useful_buf_compare(kid_cbor, me->kid)) {
+            return T_COSE_ERR_KID_UNMATCHED;
         }
         cek_key = me->recipient_key;
     } else {
         enum t_cose_err_t err;
-
+        QCBORDecode_EnterArray(&DC, NULL);
         // TODO: handle multiple recipient decoders
         // TODO: handle multiple recipients
         const struct t_cose_header_location loc = {.nesting = 1,
                                                    .index = 0};
         err = me->recipient_list->decode_cb(me->recipient_list,
-                                      loc,
-                                      &DC,
-                                      cek_buf,
-                                      me->p_storage,
-                                      &decoded_params,
-                                      &cek);
+                                            loc,
+                                           &DC,
+                                            cek_buf,
+                                            me->p_storage,
+                                           &decoded_params,
+                                           &cek);
         // TODO: check the error code
+        QCBORDecode_ExitArray(&DC);
 
 
         err = t_cose_crypto_make_symmetric_key_handle((int32_t)algorithm_id,
