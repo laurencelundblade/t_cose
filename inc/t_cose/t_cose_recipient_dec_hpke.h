@@ -22,6 +22,14 @@ extern "C" {
 #endif
 
 
+
+/* This is the decoder for COSE_Recipients of type HPKE.
+* To use this make an instance of it, initialize it and set
+* the sKR, and add it as a t_cose_recipient_dec to t_cose_encrypt_dec.
+* When t_cose_encrypt_dec() is called to process the cose message
+* a callback will be made to this code to process COSE_Recpients
+* it encounters that might be of type HPKE.
+*/
 struct t_cose_recipient_dec_hpke {
      /* Private data structure */
 
@@ -29,9 +37,9 @@ struct t_cose_recipient_dec_hpke {
        * work.  This structure, t_cose_recipient_enc_keywrap, will sometimes be
        * uses as a t_cose_recipient_enc.
        */
-    struct t_cose_recipient_dec e;
+    struct t_cose_recipient_dec base;
 
-    struct t_cose_key recipient_key;
+    struct t_cose_key     skr;
     struct q_useful_buf_c kid;
 };
 
@@ -40,9 +48,17 @@ void
 t_cose_recipient_dec_hpke_init(struct t_cose_recipient_dec_hpke *context);
 
 
+
+/* Set the secret key of the receiver, the skR in RFC 9180, the one that will be used to
+ * by the DH key agreement in HPKE to decrypt the CEK. The kid
+ * is optional. */
+
+// TODO: describe and implement the rules for kid matching
+
 static void
-t_cose_recipient_dec_hpke_set_key(struct t_cose_recipient_dec_hpke *context,
-                                  struct t_cose_key                 key);
+t_cose_recipient_dec_hpke_set_skr(struct t_cose_recipient_dec_hpke *context,
+                                  struct t_cose_key                 skr,
+                                  struct q_useful_buf_c             kid);
 
 
 /* =========================================================================
@@ -56,7 +72,7 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
                                      QCBORDecodeContext *cbor_decoder,
                                      struct q_useful_buf cek_buffer,
                                      struct t_cose_parameter_storage *p_storage,
-                                     struct t_cose_parameter *params,
+                                     struct t_cose_parameter **params,
                                      struct q_useful_buf_c *cek);
 
 void
@@ -64,16 +80,18 @@ t_cose_recipient_dec_hpke_init(struct t_cose_recipient_dec_hpke *me)
 {
     memset(me, 0, sizeof(*me));
 
-    me->e.decode_cb = t_cose_recipient_dec_hpke_cb_private;
+    me->base.decode_cb = t_cose_recipient_dec_hpke_cb_private;
 }
 
 
 
 static inline void
 t_cose_recipient_dec_hpke_set_key(struct t_cose_recipient_dec_hpke *me,
-                                  struct t_cose_key                 key)
+                                  struct t_cose_key                 skr,
+                                  struct q_useful_buf_c             kid)
 {
-    me->recipient_key = key;
+    me->skr = skr;
+    me->kid           = kid;
 }
 
 

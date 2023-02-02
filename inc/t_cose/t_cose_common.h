@@ -317,8 +317,9 @@ struct t_cose_key {
  *
  * Explicit values are included because some tools like debuggers show
  * only the value, not the symbol, and it is hard to count up through
- * 35 lines to figure out the actual value.
+ * 50-plus lines to figure out the actual value.
  */
+// TODO: renumber grouping unsupported algorithm errors together
 enum t_cose_err_t {
     /** Operation completed successfully. */
     T_COSE_SUCCESS = 0,
@@ -595,23 +596,23 @@ enum t_cose_err_t {
 
     /* A verifier declined to verify a COSE_Signature for a reason other
      * than algorithm ID or kid. */
-    T_COSE_ERR_DECLINE_TO_VERIFY = 67,
+    T_COSE_ERR_DECLINE = 67,
 
     /* Trying to protect a parameter when not possible, for example,
      * in an AES Keywrap COSE_Recipient. */
-    T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 67,
+    T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 68,
 
-    T_COSE_ERR_RECIPIENT_FORMAT = 68,
+    T_COSE_ERR_RECIPIENT_FORMAT = 69,
 
 
     /* No more COSE_Signatures or COSE_Recipients. Returned by
      * COSE_Signature and COSE_Recipient implementations. */
-    T_COSE_ERR_NO_MORE = 69,
+    T_COSE_ERR_NO_MORE = 70,
 
     /* A newer version of QCBOR is needed to processes multiple
      * COSE_Signature or COSE_Recipients.  (As of Jan 2023, this
      * QCBOR is not released) */
-    T_COSE_ERR_CANT_PROCESS_MULTIPLE = 70
+    T_COSE_ERR_CANT_PROCESS_MULTIPLE = 71
 };
 
 

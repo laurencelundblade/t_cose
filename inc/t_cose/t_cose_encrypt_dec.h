@@ -27,6 +27,7 @@ extern "C" {
  * \brief Process a COSE_Encrypt0 or COSE_Encrypt message, which decrypts the
  * integrated or detached ciphertext.
  *
+ * TODO: update this documentation
  * The functions in this file decrypt ciphertext with a symmetric cryptographic
  * algorithm, as defined in [COSE (RFC 8152)]
  * (https://tools.ietf.org/html/rfc8152), for use with \c COSE_Encrypt0 and
@@ -88,11 +89,6 @@ extern "C" {
  * 4. Call t_cose_encrypt_dec() to decrypt the ciphertext.
  */
 
-/**
- * Support key distribution types for use with t_cose_encrypt_dec_init().
- */
-#define T_COSE_KEY_DISTRIBUTION_DIRECT 0x00000001
-#define T_COSE_KEY_DISTRIBUTION_HPKE   0x00000002
 
 /**
  * Context for use with decryption.
@@ -101,55 +97,76 @@ struct t_cose_encrypt_dec_ctx {
     /* Private data structure */
     struct t_cose_recipient_dec *recipient_list;
 
-    uint32_t              key_distribution;
     uint32_t              option_flags;
-    struct q_useful_buf_c kid;
-    struct t_cose_key     recipient_key;
+    struct t_cose_key     cek;
 
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
-
 };
 
+
 /**
- * \brief Initialize context for \c COSE_Encrypt and \c COSE_Encrypt0
- * decryption.
+ * \brief Initialize context to decrypt a \c COSE_Encrypt or \c COSE_Encrypt0.
  *
  * \param[in]      context           The context to initialize.
  * \param[in]      option_flags      Options controlling the encryption.
  *                                   Currently none.
- * \param[in]      key_distribution  Key distribution setting
+ *
+ * TODO: not all of the following is implemented
+ * If \c option_flags includes either \ref T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 
+ * or \ref T_COSE_OPT_MESSAGE_TYPE_ENCRYPT then the input message must be
+ * \c COSE_Encrypt0 or \c COSE_Encrypt respectively. The error
+ * T_COSE_ERR_XXXXXX will be returned if the option_flags indicated
+ * \c COSE_Encrypt0 and the input is \c COSE_Encrypt and vice versa.  If
+ * \c option_flags are \ref T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED (which
+ * is 0) then the message type will be determined by CBOR tag. If
+ * there is no tag then the error T_COSE_ERR_XXXXXX will be returned.
+ * The errors mentioned here are returned when t_cose_encrypt_dec() is called.
+ *
+ * When the message type is COSE_Encrypt0, t_cose_encrypt_dec_set_cek()
+ * must have been called to set the CEK and t_cose_encrypt_dec_add_recipient()
+ * must not have been called.  When the message type is COSE_Encrypt,
+ * t_cose_encrypt_dec_add_recipient() must have been called at least
+ * once. t_cose_encrypt_dec_set_cek() can be called to
+ * explicitly set the CEK, but it rarely needed as the CEK is
+ * generated automatocally from the random number generator when
+ * it is not set.
  */
 static void
 t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *context,
-                        uint32_t                       option_flags,
-                        uint32_t                       key_distribution);
+                        uint32_t                       option_flags);
 
 
 /**
- * \brief Set private key for decryption of \c COSE_Encrypt and
- * \c COSE_Encrypt0.
+ * \brief Set content encryption key for \c COSE_Encrypt0.
  *
  * \param[in] context       The t_cose_encrypt_dec_ctx context.
- * \param[in] key           The private key.
- * \param[in] kid           The key identifier.
+ * \param[in] cek           The content encryption key.
  *
- * Important: The key distribution mechanism determines what type of key
- * is provided. When direct key management is used then the key parameter
- * contains a symmetric key (and the \c COSE_Encrypt0 structure is assumed).
- * For use with HPKE an asymmetric private key has to be provided and the
- * \c COSE_Encrypt structure is assumed.
+ * This sets the content encryption key (the CEK). This must
+ * be called for COSE_Encrypt0 as there is no COSE_Recipient
+ * to provide the CEK. The type of the key must be appropriate
+ * for the content encryption algorithm for body of the
+ * COSE_Encrypt0. This may be obtained by....
+ * TODO: implement decode-only mode to return header params
+ *
+ * If called for COSE_Encrypt, this will be ignored as the CEK
+ * comes from the COSE_Recipient.
  */
 static void
-t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx *context,
-                                   struct t_cose_key              key,
-                                   struct q_useful_buf_c          kid);
+t_cose_encrypt_dec_set_cek(struct t_cose_encrypt_dec_ctx *context,
+                           struct t_cose_key              cek);
 
 
+/*
+ * See the various recipient implementations such as the ones for
+ * direct encryption (TBD), keywrap and HPKE.
+ */
 static void
 t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
                                  struct t_cose_recipient_dec   *recipient);
+
 
 /**
  * \brief Decryption of a \c COSE_Encrypt0 or \c COSE_Encrypt structure.
@@ -172,34 +189,34 @@ t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
  */
 enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
-                   uint8_t *cose, size_t cose_len,
+                   const uint8_t *cose, size_t cose_len,
                    uint8_t *detached_ciphertext, size_t detached_ciphertext_len,
                    uint8_t *plaintext_ptr, size_t plaintext_len,
                    struct q_useful_buf_c *plaintext
                   );
+
+
+
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
 static inline void
 t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *me,
-                        uint32_t                       option_flags,
-                        uint32_t                       key_distribution)
+                        uint32_t                       option_flags)
 {
     memset(me, 0, sizeof(*me));
     T_COSE_PARAM_STORAGE_INIT(me->params, me->__params);
-    me->p_storage          = &(me->params);
-    me->option_flags = option_flags;
-    me->key_distribution = key_distribution;
+    me->p_storage        = &(me->params);
+    me->option_flags     = option_flags;
 }
 
+
 static inline void
-t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx *context,
-                                   struct t_cose_key              recipient_key,
-                                   struct q_useful_buf_c          kid)
+t_cose_encrypt_dec_set_cek(struct t_cose_encrypt_dec_ctx *context,
+                           struct t_cose_key              cek)
 {
-    context->recipient_key = recipient_key;
-    memcpy(&context->kid, &kid, sizeof(struct q_useful_buf_c));
+    context->cek = cek;
 }
 
 
@@ -207,7 +224,7 @@ static inline void
 t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
                                  struct t_cose_recipient_dec   *recipient)
 {
-    /* Use base class function to add a signer/recipient to the linked list. */
+    /* Use the base class function to add a signer/recipient to the linked list. */
     t_cose_link_rs((struct t_cose_rs_obj **)&me->recipient_list,
                    (struct t_cose_rs_obj *)recipient);
 }

@@ -1,5 +1,5 @@
-/**
- * \file t_cose_recipient_dec_hpke.c
+/*
+ * t_cose_recipient_dec_hpke.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
@@ -90,15 +90,15 @@ t_cose_crypto_hpke_decrypt(int32_t                cose_algorithm_id,
 }
 
 
-
+/* This is an implementation of t_cose_recipient_dec_cb */
 enum t_cose_err_t
 t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
-                                          const struct t_cose_header_location loc,
-                                          QCBORDecodeContext *cbor_decoder,
-                                          struct q_useful_buf cek_buffer,
-                                          struct t_cose_parameter_storage *p_storage,
-                                          struct t_cose_parameter *params,
-                                          struct q_useful_buf_c *cek)
+                                     const struct t_cose_header_location loc,
+                                     QCBORDecodeContext *cbor_decoder,
+                                     struct q_useful_buf cek_buffer,
+                                     struct t_cose_parameter_storage *p_storage,
+                                     struct t_cose_parameter **params,
+                                     struct q_useful_buf_c *cek)
 {
     struct t_cose_recipient_dec_hpke *me;
     QCBORItem              Item;
@@ -129,8 +129,6 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
 
     me = (struct t_cose_recipient_dec_hpke *)me_x;
 
-        /* Recipients */
-        QCBORDecode_EnterArray(cbor_decoder, NULL);
         /* One recipient */
         QCBORDecode_EnterArray(cbor_decoder, NULL);
         // TODO: Exit these arrays and Finish()
@@ -323,7 +321,7 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
                                                      .len = peer_key_buf_len,
                                                      .ptr = peer_key_buf
                                                  },
-                                                 me->recipient_key,
+                                                 me->skr,
                                                  cek_encrypted,
                                                  (struct q_useful_buf)
                                                  {

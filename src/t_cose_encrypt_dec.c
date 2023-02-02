@@ -18,7 +18,7 @@
 
 enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
-                   uint8_t *cose,
+                   const uint8_t *cose,
                    size_t cose_len,
                    uint8_t *detached_ciphertext,
                    size_t detached_ciphertext_len,
@@ -26,8 +26,6 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                    size_t plaintext_len,
                    struct q_useful_buf_c *plain_text)
 {
-#if !defined(T_COSE_DISABLE_HPKE) && !defined(T_COSE_DISABLE_AES_KW)
-
     QCBORItem              protected_hdr;
     UsefulBufC             nonce_cbor;
     UsefulBufC             kid_cbor;
@@ -50,6 +48,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     struct t_cose_key      cek_key;
     struct t_cose_parameter *decoded_params;
     MakeUsefulBufOnStack(cek_buf, 64); // TODO: correct size
+    uint32_t                 message_type;
 
 
     /* Initialize decoder */
@@ -60,7 +59,10 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
    /* Make sure the first item is a tag */
     result = QCBORDecode_GetNext(&DC, &Item);
 
+    message_type = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
+
     /* Check whether tag is CBOR_TAG_COSE_ENCRYPT or CBOR_TAG_COSE_ENCRYPT0 */
+    // TODO: allow tag determination of message_type
     if (QCBORDecode_IsTagged(&DC, &Item, CBOR_TAG_COSE_ENCRYPT) == false &&
         QCBORDecode_IsTagged(&DC, &Item, CBOR_TAG_COSE_ENCRYPT0) == false) {
         return(T_COSE_ERR_INCORRECTLY_TAGGED);
@@ -108,6 +110,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
          return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
+#if 0
     if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_DIRECT) {
         // TODO: not sure that the kid is mandatory here.
         QCBORDecode_GetByteStringInMapN(&DC, T_COSE_HEADER_PARAM_KID, &kid_cbor);
@@ -117,6 +120,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
              return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
     }
+#endif
 
     QCBORDecode_ExitMap(&DC);
 
@@ -138,20 +142,18 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
 
     (void)detached_mode; // TODO: use this variable or get rid of it
 
-    /* Two key distribution mechanisms are supported, namely
-     *  - Direct key distribution (where no recipient info is included)
-     *  - HPKE-based key distribution (which requires recipient info)
-     */
-    if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_DIRECT) {
-        if ( q_useful_buf_compare(kid_cbor, me->kid)) {
-            return T_COSE_ERR_KID_UNMATCHED;
+    if (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
+        // TODO: need a mechanism to detect whether cek was set. This may be a change to the defintion of t_cose_key
+        if(me->recipient_list != NULL) {
+            return T_COSE_ERR_FAIL; // TODO: need better error here
         }
-        cek_key = me->recipient_key;
-    } else {
+        // TODO: create example / test of using custom headers to check the kid here.
+        cek_key = me->cek;
+
+    } else if (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT) {
         enum t_cose_err_t err;
         QCBORDecode_EnterArray(&DC, NULL);
-        // TODO: handle multiple recipient decoders
-        // TODO: handle multiple recipients
+        // TODO: handle multiple recipient decoders in a loop
         const struct t_cose_header_location loc = {.nesting = 1,
                                                    .index = 0};
         err = me->recipient_list->decode_cb(me->recipient_list,
@@ -168,6 +170,9 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         err = t_cose_crypto_make_symmetric_key_handle((int32_t)algorithm_id,
                                                       cek,
                                                       &cek_key);
+    } else {
+        // TODO: better error here.
+        return T_COSE_ERR_FAIL;
     }
 
     /* Create Additional Data Structure
@@ -188,7 +193,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     QCBOREncode_OpenArray(&additional_data);
 
     /* 1. Add context string "Encrypt0" or "Encrypt" */
-    if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_DIRECT) {
+    if (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
         QCBOREncode_AddText(&additional_data,
                             ((UsefulBufC) {"Encrypt0", 8})
                            );
@@ -249,17 +254,4 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     }
 
     return(T_COSE_SUCCESS);
-
-#else /* T_COSE_DISABLE_HPKE */
-    (void)me;
-    (void)cose;
-    (void)cose_len;
-    (void)detached_ciphertext;
-    (void)detached_ciphertext_len;
-    (void)plaintext;
-    (void)plaintext_len;
-    (void)plain_text;
-
-    return T_COSE_ERR_FAIL;
-#endif /* T_COSE_DISABLE_HPKE */
 }

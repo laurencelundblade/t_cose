@@ -1,5 +1,5 @@
-/**
- * \file t_cose_recipient_dec.h
+/*
+ * t_cose_recipient_dec.h
  *
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  *
@@ -35,24 +35,36 @@ struct t_cose_recipient_dec;
 
 
 /**
- * \brief Typedef of callback that creates a COSE_Recipient.
+ * \brief Typedef of callback that decodes a COSE_Recipient.
  *
- * \param[in] context                Context for create COSE_Recipient
- * \param[in] cek              Plaintext (typically the CEK)
- * \param[out] cbor_decoder           Resulting encryption structure
+ * \param[in] context                Context to decode a COSE_Recipient
+ * \param[in] cbor_decoder           The CBOR decoder to read from.
+ * \param[in] loc       The location of the header params in the COSE message
+ * \param[in] cek_buffer  The buffer to output the cek into.
+ * \param[in,out] p_storage  Pool of parameter nodes from which to allocate.
+ * \param[out] params  Place to put linked list of decoded parameters.
+ * \param[out] cek              Plaintext (typically the CEK)
+ *
  *
  * \retval T_COSE_SUCCESS
  *         Operation was successful.
- * \retval Error messages otherwise.
+ * \retval T_COSE_ERR_DECLINE
+ * \retval T_COSE_ERR_KID_UNMATCHED
+ * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
+ * \retval ....
+ *
+ *
+ * The error returned is important as it determines whether
+ * other recipient decoders are called or not. TODO: describe this more...
  */
 typedef enum t_cose_err_t
-t_cose_decode_recipient_cb(struct t_cose_recipient_dec *context,
-                                          const struct t_cose_header_location loc,
-                                          QCBORDecodeContext *cbor_decoder,
-                                          struct q_useful_buf cek_buffer,
-                                          struct t_cose_parameter_storage *p_storage,
-                                          struct t_cose_parameter **params,
-                                          struct q_useful_buf_c *cek);
+t_cose_recipient_dec_cb(struct t_cose_recipient_dec        *context,
+                        const struct t_cose_header_location loc,
+                        QCBORDecodeContext                 *cbor_decoder,
+                        struct q_useful_buf                 cek_buffer,
+                        struct t_cose_parameter_storage    *p_storage,
+                        struct t_cose_parameter           **params,
+                        struct q_useful_buf_c              *cek);
 
 
 /**
@@ -60,10 +72,9 @@ t_cose_decode_recipient_cb(struct t_cose_recipient_dec *context,
  * implementation of t_cose_recipient_dec.
  */
 struct t_cose_recipient_dec {
-    struct t_cose_recipient_dec  *next_in_list;
-    t_cose_decode_recipient_cb   *decode_cb;
+    struct t_cose_rs_obj       base_obj;
+    t_cose_recipient_dec_cb   *decode_cb;
 };
-
 
 
 #endif /* t_cose_recipient_dec_h */

@@ -720,6 +720,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list)
     p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_ALG);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
+       // TODO: allow for protected and not protected
        // p_found->in_protected &&
        p_found->value.i64 != T_COSE_ALGORITHM_RESERVED &&
        p_found->value.i64 < INT32_MAX) {

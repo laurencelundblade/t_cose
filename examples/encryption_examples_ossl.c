@@ -91,7 +91,7 @@ direct_detached_example()
     make_ossl_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
                                   &cek);
-    t_cose_encrypt_set_key(&enc_context, cek, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_set_cek(&enc_context, cek, NULL_Q_USEFUL_BUF_C);
 
     err = t_cose_encrypt_enc(&enc_context,
                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
@@ -111,7 +111,7 @@ direct_detached_example()
 
     t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_DIRECT);
 
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, cek, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_dec_set_cek(&dec_ctx, cek, NULL_Q_USEFUL_BUF_C);
 
     err = t_cose_encrypt_dec(&dec_ctx,
                              (uint8_t *)(uintptr_t)encrypted_cose_message.ptr, encrypted_cose_message.len,
