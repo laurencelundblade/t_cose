@@ -370,9 +370,9 @@ static const uint8_t x5[] = {0x41, 0xA0, 0xA0};
 
 static const uint8_t x6[] = {0x41, 0x80, 0xA0};
 
-static const uint8_t x7[] = {0x41, 0xA0, 0xA1, 0x01, 0x1c};
+static const uint8_t x7[] = {0x40, 0xA1, 0x01, 0x1c};
 
-static const uint8_t x8[] = {0x41, 0xA0, 0xA1, 0xff};
+static const uint8_t x8[] = {0x40, 0xA1, 0xff};
 
 static const uint8_t x9[] = {0xA1, 0x01, 0x01};
 
@@ -667,7 +667,7 @@ param_test(void)
         }
 
         /* This is just to be able to set break points by test number. */
-        if(i == 13) {
+        if(i == 7) {
             t_cose_result = 0;
         }
 
