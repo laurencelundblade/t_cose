@@ -30,6 +30,7 @@
 #include "psa/crypto.h"
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_recipient_enc_hpke.h"
+#include "t_cose/t_cose_recipient_dec_hpke.h"
 
 #define DETACHED_PAYLOAD     1
 #define INCLUDED_PAYLOAD     2
@@ -170,11 +171,11 @@ int test_cose_encrypt(uint32_t options,
                       struct q_useful_buf_c kid
                      )
 {
-    struct t_cose_encrypt_enc enc_ctx;
-    enum t_cose_err_t result;
-    struct q_useful_buf_c encrypted_firmware_final;
+    struct t_cose_encrypt_enc        enc_ctx;
+    enum t_cose_err_t                result;
+    struct q_useful_buf_c            encrypted_firmware_final;
     struct t_cose_recipient_enc_hpke recipient;
-    struct q_useful_buf_c encrypt_cose;
+    struct q_useful_buf_c            encrypt_cose;
 
     t_cose_recipient_enc_hpke_init(&recipient, key_exchange);
     t_cose_recipient_enc_hpke_set_key(&recipient,
@@ -458,7 +459,7 @@ int main(void)
     size_t result_len;
     size_t encrypted_firmware_result_len;
     int res = 0;
-   psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t psk_handle = 0;
     struct t_cose_encrypt_dec_ctx dec_ctx;
     enum t_cose_err_t ret;
@@ -547,7 +548,7 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
-#ifdef T_COSE_DISABLE_HPKE
+//#ifdef T_COSE_DISABLE_HPKE
 
     /* -------------------------------------------------------------------------*/
 
@@ -582,11 +583,13 @@ int main(void)
     printf("\n-- 1b. Process COSE_Encrypt with detached payload using HPKE --\n\n");
 
 
+    struct t_cose_recipient_dec_hpke dec_recipient;
 
+    t_cose_recipient_dec_hpke_init(&dec_recipient);
+    t_cose_recipient_dec_hpke_set_skr(&dec_recipient, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
 
-    t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_HPKE);
-
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+    t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&dec_recipient);
 
     ret = t_cose_encrypt_dec(&dec_ctx,
                              buffer, result_len, //sizeof(buffer),
@@ -628,9 +631,11 @@ int main(void)
 
     printf("\n-- 2b. Process COSE_Encrypt with included payload using HPKE --\n\n");
 
-    t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_HPKE);
+    t_cose_recipient_dec_hpke_init(&dec_recipient);
+    t_cose_recipient_dec_hpke_set_skr(&dec_recipient, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
 
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+    t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&dec_recipient);
 
 
     ret = t_cose_encrypt_dec(&dec_ctx,
@@ -654,7 +659,7 @@ int main(void)
     memset(plaintext, 0, sizeof(plaintext));
     /* -------------------------------------------------------------------------*/
 
-#endif /* T_COSE_DISABLE_HPKE */
+//#endif /* T_COSE_DISABLE_HPKE */
 
 
     encrypt0_detached_example();
