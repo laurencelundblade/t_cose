@@ -294,6 +294,24 @@ decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
     clear_label_list(&critical_parameter_labels);
     QCBORDecode_EnterMap(cbor_decoder, NULL);
 
+#ifdef TODO_CRIT_PARAM_FIXED
+    /* TODO: There is a bug in QCBOR where mixing of get by
+     * label and traversal don't work together right.
+     * When it is fixed, this code can be re enabled.
+     * For now there is no decoding of crit.
+     */
+    if(is_protected) {
+        // TODO: should there be an error check for crit
+        // parameter occuring in an unprotected bucket?
+        clear_label_list(&critical_parameter_labels);
+        return_value = decode_critical_parameter(decode_context,
+                                                &critical_parameter_labels);
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+    }
+#endif
+
     /* Loop reading entries out of the map until the end of the map. */
     *decoded_params = NULL;
     parameter = NULL;
@@ -449,14 +467,13 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
     struct t_cose_parameter  *decoded_protected;
     struct t_cose_parameter  *decoded_unprotected;
 
-    decoded_protected = NULL;
 
     /* --- The protected parameters --- */
      QCBORDecode_EnterBstrWrapped(cbor_decoder,
                                   QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                   protected_parameters);
 
-    // TODO: accept both zero-length byte string and zero-length map
+     decoded_protected = NULL;
      if(protected_parameters->len) {
          return_value = decode_parameters_bucket(cbor_decoder,
                                                  location,
@@ -534,31 +551,6 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
     const struct t_cose_parameter  *p_param;
     bool                            criticals_present;
     enum t_cose_err_t               return_value;
-
-#if 0
-    /* TODO: This code doesn't work because CloseBstr2 called above
-     * can't handle a truly empty bstr.  Need to fix CloseBstr2
-     * and decide if saving one byte plus following the should
-     * is worth this object code.
-     */
-    /* Check whether there are any protected parameters. */
-    if(is_protected_bucket) {
-        /* Section 3 of RFC 9052 says there should not be an empty
-         * map when there are no protected parameters. An empty
-         * map however is allowed so this code could be disabled
-         * to reduce object code size.
-         */
-        for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
-            if(p_param->in_protected) {
-                break;
-            }
-        }
-        if(p_param == NULL) {
-            /* There are no protected parameters to encode. */
-            return T_COSE_SUCCESS;
-        }
-    }
-#endif
 
     /* Protected and unprotected parameters are a map of label/value pairs */
     QCBOREncode_OpenMap(cbor_encoder);
@@ -693,8 +685,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list)
     p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_ALG);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
-       // TODO: allow for protected and not protected
-       // p_found->in_protected &&
+       p_found->in_protected &&
        p_found->value.i64 != T_COSE_ALGORITHM_RESERVED &&
        p_found->value.i64 < INT32_MAX) {
         return (int32_t)p_found->value.i64;
