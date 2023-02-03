@@ -135,12 +135,28 @@ extern "C" {
  * to another is so varied, this is whe *re the abstract base class is
  * necessary.
  *
+ *
+ * Notes on objects
+ *
  * Note that this use object-orientation here gives some very nice
  * modularity and extensibility. New types of COSE_recipient can be
  * added to COSE_Encrypt and COSE_Mac without changing their
  * implementation at all. It is als *o possible to add new types of
  * recipients without even modifying the main t_cose library.
  *
+ * This effectively gives dynamic linking for a lot of code that
+ * makes dead-stripping by the linker more effective and requires
+ * less use of #defines to reduce object code size. For example,
+ * if a switch were used to select EdDSA, all the EdDSA code would
+ * always be linked unless it was #ifdef'd out. With this design
+ * not calling the EdDSA signer init function removes all reference
+ * to EdDSA and it will be dead-stripped.
+ *
+ * This design should faciliate a lot of variance and innovation
+ * in signers and encryptors, for example faciliating key
+ * database look ups, use of certificates, counter signatures
+ * and such, all without changing the source or even object
+ * code of the core t_cose library.
  * 
  * COSE_Key 
  *

@@ -294,24 +294,6 @@ decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
     clear_label_list(&critical_parameter_labels);
     QCBORDecode_EnterMap(cbor_decoder, NULL);
 
-#ifdef TODO_CRIT_PARAM_FIXED
-    /* TODO: There is a bug in QCBOR where mixing of get by
-     * label and traversal don't work together right.
-     * When it is fixed, this code can be re enabled.
-     * For now there is no decoding of crit.
-     */
-    if(is_protected) {
-        // TODO: should there be an error check for crit
-        // parameter occuring in an unprotected bucket?
-        clear_label_list(&critical_parameter_labels);
-        return_value = decode_critical_parameter(decode_context,
-                                                &critical_parameter_labels);
-        if(return_value != T_COSE_SUCCESS) {
-            goto Done;
-        }
-    }
-#endif
-
     /* Loop reading entries out of the map until the end of the map. */
     *decoded_params = NULL;
     parameter = NULL;
@@ -469,21 +451,6 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
 
     decoded_protected = NULL;
 
-    /* ---- Compenstate for QCBOR bug handling empty bstr-wrapped-cbor --- */
-    // TODO: make this conditional on CBOR version because it is much less
-    // efficient than the code for the repaired CBOR decoder.
-    // QCBORDecode_VPeekNext uses a lot of stack. It is less code
-    // here if the next 10 lines are deleted.
-    // TODO: this might need to handle an empty map too.
-    QCBORItem empty_protected_headers;
-    QCBORDecode_VPeekNext(cbor_decoder, &empty_protected_headers);
-    if(empty_protected_headers.uDataType == QCBOR_TYPE_BYTE_STRING &&
-       empty_protected_headers.val.string.len == 0) {
-        QCBORDecode_VGetNextConsume(cbor_decoder, &empty_protected_headers);
-        goto SkipProtected;
-    }
-
-
     /* --- The protected parameters --- */
      QCBORDecode_EnterBstrWrapped(cbor_decoder,
                                   QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
@@ -505,7 +472,6 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
      }
      QCBORDecode_ExitBstrWrapped(cbor_decoder);
 
-SkipProtected:
      /* ---  The unprotected parameters --- */
     return_value = decode_parameters_bucket(cbor_decoder,
                                             location,
@@ -569,6 +535,12 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
     bool                            criticals_present;
     enum t_cose_err_t               return_value;
 
+#if 0
+    /* TODO: This code doesn't work because CloseBstr2 called above
+     * can't handle a truly empty bstr.  Need to fix CloseBstr2
+     * and decide if saving one byte plus following the should
+     * is worth this object code.
+     */
     /* Check whether there are any protected parameters. */
     if(is_protected_bucket) {
         /* Section 3 of RFC 9052 says there should not be an empty
@@ -586,6 +558,7 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
             return T_COSE_SUCCESS;
         }
     }
+#endif
 
     /* Protected and unprotected parameters are a map of label/value pairs */
     QCBOREncode_OpenMap(cbor_encoder);

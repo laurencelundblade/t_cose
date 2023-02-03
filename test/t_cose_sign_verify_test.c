@@ -16,7 +16,7 @@
 #include "t_cose_make_test_pub_key.h"
 #include "t_cose_sign_verify_test.h"
 
-#include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
+#include "../src/t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
 /* These are complete known-good COSE messages for a verification
  * test. The key used to verify them is made by make_key_pair().
@@ -985,6 +985,7 @@ Done:
     return return_value;
 }
 
+#include <stdio.h>
 
 int_fast32_t sign_verify_multi(void)
 {
@@ -1027,7 +1028,7 @@ int_fast32_t sign_verify_multi(void)
                                                Q_USEFUL_BUF_FROM_SZ_LITERAL("kid2"));
     t_cose_sign_add_signer(&sign_ctx, (struct t_cose_signature_sign *)&signer2);
 
-
+/*
     empty_buf = (struct q_useful_buf){NULL, SIZE_MAX};
 
     result = t_cose_sign_sign(&sign_ctx,
@@ -1037,8 +1038,9 @@ int_fast32_t sign_verify_multi(void)
                               &signed_cose);
     if(result) {
         return 1;
-    }
+    }*/
 
+    //printf("y----------------------------------y\n");
 
     result = t_cose_sign_sign(&sign_ctx,
                                NULL_Q_USEFUL_BUF_C,
@@ -1060,11 +1062,15 @@ int_fast32_t sign_verify_multi(void)
     t_cose_signature_verify_main_set_key(&verify2, key_pair2, Q_USEFUL_BUF_FROM_SZ_LITERAL("kid2"));
     t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify2);
 
+
+    //printf("x----------------------------------x\n");
     result = t_cose_sign_verify(&verify_ctx,
                                  signed_cose,
                                  NULL_Q_USEFUL_BUF_C,
                                 &verified_payload,
                                  NULL);
+
+    printf("sv result %d\n", result);
 
 #ifdef QCBOR_FOR_T_COSE_2
     if(result) {

@@ -44,7 +44,7 @@ struct t_cose_recipient_dec_hpke {
 };
 
 
-void
+static void
 t_cose_recipient_dec_hpke_init(struct t_cose_recipient_dec_hpke *context);
 
 
@@ -75,7 +75,7 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
                                      struct t_cose_parameter **params,
                                      struct q_useful_buf_c *cek);
 
-void
+static inline void
 t_cose_recipient_dec_hpke_init(struct t_cose_recipient_dec_hpke *me)
 {
     memset(me, 0, sizeof(*me));
@@ -86,7 +86,7 @@ t_cose_recipient_dec_hpke_init(struct t_cose_recipient_dec_hpke *me)
 
 
 static inline void
-t_cose_recipient_dec_hpke_set_key(struct t_cose_recipient_dec_hpke *me,
+t_cose_recipient_dec_hpke_set_skr(struct t_cose_recipient_dec_hpke *me,
                                   struct t_cose_key                 skr,
                                   struct q_useful_buf_c             kid)
 {

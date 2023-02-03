@@ -270,3 +270,4 @@ t_cose_sign_one_shot(struct t_cose_sign_sign_ctx *me,
 Done:
     return return_value;
 }
+
