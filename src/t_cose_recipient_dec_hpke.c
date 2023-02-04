@@ -124,9 +124,12 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     UsefulBufC             kid_cbor;
 
     enum t_cose_err_t      cose_result;
-    size_t                 cek_len;
 
     me = (struct t_cose_recipient_dec_hpke *)me_x;
+
+    (void)loc; // TODO: use this when decoding header params
+    (void)p_storage; // TODO: return decoded header params
+    (void)params; // TODO: return decoded header params
 
     /* One recipient */
     QCBORDecode_EnterArray(cbor_decoder, NULL);
@@ -318,7 +321,6 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
                                              },
                                              me->skr,
                                              cek_encrypted,
-                                             (struct q_useful_buf)
                                              cek_buffer,
                                              &cek->len);
 

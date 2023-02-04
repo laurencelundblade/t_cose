@@ -120,6 +120,8 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
              return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
         }
     }
+#else
+    (void)kid_cbor;
 #endif
 
     QCBORDecode_ExitMap(&DC);
@@ -163,7 +165,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                                             me->p_storage,
                                            &decoded_params,
                                            &cek);
-        // TODO: check the error code
+        (void)err; // TODO: check the error code
         QCBORDecode_ExitArray(&DC);
 
 
