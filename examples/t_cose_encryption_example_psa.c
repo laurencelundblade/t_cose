@@ -358,7 +358,7 @@ static int key_wrap_example(void)
 
 
 static void
-encrypt0_detached_example(void)
+encrypt0_example(void)
 {
     struct t_cose_encrypt_enc  enc_context;
     enum t_cose_err_t              err;
@@ -446,27 +446,12 @@ encrypt0_detached_example(void)
 }
 
 
-
-
 int main(void)
 {
     psa_status_t status;
-    uint8_t firmware[] = "This is a real plaintext.";
-    size_t firmware_len = sizeof(firmware);
-    uint8_t encrypted_firmware[BUFFER_SIZE] = {0};
-    size_t encrypted_firmware_len = sizeof(encrypted_firmware)-1;
-    uint8_t buffer[BUFFER_SIZE] = {0};
-    size_t result_len;
-    size_t encrypted_firmware_result_len;
-    int res = 0;
     psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t psk_handle = 0;
-    struct t_cose_encrypt_dec_ctx dec_ctx;
-    enum t_cose_err_t ret;
 
-    uint8_t plaintext[400];
-
-    struct q_useful_buf_c plain_text_ubc;
 
     /* Key id for PSK */
     // TODO: sort out which kid for PSK
@@ -548,7 +533,23 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
-//#ifdef T_COSE_DISABLE_HPKE
+#ifndef T_COSE_DISABLE_HPKE
+    uint8_t firmware[] = "This is a real plaintext.";
+    size_t firmware_len = sizeof(firmware);
+    uint8_t encrypted_firmware[BUFFER_SIZE] = {0};
+
+    size_t encrypted_firmware_len = sizeof(encrypted_firmware)-1;
+    uint8_t buffer[BUFFER_SIZE] = {0};
+    size_t result_len;
+    size_t encrypted_firmware_result_len;
+    int res = 0;
+
+    struct t_cose_encrypt_dec_ctx dec_ctx;
+    enum t_cose_err_t ret;
+
+    uint8_t plaintext[400];
+
+    struct q_useful_buf_c plain_text_ubc;
 
     /* -------------------------------------------------------------------------*/
 
@@ -659,10 +660,10 @@ int main(void)
     memset(plaintext, 0, sizeof(plaintext));
     /* -------------------------------------------------------------------------*/
 
-//#endif /* T_COSE_DISABLE_HPKE */
+#endif /* T_COSE_DISABLE_HPKE */
 
 
-    encrypt0_detached_example();
+    encrypt0_example();
 
 
 #ifndef T_COSE_DISABLE_AES_KW
