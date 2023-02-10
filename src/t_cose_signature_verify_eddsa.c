@@ -9,12 +9,11 @@
  * See BSD-3-Clause license in README.md
  */
 
-
+#include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/t_cose_signature_verify_eddsa.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
-#include "qcbor/qcbor_decode.h"
-#include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose_crypto.h"
 
 #ifndef T_COSE_DISABLE_EDDSA
