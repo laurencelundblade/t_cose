@@ -9,6 +9,11 @@
 # See BSD-3-Clause license in README.md
 #
 
+
+# This contains the core dependecy definitions for t_cose. These
+# dependencies are invariant by crypto library.
+
+
 # ---- Object files for t_cose library ----
 SRC_OBJ=src/t_cose_util.o \
         src/t_cose_parameters.o \
