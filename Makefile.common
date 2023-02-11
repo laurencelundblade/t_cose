@@ -1,4 +1,4 @@
-# Makefile.common -- Make configuration common to all crypto libs
+# Makefile.common -- Make configuration common to all crypto adaptors
 #
 # Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
@@ -11,13 +11,13 @@
 
 # ---- Object files for t_cose library ----
 SRC_OBJ=src/t_cose_util.o \
-        src/t_cose_sign1_verify.o \
-        src/t_cose_sign1_sign.o \
         src/t_cose_parameters.o \
         src/t_cose_sign_sign.o \
+        src/t_cose_sign_verify.o \
+        src/t_cose_sign1_sign.o \
+        src/t_cose_sign1_verify.o \
         src/t_cose_signature_sign_main.o \
         src/t_cose_signature_sign_eddsa.o \
-        src/t_cose_sign_verify.o \
         src/t_cose_signature_verify_main.o \
         src/t_cose_signature_verify_eddsa.o \
         src/t_cose_mac_compute.o \
@@ -41,9 +41,8 @@ TEST_OBJ=test/t_cose_test.o \
          test/t_cose_crypto_test.o \
 
 
-# ---- Onject files for examples ----
-EXAMPLE_OBJ=examples/sign_examples.o\
-            examples/encryption_examples.o \
+# ---- Object files for examples ----
+EXAMPLE_OBJ=
 
 
 # ---- public headers -----
@@ -193,7 +192,6 @@ test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h \
 
 
 # ---- example dependencies ----
-examples/t_cose_basic_example_ossl.o: $(PUBLIC_INTERFACE)
 
 
 

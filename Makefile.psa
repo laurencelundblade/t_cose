@@ -1,5 +1,5 @@
-# Makefile -- UNIX-style make for t_cose using crypto with Mbed Crypto
-# Mbed Crypto uses the PSA Crypto interface
+# Makefile -- UNIX-style make for t_cose using MbedTLS crypto.
+# MbedTLS crypto uses the PSA Crypto interface
 #
 # Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
@@ -11,16 +11,15 @@
 #
 
 
-# ---- comment ----
+# ---- General comment ----
 
 # This is for PSA / MbedTLS Crypto. See longer explanation in
 # README.md. Adjust CRYPTO_INC and CRYPTO_LIB for the location of the
-# MbedTLS libraries on your build machine. 
+# MbedTLS library on your build machine.
 #
-# Makefile.common, included below, contains the
-# lists of library, test and example object files and the dependency
-# definitions that are invariant by crypto library. This is most of
-# the source files in t_cose.
+# Makefile.common, included below, contains the lists of library, test
+# and example object files and the dependency definitions that are
+# invariant by crypto library.
 
 
 # ---- QCBOR location ----
@@ -57,6 +56,12 @@ CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o
 CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
 
 
+# ---- other configuration ----
+# Use as needed. It has been used to disable features that aren't ready
+# or that aren't passing tests
+OTHER_OPTS=
+
+
 # ---- compiler configuration -----
 # This makefile uses a minimum of compiler flags so that it will
 # work out-of-the-box with a wide variety of compilers.  For example,
@@ -69,41 +74,35 @@ CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
 C_OPTS=-Os -fPIC
 
 
-# ---- other configuration ----
-# HPKE is on for PSA, but needs some work...
-OTHER_OPTS=
-
-
-# ---- t_cose Config and test options ----
-TEST_CONFIG_OPTS=
-
-
 # ---- Aggregate includes and options ----
 INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
-CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
+CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 
 
+# ---- The build targets ----
 .PHONY: all install install_headers install_so uninstall clean warn
 
 all: libt_cose.a t_cose_test t_cose_basic_example_psa t_cose_encryption_example_psa
 
 # run "make warn" as a handy way to compile with the warning flags
-# used in the QCBOR release process. See CFLAGS above.
+# used in the QCBOR release process. See C_OPTS above.
 warn:
 	make -f Makefile.psa CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
 
-# ---- Common definitions -----
+# ---- Bring in common definitions of SRC_OBJ, TEST_OBJ, ... -----
 
 include Makefile.common
 
+
+# --- Finally, the things that actually get built ----
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
 
 
-# The shared library is not made by default because of platform
+# The shared library which is not made by default because of platform
 # variability For example MacOS and Linux behave differently and some
 # IoT OS's don't support them at all.
 libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
@@ -111,7 +110,6 @@ libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 
 t_cose_test: main.o $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
-
 
 t_cose_basic_example_psa: examples/t_cose_basic_example_psa.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
@@ -133,24 +131,9 @@ install: libt_cose.a install_headers
 
 install_headers: $(PUBLIC_INTERFACE)
 	install -d $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_common.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/q_useful_buf.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign1_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_parameters.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_sign_main.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_sign_eddsa.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_verify_main.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_verify_eddsa.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_standard_constants.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_encrypt_enc.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_encrypt_dec.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_mac_compute.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_mac_validate.h $(DESTDIR)$(PREFIX)/include/t_cose
+	@for i in $(PUBLIC_INTERFACE); do \
+	    install -m 644 $$i $(DESTDIR)$(PREFIX)/include/t_cose ; \
+	done
 
 # The shared library is not installed by default because of platform variability.
 install_so: libt_cose.so install_headers
