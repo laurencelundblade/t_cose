@@ -91,21 +91,47 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 {
     /* The #ifdefs save a little code when algorithms are disabled */
 
-    return cose_alg_id == COSE_ALGORITHM_ES256 ? PSA_ALG_ECDSA(PSA_ALG_SHA_256) :
+    return
+        cose_alg_id == COSE_ALGORITHM_ES256 ?
+#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+    /* RFC 9053 section 2.1 says
+     * "Implementations SHOULD use a deterministic version of ECDSA
+     *  such as defined in RFC6979",
+     * and this compile option implies the crypto library supports it.
+     */
+            PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_256) :
+#else
+            PSA_ALG_ECDSA(PSA_ALG_SHA_256) :
+#endif /* PSA_WANT_ALG_DETERMINISTIC_ECDSA */
+
 #ifndef T_COSE_DISABLE_ES384
-           cose_alg_id == COSE_ALGORITHM_ES384 ? PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
-#endif
+        cose_alg_id == COSE_ALGORITHM_ES384 ?
+#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+            PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_384) :
+#else
+            PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
+#endif /* PSA_WANT_ALG_DETERMINISTIC_ECDSA */
+#endif /* T_COSE_DISABLE_ES384 */
+
 #ifndef T_COSE_DISABLE_ES512
-           cose_alg_id == COSE_ALGORITHM_ES512 ? PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
-#endif
+        cose_alg_id == COSE_ALGORITHM_ES512 ?
+#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+            PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_512) :
+#else
+            PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
+#endif /* PSA_WANT_ALG_DETERMINISTIC_ECDSA */
+#endif /* T_COSE_DISABLE_ES512 */
+
 #ifndef T_COSE_DISABLE_PS256
-           cose_alg_id == COSE_ALGORITHM_PS256 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_256) :
+        cose_alg_id == COSE_ALGORITHM_PS256 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_256) :
 #endif
+
 #ifndef T_COSE_DISABLE_PS384
-           cose_alg_id == COSE_ALGORITHM_PS384 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_384) :
+        cose_alg_id == COSE_ALGORITHM_PS384 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_384) :
 #endif
+
 #ifndef T_COSE_DISABLE_PS512
-           cose_alg_id == COSE_ALGORITHM_PS512 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_512) :
+        cose_alg_id == COSE_ALGORITHM_PS512 ? PSA_ALG_RSA_PSS(PSA_ALG_SHA_512) :
 #endif
                                                  0;
     /* psa/crypto_values.h doesn't seem to define a "no alg" value,
