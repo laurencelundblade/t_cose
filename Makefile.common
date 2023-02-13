@@ -78,6 +78,14 @@ PUBLIC_INTERFACE=inc/t_cose/q_useful_buf.h \
 
 
 # ---- library source dependecies -----
+# TODO: fill in all the header dependencies
+src/t_cose_parameters.o: src/t_cose_parameters.c \
+                         inc/t_cose/t_cose_parameters.h \
+                         inc/t_cose/q_useful_buf.h \
+                         inc/t_cose/t_cose_common.h \
+                         inc/t_cose/t_cose_sign1_verify.h \
+                         inc/t_cose/t_cose_standard_constants.h
+
 src/t_cose_util.o: src/t_cose_util.c \
                    src/t_cose_util.h \
                    inc/t_cose/q_useful_buf.h \
@@ -85,14 +93,15 @@ src/t_cose_util.o: src/t_cose_util.c \
                    inc/t_cose/t_cose_standard_constants.h \
                    src/t_cose_crypto.h
 
-src/t_cose_sign1_verify.o: src/t_cose_sign1_verify.c \
-                           inc/t_cose/t_cose_sign1_verify.h \
-                           inc/t_cose/q_useful_buf.h \
-                           inc/t_cose/t_cose_common.h \
-                           inc/t_cose/t_cose_parameters.h \
-                           inc/t_cose/t_cose_standard_constants.h \
-                           src/t_cose_crypto.h \
-                           src/t_cose_util.h
+src/t_cose_sign_sign.o: src/t_cose_sign_sign.c \
+                        inc/t_cose/t_cose_sign1_sign.h \
+                        inc/t_cose/q_useful_buf.h \
+                        inc/t_cose/t_cose_common.h\
+                        inc/t_cose/t_cose_signature_sign.h \
+                        inc/t_cose/t_cose_parameters.h \
+                        inc/t_cose/t_cose_standard_constants.h \
+                        src/t_cose_crypto.h \
+                        src/t_cose_util.h
 
 src/t_cose_sign_verify.o: src/t_cose_sign_verify.c \
                           inc/t_cose/t_cose_sign_verify.h \
@@ -104,13 +113,6 @@ src/t_cose_sign_verify.o: src/t_cose_sign_verify.c \
                           src/t_cose_util.h \
                           inc/t_cose/t_cose_standard_constants.h
 
-src/t_cose_parameters.o: src/t_cose_parameters.c \
-                         inc/t_cose/t_cose_parameters.h \
-                         inc/t_cose/q_useful_buf.h \
-                         inc/t_cose/t_cose_common.h \
-                         inc/t_cose/t_cose_sign1_verify.h \
-                         inc/t_cose/t_cose_standard_constants.h
-
 src/t_cose_sign1_sign.o: src/t_cose_sign1_sign.c \
                          inc/t_cose/t_cose_sign1_sign.h \
                          inc/t_cose/q_useful_buf.h \
@@ -120,15 +122,14 @@ src/t_cose_sign1_sign.o: src/t_cose_sign1_sign.c \
                          src/t_cose_crypto.h \
                          src/t_cose_util.h
 
-src/t_cose_sign_sign.o: src/t_cose_sign_sign.c \
-                        inc/t_cose/t_cose_sign1_sign.h \
-                        inc/t_cose/q_useful_buf.h \
-                        inc/t_cose/t_cose_common.h\
-                        inc/t_cose/t_cose_signature_sign.h \
-                        inc/t_cose/t_cose_parameters.h \
-                        inc/t_cose/t_cose_standard_constants.h \
-                        src/t_cose_crypto.h \
-                        src/t_cose_util.h
+src/t_cose_sign1_verify.o: src/t_cose_sign1_verify.c \
+                           inc/t_cose/t_cose_sign1_verify.h \
+                           inc/t_cose/q_useful_buf.h \
+                           inc/t_cose/t_cose_common.h \
+                           inc/t_cose/t_cose_parameters.h \
+                           inc/t_cose/t_cose_standard_constants.h \
+                           src/t_cose_crypto.h \
+                           src/t_cose_util.h
 
 src/t_cose_signature_sign_main.o: src/t_cose_signature_sign_main.c \
                                   inc/t_cose/t_cose_signature_sign_main.h \
@@ -152,6 +153,10 @@ src/t_cose_signature_verify_main.o: src/t_cose_signature_verify_main.c \
                                     src/t_cose_crypto.h \
                                     inc/t_cose/t_cose_standard_constants.h
 
+src/t_cose_signature_sign_eddsa.o: src/t_cose_signature_sign_eddsa.c
+
+src/t_cose_signature_verify_eddsa.o: src/t_cose_signature_verify_eddsa.c
+
 src/t_cose_mac_compute.o: inc/t_cose/t_cose_mac_compute.h \
                           src/t_cose_crypto.h \
                           src/t_cose_util.h \
@@ -163,6 +168,19 @@ src/t_cose_mac_validate.o: inc/t_cose/t_cose_mac_validate.h \
                            inc/t_cose/t_cose_parameters.h \
                            inc/t_cose/t_cose_common.h
 
+src/t_cose_encrypt_enc.o: src/t_cose_encrypt_enc.c
+
+src/t_cose_encrypt_dec.o: src/t_cose_encrypt_dec.c
+
+src/t_cose_recipient_enc_aes_kw.o: src/t_cose_recipient_enc_aes_kw.c
+
+src/t_cose_recipient_dec_aes_kw.o: src/t_cose_recipient_dec_aes_kw.c
+
+src/t_cose_recpient_enc_hpke.o: src/t_cose_recipient_enc_hpke.c \
+                                src/hpke.h
+
+src/t_cose_recpient_dec_hpke.o: src/t_cose_recipient_dec_hpke.c \
+                                src/hpke.h
 
 # ---- test dependencies -----
 test/t_cose_test.o: test/t_cose_test.h \

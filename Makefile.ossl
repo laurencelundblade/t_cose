@@ -109,12 +109,13 @@ libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 t_cose_test: main.o $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
-t_cose_basic_example_psa: examples/t_cose_basic_example_psa.o libt_cose.a
+t_cose_basic_example_ossl: examples/t_cose_basic_example_ossl.o examples/encryption_examples_ossl.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
-t_cose_encryption_example_psa: examples/t_cose_encryption_example_psa.o libt_cose.a
-	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
-
+crypto_adapters/t_cose_ossl_crypto.o: crypto_adapters/t_cose_ossl_crypto.c \
+                                      src/t_cose_crypto.h \
+                                      src/t_cose_util.h \
+                                      t_cose/t_cose_standard_constants.h
 
 
 

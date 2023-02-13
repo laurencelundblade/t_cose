@@ -116,6 +116,10 @@ t_cose_basic_example_psa: examples/t_cose_basic_example_psa.o libt_cose.a
 t_cose_encryption_example_psa: examples/t_cose_encryption_example_psa.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
+crypto_adapters/t_cose_psa_crypto.o: crypto_adapters/t_cose_psa_crypto.c \
+                                     src/t_cose_crypto.h \
+                                     src/t_cose_util.h \
+                                     inc/t_cose/t_cose_standard_constants.h
 
 
 
