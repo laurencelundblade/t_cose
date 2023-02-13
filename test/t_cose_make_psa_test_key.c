@@ -81,21 +81,33 @@ enum t_cose_err_t make_key_pair(int32_t            cose_algorithm_id,
         private_key     = private_key_256;
         private_key_len = sizeof(private_key_256);
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+        key_alg         = PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_256);
+#else
         key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_256);
+#endif /* PSA_WANT_ALG_DETERMINISTIC_ECDSA */
         break;
 
     case COSE_ALGORITHM_ES384:
         private_key     = private_key_384;
         private_key_len = sizeof(private_key_384);
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+        key_alg         = PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_384);
+#else
         key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_384);
+#endif /* PSA_WANT_ALG_DETERMINISTIC_ECDSA */
         break;
 
     case COSE_ALGORITHM_ES512:
         private_key     = private_key_521;
         private_key_len = sizeof(private_key_521);
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+        key_alg         = PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_512);
+#else
         key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_512);
+#endif /* PSA_WANT_ALG_DETERMINISTIC_ECDSA */
         break;
 
     case COSE_ALGORITHM_PS256:
