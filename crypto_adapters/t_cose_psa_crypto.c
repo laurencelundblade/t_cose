@@ -93,7 +93,7 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 
     return
         cose_alg_id == COSE_ALGORITHM_ES256 ?
-#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+#if PSA_WANT_ALG_DETERMINISTIC_ECDSA
     /* RFC 9053 section 2.1 says
      * "Implementations SHOULD use a deterministic version of ECDSA
      *  such as defined in RFC6979",
@@ -106,7 +106,7 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 
 #ifndef T_COSE_DISABLE_ES384
         cose_alg_id == COSE_ALGORITHM_ES384 ?
-#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+#if PSA_WANT_ALG_DETERMINISTIC_ECDSA
             PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_384) :
 #else
             PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
@@ -115,7 +115,7 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 
 #ifndef T_COSE_DISABLE_ES512
         cose_alg_id == COSE_ALGORITHM_ES512 ?
-#ifdef PSA_WANT_ALG_DETERMINISTIC_ECDSA
+#if PSA_WANT_ALG_DETERMINISTIC_ECDSA
             PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_512) :
 #else
             PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
