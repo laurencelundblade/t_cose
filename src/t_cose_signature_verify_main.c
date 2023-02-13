@@ -18,6 +18,8 @@
 #include "t_cose_crypto.h"
 
 
+
+
 /* The list of algorithms supported by this verifier. */
 static bool
 sig_algorithm_check(int32_t cose_algorithm_id)

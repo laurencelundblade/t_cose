@@ -12,6 +12,7 @@
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/t_cose_signature_verify_eddsa.h"
+#include "t_cose/t_cose_signature_verify.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
 #include "t_cose_crypto.h"
