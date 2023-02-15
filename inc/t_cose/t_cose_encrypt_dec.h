@@ -196,6 +196,13 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
                   );
 
 
+enum t_cose_err_t
+t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
+                            struct q_useful_buf_c          message,
+                            struct q_useful_buf_c          detached,
+                            struct q_useful_buf            plaintext_buffer,
+                            struct q_useful_buf_c         *plaintext);
+
 
 
 /* ------------------------------------------------------------------------

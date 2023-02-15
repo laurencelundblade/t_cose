@@ -145,7 +145,6 @@ extern "C" {
 #define T_COSE_OPT_COSE_ENCRYPT            0x00000000
 #define T_COSE_OPT_COSE_ENCRYPT0           0x00000001
 #define T_COSE_OPT_COSE_ENCRYPT_SINGLE_CEK 0x00000002
-#define T_COSE_OPT_COSE_ENCRYPT_DETACHED   0x00000004
 
 
 /**
@@ -246,38 +245,58 @@ t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
 
 /**
  * \brief  Create a \c COSE_Encrypt or \c COSE_Encrypt0 structure
- *  and encrypt the provided plaintext. Two variants are supported
- *  by this function:
- *  - Detached ciphertext: In this case the ciphertext is not included
- *    in the resulting COSE structure and has to be conveyed separately.
- *  - Embedded ciphertext: In this mode the ciphertext is included in
- *    the COSE structure.
- *
- *    See option_flags in t_cose_encrypt_enc_init to toggle between these
- *    two modes.
+ *  and encrypt the provided plaintext.
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
- * \param[in] payload                  Plaintext.
- * \param[in] encrypted_payload        Buffer where the ciphertext goes.
- * \param[out] encrypted_payload_final Ciphertext with correct length.
- * \param[in] out_buf                  Buffer allocated for COSE message.
- * \param[out] result                  COSE message with correct length.
+ * \param[in] payload                  Plaintext to be encypted.
+ * \param[in] aad        Additional authenticated data.
+ * \param[in] buffer_for_message                  Buffer allocated for COSE message.
+ * \param[out] encrypted_message                  Completed COSE message.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This is all the work gets done including calling the cryptographic algorithms.
+ * This is where all the work gets done including calling the cryptographic algorithms.
  * In most cases this will cause callbacks to the t_cose_recipient_enc object
  * to be made to create the COSE_Recipients. Only when direct encryption
  * is used are they not called.
+ *
+ * The size of encoded protected parameters plus the aad is limited to TODO by
+ * default. If it is exceeded the error TODO: will be returned. See TODO to increase this.
+ *
+ * This puts the encrypted payload in the body of the message. See also t_cose_encrypt_enc_detached().
+ *
+ * \c buffer_for_message must be large enough to hold the resulting COSE_Encrypt
+ * or COSE_Encrypt0 message with the encrypted payload in the message.
+ * To use this in size calculation mode, pass a \c buffer_for_message with ptr
+ * NULL and a very large size like \c SIZE_MAX.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                    struct q_useful_buf_c      payload,
-                   struct q_useful_buf            encrypted_payload,
-                   struct q_useful_buf_c         *encrypted_payload_final,
-                   struct q_useful_buf            out_buf,
-                   struct q_useful_buf_c         *result);
+                   struct q_useful_buf_c      aad,
+                   struct q_useful_buf        buffer_for_message,
+                   struct q_useful_buf_c     *encrypted_message);
 
+
+/*
+ * This is the same as t_cose_encrypt_enc() except it produces two separate
+ * outputs, the detached ciphertext and the
+ * COSE_Encrypt or COSE_Encrypt0. Typically the detached ciphertext
+ * is 16 bytes larger than then payload and the COSE_Encrypt
+ * COSE_Encrypt is relatively small and fixed.
+ *
+ * This may be used in size calculation mode in which case
+ * both the size of the detached ciphertext and the encrypted
+ * message will be computed and returned.
+ */
+enum t_cose_err_t
+t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *context,
+                            struct q_useful_buf_c      payload,
+                            struct q_useful_buf_c      aad,
+                            struct q_useful_buf        buffer_for_detached,
+                            struct q_useful_buf        buffer_for_message,
+                            struct q_useful_buf_c     *encrypted_detached,
+                            struct q_useful_buf_c     *encrypted_message);
 
 
 
@@ -302,6 +321,24 @@ t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
 {
     context->cek = cek;
 }
+
+
+static inline enum t_cose_err_t
+t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
+                   struct q_useful_buf_c      payload,
+                   struct q_useful_buf_c      aad,
+                   struct q_useful_buf        buffer_for_message,
+                   struct q_useful_buf_c     *encrypted_cose_message)
+{
+    return t_cose_encrypt_enc_detached(context,
+                                       payload,
+                                       aad,
+                                       NULL_Q_USEFUL_BUF,
+                                       buffer_for_message,
+                                       NULL,
+                                       encrypted_cose_message);
+}
+
 
 #ifdef __cplusplus
 }

@@ -190,7 +190,7 @@ int test_cose_encrypt(uint32_t options,
                                  (struct t_cose_recipient_enc *)&recipient);
 
 
-    result = t_cose_encrypt_enc(
+    result = t_cose_encrypt_enc_detached(
                     &enc_ctx,
                     /* Pointer and length of payload to be
                      * encrypted.
@@ -200,6 +200,8 @@ int test_cose_encrypt(uint32_t options,
                     .ptr = firmware,
                     .len = firmware_len
                     },
+                    /* AAD */
+                    NULL_Q_USEFUL_BUF_C,
                     /* Non-const pointer and length of the
                      * buffer where the encrypted payload
                      * is written to. The length here is that
@@ -213,7 +215,6 @@ int test_cose_encrypt(uint32_t options,
                     /* Const pointer and actual length of
                      * the encrypted payload.
                      */
-                    &encrypted_firmware_final,
                     /* Non-const pointer and length of the
                      * buffer where the completed output is
                      * written to. The length here is that
@@ -230,6 +231,7 @@ int test_cose_encrypt(uint32_t options,
                      * output buffer and has the
                      * lifetime of the output buffer.
                      */
+                    &encrypted_firmware_final,
                     &encrypt_cose);
 
     if (result != 0) {
@@ -315,12 +317,13 @@ static int key_wrap_example(void)
      * There are two buffers given, one for just the encrypted
      * payload and one for the COSE message. TODO: detached vs not and sizing.
      */
-    err = t_cose_encrypt_enc(&enc_context,
-                              Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
-                              encrypted_payload_buf,
-                             &encrypted_payload,
-                              cose_message_buf,
-                             &encrypted_cose_message);
+    err = t_cose_encrypt_enc_detached(&enc_context,
+                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
+                                      NULL_Q_USEFUL_BUF_C,
+                                      encrypted_payload_buf,
+                                      cose_message_buf,
+                                     &encrypted_payload,
+                                     &encrypted_cose_message);
 
 
     if (err != 0) {
@@ -383,7 +386,7 @@ encrypt0_example(void)
      *
      */
     t_cose_encrypt_enc_init(&enc_context,
-                            T_COSE_OPT_COSE_ENCRYPT0 | T_COSE_OPT_COSE_ENCRYPT_DETACHED,
+                            T_COSE_OPT_COSE_ENCRYPT0,
                             T_COSE_ALGORITHM_A128GCM);
 
     /* For COSE_Encrypt0, we simply make a t_cose_key for the
@@ -407,11 +410,12 @@ encrypt0_example(void)
                                   &cek);
     t_cose_encrypt_set_cek(&enc_context, cek);
 
-    err = t_cose_encrypt_enc(&enc_context,
+    err = t_cose_encrypt_enc_detached(&enc_context,
                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
+                                      NULL_Q_USEFUL_BUF_C,
                               encrypted_payload_buf,
+                             cose_message_buf,
                              &encrypted_payload,
-                              cose_message_buf,
                              &encrypted_cose_message);
     if(err != T_COSE_SUCCESS) {
         printf("Encryption Failed %d\n", err);
@@ -556,7 +560,7 @@ int main(void)
 
     printf("\n-- 1a. Create COSE_Encrypt with detached payload using HPKE--\n\n");
 
-    res = test_cose_encrypt(T_COSE_OPT_COSE_ENCRYPT_DETACHED,
+    res = test_cose_encrypt(0,
                             firmware, firmware_len,
                             buffer, sizeof(buffer),
                             &result_len,

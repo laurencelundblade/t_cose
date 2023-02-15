@@ -20,12 +20,13 @@
 
 
 enum t_cose_err_t
-t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
-                   struct q_useful_buf_c          payload,
-                   struct q_useful_buf            encrypted_payload,
-                   struct q_useful_buf_c         *encrypted_payload_final,
-                   struct q_useful_buf            out_buf,
-                   struct q_useful_buf_c         *result)
+t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *context,
+                            struct q_useful_buf_c      payload,
+                            struct q_useful_buf_c      aad,
+                            struct q_useful_buf        buffer_for_detached,
+                            struct q_useful_buf        buffer_for_message,
+                            struct q_useful_buf_c     *encrypted_detached,
+                            struct q_useful_buf_c     *encrypted_cose_message)
 {
     QCBOREncodeContext     additional_data;
     UsefulBufC             scratch;
@@ -45,6 +46,9 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
     Q_USEFUL_BUF_MAKE_STACK_UB(cek_buffer, 16);
     Q_USEFUL_BUF_MAKE_STACK_UB(nonce, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
 
+    struct q_useful_buf encrypt_buffer;
+    struct q_useful_buf_c encrypt_output;
+
     /* Determine algorithm parameters */
     switch(context->payload_cose_algorithm_id) {
     case T_COSE_ALGORITHM_A128GCM:
@@ -59,7 +63,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
     }
 
     /* Initialize CBOR encoder context with output buffer */
-    QCBOREncode_Init(&encrypt_ctx, out_buf);
+    QCBOREncode_Init(&encrypt_ctx, buffer_for_message);
 
     /* Should we use COSE_Encrypt or COSE_Encrypt0? */
     if ((context->option_flags & T_COSE_OPT_COSE_ENCRYPT0) > 0) {
@@ -109,10 +113,6 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
     /* Close unprotected header map */
     QCBOREncode_CloseMap(&encrypt_ctx);
 
-    if ((context->option_flags & T_COSE_OPT_COSE_ENCRYPT_DETACHED) > 0) {
-        /* Indicate detached ciphertext with NULL */
-        QCBOREncode_AddSimple(&encrypt_ctx, CBOR_SIMPLEV_NULL);
-    }
 
     /* Encrypt payload */
 
@@ -206,29 +206,35 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
     }
 
     // TODO: for non-recipient HPKE, there will have to be algorithm mapping and other stuff here
+
+
+
+    if(q_useful_buf_is_null(buffer_for_detached)) {
+        QCBOREncode_OpenBytes(&encrypt_ctx, &encrypt_buffer);
+    } else {
+        encrypt_buffer = buffer_for_detached;
+    }
+
     cose_result = t_cose_crypto_aead_encrypt(
-                        context->payload_cose_algorithm_id,
-                        cek_handle,
-                        nonce_result,
-                        add_data_buf,
-                        payload,
-                        encrypted_payload,
-                        encrypted_payload_final);
+                        context->payload_cose_algorithm_id, /* in: AEAD algorithm */
+                        cek_handle, /* in: content encryption key handle */
+                        nonce_result, /* in: nonce / IV */
+                        add_data_buf, /* in: additional data to authenticate */
+                        payload, /* in: payload to encrypt */
+                        encrypt_buffer, /* in: buffer to write to */
+                       &encrypt_output /* out: ciphertext */);
 
     if (cose_result != T_COSE_SUCCESS) {
         return(cose_result);
     }
 
-    if ((context->option_flags & T_COSE_OPT_COSE_ENCRYPT_DETACHED) == 0) {
-        /* Embed ciphertext */
-        QCBOREncode_AddBytes(&encrypt_ctx,
-                             (struct q_useful_buf_c)
-                                {
-                                  .len = encrypted_payload_final->len,
-                                  .ptr = encrypted_payload_final->ptr
-                                }
-                            );
+    if(q_useful_buf_is_null(buffer_for_detached)) {
+        QCBOREncode_CloseBytes(&encrypt_ctx, encrypt_output.len);
+    } else {
+        QCBOREncode_AddNULL(&encrypt_ctx);
+        *encrypted_detached = encrypt_output;
     }
+
 
     /* COSE_Encrypt0 does contain a recipient structure. Furthermore, there
      * is no function pointer associated with context->recipient_ctx.recipient_func.
@@ -269,10 +275,10 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
     QCBOREncode_CloseArray(&encrypt_ctx);
 
     /* Export COSE_Encrypt structure */
-    ret = QCBOREncode_Finish(&encrypt_ctx, result);
+    ret = QCBOREncode_Finish(&encrypt_ctx, encrypted_cose_message);
 
     if (ret != QCBOR_SUCCESS) {
-        return(T_COSE_ERR_FAIL);
+        return(T_COSE_ERR_FAIL); // TODO: map error
     }
 
     return(T_COSE_SUCCESS);
@@ -289,14 +295,4 @@ t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc   *me,
     } else {
         /* find end of list and add it */
     }
-}
-
-
-void
-t_cose_encypt_enc_init(struct t_cose_encrypt_enc*   context,
-                       uint32_t                         option_flags,
-                       int32_t                          payload_cose_algorithm_id)
-{
-    context->option_flags              = option_flags;
-    context->payload_cose_algorithm_id = payload_cose_algorithm_id;
 }
