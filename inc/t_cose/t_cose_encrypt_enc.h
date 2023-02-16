@@ -22,13 +22,11 @@
 extern "C" {
 #endif
 
-#ifndef QCBOR_SPIFFY_DECODE
-#error This version of t_cose requires a version of QCBOR that supports spiffy decode
-#endif
-
 
 /**
  * \file t_cose_encrypt_enc.h
+ *
+ * Warning: documentation may be incorrect in some places here.
  *
  * \brief Encrypt plaintext and encode it in a CBOR-based structure referred to as
  * COSE_Encrypt0 or COSE_Encrypt.
@@ -47,7 +45,7 @@ extern "C" {
  * Distribution Methods", as RFC 8152 calls it, and two of them are
  * implemented in this library:
  *
- * 1) Direct: The CEK is pre-negotiated between the involved communication parties.
+ * 1) The CEK is pre-negotiated between the involved communication parties.
  * Hence, no CEK is transported in the COSE message. For this approach the COSE_Encrypt0
  * message is used.
  *
@@ -63,8 +61,6 @@ extern "C" {
  * - [QCBOR](https://github.com/laurencelundblade/QCBOR)
  * - <stdint.h>, <string.h>, <stddef.h>
  * - Encryption functions like AES-GCM.
- * - HPKE when COSE_Encrypt is utilized. The HPKE library can be found
- *   at https://github.com/hannestschofenig/mbedtls/tree/hpke
  * - Hash functions like SHA-256 (for use with HPKE)
  *
  * Additionally, it is necessary to either sign or MAC the resulting
@@ -139,27 +135,20 @@ extern "C" {
  *     recipient structure).
  */
 
-/**
- * An \c option_flag for t_cose_encrypt_enc_init()
- */
-#define T_COSE_OPT_COSE_ENCRYPT            0x00000000
-#define T_COSE_OPT_COSE_ENCRYPT0           0x00000001
-#define T_COSE_OPT_COSE_ENCRYPT_SINGLE_CEK 0x00000002
-
 
 /**
  * This is the context for creating \c COSE_Encrypt and \c COSE_Encrypt0 structures.
  * The caller should allocate it and pass it to the functions here. This
- * is around 76 bytes, so it fits easily on the stack.
+ * is around 50 bytes, so it fits easily on the stack.
  */
 struct t_cose_encrypt_enc {
     /* Private data structure */
-    struct q_useful_buf_c               protected_parameters;
-    int32_t                             payload_cose_algorithm_id;
-    uint32_t                            option_flags;
-    uint8_t                             recipients;
-    struct t_cose_recipient_enc        *recipients_list;
-    struct t_cose_key                   cek;
+    int32_t                       payload_cose_algorithm_id;
+    uint32_t                      option_flags;
+    struct t_cose_recipient_enc  *recipients_list;
+    struct t_cose_key             cek;
+    struct t_cose_parameter      *added_body_parameters;
+    struct q_useful_buf           extern_enc_struct_buffer;
 };
 
 
@@ -172,9 +161,10 @@ struct t_cose_encrypt_enc {
  *                               data, for example
  *                               \ref COSE_ALGORITHM_A128GCM.
  *
- * Initializes the \ref t_cose_encrypt_enc_ctx context. No
- * \c option_flags are needed and 0 can be passed. A \c cose_algorithm_id
- * must always be given.
+ * Initializes the \ref t_cose_encrypt_enc_ctx context. . A \c cose_algorithm_id
+ * must always be given. EIther T_COSE_OPT_MESSAGE_TYPE_ENCRYPT or
+ * T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 must be give to indicate which
+ * message type to create.
  *
  * The algorithm ID space is from
  * [COSE (RFC8152)](https://tools.ietf.org/html/rfc8152) and the
@@ -201,21 +191,60 @@ t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,
  * \brief  Add a recipient to an existing COSE encrypt context.
  *         Information about a recipient needs to be provided.
  *
- *         Note: This implementation currently supports a single
- *         recipient only. It will be extended later to supports
- *         multiple recipients.
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
  *
  * For multiple recipients this is called multiple times. For direct encryption
  * this is not called.
  */
-void
+static void
 t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc    *context,
                              struct t_cose_recipient_enc  *recipient);
 
 
-// TODO: add methods for custom headers parameters in the body
+/**
+ * TODO: rewrite this documentation for COSE_Encrypt
+ * \brief Add header parameters to the \c COSE_Sign or \c COSE_Sign1 main body.
+ *
+ * \param[in] context     The t_cose signing context.
+ * \param[in] parameters  Array of parameters to add.
+ *
+ * For simple use cases it is not necessary to call this as the
+ * algorithm ID, the only mandatory parameter, is automatically
+ * added.
+ *
+ * It is not necessary to call this to add the kid either as that
+ * is handled by configuring the \ref t_cose_signature_sign with the kid.
+ *
+ * This adds parameters to the \c COSE_Sign1 \c COSE_Sign
+ * body. Parameters in \c COSE_Signatures in \c COSE_Sign are handed
+ * through \ref t_cose_signature_sign.
+ *
+ * This adds an array of header parameters to the body. It is an array
+ * terminated by a parameter with type \ref
+ * T_COSE_PARAMETER_TYPE_NONE.
+ *
+ * Integer and string parameters are handled by filling in the
+ * members of the array.
+ *
+ * All the parameters must have a label and a value.
+ *
+ * Alternatively, and particularly for parameters that are not
+ * integers or strings the value may be a callback of type t_cose_parameter_encode_callback
+ * in which case the callback will be called when it is time
+ * to output the CBOR for the custom header. The callback should
+ * output the CBOR for the particular parameter.
+ *
+ * This supports only integer labels. (String labels could be added
+ * but would increase object code size).
+ *
+ * All parameters must be added in one call. Multiple calls to this
+ * don't accumlate parameters.
+ */
+static void
+t_cose_encrypt_enc_body_header_params(struct t_cose_encrypt_enc   *context,
+                                      struct t_cose_parameter     *parameters);
+
 
 /**
  * \brief Set the content-encryption key, the CEK
@@ -244,13 +273,31 @@ t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
 
 
 /**
+ * \brief Setup buffer for larger AAD or header parameters.
+ *
+ * By default there is a limit of T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE (typically 64 bytes) for the
+ * AAD and protected header parameters. Normally this is quite adequate, but it may not
+ * be in all cases. If not call this with a larger buffer.
+ *
+ * Specifically, this is the buffer to create the Enc_structure described in
+ * RFC 9052 section 5.2. It needs to be the size of the CBOR-encoded protected
+ * headers, the AAD and some overhead.
+ *
+ * TODO: size calculation mode that will tell the caller how bit it should be
+ */
+static void
+t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,
+                                     struct q_useful_buf        enc_buffer);
+
+
+/**
  * \brief  Create a \c COSE_Encrypt or \c COSE_Encrypt0 structure
  *  and encrypt the provided plaintext.
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
  * \param[in] payload                  Plaintext to be encypted.
- * \param[in] aad        Additional authenticated data.
- * \param[in] buffer_for_message                  Buffer allocated for COSE message.
+ * \param[in] aad        Additional authenticated data or \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] buffer_for_message                  Buffer for COSE message.
  * \param[out] encrypted_message                  Completed COSE message.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -278,7 +325,20 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                    struct q_useful_buf_c     *encrypted_message);
 
 
-/*
+/**
+ * \brief  Create a \c COSE_Encrypt or \c COSE_Encrypt0 structure
+ *  and encrypt the provided plaintext.
+ *
+ * \param[in] context                  The t_cose_encrypt_enc_ctx context.
+ * \param[in] payload                  Plaintext to be encypted.
+ * \param[in] aad        Additional authenticated data or \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] buffer_for_detached                 Buffer for detached cipher text.
+ * \param[in] buffer_for_message                  Buffer for COSE message.
+ * \param[out] encrypted_detached                 Detached ciphertext.
+ * \param[out] encrypted_message                  Completed COSE message.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
  * This is the same as t_cose_encrypt_enc() except it produces two separate
  * outputs, the detached ciphertext and the
  * COSE_Encrypt or COSE_Encrypt0. Typically the detached ciphertext
@@ -288,6 +348,10 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
  * This may be used in size calculation mode in which case
  * both the size of the detached ciphertext and the encrypted
  * message will be computed and returned.
+ *
+ * \c buffer_for_detached may be \ref NULL_Q_USEFUL_BUF and
+ * \c encrypted_detached may be \c NULL in which case this
+ * behaves exactly like t_cose_encrypt_enc().
  */
 enum t_cose_err_t
 t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *context,
@@ -297,6 +361,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *context,
                             struct q_useful_buf        buffer_for_message,
                             struct q_useful_buf_c     *encrypted_detached,
                             struct q_useful_buf_c     *encrypted_message);
+
 
 
 
@@ -311,7 +376,6 @@ t_cose_encrypt_enc_init(struct t_cose_encrypt_enc *context,
     memset(context, 0, sizeof(*context));
     context->payload_cose_algorithm_id = payload_cose_algorithm_id;
     context->option_flags              = option_flags;
-    context->recipients                = 0;
 }
 
 
@@ -320,6 +384,33 @@ t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
                        struct t_cose_key          cek)
 {
     context->cek = cek;
+}
+
+
+static inline void
+t_cose_encrypt_enc_body_header_params(struct t_cose_encrypt_enc   *context,
+                                      struct t_cose_parameter *parameters)
+{
+    context->added_body_parameters = parameters;
+}
+
+
+static inline void
+t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc   *me,
+                             struct t_cose_recipient_enc *recipient)
+{
+
+    /* Use base class function to add a signer/recipient to the linked list. */
+    t_cose_link_rs((struct t_cose_rs_obj **)&me->recipients_list,
+                   (struct t_cose_rs_obj *)recipient);
+}
+
+
+static inline void
+t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,
+                                     struct q_useful_buf extern_enc_buffer)
+{
+    context->extern_enc_struct_buffer = extern_enc_buffer;
 }
 
 
@@ -338,7 +429,6 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                                        NULL,
                                        encrypted_cose_message);
 }
-
 
 #ifdef __cplusplus
 }

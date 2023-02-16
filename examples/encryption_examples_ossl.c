@@ -172,7 +172,7 @@ void key_wrap_example()
      * COSE_Recipient by just giving it the pointer to it. It will get
      * called back in the next step.
      */
-    t_cose_encrypt_enc_init(&enc_context, 0, T_COSE_ALGORITHM_A128GCM);
+    t_cose_encrypt_enc_init(&enc_context, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT, T_COSE_ALGORITHM_A128GCM);
     t_cose_encrypt_add_recipient(&enc_context, (struct t_cose_recipient_enc *)&kw_recipient);
 
 

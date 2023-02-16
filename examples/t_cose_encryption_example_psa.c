@@ -305,7 +305,7 @@ static int key_wrap_example(void)
      * COSE_Recipient by just giving it the pointer to it. It will get
      * called back in the next step.
      */
-    t_cose_encrypt_enc_init(&enc_context, 0, T_COSE_ALGORITHM_A128GCM);
+    t_cose_encrypt_enc_init(&enc_context, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT, T_COSE_ALGORITHM_A128GCM);
     t_cose_encrypt_add_recipient(&enc_context, (struct t_cose_recipient_enc *)&kw_recipient);
 
 
@@ -345,12 +345,11 @@ static int key_wrap_example(void)
 
     t_cose_encrypt_dec_add_recipient(&dec_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
 
-    err = t_cose_encrypt_dec(&dec_context,
-                       encrypted_cose_message.ptr, /* ciphertext */
-                       encrypted_cose_message.len,
-                       NULL, /* aad */
-                       0,
-                       decrypted_payload_buf.ptr, decrypted_payload_buf.len,
+    err = t_cose_encrypt_dec_detached(&dec_context,
+                              encrypted_cose_message, /* ciphertext */
+                                      NULL_Q_USEFUL_BUF_C,
+                              encrypted_payload,
+                              decrypted_payload_buf,
                              &decrypted_payload);
 
 
@@ -386,7 +385,7 @@ encrypt0_example(void)
      *
      */
     t_cose_encrypt_enc_init(&enc_context,
-                            T_COSE_OPT_COSE_ENCRYPT0,
+                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0,
                             T_COSE_ALGORITHM_A128GCM);
 
     /* For COSE_Encrypt0, we simply make a t_cose_key for the
@@ -434,10 +433,11 @@ encrypt0_example(void)
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
     // TODO: fix this cast to non-const
-    err = t_cose_encrypt_dec(&dec_ctx,
-                             (uint8_t *)(uintptr_t)encrypted_cose_message.ptr, encrypted_cose_message.len,
-                             (uint8_t *)(uintptr_t)encrypted_payload.ptr, encrypted_payload.len,
-                             decrypted_payload_buf.ptr, decrypted_payload_buf.len,
+    err = t_cose_encrypt_dec_detached(&dec_ctx,
+                             encrypted_cose_message,
+                                      NULL_Q_USEFUL_BUF_C,
+                             encrypted_payload,
+                             decrypted_payload_buf,
                              &decrypted_cose_message);
 
     if (err != T_COSE_SUCCESS) {
@@ -560,7 +560,7 @@ int main(void)
 
     printf("\n-- 1a. Create COSE_Encrypt with detached payload using HPKE--\n\n");
 
-    res = test_cose_encrypt(0,
+    res = test_cose_encrypt(T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
                             firmware, firmware_len,
                             buffer, sizeof(buffer),
                             &result_len,
@@ -596,10 +596,11 @@ int main(void)
     t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
     t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&dec_recipient);
 
-    ret = t_cose_encrypt_dec(&dec_ctx,
-                             buffer, result_len, //sizeof(buffer),
-                             encrypted_firmware, encrypted_firmware_result_len,
-                             plaintext, sizeof(plaintext),
+    ret = t_cose_encrypt_dec_detached(&dec_ctx,
+                             (struct q_useful_buf_c){buffer, result_len}, //sizeof(buffer),
+                                      NULL_Q_USEFUL_BUF_C,
+                             (struct q_useful_buf_c){encrypted_firmware, encrypted_firmware_result_len},
+                             (struct q_useful_buf){plaintext, sizeof(plaintext)},
                              &plain_text_ubc);
 
     if (ret != T_COSE_SUCCESS) {
@@ -619,7 +620,7 @@ int main(void)
 
     printf("\n-- 2a. Create COSE_Encrypt with included payload using HPKE--\n\n");
     // TODO: check error code here
-    test_cose_encrypt(0,
+    test_cose_encrypt(T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
                       firmware, firmware_len,
                       buffer, sizeof(buffer),
                       &result_len,
@@ -643,11 +644,12 @@ int main(void)
     t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&dec_recipient);
 
 
-    ret = t_cose_encrypt_dec(&dec_ctx,
-                             buffer, result_len,
-                             NULL, 0,
-                             plaintext, sizeof(plaintext),
-                             &plain_text_ubc);
+    ret = t_cose_encrypt_dec_detached(&dec_ctx,
+                             (struct q_useful_buf_c){buffer, result_len}, // in: cose_messagge
+                                      NULL_Q_USEFUL_BUF_C,
+                             (struct q_useful_buf_c){encrypted_firmware, encrypted_firmware_result_len}, // in: detached ciphertext
+                             (struct q_useful_buf){plaintext, sizeof(plaintext)}, // in: buffer for plaintext
+                             &plain_text_ubc); // out: plaintext
 
     if (ret != T_COSE_SUCCESS) {
         printf("\nDecryption failed!\n");
