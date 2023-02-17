@@ -161,15 +161,16 @@ struct t_cose_encrypt_enc {
  *                               data, for example
  *                               \ref COSE_ALGORITHM_A128GCM.
  *
- * Initializes the \ref t_cose_encrypt_enc_ctx context. . A \c cose_algorithm_id
- * must always be given. EIther T_COSE_OPT_MESSAGE_TYPE_ENCRYPT or
- * T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 must be give to indicate which
- * message type to create.
+ * The lower bits of \ref option_flags may be either 
+ * \ref  T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 or 
+ * \ref T_COSE_OPT_MESSAGE_TYPE_ENCRYPT to select the message type. If
+ * the lower bits are zero it will default to
+ * \re T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0.
  *
- * The algorithm ID space is from
- * [COSE (RFC8152)](https://tools.ietf.org/html/rfc8152) and the
+ * The algorithm ID is requires and is from
+ * [COSE (RFC9053)](https://tools.ietf.org/html/rfc9053) and the
  * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- * \ref COSE_ALGORITHM_A128GCM and a few others are defined here for
+ * \ref T_COSE_ALGORITHM_A128GCM and a few others are defined here for
  * convenience. The supported algorithms depend on the
  * cryptographic library that t_cose is integrated with.
  * The algorithm ID given here is for the bulk encryption of the payload,
@@ -193,6 +194,15 @@ t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,
  *
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
+ * \param[in] recipient  Pointer to recipient object.
+ *
+ * The recipient object should be initialized with algorithm ID and key material.
+ * Note that for COSE encryption there are two algorithm IDs, the one for the
+ * payload/content set with t_cose_encypt_enc_init() and the one
+ * for COSE_Recpient set in the API implementing it.
+ *
+ * The recipient object set here has callbacks that will when t_cose_encrypt_enc()
+ * is doing its work.
  *
  * For multiple recipients this is called multiple times. For direct encryption
  * this is not called.
@@ -259,8 +269,8 @@ t_cose_encrypt_enc_body_header_params(struct t_cose_encrypt_enc   *context,
  * particular platform will use the highest-quality generator).
  *
  * RFC 9052 section 5.2 discourages setting the kid for COSE_Encrypt0
- * so this API doesn't faciliate it, but the API to add custom body headers
- * can be used.
+ * so this API doesn't faciliate it, but t_cose_encrypt_enc_body_header_params()
+ * can be used to set it.
  *
  * RFC 9052 uses the term "direct" encryption sometimes to refer to
  * COSE_Encrypt0, but much more prevalentaly uses it to refer to a
@@ -341,7 +351,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
  *
  * This is the same as t_cose_encrypt_enc() except it produces two separate
  * outputs, the detached ciphertext and the
- * COSE_Encrypt or COSE_Encrypt0. Typically the detached ciphertext
+ * \c COSE_Encrypt or \c COSE_Encrypt0. Typically the detached ciphertext
  * is 16 bytes larger than then payload and the COSE_Encrypt
  * COSE_Encrypt is relatively small and fixed.
  *

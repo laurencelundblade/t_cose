@@ -56,12 +56,13 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
     /* ---- Figure out the COSE message type ---- */
     message_type = T_COSE_OPT_MESSAGE_TYPE_MASK & me->option_flags;
-    if(message_type != T_COSE_OPT_MESSAGE_TYPE_ENCRYPT &&
-       message_type != T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
-        return T_COSE_ERR_FAIL; // TODO: better error code
+    is_cose_encrypt0 = true;
+    switch(message_type) {
+        case 0: message_type = T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0; break;
+        case T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0: break;
+        case T_COSE_OPT_MESSAGE_TYPE_ENCRYPT: is_cose_encrypt0 = false; break;
+        default: return T_COSE_ERR_FAIL; // TODO: better error code
     }
-    is_cose_encrypt0 = (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
-
 
     /* ---- Algorithm ID, IV and parameter list ---- */
     /* Determine algorithm parameters */
@@ -132,6 +133,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
 
     /* ---- Figure out the CEK ---- */
+    // TODO: allow cek to be set for COSE_Encrypt.
     if(is_cose_encrypt0) {
         /* For COSE_Encrypt0, the caller must have set the cek explicitly.*/
         // TODO: error condition here if cek is unset
