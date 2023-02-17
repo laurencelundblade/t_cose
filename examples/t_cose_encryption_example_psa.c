@@ -432,13 +432,12 @@ encrypt0_example(void)
 
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
-    // TODO: fix this cast to non-const
     err = t_cose_encrypt_dec_detached(&dec_ctx,
-                             encrypted_cose_message,
+                                      encrypted_cose_message,
                                       NULL_Q_USEFUL_BUF_C,
-                             encrypted_payload,
-                             decrypted_payload_buf,
-                             &decrypted_cose_message);
+                                      encrypted_payload,
+                                      decrypted_payload_buf,
+                                     &decrypted_cose_message);
 
     if (err != T_COSE_SUCCESS) {
         printf("\nDecryption failed %d!\n", err);

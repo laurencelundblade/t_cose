@@ -181,6 +181,7 @@ struct t_cose_encrypt_enc {
  * t_cose_recipient_enc being used. You can even have serveral with
  * different algorithms (but there can only be one payload encryption
  * algorithm).
+ * TODO: decode-only mode to get parameters to look up keys
  */
 void
 t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,
@@ -213,29 +214,24 @@ t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc    *context,
 
 
 /**
- * TODO: rewrite this documentation for COSE_Encrypt
- * \brief Add header parameters to the \c COSE_Sign or \c COSE_Sign1 main body.
+ * \brief Add header parameters to the \c COSE_Encrypt0 or \c COSE_Encrypt main body.
  *
- * \param[in] context     The t_cose signing context.
- * \param[in] parameters  Array of parameters to add.
+ * \param[in] context     The t_cose encrypting context.
+ * \param[in] parameters  Linkes list of parameters to add.
  *
  * For simple use cases it is not necessary to call this as the
  * algorithm ID, the only mandatory parameter, is automatically
  * added.
  *
- * It is not necessary to call this to add the kid either as that
- * is handled by configuring the \ref t_cose_signature_sign with the kid.
  *
- * This adds parameters to the \c COSE_Sign1 \c COSE_Sign
- * body. Parameters in \c COSE_Signatures in \c COSE_Sign are handed
- * through \ref t_cose_signature_sign.
+ * This adds parameters to the \c COSE_Encrypt0 \c COSE_Encrypt
+ * body. Parameters in \c COSE_Recipient in \c COSE_Encrypt are handed
+ * through \ref t_cose_recipient_enc.
  *
- * This adds an array of header parameters to the body. It is an array
- * terminated by a parameter with type \ref
- * T_COSE_PARAMETER_TYPE_NONE.
+ * This adds a linked list of struct t_cose_parameter terminated by a NULL.
  *
- * Integer and string parameters are handled by filling in the
- * members of the array.
+ * Parameters with integer and string parameters are handled by putting
+ * there values in the struct t_cose_parameter node in the linked list..
  *
  * All the parameters must have a label and a value.
  *
@@ -252,8 +248,8 @@ t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc    *context,
  * don't accumlate parameters.
  */
 static void
-t_cose_encrypt_enc_body_header_params(struct t_cose_encrypt_enc   *context,
-                                      struct t_cose_parameter     *parameters);
+t_cose_encrypt_enc_body_header_params(struct t_cose_encrypt_enc *context,
+                                      struct t_cose_parameter   *parameters);
 
 
 /**
