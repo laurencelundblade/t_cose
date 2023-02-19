@@ -18,6 +18,7 @@
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
+#include "t_cose/t_cose_key.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,16 +99,6 @@ extern "C" {
 
 
 
-/* This sets the maximum key size for symmetric ciphers like AES and ChaCha20 (not supported yet).
-* It is set to 32 to accommodate AES 256 and anything with a smaller
-* key size. This is used to size stack buffers that hold keys.
-* Attempts to use a symmetric key size larger than this will result in an error.
-* Smaller keys sizes are no problem.
-* This could be more dynamically sized based on which algorithms
-* are turned on or off, but probably isn't necessary because
-* it isn't very large and dynamic setting wouldn't save much stack.
-*/
-#define T_COSE_ENCRYPTION_MAX_KEY_LENGTH 32
 
 /** Helper macro to convert bits to bytes */
 #define T_COSE_BITS_TO_BYTES(bits) (((bits) + 7) / 8)
@@ -1158,6 +1149,11 @@ t_cose_crypto_aead_encrypt(int32_t                cose_algorithm_id,
                            struct q_useful_buf_c  plaintext,
                            struct q_useful_buf    ciphertext_buffer,
                            struct q_useful_buf_c *ciphertext);
+
+
+/* Free a symmetric key. */
+void
+t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 
 
 #ifdef __cplusplus
