@@ -133,15 +133,12 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
 
     /* ---- Figure out the CEK ---- */
-    // TODO: allow cek to be set for COSE_Encrypt.
     if(is_cose_encrypt0) {
-        /* For COSE_Encrypt0, the caller must have set the cek explicitly.*/
-        return_value = t_cose_crypto_export_symmetric_key(me->cek, /* in: key handle */
-                                                          cek_buffer, /* in: buffer to write to */
-                                                         &cek_bytes); /* out: exported key bytes */
+        /* For COSE_Encrypt0, the caller must have set the cek explicitly. */
         cek_handle = me->cek;
 
     } else {
+        // TODO: allow cek to be set for COSE_Encrypt?
         /* For COSE_Encrypt, a random key is generated (which will be
          * conveyed to the recipient by some key distribution method in
          * a COSE_Recipient). */

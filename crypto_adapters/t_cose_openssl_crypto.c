@@ -1248,7 +1248,6 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 }
 
 
-
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -1272,6 +1271,7 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
 void
 t_cose_crypto_free_symmetric_key(struct t_cose_key key)
 {
+    /* Nothing to do for OpenSSL symmetric keys. */
 }
 
 

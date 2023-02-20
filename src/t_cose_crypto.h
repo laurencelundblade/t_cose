@@ -1012,7 +1012,7 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
  * \brief Returns the t_cose_key given an algorithm and a symmetric key.
  *
  * \param[in] cose_algorithm_id  COSE algorithm id
- * \param[in] symmetric_key                Symmetric key
+ * \param[in] symmetric_key                Symmetric key.
  * \param[out] key               Key in t_cose_key structure.
  *
  * \retval T_COSE_SUCCESS
@@ -1025,23 +1025,25 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
  *
  * This is part of the crypto adaptor layer because there is an easy
  * universal representation of a symmetric key -- a byte
- * string (this is not true for public key algorithms, so
+ * string (not true for public key algorithms, so
  * there isn't similar for them (yet)).
  *
- * Some crypto libraries support key usage policy. For example, a key
- * marked only to be used for decryption can't be used for
- * encryption. The t_cose crypto adaptor layer doesn't support this
- * for symmetric keys in the interest of code size, because it isn't
- * universal and because it is not a critical security feature.  That
- * is why this API has no usage flags and implementations of this for
- * libraries that do have usage policy should allow all usage
- * policies.
+ * If the crypto library enforces policy around keys (e.g., Mbed TLS), this will
+ * confgure the key returned for the algorithm passed in
+ * and an expected usage policy based on the algorithm. If
+ * the library enfoces no policy (e.g. OpenSSL) this will not
+ * configure the key returned. Future adaptors for libraries where
+ * the policy is optional may choose to do either.
  *
- * Note however that many key handles used in t_cose just pass through
- * to to the crypto library in a struct t_cose_key. For these the key
- * usage will be enforced. For example, a signing key passed into to
- * t_cose_sign will pass through to the library's sign API which will
- * enforce the usage with t_cose non the wiser.
+ * There's one odd-ball case the PSA implementation of this
+ * takes into account -- the Mbed TLS key wrap API. The t_cose
+ * API takes the kek as a t_cose_key because all input keys
+ * to t_cose are such. This means a PSA key handle. However,
+ * the key wrap API takes bytes for the key so the key must
+ * be exported from the handle and thus must have the
+ * key export key use.
+ *
+ * See also t_cose_crypto_free_symmetric_key().
  */
 enum t_cose_err_t
 t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,

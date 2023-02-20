@@ -17,87 +17,166 @@
 #include <stdint.h>
 #include <t_cose/q_useful_buf.h>
 
-/*
- * This file has two purposes: 1) define struct t_cose_key,
- * the abstraction for passing a key through t_cose to the
- * crypto library (e.g.  OpenSSL or Mbed TLS), and 2)
- * methods for encoding and decoding a COSE_Key as defined
- * in RFC 9052.
 
- * This supports some of the standard serialized key formats
- * for various key types and algorithms. Lots of work to do
- * here, but probably this will support the translation of standard
- * key formats to/from a t_cose_key and then a t_cose_key
- * to a COSE_Key. Some are easy, for example the serialize
- * format for all symmetric keys is a byte string. It's a little
- * less straight forward for EC keys.
+/**
+ * \file t_cose_key.h
+ *
+ * This file has several purposes:
+ *
+ * - The definition of struct t_cose_key, an abstraction of a
+ *   cryptographic key.
+ *
+ * - APIs to initialize struct t_cose_key from common or 
+ *   standard key representations.
+ *
+ * -  Encoding and decoding of COSE_Key defined in RFC 9052.
+ *
+ * t_cose is designed to support multiple cryptographic
+ * libraries. Cryptographic libraries have very different ways of
+ * holding and handling keys. It is not possible to have a common
+ * efficient representation of keys that is fully independent of all
+ * the cryptographic libraries. Struct t_cose_key is an abstraction to
+ * hold several representations (pointers, handles and buffers) so
+ * keys can pass through t_cose to the library to the underlying
+ * library. This means the code to initialize a struct t_cose_key will
+ * usually be dependent on the cryptographic library. This is the one
+ * part of t_cose APIs that is not independent of the cryptographic
+ * library.
+ *
+ * For example, OpenSSL’s representation of a symmetric key is a
+ * pointer and a length. Mbed TLS’s representation is a key
+ * handle. Struct t_cose_key is a union and can handle either of
+ * these, but the user needs to know which and act accordingly.
+ *
+ * In most cases the user of t_cose will initialize a t_cose_key with
+ * a signing key, a decrypting key or such and pass it into the t_cose
+ * API which will in turn pass it to the crypto library. t_cose itself
+ * does nothing with the key.
+ *
+ * The abstraction provided by t_cose_key accommodates architectures
+ * where the actual bytes for the key are behind a protection boundary
+ * such as in an HSM. This support is an important design
+ * characteristic of t_cose.
+ *
+ * t_cose_key itself carries no type information. Any error checking
+ * for the key type is in the cryptographic library. For example, if
+ * you try to pass a symmetric key to a public key signing algorithm,
+ * t_cose won’t notice, but the cryptographic library probably will
+ * (such checking is left out of t_cose to keep code size and memory
+ * use lower). The error code returned by t_cose may or may not be
+ * helpful.
+ *
+ * For some cryptographic libraries, keys involve some allocation that
+ * must be freed. This might be a memory pool (e.g., malloc) or a pool
+ * of key handles. While some do not require this, it is better
+ * practice to always free keys so that implementations are portable
+ * to both libraries that require freeing and those that don’t
+ * (libraries that don’t require freeing will provide a stub that does
+ * nothing for freeing).
+ *
+ * Some libraries like Mbed TLS have mandatory key use policy and
+ * other like OpenSSL have none. Both are accommodated.  COSE_Key also
+ * is able to express some key use policy.
+ *
+ * When keys pass through t_cose completely, it is up to the caller to
+ * set up the policy of the key for the anticipated use. For example,
+ * when using Mbed TLS, a key that is passed to
+ * t_cose_signature_sign_main_set_signing_key() for ECDSA signing
+ * should be configured for use with the
+ * PSA_ALG_ECDSA(PSA_ALG_SHA_256) algorithm and the
+ * PSA_KEY_USAGE_SIGN_HASH usage.
+ *
+ * When t_cose provides library-independent means to initialize a
+ * t_cose_key such as t_cose_key_init_symmetric(), it will set up the
+ * policy as best it can in a general way. It will take the COSE
+ * algorithm ID and translate it to that for the library and set up
+ * for expected key usage.
+ *
+ * Import/export for common/standard key serialization formats
+ * supported here are intentionally limited to those that can be more
+ * easily supported across all the cryptographic libraries to minimize
+ * the work of porting to a new cryptographic library. For example,
+ * symmetric keys are easy to support because they are always
+ * representable as a byte string. Public key formats are messier
+ * because there are multiple formats for representing them (e.g.,
+ * PEM, DER, a point on a curve, …).  COSE_Key is the primary
+ * serialization format that will be (is) supported here. This is a
+ * COSE library not a general purpose crypto library.
  */
 
 
 
-/* Serialized key representations vary a lot from algorithm to algorithm and
- * API to API and standard to standard. The intent here is to support
- * some of the most common ones that are not tied to a particular crypto
- * library. That is to say, the functions here, like the rest of
- * t_cose work with any and *all* crypto libraries.
- *
- * That means not all key formats and such will be supported here and
- * use of t_cose will require callers to write code specific to
- * crypto libraries to inialize keys.
- *
- * There should be some caution here when adding new serialized key
- * formats because any one that is added will need to be implemented
- * for all the crypto libraries t_cose is integrated with.
- *
- */
 
-
-/* This sets the maximum key size for symmetric ciphers like AES and ChaCha20 (not supported yet).
-* It is set to 32 to accommodate AES 256 and anything with a smaller
-* key size. This is used to size stack buffers that hold keys.
-* Attempts to use a symmetric key size larger than this will result in an error.
-* Smaller keys sizes are no problem.
-* This applies to keys for HMAC and key wrap as well.
-* This could be more dynamically sized based on which algorithms
-* are turned on or off, but probably isn't necessary because
-* it isn't very large and dynamic setting wouldn't save much stack.
+/**
+ * This is the maximum key size for symmetric ciphers like AES and
+ * ChaCha20 (not supported yet).  It also applies to key wrap.  It is
+ * set to 32 to accommodate AES 256 and anything with a smaller key
+ * size. This is used to size buffers that hold keys and buffers that
+ * are related to key size.  Attempts to use a symmetric cipher key
+ * size larger than this will result in an error.  Smaller keys sizes
+ * are no problem.
+ *
+ * This primarily affects stack use, but is not a primary consumer of
+ * stack. (Improvement: this could be made #ifdef conditional on which
+ * algorithms are enabled, but it's not a high priority because it doesn't
+ * use that much stack).
 */
 #define T_COSE_MAX_SYMMETRIC_KEY_LENGTH 32
 
 
 /**
- * This structure passes a key through  t_cose
- * to the underlying cryptography libraries. While initialization methods
- * are provided for some key types, you often must know the
- * cryptographic library that is integrated with t_cose to know how to
- * fill in this data structure.
+ * This hold keys so they can pass through t_cose to the underlying
+ * cryptographic library where they are used. It is used for all keys
+ * for all algorithms in the t_cose API whether they are symmetric,
+ * public or private.
  *
- * This same data structure is used for many different key types such
- * as symmetric keys and public keys, private keys and even key pairs.
+ * To fill this in, the particular use, key type and algorithm
+ * expected must be know. Further, the cryptographic library and how
+ * it uses this structure for a particular key and algorithm must be
+ * known. Looking at the t_cose example code is probably most direct
+ * path. Also see the general discussion for t_cose_key.h.
  *
- * (The crypto_lib member used in t_cose 1.x is dropped in 2.x because
- * it seems unnecessary and was not supported uniformly. It is unneccessary
- * because individual t_cose libraries are for a particular crypto library and
- * only one is supported at a time by t_cose. Removal of the he crypto_lib member
- * also saves object code).
+ * Initializers are provided for some common or standard key
+ * serialization formats.
+ *
+ * t_cose_key is initialized to 0 and/or NULL pointers if it is not
+ * holding a key and crypto adapters for libraries should honor this
+ * if possible.
  */
 struct t_cose_key {
     union {
-        /** For libraries that use a pointer to the key or key
-         * handle. \c NULL indicates empty. */
+        /** For libraries that use a pointer to the key or key handle. */
         void *ptr;
-        /** For libraries that use an integer handle to the key */
+
+        /** For libraries that use an integer handle to the key. */
         uint64_t handle;
-        /** For pointer and length of actual key bytes. Length is a uint16_t to keep the
-         * size of this struct down because it occurs on the stack. */
+
+        /** For pointer and length of some memory the use of which is
+         * up to the adapter layer. It could be just the bytes of the
+         * key or it could be an elaborate structure. */
         struct q_useful_buf_c buffer;
     } key;
 };
 
+/*
+ * (The crypto_lib member used in t_cose 1.x is dropped in 2.x because
+ * it seems unnecessary and was not supported uniformly. It is
+ * unneccessary because individual t_cose libraries are for a
+ * particular crypto library and only one is supported at a time by
+ * t_cose. Removal of the he crypto_lib member also saves object code)
+ */
 
 
 
-/* This takes the bytes that make up a symmetric key and
+
+/**
+ * \brief Initialize a  t_cose_key holding a symmetric key.
+ *
+ * \param[in] cose_algorithm_id   The algorithm with which the key is to be used.
+ * \param[in] symmetric_key   Pointer and length of bytes in symmertic key.
+ * \param[out] key   The t_cose_key to be initialize.
+ *
+ * This takes the bytes that make up a symmetric key and
  * makes a t_cose_key out of it in the form for use with the
  * current crypto library. This works for keys for AES (e.g.,   )
  * key wrap and HMAC  (e.g., ). For example, this can be used to
@@ -105,6 +184,10 @@ struct t_cose_key {
  * t_cose_encrypt_set_key(), t_cose_recipient_enc_keywrap_set_key()
  * and others APIs needing a symmetric
  * key.
+ *
+ * The lifetime of the bytes passed in for \c symmetric_key should
+ * be longer than that of the key returned as it may reference the
+ * bytes (It does for OpenSSL. Not sure for MbedTLS).
  *
  * For some crypto libraries, the key will only be usable for
  * the algorithm specfied. For other crypto libraries
@@ -114,9 +197,9 @@ struct t_cose_key {
  * for the algorithm specified. An error will usually
  * be returned if it is not.
  *
+ * See t_cose_key_free_symmetric().
+ *
  * See \ref T_COSE_MAX_SYMMETRIC_KEY_LENGTH.
- *
- *
  */
 enum t_cose_err_t
 t_cose_key_init_symmetric(int32_t               cose_algorithm_id,
@@ -124,11 +207,17 @@ t_cose_key_init_symmetric(int32_t               cose_algorithm_id,
                           struct t_cose_key     *key);
 
 
+/**
+ * \brief Free t_cose_key initialized by t_cose_key_init_symmetric()
+ *
+ * \param[in] key   The key to free.
+ *
+ * While not all crypto libraries require this call to be made, it
+ * should be made by any code that is to be usable with multiple
+ * crypto libraries.
+ */
 void
 t_cose_key_free_symmetric(struct t_cose_key key);
 
-
-
-/* -------------- inline ---------------- */
 
 #endif /* t_cose_key_h */

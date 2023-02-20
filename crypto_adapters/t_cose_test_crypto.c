@@ -411,7 +411,6 @@ t_cose_crypto_free_symmetric_key(struct t_cose_key key)
 {
 }
 
-
 /* Compute size of ciphertext, given size of plaintext. Returns
  * SIZE_MAX if the algorithm is unknown. Also returns the tag
  * length. */

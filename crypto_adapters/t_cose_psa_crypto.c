@@ -988,10 +988,10 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
 
     /* Export public key */
     status = psa_export_public_key( (mbedtls_svc_key_id_t)
-                                       key.key.handle,  /* Key handle */
-                                    pk_buffer.ptr,        /* PK buffer */
-                                    pk_buffer.len,        /* PK buffer size */
-                                    pk_len);              /* Result length */
+                                       key.key.handle, /* in: Key handle     */
+                                    pk_buffer.ptr,     /* in: PK buffer      */
+                                    pk_buffer.len,     /* in: PK buffer size */
+                                    pk_len);           /* out: Result length */
 
     if (status != PSA_SUCCESS) {
         return(T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED);
@@ -1009,13 +1009,13 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                                         struct q_useful_buf_c symmetric_key,
                                         struct t_cose_key    *key_handle)
 {
-    psa_algorithm_t        psa_algorithm;
-    psa_key_handle_t       psa_key_handle;
-    psa_status_t           status;
-    psa_key_attributes_t   attributes;
-    size_t                 key_bitlen;
-    psa_key_type_t         psa_keytype;
-    psa_key_usage_t        psa_key_usage;
+    psa_algorithm_t       psa_algorithm;
+    psa_key_handle_t      psa_key_handle;
+    psa_status_t          status;
+    psa_key_attributes_t  attributes;
+    size_t                key_bitlen;
+    psa_key_type_t        psa_keytype;
+    psa_key_usage_t       psa_key_usage;
 
     /* TODO: remove this and put it somewhere common. (It's OK to call twice,
      * so having it here doesn't cause a problem in the short term */
@@ -1030,6 +1030,8 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
      * necessitates setting PSA_KEY_USAGE_EXPORT here. There is no PSA API
      * for key wrap, only an MbedTLS API. That API takes key *bytes* not
      * a key handle (like PSA APIs). See t_cose_crypto_kw_wrap().
+     *
+     * Also see comments in t_cose_key.h and t_cose_crypto.h
      */
 
     switch (cose_algorithm_id) {
@@ -1082,21 +1084,6 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
 
-    /* t_cose doesn't make use of PSA's ability to check key usage. It
-     * just sets all possible usages needed for t_cose here. While
-     * this loses some guards, these are only guards against the
-     * programmer doing something wrong, not against bad input. This
-     * particular function is also used primarily for only the CEK in
-     * t_cose. That means the programmer is the t_cose developer, not
-     * the t_cose user. Very little is lost and the object code is
-     * smaller.
-     *
-     * Note that all the key handles the user of t_cose passes into
-     * t_cose from the public interface (not the ones set up here)
-     * need to have key usage set right. These key handles pass
-     * through t_cose and the crypto adapter, so if the crypto lib
-     * enforces key usage like PSA does, they will be in effect.
-     */
     attributes = psa_key_attributes_init();
     psa_set_key_usage_flags(&attributes, psa_key_usage);
     psa_set_key_algorithm(&attributes, psa_algorithm);
