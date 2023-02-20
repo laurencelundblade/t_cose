@@ -141,6 +141,8 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
  * If short-circuit signing is used,
  * \ref T_COSE_OPT_SHORT_CIRCUIT_TAG, then this does not need to be
  * called.
+ *
+ * TODO: remove mention of short circuit; is empty key really OK?
  */
 static void
 t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *context,
