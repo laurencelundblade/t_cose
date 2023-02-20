@@ -409,6 +409,7 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 void
 t_cose_crypto_free_symmetric_key(struct t_cose_key key)
 {
+    (void)key;
 }
 
 /* Compute size of ciphertext, given size of plaintext. Returns
@@ -462,6 +463,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     (void)nonce;
     (void)aad;
     (void)cose_algorithm_id;
+    (void)key;
 
 
     if(ciphertext_buffer.ptr == NULL) {
@@ -506,6 +508,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     (void)nonce;
     (void)aad;
     (void)cose_algorithm_id;
+    (void)key;
 
     UsefulInputBuf UIB;
     UsefulInputBuf_Init(&UIB, ciphertext);

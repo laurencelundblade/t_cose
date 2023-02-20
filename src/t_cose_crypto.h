@@ -1031,7 +1031,7 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
  * If the crypto library enforces policy around keys (e.g., Mbed TLS),
  * this will confgure the key returned for the algorithm passed in and
  * an expected usage policy based on the algorithm. If the library
- * enfoces no policy (e.g. OpenSSL) this will not configure the key
+ * enforces no policy (e.g. OpenSSL) this will not configure the key
  * returned. Future adaptors for libraries where the policy is
  * optional may choose to do either.
  *
@@ -1040,7 +1040,7 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
  * as a t_cose_key because all input keys to t_cose are such. This
  * means a PSA key handle. However, the key wrap API takes bytes for
  * the key so the key must be exported from the handle and thus must
- * have the key export key use.
+ * allow the key export key use.
  *
  * See also t_cose_crypto_free_symmetric_key().
  */

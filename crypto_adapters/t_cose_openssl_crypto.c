@@ -1271,6 +1271,7 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
 void
 t_cose_crypto_free_symmetric_key(struct t_cose_key key)
 {
+    (void)key;
     /* Nothing to do for OpenSSL symmetric keys. */
 }
 

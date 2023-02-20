@@ -1026,7 +1026,7 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
      * of usages.  OpenSSL OTOH has no such enforcement (which means less
      * codes in the crypto layer).
 
-     * MbedTLS is inconsistent with the PSA API in a way for key wrap that
+     * Mbed TLS is inconsistent with the PSA API for key wrap that
      * necessitates setting PSA_KEY_USAGE_EXPORT here. There is no PSA API
      * for key wrap, only an MbedTLS API. That API takes key *bytes* not
      * a key handle (like PSA APIs). See t_cose_crypto_kw_wrap().

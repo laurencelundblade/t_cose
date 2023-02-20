@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <t_cose/q_useful_buf.h>
+#include "t_cose/t_cose_common.h"
 
 
 /**
@@ -34,37 +35,36 @@
  * t_cose is designed to support multiple cryptographic
  * libraries. Cryptographic libraries have very different ways of
  * holding and handling keys. It is not possible to have a common
- * efficient representation of keys that is fully independent of all
+ * efficient representation of keys that is fully independent for all
  * the cryptographic libraries. Struct t_cose_key is an abstraction to
- * hold several representations (pointers, handles and buffers) so
- * keys can pass through t_cose to the library to the underlying
- * library. This means the code to initialize a struct t_cose_key will
- * usually be dependent on the cryptographic library. This is the one
- * part of t_cose APIs that is not independent of the cryptographic
- * library.
+ * hold several representations (pointers, handles and buffers) so key
+ * varying key representations can pass through t_cose to the library
+ * to the underlying library. This is the one part of t_cose APIs that
+ * is not independent of the cryptographic library.
  *
  * For example, OpenSSL’s representation of a symmetric key is a
  * pointer and a length. Mbed TLS’s representation is a key
  * handle. Struct t_cose_key is a union and can handle either of
  * these, but the user needs to know which and act accordingly.
  *
- * In most cases the user of t_cose will initialize a t_cose_key with
- * a signing key, a decrypting key or such and pass it into the t_cose
- * API which will in turn pass it to the crypto library. t_cose itself
- * does nothing with the key.
- *
- * The abstraction provided by t_cose_key accommodates architectures
- * where the actual bytes for the key are behind a protection boundary
- * such as in an HSM. This support is an important design
- * characteristic of t_cose.
+ * In typical use, the caller of t_cose will initialize a struct
+ * t_cose_key with the right kind of key material for the
+ * operation. For example, when creating a COSE_Sign, they might
+ * initialize a t_cose_key with a private key for ECDSA
+ * prime256v1. The steps to do this will be different for Mbed TLS
+ * from OpenSSL because these two libraries have very different
+ * representations for an EC key. Then the t_cose_key is passed to a
+ * t_cose API which will pass it to the cryptographic libary for the
+ * particular cryptographic operation.  t_cose itself does no
+ * operation with the key.
  *
  * t_cose_key itself carries no type information. Any error checking
  * for the key type is in the cryptographic library. For example, if
  * you try to pass a symmetric key to a public key signing algorithm,
  * t_cose won’t notice, but the cryptographic library probably will
  * (such checking is left out of t_cose to keep code size and memory
- * use lower). The error code returned by t_cose may or may not be
- * helpful.
+ * use lower). Sometimes the error numbers for these errors may
+ * be less than ideal because of the layers involved.
  *
  * For some cryptographic libraries, keys involve some allocation that
  * must be freed. This might be a memory pool (e.g., malloc) or a pool
@@ -85,6 +85,11 @@
  * should be configured for use with the
  * PSA_ALG_ECDSA(PSA_ALG_SHA_256) algorithm and the
  * PSA_KEY_USAGE_SIGN_HASH usage.
+ *
+ * The abstraction provided by t_cose_key accommodates architectures
+ * where the actual bytes for the key are behind a protection boundary
+ * such as in an HSM. This support is an important design
+ * characteristic of t_cose.
  *
  * When t_cose provides library-independent means to initialize a
  * t_cose_key such as t_cose_key_init_symmetric(), it will set up the
@@ -140,7 +145,7 @@
  * serialization formats.
  *
  * t_cose_key is initialized to 0 and/or NULL pointers if it is not
- * holding a key and crypto adapters for libraries should honor this
+ * holding a key. Crypto adapters for libraries should honor this
  * if possible.
  */
 struct t_cose_key {
