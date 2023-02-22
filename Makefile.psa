@@ -53,6 +53,7 @@ CRYPTO_INC=-I /usr/local/include
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_PSA_CRYPTO
 CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o
 CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
+CRYPTO_EXAMPLE_OBJ=examples/init_keys_psa.o
 
 
 # ---- other configuration ----
@@ -82,7 +83,7 @@ CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 # ---- The build targets ----
 .PHONY: all install install_headers install_so uninstall clean warn
 
-all: libt_cose.a t_cose_test t_cose_basic_example_psa t_cose_encryption_example_psa
+all: libt_cose.a t_cose_test t_cose_examples
 
 # run "make warn" as a handy way to compile with the warning flags
 # used in the QCBOR release process. See C_OPTS above.
@@ -121,6 +122,8 @@ crypto_adapters/t_cose_psa_crypto.o: crypto_adapters/t_cose_psa_crypto.c \
                                      src/t_cose_util.h \
                                      inc/t_cose/t_cose_standard_constants.h
 
+t_cose_examples: $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) libt_cose.a
+	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 
 # ---- Installation ----
