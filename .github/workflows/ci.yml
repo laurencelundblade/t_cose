@@ -113,13 +113,8 @@ jobs:
           ..
         make -j $(nproc)
 
-    - name: Run OpenSSL example
-      if: matrix.config.crypto-provider == 'OpenSSL'
-      run: build/t_cose_basic_example_ossl
-
-    - name: Run MbedTLS example
-      if: matrix.config.crypto-provider == 'MbedTLS'
-      run: build/t_cose_basic_example_psa
+    - name: Run examples
+      run: build/t_cose_examples
 
     - name: Run tests
       run: build/t_cose_test
