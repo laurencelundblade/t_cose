@@ -1,9 +1,9 @@
 /*
- *  examples_main.c
+ * examples_main.c
  *
  * Copyright 2023, Laurence Lundblade
  *
- *  Created by Laurence Lundblade on 2/21/23.
+ * Created by Laurence Lundblade on 2/21/23.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -28,11 +28,11 @@ typedef struct {
 } test_entry;
 
 static test_entry s_tests[] = {
-    TEST_ENTRY(one_step_sign_example),
 #ifndef T_COSE_DISABLE_HPKE
     TEST_ENTRY(hpke_example),
 #endif /* !T_COSE_DISABLE_HPKE */
-
+    
+    TEST_ENTRY(one_step_sign_example),
     TEST_ENTRY(two_step_sign_example),
     TEST_ENTRY(two_step_sign_example_new),
     TEST_ENTRY(two_step_sign_example_new_verify),

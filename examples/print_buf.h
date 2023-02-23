@@ -1,14 +1,14 @@
 /*
-*  print_buf.c
-*
-* Copyright 2023, Laurence Lundblade
-*
-*  Created by Laurence Lundblade on 2/21/23.
-*
-* SPDX-License-Identifier: BSD-3-Clause
-*
-* See BSD-3-Clause license in README.md
-*/
+ * print_buf.c
+ *
+ * Copyright 2023, Laurence Lundblade
+ *
+ *  Created by Laurence Lundblade on 2/21/23.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
 
 
 #ifndef print_buf_h

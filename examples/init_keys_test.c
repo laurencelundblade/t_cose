@@ -1,7 +1,7 @@
 /*
- *  init_keys_test.c
+ * init_keys_test.c
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *

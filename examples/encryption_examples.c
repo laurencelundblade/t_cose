@@ -1,5 +1,5 @@
 /*
- *  encryption_examples.c
+ * encryption_examples.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright 2023, Laurence Lundblade
@@ -49,7 +49,8 @@ encrypt0_example(void)
     Q_USEFUL_BUF_MAKE_STACK_UB(    decrypted_payload_buf, 1024);
     struct t_cose_encrypt_dec_ctx  dec_ctx;
 
-    printf("\n-- 3a. Create COSE_Encrypt0 with detached payload --\n\n");
+    printf("\n---- STARTING encrypt0 EXAMPLE ----\n");
+    printf("   COSE_Encrypt0 with detached payload\n");
     /* This is the simplest form of COSE encryption, a COSE_Encrypt0.
      * It has only headers and the ciphertext.
      *
@@ -93,7 +94,7 @@ encrypt0_example(void)
                              &encrypted_payload,
                              &encrypted_cose_message);
     if(err != T_COSE_SUCCESS) {
-        printf("Encryption Failed %d\n", err);
+        goto Done;
     }
 
     print_useful_buf("COSE: ", encrypted_cose_message);
@@ -119,7 +120,12 @@ encrypt0_example(void)
     }
 
     print_useful_buf("\nPlaintext: ", decrypted_cose_message);
-    return 0;
+
+Done:
+    printf("---- COMPLETED encrypt0 EXAMPLE (%d) %s ----\n\n",
+           err, err ? "FAIL" : "");
+
+    return (int32_t)err;
 }
 
 
@@ -146,7 +152,7 @@ key_wrap_example(void)
 
 
 
-    printf("\n-- 4a. Create COSE_Encrypt with detached payload using AES-KW --\n\n");
+    printf("\n---- STARTING key_wrap EXAMPLE ----\n. Create COSE_Encrypt with detached payload using AES-KW --\n\n");
 
 
     /* ---- Make key handle for wrapping key -----
@@ -155,9 +161,12 @@ key_wrap_example(void)
      * API requires input keys be struct t_cose_key so there's a
      * little work to do here.
      */
-    t_cose_key_init_symmetric(T_COSE_ALGORITHM_A128KW,
-                              Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
-                             &kek);
+    err = t_cose_key_init_symmetric(T_COSE_ALGORITHM_A128KW,
+                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
+                                   &kek);
+    if(err) {
+        goto Done;
+    }
 
     /* ---- Set up keywrap recipient object ----
      *
@@ -207,8 +216,7 @@ key_wrap_example(void)
 
 
     if (err != 0) {
-        printf("\nEncryption failed!\n");
-        return(EXIT_FAILURE);
+        goto Done;
     }
 
     print_useful_buf("COSE: ", encrypted_cose_message);
@@ -230,8 +238,10 @@ key_wrap_example(void)
                               decrypted_payload_buf,
                              &decrypted_payload);
 
-
-    return 0;
+    Done:
+    printf("---- COMPLETED key_wrap EXAMPLE (%d) %s ----\n\n",
+           err, err ? "FAIL" : "");
+    return (int32_t)err;
 }
 
 

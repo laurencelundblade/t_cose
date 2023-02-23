@@ -1,5 +1,5 @@
 /*
- *  init_keys_ossl.c
+ * init_keys_ossl.c
  *
  * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2022, Arm Limited. All rights reserved.
