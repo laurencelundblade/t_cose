@@ -246,6 +246,9 @@ init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
                                struct t_cose_key *public_key,
                                struct t_cose_key *private_key)
 {
+    (void)cose_algorithm_id;
+    (void)public_key;
+    (void)private_key;
     return T_COSE_ERR_FAIL;
 }
 
@@ -253,4 +256,5 @@ init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
 void
 free_fixed_test_encryption_key(struct t_cose_key key_pair)
 {
+    (void)key_pair;
 }

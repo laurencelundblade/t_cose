@@ -222,6 +222,7 @@ init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
                                struct t_cose_key *public_key,
                                struct t_cose_key *private_key)
 {
+    (void)cose_algorithm_id; // TODO: probably need to check this
     psa_status_t status;
     psa_key_attributes_t pkR_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t pkR_handle = PSA_KEY_HANDLE_INIT;
