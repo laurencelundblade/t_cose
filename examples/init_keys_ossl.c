@@ -103,9 +103,9 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
 
 
 /*
- * Public function, see t_cose_make_test_pub_key.h
+ * Public function, see init_keys.h
  */
-int check_for_key_pair_leaks()
+int check_for_key_allocation_leaks()
 {
     /* So far no good way to do this for OpenSSL or malloc() in general
        in a nice portable way. The PSA version does check so there is
@@ -185,7 +185,7 @@ static const unsigned char ec521_key_pair[] = {
 };
 
 static const unsigned char rsa2048_private_key[] = {
-#include "t_cose_rsa_test_key.h"
+#include "rsa_test_key.h"
 };
 
 static const unsigned char ed25519_private_key[] = {

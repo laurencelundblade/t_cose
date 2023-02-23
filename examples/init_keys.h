@@ -85,4 +85,9 @@ init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
 void
 free_fixed_test_encryption_key(struct t_cose_key key_pair);
 
+
+
+
+int check_for_key_allocation_leaks(void);
+
 #endif /* init_keys_h */

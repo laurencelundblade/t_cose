@@ -43,7 +43,7 @@ CRYPTO_INC=-I crypto_adapters/b_con_hash
 CRYPTO_LIB=
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_B_CON_SHA256 
 CRYPTO_OBJ=crypto_adapters/t_cose_test_crypto.o crypto_adapters/b_con_hash/sha256.o
-CRYPTO_TEST_OBJ=test/t_cose_make_test_test_key.o
+CRYPTO_TEST_OBJ=examples/init_keys_test.o
 
 
 # ---- other configuration ----
@@ -65,7 +65,7 @@ C_OPTS=-Os -fPIC
 
 
 # ---- Aggregate includes and options ----
-INC=-I inc -I test -I src
+INC=-I inc -I test -I src -I examples
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 

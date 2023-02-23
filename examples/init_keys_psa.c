@@ -10,8 +10,9 @@
  */
 
 
-#include "t_cose_make_test_pub_key.h" /* The interface implemented here */
+#include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_standard_constants.h"
+#include "t_cose/t_cose_key.h"
 #include "psa/crypto.h"
 
 
@@ -51,7 +52,7 @@
 
 
 /*
- * Public function, see t_cose_make_test_pub_key.h
+ * Public function, see init_keys.h
  */
 enum t_cose_err_t init_signing_key_from_xx(int32_t            cose_algorithm_id,
                                 struct t_cose_key *key_pair)
@@ -69,7 +70,7 @@ enum t_cose_err_t init_signing_key_from_xx(int32_t            cose_algorithm_id,
     static const uint8_t private_key_384[]     = {PRIVATE_KEY_secp384r1};
     static const uint8_t private_key_521[]     = {PRIVATE_KEY_secp521r1};
     static const uint8_t private_key_rsa2048[] = {
-#include "t_cose_rsa_test_key.h"
+#include "rsa_test_key.h"
     };
 
     /* There is not a 1:1 mapping from COSE algorithm to key type, but
@@ -183,7 +184,7 @@ enum t_cose_err_t init_signing_key_from_xx(int32_t            cose_algorithm_id,
 }
 
 /*
- * Public function, see t_cose_make_test_pub_key.h
+ * Public function, see init_keys.h
  */
 void free_fixed_signing_key(struct t_cose_key key_pair)
 {
@@ -272,9 +273,9 @@ init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
 
 
 /*
- * Public function, see t_cose_make_test_pub_key.h
+ * Public function, see init_keys.h
  */
-int check_for_key_pair_leaks(void)
+int check_for_key_allocation_leaks(void)
 {
     return 0;
 }
@@ -284,5 +285,6 @@ enum t_cose_err_t
 init_fixed_test_signing_key(int32_t            cose_algorithm_id,
                             struct t_cose_key *key_pair)
 {
-    return 0;
+    // TODO: refactor so key constants are here, separate from import function
+    return init_signing_key_from_xx(cose_algorithm_id, key_pair);
 }

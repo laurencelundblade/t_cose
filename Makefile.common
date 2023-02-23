@@ -199,7 +199,6 @@ test/t_cose_test.o: test/t_cose_test.h \
 test/t_cose_sign_verify_test.o: test/t_cose_sign_verify_test.h \
                                 test/t_cose_make_test_messages.h \
                                 src/t_cose_crypto.h \
-                                test/t_cose_make_test_pub_key.h \
                                 $(PUBLIC_INTERFACE)
 
 test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h \
@@ -213,13 +212,8 @@ test/run_test.o: test/run_test.h \
                  test/t_cose_hash_fail_test.h \
                  test/t_cose_compute_validate_mac_test.h \
 
-test/t_cose_make_openssl_test_key.o: test/t_cose_make_test_pub_key.h \
-                                     inc/t_cose/t_cose_standard_constants.h \
-                                     inc/t_cose/t_cose_common.h
-
 test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h \
                                          inc/t_cose/t_cose_mac_validate.h \
-                                         test/t_cose_make_test_pub_key.h \
                                          test/t_cose_compute_validate_mac_test.h
 
 
