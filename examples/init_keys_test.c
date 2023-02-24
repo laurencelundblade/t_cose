@@ -37,6 +37,9 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
 
 
 
+/*
+ * Public function, see init_key.h
+ */
 enum t_cose_err_t
 init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
                                struct t_cose_key *public_key,
@@ -49,6 +52,14 @@ init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
 }
 
 
+/*
+ * Public function, see init_key.h
+ */
+void
+free_fixed_test_encryption_key(struct t_cose_key key_pair)
+{
+    (void)key_pair;
+}
 
 
 

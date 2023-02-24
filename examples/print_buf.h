@@ -26,7 +26,7 @@
  * This is just for pretty printing.
  */
 void
-print_useful_buf(const char *string_label,
+print_useful_buf(const char           *string_label,
                  struct q_useful_buf_c buf);
 
 

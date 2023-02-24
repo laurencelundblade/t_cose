@@ -20,10 +20,11 @@
 #include "openssl/evp.h"
 #include "openssl/x509.h"
 
+
 /*
  *
  * The input bytes are what d2i_PrivateKey() will decode.
- * It's documentation is sparse. It say it must be DER
+ * It's documentation is sparse. It says it must be DER
  * format and is related to PKCS #8. This seems to be
  * a set of DER-encoded ASN.1 data types such as:
  *
@@ -35,7 +36,7 @@
  *
  *
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 init_signing_key_der(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c der_encoded,
                      struct t_cose_key    *key_pair)
@@ -92,37 +93,26 @@ Done:
 }
 
 
-
 /*
- * Public function, see init_keys.h
- */
-void free_fixed_signing_key(struct t_cose_key key_pair)
-{
-    EVP_PKEY_free(key_pair.key.ptr);
-}
-
-
-/*
- * Public function, see init_keys.h
- */
-int check_for_key_allocation_leaks()
-{
-    /* So far no good way to do this for OpenSSL or malloc() in general
-       in a nice portable way. The PSA version does check so there is
-       some coverage of the code even though there is no check here.
-     */
-    return 0;
-}
-
-
-
-/*
- * RFC 5915 format EC private key, including the public key. These
- * are the same key as in t_cose_make_psa_test_key.c
+ * These are RFC 5915 format EC private keys. The ASN.1 for them is:
  *
- * They are made by:
+ *    ECPrivateKey ::= SEQUENCE {
+ *       version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+ *       privateKey     OCTET STRING,
+ *       parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+ *       publicKey  [1] BIT STRING OPTIONAL
+ *    }
  *
- *   openssl ecparam -genkey -name prime256v1 | sed -e '1d' -e '$d' | base64 --decode  | xxd -i
+ * The byte arrays below are DER encoding of this. They include
+ * the public key (which is optional).
+ *
+ * They also include ECParameters so identification of the curve and
+ * such are part of the data and don't have to be specified in the
+ * API call to OpenSSL.
+ *
+ * These are the same key as in init_keys_psa.c (but there only the private
+ * key bytes are needed because the PSA import doesn't need the DER or
+ * the public key).
  *
  * See also:
  *  https://stackoverflow.com/
@@ -130,7 +120,6 @@ int check_for_key_allocation_leaks()
  *  set-an-evp-pkey-from-ec-raw-points-pem-or-der-in-both-openssl-1-1-1-and-3-0-x/
  *  71896633#71896633
  */
-
 static const unsigned char ec256_key_pair[] = {
   0x30, 0x77, 0x02, 0x01, 0x01, 0x04, 0x20, 0xd9, 0xb5, 0xe7, 0x1f, 0x77,
   0x28, 0xbf, 0xe5, 0x63, 0xa9, 0xdc, 0x93, 0x75, 0x62, 0x27, 0x7e, 0x32,
@@ -196,7 +185,6 @@ static const unsigned char ed25519_private_key[] = {
 };
 
 
-
 /*
  * Public function, see init_key.h
  */
@@ -241,6 +229,20 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
 }
 
 
+/*
+ * Public function, see init_keys.h
+ */
+void free_fixed_signing_key(struct t_cose_key key_pair)
+{
+    EVP_PKEY_free(key_pair.key.ptr);
+}
+
+
+
+
+/*
+ * Public function, see init_key.h
+ */
 enum t_cose_err_t
 init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
                                struct t_cose_key *public_key,
@@ -253,8 +255,25 @@ init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
 }
 
 
+/*
+ * Public function, see init_key.h
+ */
 void
 free_fixed_test_encryption_key(struct t_cose_key key_pair)
 {
     (void)key_pair;
+}
+
+
+
+/*
+ * Public function, see init_keys.h
+ */
+int check_for_key_allocation_leaks()
+{
+    /* So far no good way to do this for OpenSSL or malloc() in general
+       in a nice portable way. The PSA version does check so there is
+       some coverage of the code even though there is no check here.
+     */
+    return 0;
 }

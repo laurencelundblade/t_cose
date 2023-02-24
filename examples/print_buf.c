@@ -1,9 +1,7 @@
 /*
  * print_buf.c
  *
- * Copyright 2023, Laurence Lundblade
- *
- * Created by Laurence Lundblade on 2/21/23.
+ * Copyright 2019-2023, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
