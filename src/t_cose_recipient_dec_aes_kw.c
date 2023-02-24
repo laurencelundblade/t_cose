@@ -54,15 +54,15 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
     if(err != T_COSE_SUCCESS) {
         goto Done;
     }
-#if 0
- TODO: restore this check
-    if(!q_useful_buf_c_is_empty(protected_params)) {
-        /* There's can't be any protected headers here because
-         * keywrap can't protected them (need an AEAD) */
+    if(!(q_useful_buf_c_is_empty(protected_params) ||
+         !q_useful_buf_compare(protected_params, Q_USEFUL_BUF_FROM_SZ_LITERAL("\xa0")))) {
+        /* There's can't be any protected headers here because keywrap
+         * can't protected them (need an AEAD). The byte 0xa0 is an
+         * encoded empty CBOR map. While completely empty headers are
+         * preferred an empty map is allowed. */
         // TODO: the right error here
         return T_COSE_ERR_FAIL;
     }
-#endif
     /* ---- Third item -- ciphertext ---- */
     QCBORDecode_GetByteString(cbor_decoder, &ciphertext);
 
