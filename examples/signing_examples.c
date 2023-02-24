@@ -1,7 +1,7 @@
 /*
  * signing_examples.c
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  *
  * Created by Laurence Lundblade on 2/20/23 from previous files.
  *
@@ -62,6 +62,8 @@ int32_t one_step_sign_example(void)
     QCBOREncodeContext             cbor_encode;
     QCBORError                     qcbor_result;
 
+    printf("\n---- START EXAMPLE one_step_sign  ----\n");
+    printf("Create COSE_Sign1 with ES256\n");
 
     /* ------   Construct the payload    ------
      *
@@ -165,9 +167,7 @@ int32_t one_step_sign_example(void)
         goto Done;
     }
 
-    print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
-
-
+    print_useful_buf("COSE_Sign1 message:", signed_cose);
     printf("\n");
 
 
@@ -207,7 +207,7 @@ int32_t one_step_sign_example(void)
         goto Done;
     }
 
-    print_useful_buf("Signed payload:\n", returned_payload);
+    print_useful_buf("Verifyed payload:", returned_payload);
 
 
     /* ------   Free key pair   ------
@@ -215,10 +215,12 @@ int32_t one_step_sign_example(void)
      * Some implementations of PSA allocate slots for the keys in
      * use. This call indicates that the key slot can be de allocated.
      */
-    printf("Freeing key pair\n\n\n");
     free_fixed_signing_key(key_pair);
 
 Done:
+    printf("---- %s EXAMPLE one_step_sign (%d) ----\n\n",
+           return_value ? "FAILED" : "COMPLETED", return_value);
+
     return (int32_t)return_value;
 }
 
@@ -244,7 +246,8 @@ int32_t two_step_sign_example(void)
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
 
-
+    printf("\n---- START EXAMPLE two_step_sign  ----\n");
+    printf("Create COSE_Sign1 with ES256\n");
 
     /* ------   Make an ECDSA key pair    ------
      *
@@ -309,7 +312,7 @@ int32_t two_step_sign_example(void)
      *
      * QCBOREncode functions are used to add the payload. It all goes
      * directly into the output buffer without any temporary copies.
-     * QCBOR keeps track of the what is the payload so t_cose knows
+     * QCBOR keeps track of the what is the payload is so t_cose knows
      * what to hash and sign.
      *
      * The encoded CBOR here can be very large and complex. The only
@@ -369,7 +372,7 @@ int32_t two_step_sign_example(void)
         goto Done;
     }
 
-    print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
+    print_useful_buf("COSE_Sign1:", signed_cose);
 
 
     printf("\n");
@@ -411,7 +414,7 @@ int32_t two_step_sign_example(void)
         goto Done;
     }
 
-    print_useful_buf("Signed payload:\n", payload);
+    print_useful_buf("Verified payload:", payload);
 
 
     /* ------   Free key pair   ------
@@ -419,10 +422,11 @@ int32_t two_step_sign_example(void)
      * Some implementations of PSA allocate slots for the keys in
      * use. This call indicates that the key slot can be de allocated.
      */
-    printf("Freeing key pair\n\n\n");
     free_fixed_signing_key(key_pair);
 
 Done:
+    printf("---- %s EXAMPLE two_step_sign (%d) ----\n\n",
+       return_value ? "FAILED" : "COMPLETED", return_value);
     return (int)return_value;
 }
 
@@ -449,7 +453,9 @@ int32_t two_step_sign_example_new(void)
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
 
-
+    printf("\n---- START EXAMPLE two_step_sign_new  ----\n");
+    printf("Create COSE_Sign1 with ES256\n");
+    printf("Create using new sign API, verify with old\n");
 
     /* ------   Make an ECDSA key pair    ------
      *
@@ -581,9 +587,7 @@ int32_t two_step_sign_example_new(void)
         goto Done;
     }
 
-    print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
-
-
+    print_useful_buf("COSE_Sign1:", signed_cose);
     printf("\n");
 
 
@@ -623,7 +627,7 @@ int32_t two_step_sign_example_new(void)
         goto Done;
     }
 
-    print_useful_buf("Signed payload:\n", payload);
+    print_useful_buf("Verified payload:", payload);
 
 
     /* ------   Free key pair   ------
@@ -631,10 +635,11 @@ int32_t two_step_sign_example_new(void)
      * Some implementations of PSA allocate slots for the keys in
      * use. This call indicates that the key slot can be de allocated.
      */
-    printf("Freeing key pair\n\n\n");
     free_fixed_signing_key(key_pair);
 
 Done:
+    printf("---- %s EXAMPLE two_step_sign_new (%d) ----\n\n",
+       return_value ? "FAILED" : "COMPLETED", return_value);
     return (int)return_value;
 }
 
@@ -660,7 +665,9 @@ int32_t two_step_sign_example_new_verify(void)
     QCBORError                     cbor_error;
     struct t_cose_sign_verify_ctx verify_ctx;
 
-
+    printf("\n---- START EXAMPLE two_step_sign_example_new_verify  ----\n");
+    printf("Create COSE_Sign1 with ES256\n");
+    printf("Create using old sign API, verify with new\n");
 
     /* ------   Make an ECDSA key pair    ------
      *
@@ -785,9 +792,7 @@ int32_t two_step_sign_example_new_verify(void)
         goto Done;
     }
 
-    print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
-
-
+    print_useful_buf("COSE_Sign1:", signed_cose);
     printf("\n");
 
 
@@ -832,7 +837,7 @@ int32_t two_step_sign_example_new_verify(void)
         goto Done;
     }
 
-    print_useful_buf("Signed payload:\n", payload);
+    print_useful_buf("Verified payload:", payload);
 
 
     /* ------   Free key pair   ------
@@ -840,10 +845,12 @@ int32_t two_step_sign_example_new_verify(void)
      * Some implementations of PSA allocate slots for the keys in
      * use. This call indicates that the key slot can be de allocated.
      */
-    printf("Freeing key pair\n\n\n");
     free_fixed_signing_key(key_pair);
 
 Done:
+
+    printf("---- %s EXAMPLE two_step_sign_example_new_verify (%d) ----\n\n",
+       return_value ? "FAILED" : "COMPLETED", return_value);
     return (int32_t)return_value;
 }
 

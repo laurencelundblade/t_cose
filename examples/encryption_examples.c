@@ -49,8 +49,9 @@ encrypt0_example(void)
     Q_USEFUL_BUF_MAKE_STACK_UB(    decrypted_payload_buf, 1024);
     struct t_cose_encrypt_dec_ctx  dec_ctx;
 
-    printf("\n---- STARTING encrypt0 EXAMPLE ----\n");
-    printf("   COSE_Encrypt0 with detached payload\n");
+    printf("\n---- START EXAMPLE encrypt0  ----\n");
+    printf("Create COSE_Encrypt0 with detached payload using A128GCM\n");
+
     /* This is the simplest form of COSE encryption, a COSE_Encrypt0.
      * It has only headers and the ciphertext.
      *
@@ -97,11 +98,11 @@ encrypt0_example(void)
         goto Done;
     }
 
-    print_useful_buf("COSE: ", encrypted_cose_message);
-    print_useful_buf("\n\nCiphertext: ", encrypted_payload);
+    print_useful_buf("COSE_Encrypt0: ", encrypted_cose_message);
+    print_useful_buf("Detached ciphertext: ", encrypted_payload);
     printf("\n");
 
-    printf("\n-- 3b. Process COSE_Encrypt0 with detached payload --\n\n");
+    printf("Completed encryption; starting decryption\n");
 
     t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
 
@@ -116,15 +117,14 @@ encrypt0_example(void)
 
     if (err != T_COSE_SUCCESS) {
         printf("\nDecryption failed %d!\n", err);
-        return 1;
+        goto Done;
     }
 
-    print_useful_buf("\nPlaintext: ", decrypted_cose_message);
+    print_useful_buf("Plaintext: ", decrypted_cose_message);
 
 Done:
-    printf("---- COMPLETED encrypt0 EXAMPLE (%d) %s ----\n\n",
-           err, err ? "FAIL" : "");
-
+    printf("---- %s EXAMPLE encrypt0 (%d) ----\n\n",
+           err ? "FAILED" : "COMPLETED", err);
     return (int32_t)err;
 }
 
@@ -150,9 +150,8 @@ key_wrap_example(void)
     Q_USEFUL_BUF_MAKE_STACK_UB(         encrypted_payload_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(         decrypted_payload_buf, 1024);
 
-
-
-    printf("\n---- STARTING key_wrap EXAMPLE ----\n. Create COSE_Encrypt with detached payload using AES-KW --\n\n");
+    printf("\n---- START EXAMPLE key_wrap ----\n");
+    printf("Create COSE_Encrypt with detached payload using AES-KW\n");
 
 
     /* ---- Make key handle for wrapping key -----
@@ -219,8 +218,8 @@ key_wrap_example(void)
         goto Done;
     }
 
-    print_useful_buf("COSE: ", encrypted_cose_message);
-    print_useful_buf("\n\nCiphertext: ", encrypted_payload);
+    print_useful_buf("COSE_Encrypt: ", encrypted_cose_message);
+    print_useful_buf("Detached Ciphertext: ", encrypted_payload);
     printf("\n");
 
 
@@ -237,10 +236,16 @@ key_wrap_example(void)
                               encrypted_payload,
                               decrypted_payload_buf,
                              &decrypted_payload);
+    if(err) {
+        goto Done;
+    }
 
-    Done:
-    printf("---- COMPLETED key_wrap EXAMPLE (%d) %s ----\n\n",
-           err, err ? "FAIL" : "");
+    print_useful_buf("Decrypted Payload:", decrypted_payload);
+
+
+  Done:
+    printf("---- %s EXAMPLE key_wrap (%d) ----\n\n",
+           err ? "FAILED" : "COMPLETED", err);
     return (int32_t)err;
 }
 
@@ -271,7 +276,8 @@ hpke_example(void)
 #define PAYLOAD  "This is the payload"
 #define TEST_KID "fixed_test_key_p256r1"
 
-    printf("\n-- HPKE Example Starting ---\n");
+    printf("\n---- START EXAMPLE HPKE ----\n");
+    printf("Create COSE_Encrypt with detached payload using HPKE_P256_HKDF256_AES128_GCM\n");
 
     /* Create a key pair.  This is a fixed test key pair. The creation
      * of this key pair is crypto-library dependent because t_cose_key
@@ -281,8 +287,7 @@ hpke_example(void)
                                             &pkR, /* out: public key to be used for encryption */
                                             &skR); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
-        printf("\nKey pair creation failed: %d\n",result);
-        return 1;
+        goto Done;
     }
     
 
@@ -321,13 +326,13 @@ hpke_example(void)
 
     if (result != T_COSE_SUCCESS) {
         printf("error encrypting (%d)\n", result);
-        return 2;
+        goto Done;
     }
 
     print_useful_buf("COSE_Encrypt: ", cose_encrypted_message);
     print_useful_buf("Detached Ciphertext: ", encrypted_detached_payload);
 
-    printf("\n-- HPKE encryption succeeded; starting decryption ---\n");
+    printf("\nHPKE encryption succeeded; starting decryption\n");
 
 
     /* Set up the decryption context, telling it what type of
@@ -355,19 +360,21 @@ hpke_example(void)
 
     if (result != T_COSE_SUCCESS) {
         printf("error decrypting (%d)\n", result);
-        return 3;
+        goto Done;
     }
 
     if(q_useful_buf_compare(decrypted_plain_text, Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD))) {
         printf("Decrypted content didn't match payload\n");
-        return 4;
+        result = 1;
+        goto Done;
     }
 
     print_useful_buf("Decrypted plaintext: ", decrypted_plain_text);
 
-    printf("\n --- decryption completed ---\n\n");
-
-    return 0;
+Done:
+    printf("---- %s EXAMPLE HPKE (%d) ----\n\n",
+       result ? "FAILED" : "COMPLETED", result);
+    return (int32_t)result;
 }
 
 #endif /* !T_COSE_DISABLE_HPKE */
