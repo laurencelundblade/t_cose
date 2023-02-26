@@ -278,7 +278,8 @@ static int key_wrap_example(void)
                                       NULL_Q_USEFUL_BUF_C,
                               encrypted_payload,
                               decrypted_payload_buf,
-                             &decrypted_payload);
+                             &decrypted_payload,
+                                      NULL);
 
 
     return 0;
@@ -365,7 +366,8 @@ encrypt0_example(void)
                                       NULL_Q_USEFUL_BUF_C,
                                       encrypted_payload,
                                       decrypted_payload_buf,
-                                     &decrypted_cose_message);
+                                     &decrypted_cose_message,
+                                      NULL);
 
     if (err != T_COSE_SUCCESS) {
         printf("\nDecryption failed %d!\n", err);
@@ -526,7 +528,8 @@ int main(void)
                                       NULL_Q_USEFUL_BUF_C,
                              (struct q_useful_buf_c){encrypted_firmware, encrypted_firmware_result_len},
                              (struct q_useful_buf){plaintext, sizeof(plaintext)},
-                             &plain_text_ubc);
+                             &plain_text_ubc,
+                                      NULL);
 
     if (ret != T_COSE_SUCCESS) {
         printf("\nDecryption failed!\n");
@@ -574,7 +577,8 @@ int main(void)
                                       NULL_Q_USEFUL_BUF_C,
                              (struct q_useful_buf_c){encrypted_firmware, encrypted_firmware_result_len}, // in: detached ciphertext
                              (struct q_useful_buf){plaintext, sizeof(plaintext)}, // in: buffer for plaintext
-                             &plain_text_ubc); // out: plaintext
+                             &plain_text_ubc,
+                                      NULL); // out: plaintext
 
     if (ret != T_COSE_SUCCESS) {
         printf("\nDecryption failed!\n");

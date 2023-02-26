@@ -19,12 +19,19 @@
 
 
 /*
- * RFC 5915 format EC private key, including the public key. These
- * are the same key as in t_cose_make_psa_test_key.c
+ * These are RFC 5915 format EC private keys. The ASN.1 for them is:
  *
- * They are made by:
+ *    ECPrivateKey ::= SEQUENCE {
+ *       version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+ *       privateKey     OCTET STRING,
+ *       parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+ *       publicKey  [1] BIT STRING OPTIONAL
+ *    }
  *
- *   openssl ecparam -genkey -name prime256v1 | sed -e '1d' -e '$d' | base64 --decode  | xxd -i
+ * The byte arrays below are DER encoding of this. They include
+ * the public key (which is optional).
+ *
+ * This is the same key as in
  *
  * See also:
  *  https://stackoverflow.com/

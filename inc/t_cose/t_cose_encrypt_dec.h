@@ -212,6 +212,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
  * \param[in] detached_ciphertext  The detached ciphertext.
  * \param[in] plaintext_buffer                A buffer for plaintext.
  * \param[out] plaintext     Place to return pointer and length of the plaintext.
+ * \param[out] returned_parameters  Place to return linked list of header parameters.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -225,7 +226,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
                             struct q_useful_buf_c          aad,
                             struct q_useful_buf_c          detached_ciphertext,
                             struct q_useful_buf            plaintext_buffer,
-                            struct q_useful_buf_c         *plaintext);
+                            struct q_useful_buf_c         *plaintext,
+                            struct t_cose_parameter      **returned_parameters);
 
 
 /* ------------------------------------------------------------------------
