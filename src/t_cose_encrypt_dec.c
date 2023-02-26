@@ -156,7 +156,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
     nonce_cbor = t_cose_find_parameter_iv(decoded_body_parameter_list);
-    algorithm_id = t_cose_find_parameter_alg_id(decoded_body_parameter_list);
+    algorithm_id = t_cose_find_parameter_alg_id(decoded_body_parameter_list, true);
 
     if(returned_parameters != NULL) {
         *returned_parameters = decoded_body_parameter_list;
