@@ -163,7 +163,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
     /* --- The Ciphertext ---- */
-    if(q_useful_buf_c_is_null(detached_ciphertext)) {
+    if(!q_useful_buf_c_is_null(detached_ciphertext)) {
         QCBORDecode_GetNull(&cbor_decoder);
         cipher_text = detached_ciphertext;
     } else {
@@ -238,6 +238,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         // TODO: better error here.
         return T_COSE_ERR_FAIL;
     }
+
+    QCBORDecode_ExitArray(&cbor_decoder);
 
     cbor_error = QCBORDecode_Finish(&cbor_decoder);
     if(cbor_error != QCBOR_SUCCESS) {
