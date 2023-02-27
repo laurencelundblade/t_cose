@@ -218,7 +218,10 @@ test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h \
                                          inc/t_cose/t_cose_mac_validate.h \
                                          test/t_cose_compute_validate_mac_test.h
 
-#TODO: dependency for encrypt test
+test/t_cose_encrypt_decrypt_test.o:	test/t_cose_encrypt_decrypt_test.c \
+					test/t_cose_encrypt_decrypt_test.h \
+					examples/init_keys.h \
+					$(PUBLIC_INTERFACE) 
 
 
 # ---- example dependencies ----

@@ -97,6 +97,8 @@
 		E7AE889329AB72750093B326 /* t_cose_encrypt_decrypt_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AE889229AB72740093B326 /* t_cose_encrypt_decrypt_test.c */; };
 		E7AE889429AB72750093B326 /* t_cose_encrypt_decrypt_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AE889229AB72740093B326 /* t_cose_encrypt_decrypt_test.c */; };
 		E7AE889529AB72750093B326 /* t_cose_encrypt_decrypt_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AE889229AB72740093B326 /* t_cose_encrypt_decrypt_test.c */; };
+		E7AE889629AC4DFB0093B326 /* t_cose_encrypt_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = E77108092917EDA900D8ADF4 /* t_cose_encrypt_enc.c */; };
+		E7AE889729AC4DFC0093B326 /* t_cose_encrypt_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = E77108092917EDA900D8ADF4 /* t_cose_encrypt_enc.c */; };
 		E7AF703628DADF5E00F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
 		E7AF703728DADFCF00F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
 		E7AF703828DADFD000F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
@@ -818,6 +820,7 @@
 				E7F17327293B09E500E5ADF3 /* t_cose_signature_sign_main.c in Sources */,
 				E77108202917EDA900D8ADF4 /* t_cose_recipient_dec_hpke.c in Sources */,
 				E7F17373295D1EC700E5ADF3 /* t_cose_crypto_test.c in Sources */,
+				E7AE889729AC4DFC0093B326 /* t_cose_encrypt_enc.c in Sources */,
 				E7F17328293B09E500E5ADF3 /* t_cose_signature_verify_main.c in Sources */,
 				E730E60C23612DAB00175CE0 /* run_tests.c in Sources */,
 				E730E62123612E3900175CE0 /* t_cose_test_crypto.c in Sources */,
@@ -951,6 +954,7 @@
 				E72FB01D231ADAA8000970FE /* run_tests.c in Sources */,
 				E7E36EA5226CBB570040613B /* t_cose_openssl_crypto.c in Sources */,
 				E7F1732B293B0EE700E5ADF3 /* t_cose_signature_verify_main.c in Sources */,
+				E7AE889629AC4DFB0093B326 /* t_cose_encrypt_enc.c in Sources */,
 				E7AE888B29A6A3870093B326 /* init_keys_ossl.c in Sources */,
 				E771082D2917EDA900D8ADF4 /* t_cose_recipient_enc_hpke.c in Sources */,
 				E7F1730529275F4900E5ADF3 /* t_cose_signature_sign_eddsa.c in Sources */,

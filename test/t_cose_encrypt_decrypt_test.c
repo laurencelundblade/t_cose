@@ -161,6 +161,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
     ps[1].value.string = Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxxxxxx");
     ps[1].label = INT16_MAX; /* Just a sort of big number */
     ps[1].in_protected = false;
+    ps[1].critical = false;
     ps[1].next = NULL;
     // TODO: header callback
 
