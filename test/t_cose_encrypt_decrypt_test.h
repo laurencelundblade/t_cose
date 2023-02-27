@@ -1,10 +1,12 @@
-//
-//  t_cose_encrypt_decrypt_test.h
-//  t_cose
-//
-//  Created by Laurence Lundblade on 2/26/23.
-//  Copyright © 2023 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_encrypt_decrypt_test.h
+ *
+ * Copyright 2023, Laurence Lundblade
+ * Created by Laurence Lundblade on 2/26/23.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
 
 #ifndef t_cose_encrypt_decrypt_test_h
 #define t_cose_encrypt_decrypt_test_h

@@ -165,7 +165,7 @@ t_cose_encrypt_dec_set_cek(struct t_cose_encrypt_dec_ctx *context,
 
 /*
  * See the various recipient implementations such as the ones for
- * direct encryption (TBD), keywrap and HPKE.
+ * keywrap and HPKE.
  */
 static void
 t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *context,

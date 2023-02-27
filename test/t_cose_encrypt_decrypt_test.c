@@ -1,10 +1,13 @@
-//
-//  t_cose_encrypt_decrypt_test.c
-//  t_cose
-//
-//  Created by Laurence Lundblade on 2/26/23.
-//  Copyright © 2023 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_encrypt_decrypt_test.c
+ *
+ * Copyright 2023, Laurence Lundblade
+ * Created by Laurence Lundblade on 2/26/23.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
 
 #include "t_cose_encrypt_decrypt_test.h"
 
@@ -111,12 +114,19 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
     struct q_useful_buf_c          cek_bytes;
     struct q_useful_buf_c          encrypted_cose_message;
     struct q_useful_buf_c          decrypted_payload;
+    struct q_useful_buf_c          encrypted_detached;
     Q_USEFUL_BUF_MAKE_STACK_UB(    cose_message_buf, 1024);
+    Q_USEFUL_BUF_MAKE_STACK_UB(    detached_encrypted_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(    decrypted_payload_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(    enc_struct_buf, 1024);
     struct t_cose_encrypt_dec_ctx  dec_ctx;
     struct t_cose_parameter        ps[2];
     struct t_cose_parameter       *decoded_parameters;
+
+    struct t_cose_parameter_storage p_storage;
+    struct t_cose_parameter         p_storage_array[10];
+
+
 
     /* Make the payload big to test t_cose_encrypt_set_enc_struct_buffer() */
 #define AAD "100 bytes of AAD for test" \
@@ -184,7 +194,17 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
+    /* Test being able to set a big buffer for the internal
+     * making of the enc_structure.
+     */
     t_cose_decrypt_set_enc_struct_buffer(&dec_ctx, enc_struct_buf);
+
+
+    /* Test being able to expand the pool of param storage
+     * even though there's not that many parameters here.
+     */
+    T_COSE_PARAM_STORAGE_INIT(p_storage, p_storage_array);
+    t_cose_encrypt_add_param_storage(&dec_ctx, &p_storage);
 
     // TODO: header callbacks
 
@@ -209,7 +229,41 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         goto Done;
     }
 
-    // TODO: test detached
+    /* ---- test detached ----- */
+    t_cose_encrypt_enc_init(&enc_context,
+                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0,
+                            cose_algorithm_id);
+    t_cose_encrypt_set_cek(&enc_context, cek);
+    t_cose_err = t_cose_encrypt_enc_detached(&enc_context,
+                                             Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD),
+                                             NULL_Q_USEFUL_BUF_C,
+                                             detached_encrypted_buf,
+                                             cose_message_buf,
+                                             &encrypted_detached,
+                                            &encrypted_cose_message);
+    if(t_cose_err) {
+        return_value = 6000 + (int32_t)t_cose_err;
+        goto Done;
+    }
+
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
+    t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
+    t_cose_err = t_cose_encrypt_dec_detached(&dec_ctx,
+                                              encrypted_cose_message,
+                                              NULL_Q_USEFUL_BUF_C,
+                                              encrypted_detached,
+                                              decrypted_payload_buf,
+                                             &decrypted_payload,
+                                             NULL);
+    if(t_cose_err) {
+        return_value = 7000 + (int32_t)t_cose_err;
+        goto Done;
+    }
+    if(q_useful_buf_compare(decrypted_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD))) {
+        return_value = -8;
+        goto Done;
+    }
+
 
 Done:
     t_cose_key_free_symmetric(cek);
