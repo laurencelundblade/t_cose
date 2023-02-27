@@ -105,6 +105,8 @@ struct t_cose_encrypt_dec_ctx {
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
+
+    struct q_useful_buf           extern_enc_struct_buffer;
 };
 
 
@@ -166,9 +168,18 @@ t_cose_encrypt_dec_set_cek(struct t_cose_encrypt_dec_ctx *context,
  * direct encryption (TBD), keywrap and HPKE.
  */
 static void
-t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
+t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *context,
                                  struct t_cose_recipient_dec   *recipient);
 
+
+static void
+t_cose_encrypt_add_param_storage(struct t_cose_encrypt_dec_ctx   *context,
+                                 struct t_cose_parameter_storage *storage);
+
+
+static void
+t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
+                                     struct q_useful_buf            enc_buffer);
 
 /**
  * \brief Decryption of a \c COSE_Encrypt0 or \c COSE_Encrypt structure.
@@ -199,7 +210,8 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
                    struct q_useful_buf_c          message,
                    struct q_useful_buf_c          aad,
                    struct q_useful_buf            plaintext_buffer,
-                   struct q_useful_buf_c         *plaintext);
+                   struct q_useful_buf_c         *plaintext,
+                   struct t_cose_parameter      **returned_parameters);
 
 
 /**
@@ -262,6 +274,20 @@ t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
 }
 
 
+static inline void
+t_cose_encrypt_add_param_storage(struct t_cose_encrypt_dec_ctx   *me,
+                                 struct t_cose_parameter_storage *storage)
+{
+    me->p_storage = storage;
+}
+
+
+static inline void
+t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
+                                     struct q_useful_buf extern_enc_buffer)
+{
+    context->extern_enc_struct_buffer = extern_enc_buffer;
+}
 
 #ifdef __cplusplus
 }

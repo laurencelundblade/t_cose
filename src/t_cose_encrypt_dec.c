@@ -19,7 +19,7 @@
 #include "t_cose_util.h"
 
 
-/* These errors do not stop the calling of the further verifiers for
+/* These errors do not stop the calling of further verifiers for
  * a given COSE_Recipient.
  */
 static bool
@@ -27,6 +27,9 @@ is_soft_verify_error(enum t_cose_err_t error)
 {
     switch(error) {
         case T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
+        case T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG:
+        case T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG:
+        case T_COSE_ERR_UNSUPPORTED_CIPHER_ALG:
         case T_COSE_ERR_KID_UNMATCHED:
         case T_COSE_ERR_UNSUPPORTED_HASH:
         case T_COSE_ERR_DECLINE:
@@ -38,7 +41,7 @@ is_soft_verify_error(enum t_cose_err_t error)
 
 
 static enum t_cose_err_t
-decrypt_one_recipient(struct t_cose_encrypt_dec_ctx     * me,
+decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
                       const struct t_cose_header_location header_location,
                       QCBORDecodeContext                 *cbor_decoder,
                       struct q_useful_buf                 cek_buffer,
@@ -58,7 +61,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx     * me,
     for(recipient_decoder = me->recipient_list;
         recipient_decoder != NULL;
         recipient_decoder = (struct t_cose_recipient_dec *)recipient_decoder->base_obj.next) {
-        return_value = me->recipient_list->decode_cb(me->recipient_list,
+        return_value = recipient_decoder->decode_cb(recipient_decoder,
                                             header_location,
                                             cbor_decoder,
                                             cek_buffer,
@@ -73,8 +76,8 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx     * me,
         }
 
         if(return_value == T_COSE_ERR_NO_MORE) {
-            /* Tried all the recipient handler. None succeeded and none gave a hard failure */
-              return T_COSE_ERR_NO_MORE;
+            /* Tried all the recipient decoders. None succeeded and none gave a hard failure */
+            return T_COSE_ERR_NO_MORE;
         }
 
         if(!is_soft_verify_error(return_value)) {
@@ -243,7 +246,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
 
     cbor_error = QCBORDecode_Finish(&cbor_decoder);
     if(cbor_error != QCBOR_SUCCESS) {
-        // TODO: this is probably more to be done here...
+        // TODO: there is probably more to be done here...
         return_value = T_COSE_ERR_CBOR_DECODE;
         goto Done;
     }
@@ -254,6 +257,10 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
 
 
     /* --- Make the Enc_structure ---- */
+    if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
+        /* Caller gave us a (bigger) buffer for Enc_structure */
+        enc_struct_buffer = me->extern_enc_struct_buffer;
+    }
     return_value = create_enc_structure(message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 ? "Encrypt0" : "Encrypt",
                          protected_parameters,
                          aad,
@@ -276,3 +283,21 @@ Done:
     return return_value;
 }
 
+
+
+enum t_cose_err_t
+t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *me,
+                   struct q_useful_buf_c          message,
+                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf            plaintext_buffer,
+                   struct q_useful_buf_c         *plaintext,
+                   struct t_cose_parameter      **returned_parameters)
+{
+    return t_cose_encrypt_dec_detached(me,
+                                       message,
+                                       aad,
+                                       NULL_Q_USEFUL_BUF_C,
+                                       plaintext_buffer,
+                                       plaintext,
+                                       returned_parameters);
+}
