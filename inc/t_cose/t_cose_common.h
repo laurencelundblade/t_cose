@@ -610,6 +610,11 @@ enum t_cose_err_t {
 
     /** The HMAC did not successfully verify.  */
     T_COSE_ERR_HMAC_VERIFY = 80,
+
+    /* A signing operation is in progress. The function returning this value
+     * can be called again until it returns \ref T_COSE_SUCCESS or error.
+     */
+    T_COSE_ERR_SIG_IN_PROGRESS = 81,
 };
 
 
