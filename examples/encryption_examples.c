@@ -135,6 +135,7 @@ Done:
 #include "t_cose/t_cose_recipient_enc_keywrap.h"
 #include "t_cose/t_cose_recipient_dec_keywrap.h"
 
+
 int32_t
 key_wrap_example(void)
 {
@@ -252,6 +253,7 @@ key_wrap_example(void)
 }
 
 #endif /* !T_COSE_DISABLE_KEYWRAP */
+
 
 
 #ifndef T_COSE_DISABLE_HPKE
