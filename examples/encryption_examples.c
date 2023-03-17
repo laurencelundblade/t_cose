@@ -131,9 +131,10 @@ Done:
 
 
 
+#ifndef T_COSE_DISABLE_KEYWRAP
+#include "t_cose/t_cose_recipient_enc_keywrap.h"
+#include "t_cose/t_cose_recipient_dec_keywrap.h"
 
-#include "t_cose/t_cose_recipient_enc_aes_kw.h"
-#include "t_cose/t_cose_recipient_dec_aes_kw.h"
 
 int32_t
 key_wrap_example(void)
@@ -250,6 +251,8 @@ key_wrap_example(void)
            err ? "FAILED" : "COMPLETED", err);
     return (int32_t)err;
 }
+
+#endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
 
