@@ -153,7 +153,7 @@ static enum sig_summary_error
 verify_one_signature(struct t_cose_sign_verify_ctx       *me,
                      const struct t_cose_header_location  header_location,
                      struct t_cose_sign_inputs           *sign_inputs,
-                     QCBORDecodeContext                  *qcbor_decoder,
+                     QCBORDecodeContext                  *cbor_decoder,
                      struct t_cose_parameter            **decoded_sig_parameter_list,
                      enum t_cose_err_t                   *error_code)
 {
@@ -167,12 +167,12 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
 
     for(verifier = me->verifiers; verifier != NULL; verifier = (struct t_cose_signature_verify *)verifier->rs.next) {
         *error_code = verifier->verify_cb(verifier,
-                                           me->option_flags,
-                                           header_location,
-                                           sign_inputs,
-                                           me->p_storage,
-                                           qcbor_decoder,
-                                           decoded_sig_parameter_list);
+                                          me->option_flags,
+                                          header_location,
+                                          sign_inputs,
+                                          me->p_storage,
+                                          cbor_decoder,
+                                          decoded_sig_parameter_list);
         if(*error_code == T_COSE_SUCCESS) {
             /* If here, then the decode was a success, the crypto
              * verified, and the signature CBOR was consumed. Nothing
@@ -227,35 +227,36 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
  */
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
-                           struct q_useful_buf_c           message,
-                           struct q_useful_buf_c           aad,
+                           const struct q_useful_buf_c     message,
+                           const struct q_useful_buf_c     aad,
+                           const bool                      is_detached,
                            struct q_useful_buf_c          *payload,
-                           struct t_cose_parameter       **returned_parameters,
-                           bool                            is_detached)
+                           struct t_cose_parameter       **returned_parameters)
 {
-    QCBORDecodeContext              decode_context;
+    QCBORDecodeContext              cbor_decoder;
     struct q_useful_buf_c           protected_parameters;
     enum t_cose_err_t               return_value;
     struct q_useful_buf_c           signature;
     QCBORError                      qcbor_error;
     struct t_cose_signature_verify *verifier;
     struct t_cose_header_location   header_location;
-    struct t_cose_parameter        *decoded_body_parameter_list;
-    struct t_cose_parameter        *decoded_sig_parameter_list;
+    struct t_cose_parameter        *body_params_list;
+    struct t_cose_parameter        *sig_params_list;
     struct t_cose_sign_inputs       sign_inputs;
     enum sig_summary_error          s_s_e;
 
     /* --- Decoding of the array of four starts here --- */
-    QCBORDecode_Init(&decode_context, message, QCBOR_DECODE_MODE_NORMAL);
+    QCBORDecode_Init(&cbor_decoder, message, QCBOR_DECODE_MODE_NORMAL);
 
     /* --- The array of 4 and tags --- */
-    QCBORDecode_EnterArray(&decode_context, NULL);
-    if(QCBORDecode_GetError(&decode_context)) {
-        return_value = T_COSE_SUCCESS; /* Needed to quiet warnings about lack of initialization even though it will get set below. The compiler doesn't know about QCBOR internal error state */
+    QCBORDecode_EnterArray(&cbor_decoder, NULL);
+    if(QCBORDecode_GetError(&cbor_decoder)) {
+        // TODO: turn off maybe_initialized???
+        //return_value = T_COSE_SUCCESS; /* Needed to quiet warnings about lack of initialization even though it will get set below. The compiler doesn't know about QCBOR internal error state */
         goto Done3;
     }
 
-    return_value = process_tags(me, &decode_context);
+    return_value = process_tags(me, &cbor_decoder);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -266,12 +267,12 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     header_location.nesting = 0;
     header_location.index   = 0;
 
-    return_value = t_cose_headers_decode(&decode_context,
+    return_value = t_cose_headers_decode(&cbor_decoder,
                                           header_location,
                                           me->param_decode_cb,
                                           me->param_decode_cb_context,
                                           me->p_storage,
-                                         &decoded_body_parameter_list,
+                                         &body_params_list,
                                          &protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -280,12 +281,12 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
     /* --- The payload --- */
     if(is_detached) {
-        QCBORDecode_GetNull(&decode_context);
+        QCBORDecode_GetNull(&cbor_decoder);
         /* In detached content mode, the payload should be set by
          * function caller, so there is no need to set the payload.
          */
     } else {
-        QCBORDecode_GetByteString(&decode_context, payload);
+        QCBORDecode_GetByteString(&cbor_decoder, payload);
     }
 
 
@@ -300,8 +301,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     // TODO: allow tag determination
     if(T_COSE_OPT_IS_SIGN1(me->option_flags)) {
         /* --- The signature bytes for a COSE_Sign1, not COSE_Signatures */
-        QCBORDecode_GetByteString(&decode_context, &signature);
-        if(QCBORDecode_GetError(&decode_context)) {
+        QCBORDecode_GetByteString(&cbor_decoder, &signature);
+        if(QCBORDecode_GetError(&cbor_decoder)) {
             goto Done3;
         }
 
@@ -316,7 +317,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
             return_value = verifier->verify1_cb(verifier,
                                                 me->option_flags,
                                                &sign_inputs,
-                                                decoded_body_parameter_list,
+                                                body_params_list,
                                                 signature);
             if(return_value == T_COSE_SUCCESS) {
                 break;
@@ -333,27 +334,27 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
     } else {
         /* --- An array of COSE_Signatures --- */
-        QCBORDecode_EnterArray(&decode_context, NULL);
-        if(QCBORDecode_GetError(&decode_context)) {
+        QCBORDecode_EnterArray(&cbor_decoder, NULL);
+        if(QCBORDecode_GetError(&cbor_decoder)) {
             /* Not strictly necessary, but very helpful for error reporting. */
             goto Done3;
         }
 
         /* Nesting level is 1, index starts at 0 and gets incremented */
-        header_location = (struct t_cose_header_location){.nesting = 1,
-                                                          .index   = 0 };
+        header_location.nesting = 1;
+        header_location.index   = 0;
 
         while(1) { /* loop over COSE_Signatures */
             header_location.index++;
             enum t_cose_err_t      sig_error_code;
 
-            sig_error_code = 0; // Stops complaints of lack of initalization (are they true??)
+            sig_error_code = 0; // TODO: Stops complaints of lack of initalization (are they true??)
 
             s_s_e = verify_one_signature(me,
                                          header_location,
                                          &sign_inputs,
-                                         &decode_context,
-                                         &decoded_sig_parameter_list,
+                                         &cbor_decoder,
+                                         &sig_params_list,
                                          &sig_error_code);
 
             if(s_s_e == VERIFY_ONE_UNABLE_TO_DECODE || s_s_e == VERIFY_ONE_FAIL) {
@@ -367,11 +368,11 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
             /* Now what's left is a success or decline */
 
             if(s_s_e == VERIFY_ONE_SUCCESS) {
-                if(decoded_body_parameter_list == NULL) {
-                    decoded_body_parameter_list = decoded_sig_parameter_list;
+                if(body_params_list == NULL) {
+                    body_params_list = sig_params_list;
                 } else {
-                    t_cose_parameter_list_append(decoded_body_parameter_list,
-                                                 decoded_sig_parameter_list);
+                    t_cose_parameter_list_append(body_params_list,
+                                                 sig_params_list);
                 }
             }
 
@@ -393,15 +394,15 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
             }
         }
 
-        QCBORDecode_ExitArray(&decode_context);
+        QCBORDecode_ExitArray(&cbor_decoder);
     }
 
 
     /* --- Finish up the CBOR decode --- */
-    QCBORDecode_ExitArray(&decode_context);
+    QCBORDecode_ExitArray(&cbor_decoder);
 
     if(returned_parameters != NULL) {
-        *returned_parameters = decoded_body_parameter_list;
+        *returned_parameters = body_params_list;
     }
 
 Done3:
@@ -409,7 +410,7 @@ Done3:
      * items. It works for definite and indefinte length arrays. Also
      * makes sure there were no extra bytes. Also maps the error code
      * for other decode errors detected above. */
-    qcbor_error = QCBORDecode_Finish(&decode_context);
+    qcbor_error = QCBORDecode_Finish(&cbor_decoder);
     if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
         // TODO: a bit worried whether this is the right thing to do
         goto Done;

@@ -300,6 +300,7 @@
 		E7AE888D29A6DF140093B326 /* init_keys_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init_keys_test.c; sourceTree = "<group>"; };
 		E7AE889129AB72740093B326 /* t_cose_encrypt_decrypt_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_encrypt_decrypt_test.h; sourceTree = "<group>"; };
 		E7AE889229AB72740093B326 /* t_cose_encrypt_decrypt_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_encrypt_decrypt_test.c; sourceTree = "<group>"; };
+		E7AE889829AE25BE0093B326 /* t_cose_call_all.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = t_cose_call_all.c; path = tdv/t_cose_call_all.c; sourceTree = "<group>"; };
 		E7AF703428DADF5E00F07637 /* t_cose_param_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_param_test.h; sourceTree = "<group>"; };
 		E7AF703528DADF5E00F07637 /* t_cose_param_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_param_test.c; sourceTree = "<group>"; };
 		E7C960A527F7569500FB537C /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
@@ -437,6 +438,7 @@
 			children = (
 				E762D6F328D2C32E00A22792 /* decode_only_psa.c */,
 				E762D6F128D0ADCF00A22792 /* encode_only_psa.c */,
+				E7AE889829AE25BE0093B326 /* t_cose_call_all.c */,
 			);
 			name = tdv;
 			sourceTree = "<group>";
@@ -530,8 +532,8 @@
 		E7AE8845299BCB520093B326 /* COSE_Encrypt */ = {
 			isa = PBXGroup;
 			children = (
-				E7AE8854299BCD580093B326 /* t_cose_encrypt_dec.h */,
 				E7AE8855299BCD580093B326 /* t_cose_encrypt_enc.h */,
+				E7AE8854299BCD580093B326 /* t_cose_encrypt_dec.h */,
 			);
 			name = COSE_Encrypt;
 			sourceTree = "<group>";
