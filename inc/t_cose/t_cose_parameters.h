@@ -1,7 +1,7 @@
 /*
  * t_cose_parameters.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2022 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -109,7 +109,6 @@ struct t_cose_parameter;
 /**
  * \brief Type of callback to output the encoded CBOR of a parameter.
  *
- * \param[in] cb_context      Context passed to the callback.
  * \param[in] parameter      A single parameter to encode.
  * \param[in] cbor_encoder  The encoder instance to output to.
  *
@@ -126,11 +125,10 @@ struct t_cose_parameter;
  * error out with the error it returned.
  *
  * If desired there can be several implementations of this for several
- * different parameters.
+ * different parameters or types of parameters.
  */
 typedef enum t_cose_err_t
-t_cose_parameter_encode_cb(void                           *cb_context,
-                           const struct t_cose_parameter  *parameter,
+t_cose_parameter_encode_cb(const struct t_cose_parameter  *parameter,
                            QCBOREncodeContext             *cbor_encoder);
 
 
@@ -175,6 +173,21 @@ struct t_cose_header_location {
 };
 
 
+struct t_cose_param_encoder {
+    t_cose_parameter_encode_cb *encode_cb;
+    /** Encoder callbacks can use any one of these types that
+     * they see fit. The variety is for the convenience of the
+     * encoder callback. */
+    union {
+        void                 *context;
+        int64_t               int64;
+        uint64_t              uint64;
+        struct q_useful_buf_c string;
+        uint8_t               little_buf[8];
+    } data;
+};
+
+
 /**
  * This holds one parameter such as an algorithm ID or kid. When that
  * one parameter is not an integer or string, this holds a callback to
@@ -212,14 +225,9 @@ struct t_cose_parameter {
 
     /** The value of the parameter. */
     union {
-        int64_t               i64;
+        int64_t               int64;
         struct q_useful_buf_c string;
-        void                 *ptr;
-        uint8_t               little_buf[8];
-        struct { /* Used only for encoding */
-            void                       *param_encode_cb_context;
-            t_cose_parameter_encode_cb *param_encode_cb;
-        } custom_encoder;
+        struct t_cose_param_encoder custom_cb; /* Used only for encoding */
     } value;
 
     /** next parameter in the linked list or NULL at the end of the list. */
@@ -231,8 +239,6 @@ struct t_cose_parameter {
 #define T_COSE_PARAMETER_TYPE_INT64        2
 #define T_COSE_PARAMETER_TYPE_BYTE_STRING  6
 #define T_COSE_PARAMETER_TYPE_TEXT_STRING  7
-#define T_COSE_PARAMETER_TYPE_PTR        100
-#define T_COSE_PARAMETER_TYPE_LITTLE_BUF 101
 #define T_COSE_PARAMETER_TYPE_CALLBACK   102
 // TODO: add a parameters type to recursively encode because COSE_Keys are
 // parameter sets too and they go into headers.
@@ -606,10 +612,10 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      *     false,\
      *     {0,0},\
      *     T_COSE_PARAMETER_TYPE_INT64,\
-     *     .value.i64 = alg_id }
+     *     .value.int64 = alg_id }
      * is an initializer. Both C and C++ have initializers,
      * but in C++ they can't use designated initializers,
-     * the part where .value.i64 = alg_id.
+     * the part where .value.int64 = alg_id.
      *
      * The following is a compound literal.
      * #define T_COSE_MAKE_ALG_ID_PARAM(alg_id) \
@@ -618,7 +624,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      *     false,\
      *     {0,0},\
      *     T_COSE_PARAMETER_TYPE_INT64,\
-     *     .value.i64 = alg_id }
+     *     .value.int64 = alg_id }
      *
      * It looks like a cast but it is not. You can take the address of
      * it and it is an lvalue. These exist only in C, not in C++,
@@ -643,7 +649,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
     parameter.location.nesting = 0;
     parameter.label            = T_COSE_HEADER_PARAM_ALG;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
-    parameter.value.i64        = alg_id;
+    parameter.value.int64      = alg_id;
     parameter.next             = NULL;
 
     return parameter;
@@ -660,7 +666,7 @@ t_cose_make_ct_uint_parameter(uint32_t content_type)
     parameter.location.nesting = 0;
     parameter.label            = T_COSE_HEADER_PARAM_CONTENT_TYPE;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
-    parameter.value.i64        = (int32_t)content_type;
+    parameter.value.int64      = (int32_t)content_type;
     parameter.next             = NULL;
 
     return parameter;

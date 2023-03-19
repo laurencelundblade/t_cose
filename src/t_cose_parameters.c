@@ -371,7 +371,7 @@ decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
                 break;
 
             case T_COSE_PARAMETER_TYPE_INT64:
-                parameter->value.i64 = item.val.int64;
+                parameter->value.int64 = item.val.int64;
                 QCBORDecode_VGetNextConsume(cbor_decoder, &item);
                 break;
 
@@ -566,7 +566,7 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
 
         switch(p_param->value_type) {
             case T_COSE_PARAMETER_TYPE_INT64:
-                QCBOREncode_AddInt64ToMapN(cbor_encoder, p_param->label, p_param->value.i64);
+                QCBOREncode_AddInt64ToMapN(cbor_encoder, p_param->label, p_param->value.int64);
                 break;
 
             case T_COSE_PARAMETER_TYPE_TEXT_STRING:
@@ -582,8 +582,7 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
                  * save a little object code. Caller should never
                  * indicate a callback without supplying the pointer
                  */
-                return_value = p_param->value.custom_encoder.param_encode_cb(
-                          p_param->value.custom_encoder.param_encode_cb_context,
+                return_value = p_param->value.custom_cb.encode_cb(
                           p_param,
                           cbor_encoder
                     );
@@ -685,8 +684,8 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool
     p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_ALG);
     if(p_found == NULL ||
         p_found->value_type != T_COSE_PARAMETER_TYPE_INT64 ||
-        p_found->value.i64 == T_COSE_ALGORITHM_RESERVED ||
-        p_found->value.i64 >= INT32_MAX) {
+        p_found->value.int64 == T_COSE_ALGORITHM_RESERVED ||
+        p_found->value.int64 >= INT32_MAX) {
         return T_COSE_ALGORITHM_NONE;
     }
 
@@ -694,7 +693,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool
         return T_COSE_ALGORITHM_NONE;
     }
 
-    return (int32_t)p_found->value.i64;
+    return (int32_t)p_found->value.int64;
 }
 
 
@@ -711,8 +710,8 @@ t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_
                                     T_COSE_HEADER_PARAM_CONTENT_TYPE);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
-       p_found->value.i64 < UINT16_MAX) {
-        return (uint32_t)p_found->value.i64;
+       p_found->value.int64 < UINT16_MAX) {
+        return (uint32_t)p_found->value.int64;
     } else {
         return T_COSE_EMPTY_UINT_CONTENT_TYPE;
     }
@@ -854,11 +853,11 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
                 return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
                 goto Done;
             }
-            if(p->value.i64 == T_COSE_ALGORITHM_RESERVED || p->value.i64 > INT32_MAX) {
+            if(p->value.int64 == T_COSE_ALGORITHM_RESERVED || p->value.int64 > INT32_MAX) {
                 return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                 goto Done;
             }
-            returned_params->cose_algorithm_id = (int32_t)p->value.i64;
+            returned_params->cose_algorithm_id = (int32_t)p->value.int64;
 
         } else if(p->label == T_COSE_HEADER_PARAM_IV) {
             if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
@@ -880,11 +879,11 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
                 returned_params->content_type_tstr = p->value.string;
 
             } else if(p->value_type == T_COSE_PARAMETER_TYPE_INT64) {
-                if(p->value.i64 < 0 || p->value.i64 > UINT16_MAX) {
+                if(p->value.int64 < 0 || p->value.int64 > UINT16_MAX) {
                       return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                       goto Done;
                 }
-                returned_params->content_type_uint = (uint32_t)p->value.i64;
+                returned_params->content_type_uint = (uint32_t)p->value.int64;
 
             } else {
                 return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
