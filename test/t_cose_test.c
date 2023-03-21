@@ -1106,6 +1106,111 @@ static struct sign1_sample sign1_sample_inputs[] = {
     { {NULL, 0}, 0 },
 };
 
+#include "t_cose/t_cose_parameters.h"
+
+
+enum t_cose_err_t
+foo_encode_cb(const struct t_cose_parameter  *parameter,
+              QCBOREncodeContext             *cbor_encoder)
+{
+    QCBOREncode_OpenMapInMapN(cbor_encoder, parameter->label);
+    QCBOREncode_AddInt64ToMap(cbor_encoder, "xxx", 88);
+    QCBOREncode_AddInt64ToMap(cbor_encoder, "yyy", 99);
+    QCBOREncode_CloseMap(cbor_encoder);
+    return T_COSE_SUCCESS;
+}
+
+enum t_cose_err_t
+float_encode_cb(const struct t_cose_parameter  *parameter,
+                QCBOREncodeContext             *cbor_encoder)
+{
+    QCBOREncode_AddDoubleToMapN(cbor_encoder,
+                                parameter->label,
+                                UsefulBufUtil_CopyUint64ToDouble(parameter->value.special_encode.data.uint64));
+
+    return T_COSE_SUCCESS;
+}
+
+int32_t make_complex_cose_sign()
+{
+    struct t_cose_sign_sign_ctx sign_encoder;
+    struct t_cose_signature_sign_main  sig1_encoder;
+    struct t_cose_signature_sign_main  sig2_encoder;
+    struct t_cose_signature_sign_main  sig3_encoder;
+    MakeUsefulBufOnStack(cose_sign_buf, 900);
+    struct q_useful_buf_c cose_sign;
+    struct t_cose_parameter sig1_params[3];
+    struct t_cose_parameter sig2_params[3];
+    struct t_cose_parameter sig3_params[3];
+    struct t_cose_key sig1_key;
+    struct t_cose_key sig2_key;
+    struct t_cose_key sig3_key;
+    enum t_cose_err_t err;
+
+    t_cose_sign_sign_init(&sign_encoder, T_COSE_OPT_MESSAGE_TYPE_SIGN);
+
+
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &sig1_key);
+    t_cose_signature_sign_main_init(&sig1_encoder, T_COSE_ALGORITHM_ES256);
+    t_cose_signature_sign_main_set_signing_key(&sig1_encoder, sig1_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig1"));
+    sig1_params[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/foo"));
+    sig1_params[1].critical         = false;
+    sig1_params[1].in_protected     = false;
+    sig1_params[1].location.index   = 0;
+    sig1_params[1].location.nesting = 0;
+    sig1_params[1].label            = 99;
+    sig1_params[1].value_type       = T_COSE_PARAMETER_TYPE_INT64;
+    sig1_params[1].value.int64      = INT64_MAX;
+    sig1_params[1].next             = NULL;
+    sig1_params[0].next = &sig1_params[1];
+
+    sig1_params[2].critical         = false;
+    sig1_params[2].in_protected     = false;
+    sig1_params[2].location.index   = 0;
+    sig1_params[2].location.nesting = 0;
+    sig1_params[2].label            = 66;
+    sig1_params[2].value_type       = T_COSE_PARAMETER_TYPE_SPECIAL;
+    sig1_params[2].value.special_encode.encode_cb = foo_encode_cb;
+    sig1_params[2].next             = NULL;
+    sig1_params[1].next = &sig1_params[2];
+    t_cose_signature_sign_main_set_header_parameter(&sig1_encoder, sig1_params);
+    t_cose_sign_add_signer(&sign_encoder, t_cose_signature_sign_from_main(&sig1_encoder));
+
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &sig2_key);
+    t_cose_signature_sign_main_init(&sig2_encoder, T_COSE_ALGORITHM_ES256);
+    t_cose_signature_sign_main_set_signing_key(&sig2_encoder, sig2_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig2"));
+    sig2_params[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/xxx"));
+    sig2_params[1].critical         = false;
+    sig2_params[1].in_protected     = false;
+    sig2_params[1].location.index   = 0;
+    sig2_params[1].location.nesting = 0;
+    sig2_params[1].label            = 314;
+    sig2_params[1].value_type       = T_COSE_PARAMETER_TYPE_SPECIAL;
+    sig2_params[1].value.special_encode.encode_cb = float_encode_cb;
+    sig2_params[1].value.special_encode.data.uint64 = UsefulBufUtil_CopyDoubleToUint64(3.14159);
+    sig2_params[1].next             = NULL;
+    sig2_params[0].next = &sig2_params[1];
+    t_cose_signature_sign_main_set_header_parameter(&sig2_encoder, sig2_params);
+    t_cose_sign_add_signer(&sign_encoder, t_cose_signature_sign_from_main(&sig2_encoder));
+
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &sig3_key);
+    t_cose_signature_sign_main_init(&sig3_encoder, T_COSE_ALGORITHM_ES256);
+    t_cose_signature_sign_main_set_signing_key(&sig3_encoder, sig3_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig3"));
+    sig3_params[0] = t_cose_make_ct_uint_parameter(217);
+    t_cose_signature_sign_main_set_header_parameter(&sig3_encoder, sig3_params);
+    t_cose_sign_add_signer(&sign_encoder, t_cose_signature_sign_from_main(&sig3_encoder));
+
+
+    err = t_cose_sign_sign(&sign_encoder,
+                           Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
+                           Q_USEFUL_BUF_FROM_SZ_LITERAL("PAYLOAD"),
+                           cose_sign_buf,
+                          &cose_sign);
+
+
+    return 0;
+}
+
 
 /*
  * Public function, see t_cose_test.h
@@ -1116,6 +1221,8 @@ int_fast32_t sign1_structure_decode_test(void)
     struct q_useful_buf_c           payload;
     enum t_cose_err_t               result;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+
+    make_complex_cose_sign();
 
 
     for(sample = sign1_sample_inputs; !q_useful_buf_c_is_null(sample->CBOR); sample++) {

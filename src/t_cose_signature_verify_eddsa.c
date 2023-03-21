@@ -140,8 +140,8 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
 
     return_value = t_cose_headers_decode(cbor_decoder,
                                          loc,
-                                         me->param_decode_cb,
-                                         me->param_decode_cb_context,
+                                         me->special_param_decode_cb,
+                                         me->special_param_decode_ctx,
                                          param_storage,
                                          decoded_params,
                                         &protected_parameters);
