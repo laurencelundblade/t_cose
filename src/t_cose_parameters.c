@@ -248,8 +248,8 @@ encode_crit_parameter(QCBOREncodeContext            *cbor_encoder,
  * \param[in] cbor_decoder   CBOR decode context to pull from.
  * \param[in] location  Location in CBOR message of the bucket of parameters.
  * \param[in] is_protected  \c true if bucket is protected.
- * \param[in] decode_cb   Function called for parameters that are not strings or ints.
- * \param[in] decode_cb_context  Context for the \c callback function.
+ * \param[in] special_decode_cb   Function called for parameters that are not strings or ints.
+ * \param[in] special_decode_ctx  Context for the \c callback function.
  * \param [in] param_storage   Memory pool from which to take parameter storage.
  * \param[out] decoded_params  Linked list of decoded parameters.
  *
@@ -270,8 +270,8 @@ static enum t_cose_err_t
 decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
                          const struct t_cose_header_location location,
                          bool                              is_protected,
-                         t_cose_parameter_decode_cb       *decode_cb,
-                         void                             *decode_cb_context,
+                         t_cose_special_param_decode_cb   *special_decode_cb,
+                         void                             *special_decode_ctx,
                          struct t_cose_parameter_storage  *param_storage,
                          struct t_cose_parameter         **decoded_params)
 {
@@ -376,7 +376,7 @@ decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
                 break;
 
             default:
-                if(decode_cb == NULL) {
+                if(special_decode_cb == NULL) {
                     /* No callback configured to handle the unknown */
                     if(parameter->critical) {
                         /* It is critical and unknown, so must error out */
@@ -388,7 +388,7 @@ decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
                     }
                 } else {
                     /* Processed and consumed by the callback. */
-                    return_value = decode_cb(decode_cb_context,
+                    return_value = special_decode_cb(special_decode_ctx,
                                              cbor_decoder,
                                              parameter);
                     if(return_value != T_COSE_SUCCESS) {
@@ -450,8 +450,8 @@ dup_detect_list(const struct t_cose_parameter *params_list)
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
                       const struct t_cose_header_location location,
-                      t_cose_parameter_decode_cb       *decode_cb,
-                      void                             *decode_cb_context,
+                      t_cose_special_param_decode_cb   *special_decode_cb,
+                      void                             *special_decode_ctx,
                       struct t_cose_parameter_storage  *param_storage,
                       struct t_cose_parameter         **decoded_params,
                       struct q_useful_buf_c            *protected_parameters)
@@ -478,8 +478,8 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
          return_value = decode_parameters_bucket(cbor_decoder,
                                                  location,
                                                  true,
-                                                 decode_cb,
-                                                 decode_cb_context,
+                                                 special_decode_cb,
+                                                 special_decode_ctx,
                                                  param_storage,
                                                  &decoded_protected);
 
@@ -493,8 +493,8 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
     return_value = decode_parameters_bucket(cbor_decoder,
                                             location,
                                             false,
-                                            decode_cb,
-                                            decode_cb_context,
+                                            special_decode_cb,
+                                            special_decode_ctx,
                                             param_storage,
                                             &decoded_unprotected);
 
@@ -577,15 +577,12 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
                 QCBOREncode_AddBytesToMapN(cbor_encoder, p_param->label, p_param->value.string);
                 break;
 
-            case T_COSE_PARAMETER_TYPE_CALLBACK:
+            case T_COSE_PARAMETER_TYPE_SPECIAL:
                 /* Intentionally no check for NULL callback pointer to
                  * save a little object code. Caller should never
                  * indicate a callback without supplying the pointer
                  */
-                return_value = p_param->value.custom_cb.encode_cb(
-                          p_param,
-                          cbor_encoder
-                    );
+                return_value = p_param->value.special_encode.encode_cb(p_param, cbor_encoder);
                 if(return_value != T_COSE_SUCCESS) {
                     goto Done;
                 }

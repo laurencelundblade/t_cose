@@ -1126,7 +1126,7 @@ float_encode_cb(const struct t_cose_parameter  *parameter,
 {
     QCBOREncode_AddDoubleToMapN(cbor_encoder,
                                 parameter->label,
-                                UsefulBufUtil_CopyUint64ToDouble(parameter->value.custom_cb.data.uint64));
+                                UsefulBufUtil_CopyUint64ToDouble(parameter->value.special_encode.data.uint64));
 
     return T_COSE_SUCCESS;
 }
@@ -1169,8 +1169,8 @@ int32_t make_complex_cose_sign()
     sig1_params[2].location.index   = 0;
     sig1_params[2].location.nesting = 0;
     sig1_params[2].label            = 66;
-    sig1_params[2].value_type       = T_COSE_PARAMETER_TYPE_CALLBACK;
-    sig1_params[2].value.custom_cb.encode_cb = foo_encode_cb;
+    sig1_params[2].value_type       = T_COSE_PARAMETER_TYPE_SPECIAL;
+    sig1_params[2].value.special_encode.encode_cb = foo_encode_cb;
     sig1_params[2].next             = NULL;
     sig1_params[1].next = &sig1_params[2];
     t_cose_signature_sign_main_set_header_parameter(&sig1_encoder, sig1_params);
@@ -1185,9 +1185,9 @@ int32_t make_complex_cose_sign()
     sig2_params[1].location.index   = 0;
     sig2_params[1].location.nesting = 0;
     sig2_params[1].label            = 314;
-    sig2_params[1].value_type       = T_COSE_PARAMETER_TYPE_CALLBACK;
-    sig2_params[1].value.custom_cb.encode_cb = float_encode_cb;
-    sig2_params[1].value.custom_cb.data.uint64 = UsefulBufUtil_CopyDoubleToUint64(3.14159);
+    sig2_params[1].value_type       = T_COSE_PARAMETER_TYPE_SPECIAL;
+    sig2_params[1].value.special_encode.encode_cb = float_encode_cb;
+    sig2_params[1].value.special_encode.data.uint64 = UsefulBufUtil_CopyDoubleToUint64(3.14159);
     sig2_params[1].next             = NULL;
     sig2_params[0].next = &sig2_params[1];
     t_cose_signature_sign_main_set_header_parameter(&sig2_encoder, sig2_params);

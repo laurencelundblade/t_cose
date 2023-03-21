@@ -38,8 +38,10 @@ extern "C" {
  * Struct \ref t_cose_parameter holds a single header parameter that
  * is to be encoded or has been decoded. The same structure is used
  * for both. Most parameter values are either integers or strings and
- * are held directly in struct t_cose_parameter. A callback is used
- * for more complex parameters.
+ * are held directly in struct t_cose_parameter. Parameters that are
+ * not integer or strings are special and must be encoded or decoded
+ * by a callback. "Special" here is only a characteristic of t_cose
+ * not anything in the COSE standard.
  *
  * Only integer parameter labels are supported (so far).
  *
@@ -107,7 +109,7 @@ struct t_cose_parameter;
 
 
 /**
- * \brief Type of callback to output the encoded CBOR of a parameter.
+ * \brief Type of callback to output the encoded CBOR of a special parameter.
  *
  * \param[in] parameter      A single parameter to encode.
  * \param[in] cbor_encoder  The encoder instance to output to.
@@ -115,7 +117,7 @@ struct t_cose_parameter;
  * A callback pointer of this type is placed in struct
  * t_cose_parameter. It is called back when t_cose_encode_headers()
  * gets to encoding the particular parameter. It is typically used for
- * encoding parameters that are not integers or strings, but can be
+ * encoding special parameters that are not integers or strings, but can be
  * used for them too. For most use cases, this is not needed.
  *
  * When called it should output the CBOR for the header parameter to
@@ -128,12 +130,12 @@ struct t_cose_parameter;
  * different parameters or types of parameters.
  */
 typedef enum t_cose_err_t
-t_cose_parameter_encode_cb(const struct t_cose_parameter  *parameter,
-                           QCBOREncodeContext             *cbor_encoder);
+t_cose_special_param_encode_cb(const struct t_cose_parameter  *parameter,
+                               QCBOREncodeContext             *cbor_encoder);
 
 
 /**
- * \brief Type of callback to decode the QCBOR of a parameter.
+ * \brief Type of callback to decode the QCBOR of a special parameter.
  *
  * \param[in] cb_context  Context for callback.
  * \param[in] cbor_decoder     QCBOR decoder to pull from.
@@ -151,30 +153,17 @@ t_cose_parameter_encode_cb(const struct t_cose_parameter  *parameter,
  *
  * On exit, this function must set the value_type and the value.
  *
- * Unlike t_cose_parameter_encode_callback() there is just one
+ * Unlike t_cose_special_param_encode_cb() there is just one
  * implementation of this that switches on the label.
  */
 typedef enum t_cose_err_t
-t_cose_parameter_decode_cb(void                    *cb_context,
-                           QCBORDecodeContext      *cbor_decoder,
-                           struct t_cose_parameter *parameter);
+t_cose_special_param_decode_cb(void                    *cb_context,
+                               QCBORDecodeContext      *cbor_decoder,
+                               struct t_cose_parameter *parameter);
 
 
-
-
-/** Where in a COSE message a header was found. */
-struct t_cose_header_location {
-    /** 0 means the body, 1 means the first level of signer/recipient, 2,
-     * the second level.*/
-    uint8_t  nesting;
-    /* For signers and recipients, the index within the nesting level
-     * starting from 0. */
-    uint8_t  index;
-};
-
-
-struct t_cose_param_encoder {
-    t_cose_parameter_encode_cb *encode_cb;
+struct t_cose_special_param_encode {
+    t_cose_special_param_encode_cb *encode_cb;
     /** Encoder callbacks can use any one of these types that
      * they see fit. The variety is for the convenience of the
      * encoder callback. */
@@ -187,6 +176,27 @@ struct t_cose_param_encoder {
     } data;
 };
 
+/** Decoder callbacks can use any one of these types that
+ * they see fit. The variety is for the convenience of the
+ * decoder callback. */
+union t_cose_special_param_decode {
+    void                 *context;
+    int64_t               int64;
+    uint64_t              uint64;
+    struct q_useful_buf_c string;
+    uint8_t               little_buf[8];
+};
+
+
+/** Where in a COSE message a header was found. */
+struct t_cose_header_location {
+    /** 0 means the body, 1 means the first level of signer/recipient, 2,
+     * the second level.*/
+    uint8_t  nesting;
+    /* For signers and recipients, the index within the nesting level
+     * starting from 0. */
+    uint8_t  index;
+};
 
 /**
  * This holds one parameter such as an algorithm ID or kid. When that
@@ -227,7 +237,8 @@ struct t_cose_parameter {
     union {
         int64_t               int64;
         struct q_useful_buf_c string;
-        struct t_cose_param_encoder custom_cb; /* Used only for encoding */
+        struct t_cose_special_param_encode special_encode;
+        union t_cose_special_param_decode  special_decode;
     } value;
 
     /** next parameter in the linked list or NULL at the end of the list. */
@@ -239,7 +250,7 @@ struct t_cose_parameter {
 #define T_COSE_PARAMETER_TYPE_INT64        2
 #define T_COSE_PARAMETER_TYPE_BYTE_STRING  6
 #define T_COSE_PARAMETER_TYPE_TEXT_STRING  7
-#define T_COSE_PARAMETER_TYPE_CALLBACK   102
+#define T_COSE_PARAMETER_TYPE_SPECIAL    100
 // TODO: add a parameters type to recursively encode because COSE_Keys are
 // parameter sets too and they go into headers.
 
@@ -351,7 +362,7 @@ struct t_cose_parameter_storage {
  * T_COSE_PARAMETER_TYPE_BYTE_STRING or
  * T_COSE_PARAMETER_TYPE_TEXT_STRING).
  *
- * The parameter type may also be T_COSE_PARAMETER_TYPE_CALLBACK in
+ * The parameter type may also be T_COSE_PARAMETER_TYPE_SPECIAL in
  * which case the a callback function and context are supplied that
  * will be called when it is time to encode that parameter. This is
  * typically needed for parameter types that are not integers or
@@ -416,8 +427,8 @@ t_cose_encode_headers(QCBOREncodeContext            *cbor_encoder,
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                *cbor_decoder,
                       const struct t_cose_header_location location,
-                      t_cose_parameter_decode_cb        *decode_cb,
-                      void                              *decode_cb_context,
+                      t_cose_special_param_decode_cb    *special_decode_cb,
+                      void                              *special_decode_ctx,
                       struct t_cose_parameter_storage   *parameter_storage,
                       struct t_cose_parameter          **decoded_params,
                       struct q_useful_buf_c             *protected_parameters);

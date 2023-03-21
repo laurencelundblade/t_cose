@@ -40,7 +40,7 @@ decode_44(void                    *callback_context,
     QCBORDecode_GetDouble(qcbor_decoder, &d);
     // Stuff the double into the little buf
     // because that's what we're doing for label 44 floats.
-    memcpy(p->value.custom_cb.data.little_buf, &d, sizeof(d));
+    memcpy(p->value.special_decode.little_buf, &d, sizeof(d));
     return T_COSE_SUCCESS;
 }
 
@@ -53,7 +53,7 @@ check_44(struct t_cose_parameter *param)
 
     /* Have to have some comparision function in the test case. */
     double d;
-    memcpy(&d, param->value.custom_cb.data.little_buf, sizeof(d));
+    memcpy(&d, param->value.special_decode.little_buf, sizeof(d));
 
     if(d != 3.14) {
         return 3;
@@ -398,7 +398,7 @@ static const struct param_test param_tests[] = {
     /* 0. Critical, protected floating point parameter made by callback. */
     {
         UBX(x1),
-        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_cb = {NULL, param_encoder}, NULL },
+        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, NULL}, NULL },
         T_COSE_SUCCESS,
         T_COSE_SUCCESS,
         check_44,
@@ -449,7 +449,7 @@ static const struct param_test param_tests[] = {
     /* 5. Encoder callback returns an error. */
     {
         {x2, 0}, // Unused
-        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_cb = {NULL, param_encoder}, NULL },
+        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, NULL}, NULL },
         T_COSE_ERR_FAIL, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -459,7 +459,7 @@ static const struct param_test param_tests[] = {
     /* 6. Encoder callback produces invalid CBOR. */
     {
         {x2, 0}, // Unused
-        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_cb = {NULL, param_encoder}, NULL },
+        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, NULL}, NULL },
         T_COSE_SUCCESS, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
