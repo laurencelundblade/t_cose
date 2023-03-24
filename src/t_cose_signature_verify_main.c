@@ -85,6 +85,7 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
         return T_COSE_SUCCESS;
     }
 
+    // TODO: COSE doesn't require kids to be unique. This code probably won't work if they're not unique
     kid = t_cose_find_parameter_kid(parameter_list);
     if(!q_useful_buf_c_is_null(me->verification_kid)) {
         if(q_useful_buf_c_is_null(kid)) {

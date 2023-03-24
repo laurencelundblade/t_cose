@@ -388,9 +388,10 @@ decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
                     }
                 } else {
                     /* Processed and consumed by the callback. */
+                    // TODO: What if the cb doesn't know how to process? Maybe do it here rather than make every decoder do it? Special error code?
                     return_value = special_decode_cb(special_decode_ctx,
-                                             cbor_decoder,
-                                             parameter);
+                                                     cbor_decoder,
+                                                     parameter);
                     if(return_value != T_COSE_SUCCESS) {
                         break;
                     }

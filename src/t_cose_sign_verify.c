@@ -338,16 +338,16 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         header_location.index   = 0;
 
         while(1) { /* loop over COSE_Signatures */
-            header_location.index++;
             enum t_cose_err_t      sig_error_code;
 
             sig_error_code = verify_one_signature(me,
-                                         header_location,
-                                         &sign_inputs,
-                                         &cbor_decoder,
-                                         &sig_params_list);
+                                                  header_location,
+                                                 &sign_inputs,
+                                                 &cbor_decoder,
+                                                 &sig_params_list);
 
             if(sig_error_code == T_COSE_ERR_NO_MORE) {
+                (void)QCBORDecode_GetAndResetError(&cbor_decoder);
                 break;
             }
 
@@ -372,7 +372,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                     /* When verifying all, there can be no declines.
                      * Also only decoding (not verifying) there can be
                      * no declines because every signature must be
-                     * decoded so it's parameters can be returned.
+                     * decoded so its parameters can be returned.
                      * TODO: is this really true? It might be OK
                      * to only decode some as long as the caller knows
                      * that some weren't decoded. How to indicate this
@@ -392,6 +392,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                     /* decline. Continue to try other COSE_Signatures. */
                 }
             }
+
+            header_location.index++;
         }
 
         QCBORDecode_ExitArray(&cbor_decoder);
@@ -411,10 +413,6 @@ Done3:
      * makes sure there were no extra bytes. Also maps the error code
      * for other decode errors detected above. */
     qcbor_error = QCBORDecode_Finish(&cbor_decoder);
-    if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
-        // TODO: a bit worried whether this is the right thing to do
-        goto Done;
-    }
     if(qcbor_error != QCBOR_SUCCESS) {
         /* A decode error overrides other errors. */
         return_value = qcbor_decode_error_to_t_cose_error(qcbor_error,

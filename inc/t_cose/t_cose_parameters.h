@@ -176,15 +176,19 @@ struct t_cose_special_param_encode {
     } data;
 };
 
-/** Decoder callbacks can use any one of these types that
- * they see fit. The variety is for the convenience of the
- * decoder callback. */
-union t_cose_special_param_decode {
-    void                 *context;
-    int64_t               int64;
-    uint64_t              uint64;
-    struct q_useful_buf_c string;
-    uint8_t               little_buf[8];
+
+struct t_cose_special_param_decode {
+    enum {SP_DECODED, SP_ERR, SP_NOT_DECODED} status;
+    /** Decoder callbacks can use any one of these types that
+     * they see fit. The variety is for the convenience of the
+     * decoder callback. */
+    union {
+        void                 *context;
+        int64_t               int64;
+        uint64_t              uint64;
+        struct q_useful_buf_c string;
+        uint8_t               little_buf[8];
+    } value;
 };
 
 
@@ -238,7 +242,7 @@ struct t_cose_parameter {
         int64_t               int64;
         struct q_useful_buf_c string;
         struct t_cose_special_param_encode special_encode;
-        union t_cose_special_param_decode  special_decode;
+        struct t_cose_special_param_decode  special_decode;
     } value;
 
     /** next parameter in the linked list or NULL at the end of the list. */

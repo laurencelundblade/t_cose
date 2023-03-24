@@ -40,7 +40,7 @@ decode_44(void                    *callback_context,
     QCBORDecode_GetDouble(qcbor_decoder, &d);
     // Stuff the double into the little buf
     // because that's what we're doing for label 44 floats.
-    memcpy(p->value.special_decode.little_buf, &d, sizeof(d));
+    memcpy(p->value.special_decode.value.little_buf, &d, sizeof(d));
     return T_COSE_SUCCESS;
 }
 
@@ -53,7 +53,7 @@ check_44(struct t_cose_parameter *param)
 
     /* Have to have some comparision function in the test case. */
     double d;
-    memcpy(&d, param->value.special_decode.little_buf, sizeof(d));
+    memcpy(&d, param->value.special_decode.value.little_buf, sizeof(d));
 
     if(d != 3.14) {
         return 3;
