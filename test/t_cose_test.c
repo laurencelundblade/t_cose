@@ -1097,11 +1097,13 @@ static struct sign1_sample sign1_sample_inputs[] = {
     /* 6. Unterminated indefinite length */
     { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40}, 6}, T_COSE_ERR_SIGN1_FORMAT},
     /* 7. The smallest legal COSE_Sign1 using indefinite lengths */
-    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40, 0xff}, 7}, T_COSE_SUCCESS},
+    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40, 0xff}, 7}, T_COSE_ERR_NO_ALG_ID},
     /* 8. The smallest legal COSE_Sign1 using definite lengths */
-    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_SUCCESS},
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_ERR_NO_ALG_ID},
     /* 9. Just one not-well-formed byte -- a reserved value */
     { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_CBOR_NOT_WELL_FORMED },
+    /* 10. The smallest legal COSE_Sign1 using definite lengths */
+    { {(uint8_t[]){0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0, 0x40, 0x40}, 8}, T_COSE_SUCCESS},
     /* terminate the list */
     { {NULL, 0}, 0 },
 };
@@ -1495,7 +1497,6 @@ int_fast32_t sign1_structure_decode_test(void)
 
     for(int i = 0; !q_useful_buf_c_is_null(sign1_sample_inputs[i].CBOR); i++) {
         t_cose_sign1_verify_init(&verify1_ctx, T_COSE_OPT_DECODE_ONLY);
-
         result = t_cose_sign1_verify(&verify1_ctx,
                                       sign1_sample_inputs[i].CBOR,
                                      &payload,

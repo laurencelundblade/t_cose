@@ -127,6 +127,7 @@ is_soft_verify_error(enum t_cose_err_t error)
 {
     switch(error) {
         case T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
+        case T_COSE_ERR_NO_ALG_ID:
         case T_COSE_ERR_KID_UNMATCHED:
         case T_COSE_ERR_UNSUPPORTED_HASH:
         case T_COSE_ERR_DECLINE:
@@ -296,33 +297,35 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
             goto Done3;
         }
 
-
-        if(!(me->option_flags & T_COSE_OPT_DECODE_ONLY)) {
-            /* Loop over all the verifiers configured asking each
-             * to verify until one succeeds. If none succeeded, the error
-             * returned is from the last one called.
+        /* Loop over all the verifiers configured asking each to
+         * verify until one succeeds. If none succeeded, the return
+         * value is from the last one called.
+         */
+        for(verifier = me->verifiers; verifier != NULL; verifier = (struct t_cose_signature_verify *)verifier->rs.next) {
+            /* Call the verifier to attempt a verification. It will
+             * compute the tbs and try to run the crypto (unless
+             * T_COSE_OPT_DECODE_ONLY is set). Note also that the only
+             * reason that the verifier is called even when
+             * T_COSE_OPT_DECODE_ONLY is set here for a COSE_Sign1 is
+             * so the aux buffer size can be computed for EdDSA.
              */
-            for(verifier = me->verifiers; verifier != NULL; verifier = (struct t_cose_signature_verify *)verifier->rs.next) {
-                /* Call the verifyer to attempt a verification. It
-                 * will compute the tbs and try to run the crypto.
-                 */
-                return_value = verifier->verify1_cb(verifier,
-                                                    me->option_flags,
-                                                   &sign_inputs,
-                                                    body_params_list,
-                                                    signature);
-                if(return_value == T_COSE_SUCCESS) {
-                    break;
-                }
-                if(!is_soft_verify_error(return_value)) {
-                    /* An error like a decode error or a signature verification failure. */
-                    break;
-                }
-
-                /* Algorithm or kid didn't match or verifier declined, continue
-                 * trying other verifiers.
-                 */
+            return_value =
+                verifier->verify1_cb(verifier,         /* in/out: me pointer for this verifier */
+                                     me->option_flags, /* in: option flags from top-level caller */
+                                    &sign_inputs,      /* in: everything covered by signing */
+                                     body_params_list, /* in: linked list of header params from body */
+                                     signature);       /* in: the signature */
+            if(return_value == T_COSE_SUCCESS) {
+                break;
             }
+            if(!is_soft_verify_error(return_value)) {
+                /* Decode error or a signature verification failure or such. */
+                break;
+            }
+
+            /* Algorithm or kid didn't match or verifier
+             * declined. Continue trying other verifiers.
+             */
         }
 
     } else {
