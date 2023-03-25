@@ -398,7 +398,7 @@ static const struct param_test param_tests[] = {
     /* 0. Critical, protected floating point parameter made by callback. */
     {
         UBX(x1),
-        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, NULL}, NULL },
+        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_SUCCESS,
         T_COSE_SUCCESS,
         check_44,
@@ -449,7 +449,7 @@ static const struct param_test param_tests[] = {
     /* 5. Encoder callback returns an error. */
     {
         {x2, 0}, // Unused
-        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, NULL}, NULL },
+        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_ERR_FAIL, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -459,7 +459,7 @@ static const struct param_test param_tests[] = {
     /* 6. Encoder callback produces invalid CBOR. */
     {
         {x2, 0}, // Unused
-        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, NULL}, NULL },
+        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_SUCCESS, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
