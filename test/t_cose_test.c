@@ -1457,41 +1457,45 @@ int_fast32_t sign1_structure_decode_test(void)
 
     T_COSE_PARAM_STORAGE_INIT(extra_params, _params);
 
-    return_value = make_complex_cose_sign(cose_sign_buf, &cose_sign);
-    if(return_value != 0) {
-        return return_value;
-    }
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        /* Only works with real algorithms (so far). */
 
-    struct t_cose_sign_verify_ctx verify_ctx;
-    struct t_cose_signature_verify_main verifier_main;
+        return_value = make_complex_cose_sign(cose_sign_buf, &cose_sign);
+        if(return_value != 0) {
+            return return_value;
+        }
 
-    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
-    t_cose_sign_set_special_param_decoder(&verify_ctx,
-                                           foo_decode_cb,
-                                           NULL);
+        struct t_cose_sign_verify_ctx verify_ctx;
+        struct t_cose_signature_verify_main verifier_main;
 
-    t_cose_signature_verify_main_init(&verifier_main);
-    t_cose_signature_verify_main_set_special_param_decoder(&verifier_main,
-                                                           foo_decode_cb,
-                                                           NULL);
-    t_cose_sign_add_verifier(&verify_ctx, t_cose_signature_verify_from_main(&verifier_main));
-    /* Don't need to set key because this is only decoding */
+        t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
+        t_cose_sign_set_special_param_decoder(&verify_ctx,
+                                               foo_decode_cb,
+                                               NULL);
 
-    t_cose_sign_add_param_storage(&verify_ctx, &extra_params);
+        t_cose_signature_verify_main_init(&verifier_main);
+        t_cose_signature_verify_main_set_special_param_decoder(&verifier_main,
+                                                               foo_decode_cb,
+                                                               NULL);
+        t_cose_sign_add_verifier(&verify_ctx, t_cose_signature_verify_from_main(&verifier_main));
+        /* Don't need to set key because this is only decoding */
+
+        t_cose_sign_add_param_storage(&verify_ctx, &extra_params);
 
 
-    result = t_cose_sign_verify(&verify_ctx,
-                                 cose_sign,
-                                 Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
-                                &payload,
-                                &decoded_params);
-    if(result != T_COSE_SUCCESS) {
-        return -999;
-    }
+        result = t_cose_sign_verify(&verify_ctx,
+                                     cose_sign,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
+                                    &payload,
+                                    &decoded_params);
+        if(result != T_COSE_SUCCESS) {
+            return -999;
+        }
 
-    return_value = check_complex_sign_params(decoded_params);
-    if(return_value != 0) {
-        return return_value;
+        return_value = check_complex_sign_params(decoded_params);
+        if(return_value != 0) {
+            return return_value;
+        }
     }
 
 
