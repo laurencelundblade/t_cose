@@ -1017,8 +1017,6 @@ int_fast32_t sign_verify_multi(void)
         return 1000 + (int32_t)result;
     }
 
-    #if 0
-
     t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN);
 
     t_cose_signature_sign_main_init(&signer1, T_COSE_ALGORITHM_ES256);
@@ -1085,7 +1083,6 @@ int_fast32_t sign_verify_multi(void)
     if(q_useful_buf_compare(verified_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))){
         return 5;
     }
-#endif
 
     free_fixed_signing_key(key_pair1);
     free_fixed_signing_key(key_pair2);
