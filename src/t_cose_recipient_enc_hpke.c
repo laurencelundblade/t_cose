@@ -183,6 +183,8 @@ t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
                                                .len = encrypted_cek_len},
                         &encrypted_cek_len);
 
+    t_cose_crypto_free_symmetric_key(ephemeral_key); // TODO: free method for generate key
+
     if (return_value != T_COSE_SUCCESS) {
         return(return_value);
     }

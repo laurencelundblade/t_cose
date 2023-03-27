@@ -328,6 +328,10 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         t_cose_crypto_free_symmetric_key(cek_key);
     }
 
+   if (message_type != T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
+       t_cose_crypto_free_symmetric_key(cek_key);
+   }
+
 Done:
     return return_value;
 }
