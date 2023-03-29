@@ -625,7 +625,6 @@ t_cose_sign1_encode_parameters_private(struct t_cose_sign1_sign_ctx *me,
                                        QCBOREncodeContext *cbor_encode_ctx)
 {
     return t_cose_sign_encode_start(&(me->me2),
-                                    payload_is_detached,
                                     cbor_encode_ctx);
 }
 
