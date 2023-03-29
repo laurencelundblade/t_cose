@@ -331,6 +331,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     enum t_cose_err_t            result;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
     Q_USEFUL_BUF_MAKE_STACK_UB(  small_signed_cose_buffer, 15);
+    struct q_useful_buf_c        payload;
     struct q_useful_buf_c        signed_cose;
 
     /* -- Test bad algorithm ID 0 -- */
@@ -365,12 +366,13 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
 
-
+    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_AddSZString(&cbor_encode, "payload");
     /* Force a CBOR encoding error by closing a map that is not open */
     QCBOREncode_CloseMap(&cbor_encode);
+    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
 
     if(result != T_COSE_ERR_CBOR_FORMATTING) {
         return -3;
@@ -431,6 +433,7 @@ int_fast32_t short_circuit_make_cwt_test()
         return 1000 + (int32_t)result;
     }
 
+    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
@@ -441,9 +444,10 @@ int_fast32_t short_circuit_make_cwt_test()
     const uint8_t xx[] = {0x0b, 0x71};
     QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
     QCBOREncode_CloseMap(&cbor_encode);
+    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(result) {
         return 2000 + (int32_t)result;
     }
@@ -570,11 +574,12 @@ int_fast32_t short_circuit_decode_only_test()
         return 1000 + (int32_t)result;
     }
 
-
+    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_AddSZString(&cbor_encode, "payload");
+    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(result) {
         return 2000 + (int32_t)result;
     }
@@ -1649,6 +1654,7 @@ int_fast32_t tags_test()
         return 1000 + (int32_t)result;
     }
 
+    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
@@ -1659,9 +1665,10 @@ int_fast32_t tags_test()
     const uint8_t xx[] = {0x0b, 0x71};
     QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
     QCBOREncode_CloseMap(&cbor_encode);
+    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(result) {
         return 2000 + (int32_t)result;
     }
@@ -1824,12 +1831,14 @@ int_fast32_t tags_test()
         return 1000 + (int32_t)result;
     }
 
+    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
     QCBOREncode_CloseMap(&cbor_encode);
+    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(result) {
         return 2000 + (int32_t)result;
     }
@@ -1882,6 +1891,7 @@ int_fast32_t tags_test()
         return 1000 + (int32_t)result;
     }
 
+    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
@@ -1892,9 +1902,10 @@ int_fast32_t tags_test()
     const uint8_t xxy[] = {0x0b, 0x71};
     QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xxy));
     QCBOREncode_CloseMap(&cbor_encode);
+    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(result) {
         return 2000 + (int32_t)result;
     }
@@ -2012,9 +2023,9 @@ int_fast32_t get_size_test()
         return 2000 + (int32_t)return_value;
     }
 
-    QCBOREncode_AddEncoded(&cbor_encode, payload);
+    QCBOREncode_AddBytes(&cbor_encode, payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -2045,9 +2056,9 @@ int_fast32_t get_size_test()
         return 2000 + (int32_t)return_value;
     }
 
-    QCBOREncode_AddEncoded(&cbor_encode, payload);
+    QCBOREncode_AddBytes(&cbor_encode, payload);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }

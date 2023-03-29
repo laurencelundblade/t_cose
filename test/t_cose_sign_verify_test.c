@@ -465,6 +465,7 @@ int_fast32_t sign_verify_make_cwt_test()
 
 
     /* -- The payload as from RFC 8932 -- */
+    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
@@ -476,10 +477,10 @@ int_fast32_t sign_verify_make_cwt_test()
     QCBOREncode_AddBytesToMapN(&cbor_encode, 7,
                                Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
     QCBOREncode_CloseMap(&cbor_encode);
-
+    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
     /* -- Finish up the COSE_Sign1. This is where the signing happens -- */
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
@@ -602,9 +603,9 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
         goto Done;
     }
 
-    QCBOREncode_AddEncoded(&cbor_encode, payload);
+    QCBOREncode_AddBytes(&cbor_encode, payload);
 
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(result) {
         return_value = 4000 + (int32_t)result;
         goto Done;
@@ -655,9 +656,9 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
         goto Done;
     }
 
-    QCBOREncode_AddEncoded(&cbor_encode, payload);
+    QCBOREncode_AddBytes(&cbor_encode, payload);
 
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature2(&sign_ctx, payload, &cbor_encode);
     if(result) {
         return_value = 7000 + (int32_t)result;
         goto Done;
