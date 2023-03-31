@@ -22,7 +22,6 @@
  * This relies on instances of t_cose_signature_sign to create the
  * actual signatures. The work done here is encoding the message with
  * the headers, payload and signature(s).
- *
  */
 
 
@@ -45,14 +44,28 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
      * expected to be configured with the key material and such.
      */
     signer = me->signers;
+    message_type_tag_number = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
+
+#ifndef T_COSE_DISABLE_USAGE_GUARDS
+    if(message_type_tag_number != CBOR_TAG_COSE_SIGN1 &&
+       message_type_tag_number != CBOR_TAG_COSE_SIGN) {
+        /* Caller didn't ask for CBOR_TAG_COSE_SIGN or CBOR_TAG_COSE_SIGN1 */
+        return_value = T_COSE_ERR_FAIL; // TODO: better error
+        goto Done;
+    }
     if(signer == NULL) {
         /* No signers configured. */
         return_value = T_COSE_ERR_NO_SIGNERS;
         goto Done;
     }
+    if(message_type_tag_number == CBOR_TAG_COSE_SIGN1 &&
+       signer->rs.next != NULL) {
+        /* Only one signer allowed for COSE_Sign1 */
+        return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
+        goto Done;
+    }
+#endif /* ! T_COSE_DISABLE_USAGE_GUARDS */
 
-    /* --- Is this COSE_Sign or COSE_Sign1? --- */
-    message_type_tag_number = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
 
     /* --- Make list of the body header parameters --- */
     sign1_parameters = NULL;
@@ -63,15 +76,6 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
          * COSE_Signature. This gets the parameters from the
          * signer. */
         signer->headers_cb(signer, &sign1_parameters);
-        if(signer->rs.next != NULL) {
-            /* In COSE_Sign1 mode, but too many signers configured.*/
-            return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
-            goto Done;
-        }
-    } else if(message_type_tag_number != CBOR_TAG_COSE_SIGN) {
-        /* Caller didn't ask for CBOR_TAG_COSE_SIGN or CBOR_TAG_COSE_SIGN1 */
-        return_value = T_COSE_ERR_FAIL; // TODO: better error
-        goto Done;
     }
 
     /* Form up the full list of body header parameters which may
@@ -121,6 +125,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     struct t_cose_signature_sign *signer;
     struct t_cose_sign_inputs     sign_inputs;
 
+#ifndef T_COSE_DISABLE_USAGE_GUARDS
     /* --- Early error check --- */
     /* Check that there are no CBOR encoding errors before proceeding
      * with hashing and signing. This is not actually necessary as the
@@ -135,7 +140,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         return_value = T_COSE_ERR_CBOR_FORMATTING;
         goto Done;
     }
-
+#endif
 
     /* --- Signature for COSE_Sign1 or signatures for COSE_Sign --- */
     sign_inputs.body_protected = me->encoded_prot_params;

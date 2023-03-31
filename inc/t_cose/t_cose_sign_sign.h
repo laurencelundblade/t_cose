@@ -166,9 +166,9 @@ t_cose_sign_add_signer(struct t_cose_sign_sign_ctx   *context,
  * body. Parameters in \c COSE_Signatures in \c COSE_Sign are handed
  * through \ref t_cose_signature_sign.
  *
- * This is called only once to add a linked list of \ref
- * t_cose_parameter.  Each node is filled in with the type, value,
- * criticality and protected ness of the parameter. Integer and
+ * This is called only once to add a linked list of
+ * \ref t_cose_parameter.  Each node is filled in with the type,
+ * value, criticality and protected ness of the parameter. Integer and
  * strings values go in the node.  Other types are allowed through a
  * parameter encode callback.  Only integer parameter labels are
  * supported (so far).
