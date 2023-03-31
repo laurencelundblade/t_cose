@@ -32,7 +32,7 @@
 enum t_cose_err_t
 t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
                          bool                         payload_is_detached,
-                         QCBOREncodeContext          *cbor_encode_ctx)
+                         QCBOREncodeContext          *cbor_encoder)
 {
     enum t_cose_err_t              return_value;
     struct t_cose_signature_sign  *signer;
@@ -83,17 +83,17 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
 
     /* --- Add the CBOR tag indicating COSE message type --- */
     if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
-        QCBOREncode_AddTag(cbor_encode_ctx, message_type_tag_number);
+        QCBOREncode_AddTag(cbor_encoder, message_type_tag_number);
     }
 
     /* --- Open array-of-four that holds all COSE_Sign(1) messages --- */
-    QCBOREncode_OpenArray(cbor_encode_ctx);
+    QCBOREncode_OpenArray(cbor_encoder);
 
 
     /* --- Encode both protected and unprotected headers --- */
-    return_value = t_cose_encode_headers(cbor_encode_ctx,
+    return_value = t_cose_encode_headers(cbor_encoder,
                                          body_parameters,
-                                         &me->protected_parameters);
+                                         &me->encoded_prot_params);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -105,7 +105,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
          * wrapping. If the payload is detached, then it is sent
          * separately and there is nothing to do.
          */
-        QCBOREncode_BstrWrap(cbor_encode_ctx);
+        QCBOREncode_BstrWrap(cbor_encoder);
     }
 
     /* Failures in CBOR encoding will be caught in
@@ -125,7 +125,7 @@ enum t_cose_err_t
 t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
                           struct q_useful_buf_c        aad,
                           struct q_useful_buf_c        detached_payload,
-                          QCBOREncodeContext          *cbor_encode_ctx)
+                          QCBOREncodeContext          *cbor_encoder)
 {
     enum t_cose_err_t             return_value;
     QCBORError                    cbor_err;
@@ -136,7 +136,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     /* --- Close off the payload --- */
     if(q_useful_buf_c_is_null(detached_payload)) {
         /* Payload is inline, not detached */
-        QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
+        QCBOREncode_CloseBstrWrap2(cbor_encoder, false, &signed_payload);
     } else {
         signed_payload = detached_payload;
     }
@@ -148,7 +148,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
      * errors will be caught correctly later, but it does make it a
      * bit easier for the caller to debug problems.
      */
-    cbor_err = QCBOREncode_GetErrorState(cbor_encode_ctx);
+    cbor_err = QCBOREncode_GetErrorState(cbor_encoder);
     if(cbor_err == QCBOR_ERR_BUFFER_TOO_SMALL) {
         return_value = T_COSE_ERR_TOO_SMALL;
         goto Done;
@@ -159,7 +159,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
 
 
     /* --- Signature for COSE_Sign1 or signatures for COSE_Sign --- */
-    sign_inputs.body_protected = me->protected_parameters;
+    sign_inputs.body_protected = me->encoded_prot_params;
     sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C; /* filled in by sign_cb */
     sign_inputs.payload        = signed_payload;
     sign_inputs.aad            = aad;
@@ -173,15 +173,15 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
          * headers and signature. The surrounding array is handled here.
          */
         return_value = T_COSE_ERR_NO_SIGNERS;
-        QCBOREncode_OpenArray(cbor_encode_ctx);
+        QCBOREncode_OpenArray(cbor_encoder);
         while(signer != NULL) {
-            return_value = signer->sign_cb(signer, &sign_inputs, cbor_encode_ctx);
+            return_value = signer->sign_cb(signer, &sign_inputs, cbor_encoder);
             if(return_value != T_COSE_SUCCESS) {
                 goto Done;
             }
             signer = (struct t_cose_signature_sign *)signer->rs.next;
         }
-        QCBOREncode_CloseArray(cbor_encode_ctx);
+        QCBOREncode_CloseArray(cbor_encoder);
 
     } else {
         /* --- Single signature for COSE_Sign1 --- */
@@ -189,7 +189,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         /* This calls the signer object to output the signature bytes
          * as a byte string to the CBOR encode context.
          */
-        return_value = signer->sign1_cb(signer, &sign_inputs, cbor_encode_ctx);
+        return_value = signer->sign1_cb(signer, &sign_inputs, cbor_encoder);
     }
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -197,7 +197,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
 
 
     /* --- Close out the array-of-four --- */
-    QCBOREncode_CloseArray(cbor_encode_ctx);
+    QCBOREncode_CloseArray(cbor_encoder);
 
     /* The layer above this must check for and handle CBOR encoding
      * errors.  Some are detected at the start of
@@ -219,16 +219,16 @@ t_cose_sign_one_shot(struct t_cose_sign_sign_ctx *me,
                      struct q_useful_buf          out_buf,
                      struct q_useful_buf_c       *result)
 {
-    QCBOREncodeContext encode_context;
+    QCBOREncodeContext cbor_encoder;
     enum t_cose_err_t  return_value;
 
     /* --- Initialize CBOR encoder context with output buffer --- */
-    QCBOREncode_Init(&encode_context, out_buf);
+    QCBOREncode_Init(&cbor_encoder, out_buf);
 
     /* --- Output the header parameters into the encoder context --- */
     return_value = t_cose_sign_encode_start(me,
                                             payload_is_detached,
-                                           &encode_context);
+                                           &cbor_encoder);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -238,14 +238,14 @@ t_cose_sign_one_shot(struct t_cose_sign_sign_ctx *me,
         /* In detached content mode, the output COSE message does not
          * contain the payload. It is delivered in another channel.
          */
-        QCBOREncode_AddNULL(&encode_context);
+        QCBOREncode_AddNULL(&cbor_encoder);
     } else {
         /* --- Output the payload into the encoder context --- */
         /* Payload may or may not actually be CBOR format here. This
          * function does the job just fine because it just adds bytes
          * to the encoded output without anything extra.
          */
-        QCBOREncode_AddEncoded(&encode_context, payload);
+        QCBOREncode_AddEncoded(&cbor_encoder, payload);
     }
 
     /* --- Sign and output signature to the encoder context --- */
@@ -256,13 +256,13 @@ t_cose_sign_one_shot(struct t_cose_sign_sign_ctx *me,
     return_value = t_cose_sign_encode_finish(me,
                                              aad,
                                              payload,
-                                            &encode_context);
+                                            &cbor_encoder);
     if(return_value) {
         goto Done;
     }
 
     /* --- Close off and get the resulting encoded CBOR --- */
-    if(QCBOREncode_Finish(&encode_context, result)) {
+    if(QCBOREncode_Finish(&cbor_encoder, result)) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         goto Done;
     }
