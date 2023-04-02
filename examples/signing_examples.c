@@ -28,8 +28,15 @@
 #include "print_buf.h"
 #include <stdio.h>
 
-
-/* This file is crypto-library independent. It works for OpenSSL, Mbed
+/**
+ * @file signing_examples.c
+ *
+ * @brief Several examples of different ways to use signing.
+ *
+ * Each function here is a self-contained example of how to
+ * use the signing API.
+ *
+ * This file is crypto-library independent. It works for OpenSSL, Mbed
  * TLS and others. The key initialization, which *is* crypto-library
  * dependent, has been separated.
  *
@@ -210,7 +217,8 @@ int32_t one_step_sign_example(void)
      * will fire and the signature verification crypto will actually
      * run.
      */
-    // TODO: replace T_COSE_OPT_MESSAGE_TYPE_SIGN1 with 0 when tags determination works
+    // TODO: replace T_COSE_OPT_MESSAGE_TYPE_SIGN1 with 0 when tags
+    // determination works
     t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
     t_cose_signature_verify_main_init(&main_verifier);
