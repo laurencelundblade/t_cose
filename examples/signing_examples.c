@@ -210,7 +210,8 @@ int32_t one_step_sign_example(void)
      * will fire and the signature verification crypto will actually
      * run.
      */
-    t_cose_sign_verify_init(&verify_ctx, 0);
+    // TODO: replace T_COSE_OPT_MESSAGE_TYPE_SIGN1 with 0 when tags determination works
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
     t_cose_signature_verify_main_init(&main_verifier);
 
@@ -689,7 +690,7 @@ int32_t two_step_sign_example(void)
      * will fire and the signature verification crypto will actually
      * run.
      */
-    t_cose_sign_verify_init(&verify_ctx, 0);
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
     t_cose_signature_verify_main_init(&main_verifier);
 
