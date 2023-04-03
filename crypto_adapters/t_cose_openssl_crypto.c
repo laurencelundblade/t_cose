@@ -1926,4 +1926,117 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
     return T_COSE_SUCCESS;
 }
 
+
 #endif /* !T_COSE_DISABLE_KEYWRAP */
+
+
+#include "openssl/kdf.h"
+
+static const EVP_MD *
+cose_hash_alg_to_ossl(int32_t cose_hash_algorithm_id)
+{
+    switch(cose_hash_algorithm_id) {
+        case T_COSE_ALGORITHM_SHA_256:
+            return EVP_sha256();
+            break;
+
+        default:
+            return NULL;
+    }
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+/* This implentation works for OpenSSL 1.x and 3.x. There is
+ * a better API in OpenSSL, but it is only available in 3.x. */
+enum t_cose_err_t
+t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
+                  struct q_useful_buf_c  salt,
+                  struct q_useful_buf_c  ikm,
+                  struct q_useful_buf_c  info,
+                  struct q_useful_buf    okm_buffer)
+{
+    int           ossl_result;
+    EVP_PKEY_CTX *ctx;
+    size_t        x_len;
+    const EVP_MD *message_digest;
+    enum t_cose_err_t return_value;
+
+    // TODO: test this more and find a way to be more sure
+    // it is all using the OpenSSL APIs right. The documentation
+    // doesn't really say how to use it.
+
+    /* These checks make it safe to cast from
+     * size_t to int below. */
+    if(!is_size_t_to_int_cast_ok(salt.len) ||
+       !is_size_t_to_int_cast_ok(ikm.len) ||
+       !is_size_t_to_int_cast_ok(info.len)) {
+        return_value = T_COSE_ERR_FAIL; // TODO: better error
+        goto Done2;
+    }
+
+    x_len = okm_buffer.len;
+
+    message_digest = cose_hash_alg_to_ossl(cose_hash_algorithm_id);
+    if(message_digest == NULL) {
+        return_value = T_COSE_ERR_UNSUPPORTED_HASH;
+        goto Done2;
+    }
+
+    ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+    if(ctx == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done2;
+    }
+
+    ossl_result = EVP_PKEY_derive_init(ctx);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_FAIL;
+        goto Done1;
+    }
+
+    ossl_result = EVP_PKEY_CTX_set_hkdf_md(ctx, message_digest);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_FAIL;
+        goto Done1;
+    }
+
+    /* Cast to int OK'd by check above */
+    ossl_result = EVP_PKEY_CTX_set1_hkdf_salt(ctx, salt.ptr, (int)salt.len);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_FAIL;
+        goto Done1;
+    }
+
+    /* Cast to int OK'd by check above */
+    ossl_result = EVP_PKEY_CTX_set1_hkdf_key(ctx, ikm.ptr, (int)ikm.len);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_FAIL;
+        goto Done1;
+    }
+
+    /* Cast to int OK'd by check above */
+    ossl_result = EVP_PKEY_CTX_add1_hkdf_info(ctx, info.ptr, (int)info.len);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_FAIL;
+        goto Done1;
+    }
+
+    ossl_result = EVP_PKEY_derive(ctx,
+                                  okm_buffer.ptr,
+                                  &x_len);
+
+    if(x_len != okm_buffer.len || ossl_result != 1) {
+        return_value = T_COSE_ERR_FAIL;
+        goto Done1;
+    }
+
+    return_value = T_COSE_SUCCESS;
+
+Done1:
+    EVP_PKEY_CTX_free(ctx);
+Done2:
+    return return_value;
+}
+

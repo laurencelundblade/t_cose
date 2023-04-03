@@ -1157,6 +1157,72 @@ void
 t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 
 
+
+/*  RFC 5869 HKDF
+
+ With HKDF you can request the output be up to 255 times
+ the length of the hash. In this interface that length
+ request is the length of the okm_buffer. On success
+ the whole okm_buffer will always be filled in. Because
+ the usual parameter pair of an empty q_useful_buf
+ passed in and filled-in q_useful_buf_c returned is not
+ used because it would be redundant and waste some
+ object code.
+
+ (The full and proper alternate interface would have
+ three parameters: 1) a size_t for the requested HKDF output,
+ 2) a useful_buf for the destination the output is written
+ which could be longer than the requested HKDF outout and
+ 3) the q_useful_buf_c for the const output. The advantage
+ of this is that it could be used with OpenBstr to write
+ direclty into a QCBOR output buffer. However that doesn't
+ seem to be a needed use case and the output is usually
+ not so big that an intermediate stack buffer could be used).
+ */
+enum t_cose_err_t
+t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
+                   struct q_useful_buf_c  salt,
+                   struct q_useful_buf_c  ikm,
+                   struct q_useful_buf_c  info,
+                   struct q_useful_buf    okm_buffer);
+
+
+
+#if WE_NEED_THESE
+/** \brief HKDF extract
+
+ * This provides the HKDF extract function defined in RFC 5869 for
+ * various hash functions.
+
+ */
+enum t_cose_err_t
+t_cose_crypto_hkdf_extract(int32_t                cose_hash_algorithm_id,
+                           struct q_useful_buf_c  salt,
+                           struct q_useful_buf_c  ikm,
+                           struct q_useful_buf    prk_buffer,
+                           struct q_useful_buf_c *prk);
+
+
+/** \brief HKDF epxand
+
+* This provides the HKDF expand function defined in RFC 5869 for
+* various hash functions.
+
+ // TODO: do we really want this? What if you are writing to some larger buffer in assembling HKDF stuff?
+ * With HKDF expand, the caller can request an output size. Here it is
+ * is the length of the okm_buffer.  In the output okm.len will be that
+ * length, a redundancy, but consistent with q_useful_buf usage
+ * and const-ness. (In common q_useful_buf, th
+*/
+enum t_cose_err_t
+t_cose_crypto_hkdf_expand(int32_t                cose_hash_algorithm_id,
+                          struct q_useful_buf_c  prk,
+                          struct q_useful_buf_c  info,
+                          struct q_useful_buf    okm_buffer,
+                          struct q_useful_buf_c *okm);
+
+#endif /* WE_NEED_THESE */
+
 #ifdef __cplusplus
 }
 #endif
