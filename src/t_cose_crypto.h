@@ -1158,26 +1158,35 @@ t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 
 
 
-/*  RFC 5869 HKDF
-
- With HKDF you can request the output be up to 255 times
- the length of the hash. In this interface that length
- request is the length of the okm_buffer. On success
- the whole okm_buffer will always be filled in. Because
- the usual parameter pair of an empty q_useful_buf
- passed in and filled-in q_useful_buf_c returned is not
- used because it would be redundant and waste some
- object code.
-
- (The full and proper alternate interface would have
- three parameters: 1) a size_t for the requested HKDF output,
- 2) a useful_buf for the destination the output is written
- which could be longer than the requested HKDF outout and
- 3) the q_useful_buf_c for the const output. The advantage
- of this is that it could be used with OpenBstr to write
- direclty into a QCBOR output buffer. However that doesn't
- seem to be a needed use case and the output is usually
- not so big that an intermediate stack buffer could be used).
+/**
+ * \brief RFC 5869 HKDF
+ *
+ * \param[in] cose_hash_algorithm_id  Hash alg the HKDF uses.
+ * \param[in] salt     The salt bytes or NULL_Q_USEFUL_BUF_C.
+ * \param[in] ikm   The input key material.
+ * \param[in] info   The info bytes or NULL_Q_USEFUL_BUF_C.
+ * \param[in,out] okm_buffer  The output key material.
+ *
+ * \return Error code.
+ *
+ * With HKDF you can request the output be up to 255 times
+ * the length of output of the hash function. In this interface that length
+ * request is the length of the okm_buffer. On success
+ * the whole okm_buffer will always be filled in.
+ * The usual parameter pair of an empty q_useful_buf
+ * passed in and filled-in q_useful_buf_c returned is not
+ * used because it would be redundant and waste some
+ * object code.
+ *
+ * The salt is usually a non-secret random value and is
+ * optional.
+ *
+ * The input key material is a secret and is not optional.
+ *
+ * The info is an optional context and application-specific
+ * information string.
+ *
+ * See RFC 5869 for a detailed description.
  */
 enum t_cose_err_t
 t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
@@ -1189,6 +1198,7 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
 
 
 #if WE_NEED_THESE
+
 /** \brief HKDF extract
 
  * This provides the HKDF extract function defined in RFC 5869 for

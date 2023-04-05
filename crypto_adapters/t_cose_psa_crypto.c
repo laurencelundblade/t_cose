@@ -1288,7 +1288,12 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
         case T_COSE_ALGORITHM_SHA_256:
             hash_type = MBEDTLS_MD_SHA256;
             break;
-
+        case T_COSE_ALGORITHM_SHA_384:
+            hash_type = MBEDTLS_MD_SHA384;
+            break;
+        case T_COSE_ALGORITHM_SHA_512:
+            hash_type = MBEDTLS_MD_SHA512;
+            break;
         default:
             hash_type = MBEDTLS_MD_NONE;
             break;
