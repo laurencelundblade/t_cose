@@ -1949,18 +1949,18 @@ cose_hash_alg_to_ossl(int32_t cose_hash_algorithm_id)
  * See documentation in t_cose_crypto.h
  */
 /* This implentation works for OpenSSL 1.x and 3.x. There is
- * a better API in OpenSSL, but it is only available in 3.x. */
+ * a better API that the one used here, but it is only available in 3.x. */
 enum t_cose_err_t
 t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
-                  struct q_useful_buf_c  salt,
-                  struct q_useful_buf_c  ikm,
-                  struct q_useful_buf_c  info,
-                  struct q_useful_buf    okm_buffer)
+                   struct q_useful_buf_c  salt,
+                   struct q_useful_buf_c  ikm,
+                   struct q_useful_buf_c  info,
+                   struct q_useful_buf    okm_buffer)
 {
-    int           ossl_result;
-    EVP_PKEY_CTX *ctx;
-    size_t        x_len;
-    const EVP_MD *message_digest;
+    int               ossl_result;
+    EVP_PKEY_CTX     *ctx;
+    size_t            x_len;
+    const EVP_MD     *message_digest;
     enum t_cose_err_t return_value;
 
     // TODO: test this more and find a way to be more sure
