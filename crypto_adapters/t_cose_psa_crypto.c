@@ -43,6 +43,9 @@
 #include <mbedtls/nist_kw.h>
 #endif /* T_COSE_DISABLE_KEYWRAP */
 
+#include <mbedtls/hkdf.h>
+#include <mbedtls/md.h>
+
 #include "t_cose_util.h"
 
 #if MBEDTLS_VERSION_MAJOR < 3
@@ -1269,9 +1272,11 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 }
 
 
-#include "mbedtls/hkdf.h"
-#include "mbedtls/md.h"
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
                    struct q_useful_buf_c  salt,
@@ -1309,8 +1314,8 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
                               ikm.ptr, ikm.len,
                               info.ptr, info.len,
                               okm_buffer.ptr, okm_buffer.len);
-    if(psa_result) {
-        return T_COSE_ERR_FAIL; // TODO: better error
+    if(psa_result != PSA_SUCCESS) {
+        return T_COSE_ERR_HKDF_FAIL;
     }
 
     return T_COSE_SUCCESS;

@@ -1161,20 +1161,21 @@ t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 /**
  * \brief RFC 5869 HKDF
  *
- * \param[in] cose_hash_algorithm_id  Hash alg the HKDF uses.
- * \param[in] salt     The salt bytes or NULL_Q_USEFUL_BUF_C.
+ * \param[in] cose_hash_algorithm_id  Hash algorithm the HKDF uses.
+ * \param[in] salt     The salt bytes or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] ikm   The input key material.
- * \param[in] info   The info bytes or NULL_Q_USEFUL_BUF_C.
+ * \param[in] info   The info bytes or \c NULL_Q_USEFUL_BUF_C.
  * \param[in,out] okm_buffer  The output key material.
  *
- * \return Error code.
+ * \retval T_COSE_ERR_UNSUPPORTED_HASH
+ * \retval T_COSE_ERR_HKDF_FAIL
  *
  * With HKDF you can request the output be up to 255 times
  * the length of output of the hash function. In this interface that length
  * request is the length of the okm_buffer. On success
- * the whole okm_buffer will always be filled in.
- * The usual parameter pair of an empty q_useful_buf
- * passed in and filled-in q_useful_buf_c returned is not
+ * the whole \c okm_buffer will always be filled in.
+ * The usual parameter pair of an empty \c q_useful_buf
+ * passed in and filled-in \c q_useful_buf_c returned is not
  * used because it would be redundant and waste some
  * object code.
  *

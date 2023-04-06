@@ -1945,11 +1945,11 @@ cose_hash_alg_to_ossl(int32_t cose_hash_algorithm_id)
     }
 }
 
+
+
 /*
  * See documentation in t_cose_crypto.h
  */
-/* This implentation works for OpenSSL 1.x and 3.x. There is
- * a better API that the one used here, but it is only available in 3.x. */
 enum t_cose_err_t
 t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
                    struct q_useful_buf_c  salt,
@@ -1963,16 +1963,19 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
     const EVP_MD     *message_digest;
     enum t_cose_err_t return_value;
 
+    /* This implentation works for OpenSSL 1.x and 3.x. There is a
+     * better API that the one used here, but it is only available in
+     * 3.x. */
+
     // TODO: test this more and find a way to be more sure
     // it is all using the OpenSSL APIs right. The documentation
     // doesn't really say how to use it.
 
-    /* These checks make it safe to cast from
-     * size_t to int below. */
+    /* These checks make it safe to cast from size_t to int below. */
     if(!is_size_t_to_int_cast_ok(salt.len) ||
        !is_size_t_to_int_cast_ok(ikm.len) ||
        !is_size_t_to_int_cast_ok(info.len)) {
-        return_value = T_COSE_ERR_FAIL; // TODO: better error
+        return_value = T_COSE_ERR_INVALID_LENGTH;
         goto Done2;
     }
 
@@ -1992,34 +1995,34 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
 
     ossl_result = EVP_PKEY_derive_init(ctx);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_FAIL;
+        return_value = T_COSE_ERR_HKDF_FAIL;
         goto Done1;
     }
 
     ossl_result = EVP_PKEY_CTX_set_hkdf_md(ctx, message_digest);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_FAIL;
+        return_value = T_COSE_ERR_HKDF_FAIL;
         goto Done1;
     }
 
     /* Cast to int OK'd by check above */
     ossl_result = EVP_PKEY_CTX_set1_hkdf_salt(ctx, salt.ptr, (int)salt.len);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_FAIL;
+        return_value = T_COSE_ERR_HKDF_FAIL;
         goto Done1;
     }
 
     /* Cast to int OK'd by check above */
     ossl_result = EVP_PKEY_CTX_set1_hkdf_key(ctx, ikm.ptr, (int)ikm.len);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_FAIL;
+        return_value = T_COSE_ERR_HKDF_FAIL;
         goto Done1;
     }
 
     /* Cast to int OK'd by check above */
     ossl_result = EVP_PKEY_CTX_add1_hkdf_info(ctx, info.ptr, (int)info.len);
     if(ossl_result != 1) {
-        return_value = T_COSE_ERR_FAIL;
+        return_value = T_COSE_ERR_HKDF_FAIL;
         goto Done1;
     }
 
@@ -2028,7 +2031,7 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
                                   &x_len);
 
     if(x_len != okm_buffer.len || ossl_result != 1) {
-        return_value = T_COSE_ERR_FAIL;
+        return_value = T_COSE_ERR_HKDF_FAIL;
         goto Done1;
     }
 
