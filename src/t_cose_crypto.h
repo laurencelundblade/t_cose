@@ -1198,19 +1198,23 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
 
 
 
-#if WE_NEED_THESE
+#ifdef WE_NEED_THESE_FOR_HPKE
+/* HPKE doesn't use the basic hkdf. */
 
 /** \brief HKDF extract
 
  * This provides the HKDF extract function defined in RFC 5869 for
- * various hash functions.
+ * various hash functions. This does not use prk_buffer as in/out
+ * the way t_cose_crypto_hkdf() uses okm_buffer. Instead this
+ * is more like the usual use of the pair of a buffer in and a
+ * constant pointer and length for the value out.
 
  */
 enum t_cose_err_t
 t_cose_crypto_hkdf_extract(int32_t                cose_hash_algorithm_id,
                            struct q_useful_buf_c  salt,
                            struct q_useful_buf_c  ikm,
-                           struct q_useful_buf    prk_buffer,
+                           struct q_useful_buf    prk_buffer
                            struct q_useful_buf_c *prk);
 
 
@@ -1218,19 +1222,13 @@ t_cose_crypto_hkdf_extract(int32_t                cose_hash_algorithm_id,
 
 * This provides the HKDF expand function defined in RFC 5869 for
 * various hash functions.
-
- // TODO: do we really want this? What if you are writing to some larger buffer in assembling HKDF stuff?
- * With HKDF expand, the caller can request an output size. Here it is
- * is the length of the okm_buffer.  In the output okm.len will be that
- * length, a redundancy, but consistent with q_useful_buf usage
- * and const-ness. (In common q_useful_buf, th
+ * This use the okm_buffer as in/out like t_cose_crypto_hkdf().
 */
 enum t_cose_err_t
 t_cose_crypto_hkdf_expand(int32_t                cose_hash_algorithm_id,
                           struct q_useful_buf_c  prk,
                           struct q_useful_buf_c  info,
-                          struct q_useful_buf    okm_buffer,
-                          struct q_useful_buf_c *okm);
+                          struct q_useful_buf    okm_buffer);
 
 #endif /* WE_NEED_THESE */
 
