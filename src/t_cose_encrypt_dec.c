@@ -73,7 +73,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 #ifdef QCBOR_FOR_T_COSE_2
     SaveDecodeCursor saved_cursor;
 
-    QCBORDecode_SaveCursor(qcbor_decoder, &saved_cursor);
+    QCBORDecode_SaveCursor(cbor_decoder, &saved_cursor);
 #endif
 
     /* Loop over the configured recipients */
@@ -111,7 +111,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 
         /* Loop continues on for the next recipient */
 #ifdef QCBOR_FOR_T_COSE_2
-        QCBORDecode_RestoreCursor(qcbor_decoder, &saved_cursor);
+        QCBORDecode_RestoreCursor(cbor_decoder, &saved_cursor);
 #else
         return T_COSE_ERR_CANT_PROCESS_MULTIPLE;
 #endif

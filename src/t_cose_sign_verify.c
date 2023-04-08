@@ -155,7 +155,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
 #ifdef QCBOR_FOR_T_COSE_2
     SaveDecodeCursor saved_cursor;
 
-    QCBORDecode_SaveCursor(qcbor_decoder, &saved_cursor);
+    QCBORDecode_SaveCursor(cbor_decoder, &saved_cursor);
 #endif
 
     for(verifier = me->verifiers;
@@ -201,7 +201,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
 
         /* Go on to the next signature */
 #ifdef QCBOR_FOR_T_COSE_2
-        QCBORDecode_RestoreCursor(qcbor_decoder, &saved_cursor);
+        QCBORDecode_RestoreCursor(cbor_decoder, &saved_cursor);
 #else
         return T_COSE_ERR_CANT_PROCESS_MULTIPLE;
 #endif
@@ -377,7 +377,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                 }
             }
 
-            if(me->option_flags & (T_COSE_VERIFY_ALL_SIGNATURES | T_COSE_OPT_DECODE_ONLY)) {
+            if(me->option_flags & (T_COSE_OPT_VERIFY_ALL_SIGNATURES | T_COSE_OPT_DECODE_ONLY)) {
                 if(sig_error_code == T_COSE_ERR_DECLINE) {
                     /* When verifying all, there can be no declines.
                      * Also only decoding (not verifying) there can be

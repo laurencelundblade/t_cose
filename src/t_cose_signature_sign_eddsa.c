@@ -136,6 +136,7 @@ void
 t_cose_signature_sign_eddsa_init(struct t_cose_signature_sign_eddsa *me)
 {
     memset(me, 0, sizeof(*me));
+    me->s.rs.ident   = RS_IDENT(TYPE_RS_SIGNER, 'E');
     me->s.sign_cb    = t_cose_signature_sign_eddsa_cb;
     me->s.sign1_cb   = t_cose_signature_sign1_eddsa_cb;
     me->s.headers_cb = t_cose_signature_sign_headers_eddsa_cb;

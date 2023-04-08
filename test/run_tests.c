@@ -58,7 +58,7 @@ static test_entry2 s_tests2[] = {
 
 static test_entry s_tests[] = {
 
-
+    TEST_ENTRY(verify_multi_test),
     TEST_ENTRY(aead_test),
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
