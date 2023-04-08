@@ -113,6 +113,48 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 }
 
 
+/* Map COSE hash algorithm ID to OpenSSL EVP_MD.
+ * Returns NULL for unsupported algorithm.
+ * This uses nid and  EVP_get_digestbynid() because
+ * it is the least amount of object code and works for
+ * OpenSSL 1.1.1 and 3.0. EVP_sha256() and friends work,
+ * but will be more function calls. EVP_MD_fetch() is
+ * the fancy new way, but doesn't work in OpenSSL 1.1.1.
+ * EVP_MD_fetch() would allow use of different engines
+ * rather than the basic default, but that doesn't seem
+ * necessary. */
+static const EVP_MD *
+cose_hash_alg_to_ossl(int32_t cose_hash_alg_id)
+{
+    int nid;
+
+    /*  switch() is less object code than t_cose_int16_map(). */
+    switch(cose_hash_alg_id) {
+        case T_COSE_ALGORITHM_SHA_256:
+            nid = NID_sha256;
+            break;
+
+#if !defined(T_COSE_DISABLE_ES384) || !defined(T_COSE_DISABLE_PS384)
+        case T_COSE_ALGORITHM_SHA_384:
+            nid = NID_sha384;
+            break;
+#endif
+
+#if !defined(T_COSE_DISABLE_ES512) || !defined(T_COSE_DISABLE_PS512)
+        case T_COSE_ALGORITHM_SHA_512:
+            nid = NID_sha512;
+            break;
+#endif
+
+        default:
+            return NULL;
+    }
+
+    return EVP_get_digestbynid(nid);
+}
+
+
+
 /* OpenSSL archaically uses int for lengths in some APIs. t_cose
  * properly use size_t for lengths. While it is unlikely that this
  * will ever be an issue because lengths are unlikely to be near
@@ -547,6 +589,24 @@ Done:
 }
 
 
+/* Return algorithm ID for hash used with a particular RSA algorithm ID */
+static int32_t
+rsa_alg_to_hash_alg(int32_t rsa_alg)
+{
+    int32_t cose_hash_alg_map[] = {T_COSE_ALGORITHM_SHA_512,
+                                   T_COSE_ALGORITHM_SHA_384,
+                                   T_COSE_ALGORITHM_SHA_256};
+
+    int32_t x = rsa_alg - T_COSE_ALGORITHM_PS512;
+
+    if(x < 0 || x > 3) {
+        return T_COSE_ALGORITHM_NONE;
+    }
+
+    return cose_hash_alg_map[x];
+}
+
+
 /**
  * \brief Configure an EVP_PKEY_CTX for a given algorithm.
  *
@@ -559,8 +619,9 @@ static enum t_cose_err_t
 configure_pkey_context(EVP_PKEY_CTX* context, int32_t cose_algorithm_id)
 {
     enum t_cose_err_t return_value;
-    const EVP_MD     *md;
+    const EVP_MD     *message_digest;
     int               ossl_result;
+
 
     if (t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         /* ECDSA doesn't need any further configuration of its context.
@@ -577,22 +638,11 @@ configure_pkey_context(EVP_PKEY_CTX* context, int32_t cose_algorithm_id)
          * - Salt length should match the size of the output of the hash
          *   function.
          */
-        switch (cose_algorithm_id) {
-            case T_COSE_ALGORITHM_PS256:
-                md = EVP_sha256();
-                break;
 
-            case T_COSE_ALGORITHM_PS384:
-                md = EVP_sha384();
-                break;
-
-            case T_COSE_ALGORITHM_PS512:
-                md = EVP_sha512();
-                break;
-
-            default:
-                return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-                goto Done;
+        message_digest = cose_hash_alg_to_ossl(rsa_alg_to_hash_alg(cose_algorithm_id));
+        if(message_digest == NULL) {
+            return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+            goto Done;
         }
 
         ossl_result = EVP_PKEY_CTX_set_rsa_padding(context, RSA_PKCS1_PSS_PADDING);
@@ -609,13 +659,13 @@ configure_pkey_context(EVP_PKEY_CTX* context, int32_t cose_algorithm_id)
          */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-        ossl_result = EVP_PKEY_CTX_set_signature_md(context, md);
+        ossl_result = EVP_PKEY_CTX_set_signature_md(context, message_digest);
         if(ossl_result != 1) {
             return_value = T_COSE_ERR_SIG_FAIL;
             goto Done;
         }
 
-        ossl_result = EVP_PKEY_CTX_set_rsa_mgf1_md(context, md);
+        ossl_result = EVP_PKEY_CTX_set_rsa_mgf1_md(context, message_digest);
         if(ossl_result != 1) {
             return_value = T_COSE_ERR_SIG_FAIL;
             goto Done;
@@ -901,33 +951,9 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
                          int32_t                    cose_hash_alg_id)
 {
     int           ossl_result;
-    int           nid;
     const EVP_MD *message_digest;
 
-    /*  switch() is less object code than t_cose_int16_map(). */
-    switch(cose_hash_alg_id) {
-
-    case T_COSE_ALGORITHM_SHA_256:
-        nid = NID_sha256;
-        break;
-
-#if !defined(T_COSE_DISABLE_ES384) || !defined(T_COSE_DISABLE_PS384)
-    case T_COSE_ALGORITHM_SHA_384:
-        nid = NID_sha384;
-        break;
-#endif
-
-#if !defined(T_COSE_DISABLE_ES512) || !defined(T_COSE_DISABLE_PS512)
-    case T_COSE_ALGORITHM_SHA_512:
-        nid = NID_sha512;
-        break;
-#endif
-
-    default:
-        return T_COSE_ERR_UNSUPPORTED_HASH;
-    }
-
-    message_digest = EVP_get_digestbynid(nid);
+    message_digest = cose_hash_alg_to_ossl(cose_hash_alg_id);
     if(message_digest == NULL){
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
@@ -1932,19 +1958,6 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
 
 #include "openssl/kdf.h"
 
-static const EVP_MD *
-cose_hash_alg_to_ossl(int32_t cose_hash_algorithm_id)
-{
-    switch(cose_hash_algorithm_id) {
-        case T_COSE_ALGORITHM_SHA_256:
-            return EVP_sha256();
-            break;
-
-        default:
-            return NULL;
-    }
-}
-
 
 
 /*
@@ -1964,7 +1977,7 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
     enum t_cose_err_t return_value;
 
     /* This implentation works for OpenSSL 1.x and 3.x. There is a
-     * better API that the one used here, but it is only available in
+     * better API than the one used here, but it is only available in
      * 3.x. */
 
     // TODO: test this more and find a way to be more sure
