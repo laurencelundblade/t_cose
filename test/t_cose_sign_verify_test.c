@@ -1186,7 +1186,7 @@ int32_t verify_multi_test(void)
     t_cose_signature_verify_main_set_key(&verify_ecdsa,
                                          ecdsa_key,
                                          Q_USEFUL_BUF_FROM_SZ_LITERAL("ecsda_kid"));
-    t_cose_sign_add_verifier(&verify_ctx, &verify_ecdsa);
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_ecdsa);
 
 
     err = t_cose_sign_verify(&verify_ctx,
@@ -1210,7 +1210,7 @@ int32_t verify_multi_test(void)
                                          eddsa_key,
                                          Q_USEFUL_BUF_FROM_SZ_LITERAL("eddsa_kid"));
     t_cose_signature_verify_eddsa_set_auxiliary_buffer(&verify_eddsa, auxiliary_buffer);
-    t_cose_sign_add_verifier(&verify_ctx, &verify_eddsa);
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_eddsa);
 
 
 
@@ -1221,7 +1221,7 @@ int32_t verify_multi_test(void)
     t_cose_signature_verify_main_set_key(&verify_rsa,
                                          rsa_key,
                                          Q_USEFUL_BUF_FROM_SZ_LITERAL("rsa_kid"));
-    t_cose_sign_add_verifier(&verify_ctx, &verify_rsa);
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_rsa);
 
     err = t_cose_sign_verify(&verify_ctx,
                               cose_sign,

@@ -173,6 +173,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     /* The location of body header parameters is 0, 0 */
     header_location.nesting = 0;
     header_location.index   = 0;
+    body_params_list = NULL;
 
     return_value =
         t_cose_headers_decode(
@@ -245,11 +246,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         /* Successfully decoded one recipient */
         QCBORDecode_ExitArray(&cbor_decoder);
 
-        if(all_params_list == NULL) {
-            all_params_list = rcpnt_params_list;
-        } else {
-            t_cose_parameter_list_append(all_params_list, rcpnt_params_list);
-        }
+
+        t_cose_parameter_list_append(&all_params_list, rcpnt_params_list);
 
         /* The decrypted cek bytes must be a t_cose_key for the AEAD API */
         return_value =

@@ -382,7 +382,7 @@ struct t_cose_parameter_storage {
  * mechanism is in used (e.g., hashing or AEAD encryption).
  */
 enum t_cose_err_t
-t_cose_encode_headers(QCBOREncodeContext            *cbor_encoder,
+t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
                       const struct t_cose_parameter *parameters,
                       struct q_useful_buf_c         *protected_parameters);
 
@@ -392,11 +392,11 @@ t_cose_encode_headers(QCBOREncodeContext            *cbor_encoder,
  *
  * \param[in] cbor_decoder           QCBOR decoder to decode from.
  * \param[in] location               Location in message of the parameters.
- * \param[in] decode_cb              Callback for non-integer and
+ * \param[in] special_decode_cb              Callback for non-integer and
  *                                   non-string parameters.
- * \param[in] decode_cb_context      Context for the above callback
+ * \param[in] special_decode_ctx      Context for the above callback
  * \param[in] parameter_storage      Storage for parameters.
- * \param[out] decoded_params        Returned decoded parameters.
+ * \param[in,out] decoded_params        Parameter list to append to.
  * \param[out] protected_parameters  Pointer and length of encoded protected
  *                                   parameters.
  *
@@ -405,8 +405,10 @@ t_cose_encode_headers(QCBOREncodeContext            *cbor_encoder,
  * next item to be decoded. This then consumes the CBOR for the two
  * headers leaving the decoder position for what ever comes after.
  *
- * The decoded headers are formed into a linked list the
+ * The decoded headers are put into a linked list the
  * nodes for which are allocated out of \c parameter_storage.
+ * They are appended to the list in \c *decoded_params which
+ * may be \c NULL.
  *
  * The number of parameters in the crititical parameters parameter is
  * limited to \ref T_COSE_MAX_CRITICAL_PARAMS for each bucket of
@@ -419,7 +421,7 @@ t_cose_encode_headers(QCBOREncodeContext            *cbor_encoder,
  * building the t_cose library.
  *
  * In order to handle parameters that are not integers or strings a
- * callback of type \ref t_cose_parameter_decode_cb must be
+ * callback of type \ref special_decode_cb must be
  * given. There is only one of these callbacks for all the
  * non-integer and non-string header parameters. It typically switches
  * on the parameter label.
@@ -443,17 +445,18 @@ t_cose_headers_decode(QCBORDecodeContext                *cbor_decoder,
 /**
  * \brief Append one list of parameters to another.
  *
- * \param[in] existing        A  parameter linked list to which something is
- *                            added to the end.
+ * \param[in] existing        A pointer to the head of a  parameter linked list to which \c to_be_appended is
+ *                            added to the end or a pointer to \c NULL.
  * \param[in] to_be_appended  A parameter link list which is to added.
  *
- * This finds the end of \c existing and sets the \c next member in
- * the last node to \c to_be_appended.
+ * If \c *existing is not \c NULL, this finds the end of \c existing and sets the \c next member in
+ * the last node to \c to_be_appended. If it is \c NULL, this just assigns
+ * \c to_be_appended to \c *existing.
  *
  * \c to_be_appended may be \c NULL. \c existing may not.
  */
 static void
-t_cose_parameter_list_append(struct t_cose_parameter *existing,
+t_cose_parameter_list_append(struct t_cose_parameter **existing,
                              struct t_cose_parameter *to_be_appended);
 
 
@@ -758,14 +761,21 @@ t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv)
 
 
 static inline void
-t_cose_parameter_list_append(struct t_cose_parameter *existing,
+t_cose_parameter_list_append(struct t_cose_parameter **existing,
                              struct t_cose_parameter *to_be_appended)
 {
-    while(existing->next != NULL) {
-        existing = existing->next;
-    }
+    struct t_cose_parameter *ex;
 
-    existing->next = to_be_appended;
+    if(*existing == NULL) {
+        *existing = to_be_appended;
+    } else {
+        ex = *existing;
+        while(ex->next != NULL) {
+            ex = ex->next;
+        }
+
+        ex->next = to_be_appended;
+    }
 }
 
 

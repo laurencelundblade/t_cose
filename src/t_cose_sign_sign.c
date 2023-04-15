@@ -36,8 +36,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
 {
     enum t_cose_err_t              return_value;
     struct t_cose_signature_sign  *signer;
-    struct t_cose_parameter       *sign1_parameters;
-    struct t_cose_parameter       *body_parameters;
+    struct t_cose_parameter       *parameters;
     uint64_t                       message_type_tag_number;
 
     /* There must be at least one signer configured (a signer is an
@@ -56,14 +55,14 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     message_type_tag_number = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
 
     /* --- Make list of the body header parameters --- */
-    sign1_parameters = NULL;
+    parameters = NULL;
     if(message_type_tag_number == CBOR_TAG_COSE_SIGN1) {
         /* For a COSE_Sign1, the header parameters go in the main body
          * header parameter section, and the signatures part just
          * contains a raw signature bytes, not an array of
          * COSE_Signature. This gets the parameters from the
          * signer. */
-        signer->headers_cb(signer, &sign1_parameters);
+        signer->headers_cb(signer, &parameters);
         if(signer->rs.next != NULL) {
             /* In COSE_Sign1 mode, but too many signers configured.*/
             return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
@@ -74,12 +73,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     /* Form up the full list of body header parameters which may
      * include the COSE_Sign1 algorithm ID and kid. It may also
      * include the caller-added parameters like content type. */
-    if(sign1_parameters == NULL) {
-        body_parameters = me->added_body_parameters;
-    } else {
-        body_parameters = sign1_parameters;
-        t_cose_parameter_list_append(body_parameters, me->added_body_parameters);
-    }
+    t_cose_parameter_list_append(&parameters, me->added_body_parameters);
 
     /* --- Add the CBOR tag indicating COSE message type --- */
     if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
@@ -91,8 +85,8 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
 
 
     /* --- Encode both protected and unprotected headers --- */
-    return_value = t_cose_encode_headers(cbor_encode_ctx,
-                                         body_parameters,
+    return_value = t_cose_headers_encode(cbor_encode_ctx,
+                                         parameters,
                                          &me->protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
