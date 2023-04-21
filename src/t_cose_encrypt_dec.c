@@ -174,6 +174,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     header_location.nesting = 0;
     header_location.index   = 0;
     body_params_list = NULL;
+    rcpnt_params_list = NULL;
 
     return_value =
         t_cose_headers_decode(

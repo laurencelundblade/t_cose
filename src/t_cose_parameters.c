@@ -328,7 +328,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
 
     /* Main loop to decode the parameters in the map. */
     while(1) {
-        /* Can't consume it because it be special to be consumed by callback */
+        /* Can't consume it because it might be special to be consumed by callback */
         QCBORDecode_VPeekNext(cbor_decoder, &item);
         cbor_error = QCBORDecode_GetAndResetError(cbor_decoder);
         if(cbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
@@ -391,17 +391,19 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                         /* Not critical. Just skip over it. */
                     }
                 } else {
-                    /* Processed and consumed by the callback. */
-                    // TODO: What if the cb doesn't know how to process?
-                    // Maybe do it here rather than make every decoder do it?
-                    // Special error code?
                     return_value = special_decode_cb(special_decode_ctx,
                                                      cbor_decoder,
                                                      parameter);
-                /*    if(return_value != T_COSE_SUCCESS) {
-                        break; // TODO: this is probably not right
-                    }*/
-                    goto Next;
+                    if(return_value == T_COSE_SUCCESS) {
+                        goto Next;
+                    } else if(return_value != T_COSE_ERR_DECLINE) {
+                        goto Done;
+                    } else if(parameter->critical) {
+                        return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
+                        goto Done;
+                    } else {
+                        /* Not decoded or consumed, not critical continue loop normally */
+                    }
                 }
         }
 
@@ -454,6 +456,7 @@ dup_detect_list(const struct t_cose_parameter *params_list)
 {
     const struct t_cose_parameter *p1;
 
+
     /* n ^ 2 algorithm, but n is very small. */
     for(p1 = params_list; p1 != NULL; p1 = p1->next) {
         if(dup_detect_list_2(p1, params_list)) {
@@ -483,6 +486,9 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
 
     QCBORError         cbor_error;
     enum t_cose_err_t  return_value;
+    struct t_cose_parameter  *newly_decode_params;
+
+    newly_decode_params = NULL;
 
     /* --- The protected parameters --- */
     QCBORDecode_EnterBstrWrapped(cbor_decoder,
@@ -496,7 +502,7 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
                                                 special_decode_cb,
                                                 special_decode_ctx,
                                                 param_storage,
-                                                decoded_params);
+                                                &newly_decode_params);
         if(return_value != T_COSE_SUCCESS) {
             goto Done;
         }
@@ -510,7 +516,7 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
                                             special_decode_cb,
                                             special_decode_ctx,
                                             param_storage,
-                                            decoded_params);
+                                            &newly_decode_params);
 
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -523,10 +529,13 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
         goto Done;
     }
 
-    if(dup_detect_list(*decoded_params)) {
+
+    if(dup_detect_list(newly_decode_params)) {
         return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
         goto Done;
     }
+
+    t_cose_parameter_list_append(decoded_params, newly_decode_params);
 
   Done:
     return return_value;
@@ -559,7 +568,7 @@ t_cose_params_encode(QCBOREncodeContext            *cbor_encoder,
     bool                            criticals_present;
     enum t_cose_err_t               return_value;
 
-    /* Protected and unprotected parameters are a map of label/value pairs */
+    /* Protected and unprotected parameters are a map of label-value pairs */
     QCBOREncode_OpenMap(cbor_encoder);
 
     criticals_present = false;

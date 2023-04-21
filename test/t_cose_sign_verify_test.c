@@ -1074,6 +1074,7 @@ int_fast32_t sign_verify_multi(void)
                                 &verified_payload,
                                  NULL);
 
+
 #ifdef QCBOR_FOR_T_COSE_2
     if(result) {
         return 3;
@@ -1155,18 +1156,26 @@ make_triple_signed(struct q_useful_buf buffer,
 
 int32_t verify_multi_test(void)
 {
-    enum t_cose_err_t err;
-    MakeUsefulBufOnStack(cose_sign_buf, 700);
-    struct q_useful_buf_c cose_sign;
-    struct t_cose_parameter param_pool[25];
-    Q_USEFUL_BUF_MAKE_STACK_UB(    auxiliary_buffer, 100);
+    enum t_cose_err_t            err;
+    MakeUsefulBufOnStack(        cose_sign_buf, 700);
+    struct q_useful_buf_c        cose_sign;
+    struct t_cose_parameter      param_pool[25];
+    Q_USEFUL_BUF_MAKE_STACK_UB(  auxiliary_buffer, 100);
 
-
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256) ||
+        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_EDDSA) ||
+        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_PS256)) {
+        /* T_COSE_ALGORITHM_ES512 is required for this test */
+        return 0;
+    }
     /* This requires Eddsa, RSA and ECDSA. Since PSA doesn't support EdDSA,
      * this can only run with OpenSSL.
      */
     // TODO: check for algorithm support?
     err = make_triple_signed(cose_sign_buf, &cose_sign);
+    if(err) {
+        return 895;
+    }
 
 
     struct t_cose_sign_verify_ctx  verify_ctx;
@@ -1197,9 +1206,18 @@ int32_t verify_multi_test(void)
 
     /* Not all verifier were configured, but verify all was requested so
      * decline is expected */
+
+#ifdef QCBOR_FOR_T_COSE_2
     if(err != T_COSE_ERR_DECLINE) {
         return 11;
     }
+#else
+    if(err != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
+        return 33;
+    }
+#endif /* QCBOR_FOR_T_COSE_2 */
+
+
 
 
     struct t_cose_signature_verify_eddsa verify_eddsa;
@@ -1229,10 +1247,16 @@ int32_t verify_multi_test(void)
                              &payload,
                               NULL);
 
-    if(err != T_COSE_SUCCESS) {
-        return 4;
-    }
 
+#ifdef QCBOR_FOR_T_COSE_2
+    if(err) {
+        return 3;
+    }
+#else
+    if(err != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
+        return 33;
+    }
+#endif /* QCBOR_FOR_T_COSE_2 */
 
     return 0;
 

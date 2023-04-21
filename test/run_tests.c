@@ -58,7 +58,6 @@ static test_entry2 s_tests2[] = {
 
 static test_entry s_tests[] = {
 
-    TEST_ENTRY(verify_multi_test),
     TEST_ENTRY(aead_test),
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
@@ -85,6 +84,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_known_good_test),
     TEST_ENTRY(sign_verify_unsupported_test),
     TEST_ENTRY(sign_verify_bad_auxiliary_buffer),
+    TEST_ENTRY(verify_multi_test),
     
 #endif /* T_COSE_DISABLE_SIGN1 */
 
