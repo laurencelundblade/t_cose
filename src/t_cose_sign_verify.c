@@ -233,6 +233,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
     best_param_count = 0;
     best_sig_param_list = NULL;
 
+    /* Loop over verifier instances */
     for(verifier = me->verifiers;
         verifier != NULL;
         verifier = (struct t_cose_signature_verify *)verifier->rs.next) {
