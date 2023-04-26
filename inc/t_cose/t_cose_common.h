@@ -667,6 +667,14 @@ enum t_cose_err_t {
 #define T_COSE_OPT_DECODE_ONLY  0x00000800
 
 
+/** By default the presence of any crit parameters will results
+ * in error \ref T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER. With this option there is no check and the
+ * caller is responsible for checking that crit params are
+ * processed.
+ */
+#define T_COSE_OPT_NO_CRIT_PARAM_CHECK  0x00001000
+
+
 /* The lower 8 bits of the options give the type of the
  * COSE message to decode.
  * TODO: this may not be implmented correctly yet

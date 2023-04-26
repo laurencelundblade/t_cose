@@ -220,7 +220,7 @@ struct t_cose_header_location {
     /** 0 means the body, 1 means the first level of signer/recipient, 2,
      * the second level.*/
     uint8_t  nesting;
-    /* For signers and recipients, the index within the nesting level
+    /** For signers and recipients, the index within the nesting level
      * starting from 0. */
     uint8_t  index;
 };
@@ -240,7 +240,8 @@ struct t_cose_header_location {
  */
 struct t_cose_parameter {
     /** Label indicating which parameter it is. Typically, one of
-     * T_COSE_HEADER_PARAM_XXXXX, such as \ref T_COSE_HEADER_PARAM_ALG
+     * T_COSE_HEADER_PARAM_XXXXX, such as \ref T_COSE_HEADER_PARAM_ALG,
+     * but may also be a proprietary label.
      */
     int64_t label;
 
@@ -250,11 +251,11 @@ struct t_cose_parameter {
     /** Indicates parameter should be listed in the critical headers
      * when encoding. Not used while decoding.*/
     bool    critical;
-    /** When decoding the location. Ignored when encoding. */
+    /** When decoding, the location. Ignored when encoding. */
     struct t_cose_header_location location;
 
     /** One of \ref T_COSE_PARAMETER_TYPE_INT64, ... This is the
-     * selector for the contents of the value union. On encoding, the
+     * selector for the contents of the union \c value. On encoding, the
      * caller fills this in to say what they want encoded.  On
      * decoding it is filled in by the decoder for strings and
      * integers. When it is not a string or integer, the decode call
@@ -425,7 +426,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * \param[in] special_decode_cb              Callback for non-integer and
  *                                   non-string parameters.
  * \param[in] special_decode_ctx      Context for the above callback
- * \param[in] parameter_storage      Storage for parameters.
+ * \param[in] parameter_storage      Storage pool for parameters.
  * \param[in,out] decoded_params        Pointer to parameter list to append to or to  \c NULL.
  * \param[out] protected_parameters  Pointer and length of encoded protected
  *                                   parameters.
@@ -437,7 +438,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * Use this to decode "Headers" that occurs throughout COSE. The QCBOR
  * decoder should be positioned so the protected header bucket is the
  * next item to be decoded. This then consumes the CBOR for the two
- * headers leaving the decoder position for what ever comes after.
+ * headers leaving the decoder positioned for what ever comes after.
  *
  * The decoded headers are put into a linked list the
  * nodes for which are allocated out of \c parameter_storage.
@@ -460,9 +461,11 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * non-integer and non-string header parameters. It typically switches
  * on the parameter label.
  *
- * When parameters that are not integers or strings occur and there is
- * no callback configured, critical parameters will result in an error
- * and non-critical parameters will be ignored.
+ * It is up to the caller of this to either process all parameters marked critical
+ * or to error out. See also t_cose_params_crit().
+ *
+ *
+ *
  */
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
@@ -474,6 +477,9 @@ t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       struct q_useful_buf_c              *protected_parameters);
 
 
+/* Returns true of any param in the list is critical */
+bool
+t_cose_params_crit(const struct t_cose_parameter *params);
 
 
 /**
