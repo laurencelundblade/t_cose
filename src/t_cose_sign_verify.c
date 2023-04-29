@@ -542,6 +542,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* --- Process opening array of 4 and tags --- */
     QCBORDecode_EnterArray(&cbor_decoder, NULL);
     if(QCBORDecode_GetError(&cbor_decoder)) {
+        /* Done2 re-uses CBOR->COSE error mapping code. */
         goto Done2;
     }
 
@@ -590,7 +591,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         /* --- The signature bytes for a COSE_Sign1, not COSE_Signatures */
         QCBORDecode_GetByteString(&cbor_decoder, &signature);
         if(QCBORDecode_GetError(&cbor_decoder)) {
-            /* Must error out here. */
+            /* Must have successfully decoded sig before verifying */
+            /* Done2 re-uses CBOR->COSE error mapping code. */
             goto Done2;
         }
 
@@ -627,18 +629,21 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
      * for other decode errors detected above. */
     cbor_error = QCBORDecode_Finish(&cbor_decoder);
     if(cbor_error != QCBOR_SUCCESS) {
-        /* A decode error overrides other errors. */
+        /* A decode error overrides the other errors detected above. */
         return_value = qcbor_decode_error_to_t_cose_error(cbor_error,
                                                       T_COSE_ERR_SIGN1_FORMAT);
         goto Done;
     }
     /* --- End of the decoding of the array of four --- */
 
-    /* --- Check for critical parameters --- */
+
+    /* --- Check for critical params and other --- */
+    if(return_value != T_COSE_SUCCESS) {
+        /* param check must not override non-decoding errors. */
+        goto Done;
+    }
     if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
-        if(t_cose_params_crit(decoded_params)) {
-            return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
-        }
+        return_value = t_cose_params_check(decoded_params);
     }
 
   Done:

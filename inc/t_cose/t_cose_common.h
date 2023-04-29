@@ -667,10 +667,18 @@ enum t_cose_err_t {
 #define T_COSE_OPT_DECODE_ONLY  0x00000800
 
 
-/** By default the presence of any crit parameters will results
- * in error \ref T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER. With this option there is no check and the
- * caller is responsible for checking that crit params are
- * processed.
+/**
+ * Functions like t_cose_sign_verify() and t_cose_encrypt_dec() will
+ * error out with \ref T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER if there
+ * are any critical header parameters. Since the header parameters for
+ * verification, decryption and similar are all standard, don't need
+ * to be marked critical and understood by this implementation, this
+ * error is not returned.
+ *
+ * This option turns off the check for critical parameters for use
+ * cases that use them. In that case the caller of t_cose takes
+ * responsibility for checking all the parameters decoded to be sure
+ * there are no critical parameters that are not understood.
  */
 #define T_COSE_OPT_NO_CRIT_PARAM_CHECK  0x00001000
 

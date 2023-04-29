@@ -31,6 +31,9 @@
  *
  */
 
+
+
+
 /**
  *
  * \brief A list of critical parameter labels, both integer and string.
@@ -73,7 +76,7 @@ struct t_cose_label_list {
  * \param[in,out] label_list The list to clear.
  */
 static inline void
-clear_label_list(struct t_cose_label_list *label_list)
+label_list_clear(struct t_cose_label_list *label_list)
 {
     memset(label_list, 0, sizeof(struct t_cose_label_list));
 }
@@ -87,7 +90,7 @@ clear_label_list(struct t_cose_label_list *label_list)
  * \return true if the list is clear.
  */
 inline static bool
-is_label_list_clear(const struct t_cose_label_list *label_list)
+label_list_is_clear(const struct t_cose_label_list *label_list)
 {
     return label_list->int_labels[0] == 0 &&
                q_useful_buf_c_is_null_or_empty(label_list->tstr_labels[0]);
@@ -95,7 +98,7 @@ is_label_list_clear(const struct t_cose_label_list *label_list)
 
 
 static inline bool
-is_in_list(const struct t_cose_label_list *label_list, int64_t label)
+label_list_is_in(const struct t_cose_label_list *label_list, int64_t label)
 {
     int count;
 
@@ -121,7 +124,7 @@ is_in_list(const struct t_cose_label_list *label_list, int64_t label)
  * list. This always outputs the critical parameters parameter so the list should
  * be checked to be sure it has critical parameters in it before this is called.
  */
-static inline void
+static void
 encode_crit_parameter(QCBOREncodeContext            *cbor_encoder,
                       const struct t_cose_parameter *parameters)
 {
@@ -207,7 +210,7 @@ decode_crit_param(QCBORDecodeContext       *cbor_decoder,
     /* Exit out of array back up to parameters map */
     QCBORDecode_ExitArray(cbor_decoder);
 
-    if(is_label_list_clear(crit_labels)) {
+    if(label_list_is_clear(crit_labels)) {
         /* Per RFC 9052 crit parameter can't be empty */
         return_value = T_COSE_ERR_CRIT_PARAMETER;
         goto Done;
@@ -221,32 +224,45 @@ Done:
 
 
 static void
-mark_crit(struct t_cose_parameter *parameters,
+mark_crit_params(struct t_cose_parameter *parameters,
           struct t_cose_label_list *crit_labels)
 {
     struct t_cose_parameter *p;
 
     for(p = parameters; p != NULL; p = p->next) {
-        if(is_in_list(crit_labels, p->label)) {
+        if(label_list_is_in(crit_labels, p->label)) {
             p->critical = true;
         }
     }
 }
 
 
-bool
-t_cose_params_crit(const struct t_cose_parameter *parameters)
+/*
+ * Public function. See t_cose_parameters.h
+ */
+enum t_cose_err_t
+t_cose_params_check(const struct t_cose_parameter *parameters)
 {
     const struct t_cose_parameter *p;
+    bool                           iv_present;
 
+    iv_present = false;
     for(p = parameters; p != NULL; p = p->next) {
-        if(p->critical) {
-            return true;
+        if(p->critical && !(p->label >= T_COSE_HEADER_PARAM_ALG && p->label <= T_COSE_HEADER_PARAM_PARTIAL_IV)) {
+            return T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
+        }
+        if(p->label == T_COSE_HEADER_PARAM_IV || p->label == T_COSE_HEADER_PARAM_PARTIAL_IV) {
+            if(iv_present) {
+                return T_COSE_ERR_DUPLICATE_PARAMETER;
+            } else {
+                iv_present = true;
+            }
         }
     }
 
-    return false;
+    return T_COSE_SUCCESS;
 }
+
 
 /**
  * \brief  Decode a bucket of parameters.
@@ -309,7 +325,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
 
     QCBORDecode_EnterMap(cbor_decoder, NULL);
 
-    clear_label_list(&crit_param_labels);
+    label_list_clear(&crit_param_labels);
 
     /* Main loop to decode the parameters in the map. */
     while(1) {
@@ -408,7 +424,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
         goto Done;
     }
 
-    mark_crit(*decoded_params, &crit_param_labels);
+    mark_crit_params(*decoded_params, &crit_param_labels);
 
     return_value = T_COSE_SUCCESS;
 
@@ -420,7 +436,7 @@ Done:
 
 
 static bool
-dup_detect_list_2(const struct t_cose_parameter *target,
+param_dup_detect_2(const struct t_cose_parameter *target,
                   const struct t_cose_parameter *params_list)
 {
     const struct t_cose_parameter *p1;
@@ -435,14 +451,14 @@ dup_detect_list_2(const struct t_cose_parameter *target,
 
 
 static bool
-dup_detect_list(const struct t_cose_parameter *params_list)
+pram_dup_detect(const struct t_cose_parameter *params_list)
 {
     const struct t_cose_parameter *p1;
 
 
     /* n ^ 2 algorithm, but n is very small. */
     for(p1 = params_list; p1 != NULL; p1 = p1->next) {
-        if(dup_detect_list_2(p1, params_list)) {
+        if(param_dup_detect_2(p1, params_list)) {
             return true;
         }
     }
@@ -513,7 +529,7 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
     }
 
 
-    if(dup_detect_list(newly_decode_params)) {
+    if(pram_dup_detect(newly_decode_params)) {
         return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
         goto Done;
     }
@@ -629,7 +645,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
     enum t_cose_err_t return_value;
 
     // TODO: allow disabling this check to save object code
-    if(dup_detect_list(parameters)) {
+    if(pram_dup_detect(parameters)) {
         return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
         goto Done;
     }
@@ -795,7 +811,8 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list)
  *
  * \param[in,out] parameters   Parameter list to clear.
  */
-static inline void clear_cose_parameters(struct t_cose_parameters *parameters)
+static void
+clear_cose_parameters(struct t_cose_parameters *parameters)
 {
 #if T_COSE_ALGORITHM_RESERVED != 0
 #error Invalid algorithm designator not 0. Parameter list initialization fails.
@@ -860,11 +877,21 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
+            if(!q_useful_buf_c_is_null(returned_params->partial_iv)) {
+                /* RFC 9052 prohibits both iv and partial iv */
+                return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
+                goto Done;
+            }
             returned_params->iv = p->value.string;
 
         } else if(p->label == T_COSE_HEADER_PARAM_PARTIAL_IV) {
             if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
+                goto Done;
+            }
+            if(!q_useful_buf_c_is_null(returned_params->iv)) {
+                /* RFC 9052 prohibits both iv and partial iv */
+                return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                 goto Done;
             }
             returned_params->partial_iv = p->value.string;

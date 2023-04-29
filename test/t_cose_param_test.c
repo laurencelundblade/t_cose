@@ -356,9 +356,7 @@ static const uint8_t b1[] = {0x01, 0x02, 0x03};
 
 static const uint8_t x3[] = {0x47, 0xA1, 0x0B, 0x3A, 0x7F, 0xFF, 0xFF, 0xFF, 0xA0};
 
-#ifdef TODO_CRIT_PARAM_FIXED
 static const uint8_t x4[] = {0x4A, 0xA2, 0x18, 0x4D, 0x19, 0x03, 0x09, 0x02, 0x81, 0x18, 0x4D, 0xA0};
-#endif
 
 static const uint8_t x5[] = {0x41, 0xA0, 0xA0};
 
@@ -466,12 +464,7 @@ static const struct param_test param_tests[] = {
         QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN /* Expected CBOR encode result */
     },
 
-    // TODO: renumber tests
-    // TODO: test for empty parameters
-
-
-
-    /* 8. Incorrectly formatted parameters (decode only test) */
+    /* 7. Incorrectly formatted parameters (decode only test) */
     {
         UBX(x6), /* CBOR encoded header params */
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
@@ -481,7 +474,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-    /* 9. Not-well formed parameters (decode only test) */
+    /* 8. Not-well formed parameters (decode only test) */
     {
         UBX(x7), /* CBOR encoded header params */
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0},
@@ -491,7 +484,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-    /* 10. Not-well formed parameters (decode only test) */
+    /* 9. Not-well formed parameters (decode only test) */
     {
         UBX(x8), /* CBOR encoded header params */
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
@@ -501,7 +494,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-    /* 11. No protected headers at all (decode only test) */
+    /* 10. No protected headers at all (decode only test) */
     {
         UBX(x9), /* CBOR encoded header params */
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
@@ -511,7 +504,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-    /* 12. an algorithm ID  */
+    /* 11. an algorithm ID  */
     {
         UBX(x11), /* CBOR encoded header params */
         T_COSE_MAKE_ALG_ID_PARAM(T_COSE_ALGORITHM_ES256),
@@ -521,7 +514,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-    /* 13. an integer content ID  */
+    /* 12. an integer content ID  */
     {
         UBX(x12), /* CBOR encoded header params */
         T_COSE_MAKE_CT_UINT_PARAM(42),
@@ -531,7 +524,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-    /* 14. text string content ID  */
+    /* 13. text string content ID  */
     {
         UBX(x13), /* CBOR encoded header params */
         T_COSE_MAKE_CT_TSTR_PARAM(UBS("text/plain")),
@@ -541,7 +534,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-    /* 15. kid  */
+    /* 14. kid  */
     {
         UBX(x14), /* CBOR encoded header params */
         T_COSE_MAKE_KID_PARAM(UBS("this-is-a-kid")),
@@ -551,8 +544,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-
-    /* 16. IV */
+    /* 15. IV */
     {
         UBX(x15), /* CBOR encoded header params */
         T_COSE_MAKE_IV_PARAM(UBS("iviviviv")),
@@ -562,7 +554,7 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
-    /* 17. Partial IV */
+    /* 16. Partial IV */
     {
         UBX(x16), /* CBOR encoded header params */
         T_COSE_MAKE_PARTIAL_IV_PARAM(UBS("piv")),
@@ -571,22 +563,20 @@ static const struct param_test param_tests[] = {
         check_partial_iv, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
-    /* IV, PARTIAL IV */
-#ifdef TODO_CRIT_PARAM_FIXED
 
-    /* X. Critical parameter with no callback to handle it. */
+    /* 17. Critical parameter with no callback to handle it. */
     {
         UBX(x4), /* CBOR encoded header params */
-        NULL,
+        {77, true, true, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.int64 = 777, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
-#endif
 
+    // TODO: test for empty parameters
 
-    /* */
+    /* Terminator */
     {
         {NULL, 0},
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0},
@@ -661,7 +651,7 @@ param_test(void)
         }
 
         /* This is just to be able to set break points by test number. */
-        if(i == 7) {
+        if(i == 17) {
             t_cose_result = 0;
         }
 

@@ -250,12 +250,13 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
     }
 
     return_value = t_cose_crypto_hmac_validate_finish(&hmac_ctx, tag);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     /* --- Check for critical parameters --- */
     if(!(context->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
-        if(t_cose_params_crit(decoded_params)) {
-            return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
-        }
+        return_value = t_cose_params_check(decoded_params);
     }
 
 Done:

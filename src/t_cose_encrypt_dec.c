@@ -282,8 +282,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
 
     /* --- Check for critical parameters --- */
     if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
-        if(t_cose_params_crit(all_params_list)) {
-            return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
+        return_value = t_cose_params_check(all_params_list);
+        if(return_value != T_COSE_SUCCESS) {
             goto Done;
         }
     }
