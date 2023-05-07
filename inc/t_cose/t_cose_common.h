@@ -413,11 +413,12 @@ enum t_cose_err_t {
     T_COSE_ERR_DUPLICATE_PARAMETER = 34,
 
     /** A header parameter that should be protected (alg id or crit)
-     * is not. This occurs when verifying a \c COSE_Sign1 that is
-     * improperly constructed. */
+     * is not. This occurs when verifying, decrypting,.... */
     T_COSE_ERR_PARAMETER_NOT_PROTECTED = 35,
 
-    /** Something is wrong with the crit parameter. */
+    /** Something is wrong with the crit parameter. It may be not well-formed,
+     * invalid, have more than \ref T_COSE_MAX_CRITICAL_PARAMS values and
+     * other. */
     T_COSE_ERR_CRIT_PARAMETER = 36,
 
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when

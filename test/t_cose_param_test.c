@@ -384,6 +384,23 @@ static const uint8_t x15[] = {0x41, 0xA0, 0xA1, 0x05, 0x48, 0x69, 0x76, 0x69, 0x
 
 static const uint8_t x16[] = {0x41, 0xA0, 0xA1, 0x06, 0x43, 0x70, 0x69, 0x76};
 
+static const uint8_t not_well_formed_crit[] = {0x47, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0x81, 0xff, 0xA0};
+
+static const uint8_t empty_crit[] = {0x46, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0x80, 0xA0};
+
+static const uint8_t wrong_thing_in_crit[] = {0x47, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0x81, 0x40, 0xA0};
+
+static const uint8_t map_crit[] = {0x48, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0xa1, 0x00, 0x00, 0xA0};
+
+static const uint8_t crit_unprotected[] = {0x40, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0x81, 0x0D};
+
+/* If T_COSE_MAX_CRITICAL_PARAMS is increased, the number of items here might also need to be increased. */
+static const uint8_t too_many_in_crit[] = {0x4D, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0x85, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0xA0};
+
+/* If T_COSE_MAX_CRITICAL_PARAMS is increased, the number of items here might also need to be increased. */
+static const uint8_t too_many_tstr_in_crit[] = {0x52, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0x86, 0x61, 0x71, 0x61, 0x72, 0x05, 0x61, 0x73, 0x61, 0x74, 0x61, 0x75, 0xA0};
+
+
 
 #define UBX(x) {x, sizeof(x)}
 #define UBS(x) {x, sizeof(x)-1}
@@ -574,6 +591,76 @@ static const struct param_test param_tests[] = {
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
 
+    /* 18. Crit param is not well formed (decode only test). */
+    {
+        UBX(not_well_formed_crit),
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+        T_COSE_SUCCESS, /* Expected encode result */
+        T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+        NULL, /* Call back for decode check */
+        QCBOR_SUCCESS /* Expected CBOR encode result */
+    },
+
+    /* 19. Crit param is empty (decode only test). */
+    {
+         UBX(empty_crit),
+         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+         T_COSE_SUCCESS, /* Expected encode result */
+         T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         NULL, /* Call back for decode check */
+         QCBOR_SUCCESS /* Expected CBOR encode result */
+     },
+
+    /* 20. Crit param has wrong thing in it (decode only test). */
+    {
+         UBX(wrong_thing_in_crit),
+         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+         T_COSE_SUCCESS, /* Expected encode result */
+         T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         NULL, /* Call back for decode check */
+         QCBOR_SUCCESS /* Expected CBOR encode result */
+     },
+
+    /* 21. Crit param is map (decode only test). */
+    {
+         UBX(map_crit),
+         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+         T_COSE_SUCCESS, /* Expected encode result */
+         T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         NULL, /* Call back for decode check */
+         QCBOR_SUCCESS /* Expected CBOR encode result */
+     },
+
+    /* 22. Crit param is unprotected (decode only test). */
+    {
+         UBX(crit_unprotected),
+         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+         T_COSE_SUCCESS, /* Expected encode result */
+         T_COSE_ERR_PARAMETER_NOT_PROTECTED, /* Expected decode result */
+         NULL, /* Call back for decode check */
+         QCBOR_SUCCESS /* Expected CBOR encode result */
+     },
+
+    /* 23. Too many ints in crit (decode only test). */
+    {
+         UBX(too_many_in_crit),
+         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+         T_COSE_SUCCESS, /* Expected encode result */
+         T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         NULL, /* Call back for decode check */
+         QCBOR_SUCCESS /* Expected CBOR encode result */
+     },
+
+    /* 24. Too many tstr in crit (decode only test). */
+    {
+         UBX(too_many_tstr_in_crit),
+         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+         T_COSE_SUCCESS, /* Expected encode result */
+         T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         NULL, /* Call back for decode check */
+         QCBOR_SUCCESS /* Expected CBOR encode result */
+     },
+
     // TODO: test for empty parameters
 
     /* Terminator */
@@ -651,7 +738,7 @@ param_test(void)
         }
 
         /* This is just to be able to set break points by test number. */
-        if(i == 17) {
+        if(i == 24) {
             t_cose_result = 0;
         }
 

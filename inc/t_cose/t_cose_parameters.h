@@ -202,9 +202,9 @@ struct t_cose_special_param_encode {
 
 
 struct t_cose_special_param_decode {
-    /** Decoder callbacks of type t_cose_special_param_encode_cb can use any one of these types that
-     * they see fit. The variety is for the convenience of the
-     * decoder callback. */
+    /** Decoder callbacks of type t_cose_special_param_encode_cb can
+     * use any one of these types that they see fit. The variety is
+     * for the convenience of the decoder callback. */
     union {
         void                 *context;
         int64_t               int64;
@@ -488,8 +488,8 @@ t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
  * no critical parameters except that it allows the parameters
  * that are decoded by default to be marked critical.
  *
- * This also returns \ref T_COSE_ERR_DUPLICATE_PARAMETER if both the the IV and partial IV parameters
- * are present per RFC 9052.
+ * This also returns \ref T_COSE_ERR_DUPLICATE_PARAMETER if both the
+ * the IV and partial IV parameters are present per RFC 9052.
  */
 enum t_cose_err_t
 t_cose_params_check(const struct t_cose_parameter *parameters);
@@ -654,7 +654,8 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list);
  * section 3.1 of RFC 9052 and are sole parameters used in RFC 9052
  * and 9053.
  *
- * This will return \ref T_COSE_ERR_DUPLICATE_PARAMETER if both iv and partial_iv parameters are present.
+ * This will return \ref T_COSE_ERR_DUPLICATE_PARAMETER if both iv and
+ * partial_iv parameters are present.
  */
 enum t_cose_err_t
 t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,

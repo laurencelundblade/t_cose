@@ -27,7 +27,7 @@
 /**
  * \file t_cose_parameters.c
  *
- * \brief Implementation of COSE header parameter decoding.
+ * \brief Implementation of COSE header parameter encoding and decoding..
  *
  */
 
@@ -100,7 +100,7 @@ label_list_is_clear(const struct t_cose_label_list *label_list)
 static inline bool
 label_list_is_in(const struct t_cose_label_list *label_list, int64_t label)
 {
-    int count;
+    unsigned count;
 
     for(count = 0; label_list->int_labels[count]; count++) {
         if(label_list->int_labels[count] == label) {
@@ -161,31 +161,34 @@ decode_crit_param(QCBORDecodeContext       *cbor_decoder,
     /* Aproximate stack usage
      *                                             64-bit      32-bit
      *   QCBORItem                                     56          52
-     *   local vars                                    32          16
-     *   TOTAL                                         88          68
+     *   local vars                                     6           6
+     *   TOTAL                                         58          58
      */
     QCBORItem         item;
-    uint_fast8_t      num_int_labels;
-    uint_fast8_t      num_tstr_labels;
+    unsigned          num_int_labels;
+    unsigned          num_tstr_labels;
     enum t_cose_err_t return_value;
     QCBORError        cbor_result;
 
     /* Assumes that the next item is map holding crit params list */
 
-    /* Find and enter the array that is the critical parameters parameter */
+    /* Enter the array that is the crit parameters parameter */
     QCBORDecode_EnterArray(cbor_decoder, NULL);
 
     num_int_labels  = 0;
     num_tstr_labels = 0;
 
     while(1) {
-        cbor_result = QCBORDecode_GetNext(cbor_decoder, &item);
+        QCBORDecode_VGetNext(cbor_decoder, &item);
+        cbor_result = QCBORDecode_GetAndResetError(cbor_decoder);
         if(cbor_result == QCBOR_ERR_NO_MORE_ITEMS) {
             /* successful exit from loop */
             break;
         }
         if(cbor_result != QCBOR_SUCCESS) {
-            return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+            /* Don't bother mapping CBOR errors into details t_cose errors.
+             * It's probably more useful to know its the crit param. */
+            return_value = T_COSE_ERR_CRIT_PARAMETER;
             goto Done;
         }
 
@@ -211,7 +214,7 @@ decode_crit_param(QCBORDecodeContext       *cbor_decoder,
     QCBORDecode_ExitArray(cbor_decoder);
 
     if(label_list_is_clear(crit_labels)) {
-        /* Per RFC 9052 crit parameter can't be empty */
+        /* Per RFC 9052, crit parameter can't be empty */
         return_value = T_COSE_ERR_CRIT_PARAMETER;
         goto Done;
     }
@@ -225,13 +228,13 @@ Done:
 
 static void
 mark_crit_params(struct t_cose_parameter *parameters,
-          struct t_cose_label_list *crit_labels)
+                 struct t_cose_label_list *crit_labels)
 {
-    struct t_cose_parameter *p;
+    struct t_cose_parameter *p_param;
 
-    for(p = parameters; p != NULL; p = p->next) {
-        if(label_list_is_in(crit_labels, p->label)) {
-            p->critical = true;
+    for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
+        if(label_list_is_in(crit_labels, p_param->label)) {
+            p_param->critical = true;
         }
     }
 }
@@ -243,15 +246,17 @@ mark_crit_params(struct t_cose_parameter *parameters,
 enum t_cose_err_t
 t_cose_params_check(const struct t_cose_parameter *parameters)
 {
-    const struct t_cose_parameter *p;
+    const struct t_cose_parameter *p_param;
     bool                           iv_present;
 
     iv_present = false;
-    for(p = parameters; p != NULL; p = p->next) {
-        if(p->critical && !(p->label >= T_COSE_HEADER_PARAM_ALG && p->label <= T_COSE_HEADER_PARAM_PARTIAL_IV)) {
+    for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
+        if(p_param->critical && !(p_param->label >= T_COSE_HEADER_PARAM_ALG &&
+                                  p_param->label <= T_COSE_HEADER_PARAM_PARTIAL_IV)) {
             return T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
         }
-        if(p->label == T_COSE_HEADER_PARAM_IV || p->label == T_COSE_HEADER_PARAM_PARTIAL_IV) {
+        if(p_param->label == T_COSE_HEADER_PARAM_IV ||
+           p_param->label == T_COSE_HEADER_PARAM_PARTIAL_IV) {
             if(iv_present) {
                 return T_COSE_ERR_DUPLICATE_PARAMETER;
             } else {

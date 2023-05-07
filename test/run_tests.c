@@ -97,6 +97,7 @@ static test_entry s_tests[] = {
      */
     TEST_ENTRY(bad_parameters_test),
     TEST_ENTRY(crit_parameters_test),
+
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     TEST_ENTRY(content_type_test),
 #endif /* !T_COSE_DISABLE_CONTENT_TYPE */

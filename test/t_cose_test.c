@@ -915,7 +915,7 @@ int_fast32_t bad_parameters_test()
 
 
 
-
+/* These test the processing of the crit param in a COSE_SIGN1 */
 static struct test_case crit_tests_table[] = {
     /* Test existance of the critical header. Also makes sure that
      * it works with the max number of labels allowed in it.
