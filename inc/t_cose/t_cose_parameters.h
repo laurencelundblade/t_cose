@@ -433,13 +433,13 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  *                                   parameters.
  *
  * For most COSE message decoding (e.g. verification of a COSE_SIgn1), this
- * is not needed. This is mainly used by implemention of a new
- * \c t_cose_signature_verify or \c t_cose_recipient_decrypt.
+ * is not needed. This is mainly used internally or by implemention of a new
+ * \c t_cose_signature_verify or \c t_cose_recipient_decrypt object.
  *
  * Use this to decode "Headers" that occurs throughout COSE. The QCBOR
  * decoder should be positioned so the protected header bucket is the
  * next item to be decoded. This then consumes the CBOR for the two
- * headers leaving the decoder positioned for what ever comes after.
+ * header parameter buckets leaving the decoder positioned for what ever comes after.
  *
  * The decoded headers are put into a linked list the
  * nodes for which are allocated out of \c parameter_storage.
@@ -455,7 +455,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * The crit parameter will be decoded and any parameter label
  * listed in it will be marked as crit in the list returned. It is up
  * to the caller to check the list for crit parameters and error
- * out if they are not processed.
+ * out if they are not processed. See t_cose_params_check().
  *
  * The number of parameters in the crititical parameters parameter is
  * limited to \ref T_COSE_MAX_CRITICAL_PARAMS for each bucket of
@@ -464,7 +464,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * only the limit for one header bucket, not the aggregation of all
  * the headers buckets. For example it limits the crit list in for one
  * COSE_Signer, not the the total of all COSE_Signers. This is a hard
- * limt that can only be increased by changing the size and re
+ * limit that can only be increased by changing the size and re
  * building the t_cose library.
  */
 enum t_cose_err_t

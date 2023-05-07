@@ -161,8 +161,8 @@ decode_crit_param(QCBORDecodeContext       *cbor_decoder,
     /* Aproximate stack usage
      *                                             64-bit      32-bit
      *   QCBORItem                                     56          52
-     *   local vars                                     6           6
-     *   TOTAL                                         58          58
+     *   local vars                                    32          16
+     *   TOTAL                                         88          68
      */
     QCBORItem         item;
     unsigned          num_int_labels;
@@ -305,14 +305,13 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                      struct t_cose_parameter_storage    *param_storage,
                      struct t_cose_parameter           **decoded_params)
 {
-    /* Stack usage:
-      Item   56
-      vars   24
-     crit list :120
-     QCBORDecode_VPeekNext: 200 (The largest subroutine called)
-
-     TOTAL 400
-
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   QCBORItem                                     56          52
+     *   local vars                                    40          20
+     *   crit list                                    120          80
+     *   largest function call, QCBORDecode_VPeekNext 200         200
+     *   TOTAL                                        416         352
      */
     QCBORError                cbor_error;
     enum t_cose_err_t         return_value;
@@ -483,13 +482,15 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
                       struct t_cose_parameter         **decoded_params,
                       struct q_useful_buf_c            *protected_parameters)
 {
-    /* stack usage:
-     vars: 16
-     decode_bucket  324
+     /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    24          12
+     *   largest call, t_cose_params_decode           416         352
+     *   TOTAL                                        440         364
      */
 
-    QCBORError         cbor_error;
-    enum t_cose_err_t  return_value;
+    QCBORError                cbor_error;
+    enum t_cose_err_t         return_value;
     struct t_cose_parameter  *newly_decode_params;
 
     newly_decode_params = NULL;
@@ -515,12 +516,12 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
 
     /* ---  The unprotected parameters --- */
     return_value = t_cose_params_decode(cbor_decoder,
-                                            location,
-                                            false,
-                                            special_decode_cb,
-                                            special_decode_ctx,
-                                            param_storage,
-                                            &newly_decode_params);
+                                        location,
+                                        false,
+                                        special_decode_cb,
+                                        special_decode_ctx,
+                                        param_storage,
+                                       &newly_decode_params);
 
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
