@@ -186,7 +186,7 @@ decode_crit_param(QCBORDecodeContext       *cbor_decoder,
             break;
         }
         if(cbor_result != QCBOR_SUCCESS) {
-            /* Don't bother mapping CBOR errors into details t_cose errors.
+            /* Don't bother mapping CBOR errors into detailed t_cose errors.
              * It's probably more useful to know its the crit param. */
             return_value = T_COSE_ERR_CRIT_PARAMETER;
             goto Done;
