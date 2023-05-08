@@ -478,18 +478,19 @@ t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
 
 
 /**
- * \brief Returns true if any param in the list is critical.
+ * \brief Check parameter list, particularly for unknown critical parameters
  *
  * \param[in] parameters   Linked list of parameters to check.
  *
- * \returns  \c true if there is at least one crit parameter.
+ * \retval  T_COSE_SUCCESS  Nothing wrong in parameter list.
+ * \retval T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER   A parameter was marked
+ * critical that is not one of the standard common parameters handled by t_cose
+ * (T_COSE_HEADER_PARAM_ALG through T_COSE_HEADER_PARAM_PARTIAL_IV).
+ * \retval  T_COSE_ERR_DUPLICATE_PARAMETER    Both IV and partial IV parameters are present
  *
  * This is used by t_cose_sign_verify() and such to check there are
- * no critical parameters except that it allows the parameters
- * that are decoded by default to be marked critical.
- *
- * This also returns \ref T_COSE_ERR_DUPLICATE_PARAMETER if both the
- * the IV and partial IV parameters are present per RFC 9052.
+ * no critical parameters except that it allows the standard parameters
+ * that are decoded by default to be marked critical..
  */
 enum t_cose_err_t
 t_cose_params_check(const struct t_cose_parameter *parameters);

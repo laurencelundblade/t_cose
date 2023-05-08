@@ -267,12 +267,13 @@ param_decoder(void                   *cb_context,
 
 
 struct param_test {
-    struct q_useful_buf_c       encoded;
+    struct q_useful_buf_c    encoded;
     struct t_cose_parameter  unencoded;
-    enum t_cose_err_t           encode_result;
-    enum t_cose_err_t           decode_result;
-    int32_t                     (*check_cb)(struct t_cose_parameter *param);
-    QCBORError                  qcbor_encode_result;
+    enum t_cose_err_t        encode_result;
+    enum t_cose_err_t        decode_result;
+    enum t_cose_err_t        check_result;
+    int32_t                (*check_cb)(struct t_cose_parameter *param);
+    QCBORError               qcbor_encode_result;
 };
 
 
@@ -400,6 +401,10 @@ static const uint8_t too_many_in_crit[] = {0x4D, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0
 /* If T_COSE_MAX_CRITICAL_PARAMS is increased, the number of items here might also need to be increased. */
 static const uint8_t too_many_tstr_in_crit[] = {0x52, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0x86, 0x61, 0x71, 0x61, 0x72, 0x05, 0x61, 0x73, 0x61, 0x74, 0x61, 0x75, 0xA0};
 
+/*  */
+static const uint8_t iv_and_partial_iv[] = {0x41, 0xA0, 0xA2, 0x05, 0x48, 0x69, 0x76, 0x69, 0x76, 0x69, 0x76, 0x69, 0x76, 0x06, 0x41, 0xDD};
+
+static const uint8_t crit_alg_id[] = {0x46, 0xA2, 0x01, 0x26, 0x02, 0x81, 0x01, 0xA0};
 
 
 #define UBX(x) {x, sizeof(x)}
@@ -416,6 +421,7 @@ static const struct param_test param_tests[] = {
         {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_SUCCESS,
         T_COSE_SUCCESS,
+        T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER, /* Expected check result */
         check_44,
         QCBOR_SUCCESS
     },
@@ -427,6 +433,7 @@ static const struct param_test param_tests[] = {
             .value.string = UBX(b1), NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         NULL,
         QCBOR_SUCCESS
     },
@@ -436,6 +443,7 @@ static const struct param_test param_tests[] = {
         {x2, 0}, // Unused
         {22, false, false, {0,0}, 200 /* Unknown type */, .value.int64 = 11, NULL},
         T_COSE_ERR_INVALID_PARAMETER_TYPE,
+        0,
         0,
         NULL,
         QCBOR_SUCCESS
@@ -447,6 +455,7 @@ static const struct param_test param_tests[] = {
         {11, true, false, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.int64 = INT32_MIN, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         NULL, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -457,6 +466,7 @@ static const struct param_test param_tests[] = {
         {101, false, true, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.int64 = INT32_MIN, NULL},
         T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED, /* Expected encode result */
         0, /* Expected decode result */
+        0, /* Expected check result */
         NULL, /* Call back for decode check */
         0 /* Expected CBOR encode result */
     },
@@ -467,6 +477,7 @@ static const struct param_test param_tests[] = {
         {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_ERR_FAIL, /* Expected encode result */
         0, /* Expected decode result */
+        0, /* Expected check result */
         NULL, /* Call back for decode check */
         0 /* Expected CBOR encode result */
     },
@@ -477,6 +488,7 @@ static const struct param_test param_tests[] = {
         {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_SUCCESS, /* Expected encode result */
         0, /* Expected decode result */
+        0, /* Expected check result */
         NULL, /* Call back for decode check */
         QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN /* Expected CBOR encode result */
     },
@@ -487,6 +499,7 @@ static const struct param_test param_tests[] = {
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         NULL, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -497,6 +510,7 @@ static const struct param_test param_tests[] = {
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         NULL, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -507,6 +521,7 @@ static const struct param_test param_tests[] = {
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         NULL, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -517,6 +532,7 @@ static const struct param_test param_tests[] = {
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         NULL, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -527,6 +543,7 @@ static const struct param_test param_tests[] = {
         T_COSE_MAKE_ALG_ID_PARAM(T_COSE_ALGORITHM_ES256),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         check_alg_id, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -537,6 +554,7 @@ static const struct param_test param_tests[] = {
         T_COSE_MAKE_CT_UINT_PARAM(42),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         check_int_content_id, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -547,6 +565,7 @@ static const struct param_test param_tests[] = {
         T_COSE_MAKE_CT_TSTR_PARAM(UBS("text/plain")),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         check_text_content_id, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -557,6 +576,7 @@ static const struct param_test param_tests[] = {
         T_COSE_MAKE_KID_PARAM(UBS("this-is-a-kid")),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         check_kid, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -567,6 +587,7 @@ static const struct param_test param_tests[] = {
         T_COSE_MAKE_IV_PARAM(UBS("iviviviv")),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         check_iv, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -577,6 +598,7 @@ static const struct param_test param_tests[] = {
         T_COSE_MAKE_PARTIAL_IV_PARAM(UBS("piv")),
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         check_partial_iv, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -587,6 +609,7 @@ static const struct param_test param_tests[] = {
         {77, true, true, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.int64 = 777, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         0, /* Expected decode result */
+        T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER, /* Expected check result */
         NULL, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -597,6 +620,7 @@ static const struct param_test param_tests[] = {
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
         NULL, /* Call back for decode check */
         QCBOR_SUCCESS /* Expected CBOR encode result */
     },
@@ -607,6 +631,7 @@ static const struct param_test param_tests[] = {
          {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
          T_COSE_SUCCESS, /* Expected encode result */
          T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         T_COSE_SUCCESS, /* Expected check result */
          NULL, /* Call back for decode check */
          QCBOR_SUCCESS /* Expected CBOR encode result */
      },
@@ -617,6 +642,7 @@ static const struct param_test param_tests[] = {
          {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
          T_COSE_SUCCESS, /* Expected encode result */
          T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         T_COSE_SUCCESS, /* Expected check result */
          NULL, /* Call back for decode check */
          QCBOR_SUCCESS /* Expected CBOR encode result */
      },
@@ -627,6 +653,7 @@ static const struct param_test param_tests[] = {
          {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
          T_COSE_SUCCESS, /* Expected encode result */
          T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         T_COSE_SUCCESS, /* Expected check result */
          NULL, /* Call back for decode check */
          QCBOR_SUCCESS /* Expected CBOR encode result */
      },
@@ -637,6 +664,7 @@ static const struct param_test param_tests[] = {
          {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
          T_COSE_SUCCESS, /* Expected encode result */
          T_COSE_ERR_PARAMETER_NOT_PROTECTED, /* Expected decode result */
+         T_COSE_SUCCESS, /* Expected check result */
          NULL, /* Call back for decode check */
          QCBOR_SUCCESS /* Expected CBOR encode result */
      },
@@ -647,6 +675,7 @@ static const struct param_test param_tests[] = {
          {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
          T_COSE_SUCCESS, /* Expected encode result */
          T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         T_COSE_SUCCESS, /* Expected check result */
          NULL, /* Call back for decode check */
          QCBOR_SUCCESS /* Expected CBOR encode result */
      },
@@ -657,9 +686,34 @@ static const struct param_test param_tests[] = {
          {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
          T_COSE_SUCCESS, /* Expected encode result */
          T_COSE_ERR_CRIT_PARAMETER, /* Expected decode result */
+         T_COSE_SUCCESS, /* Expected check result */
          NULL, /* Call back for decode check */
          QCBOR_SUCCESS /* Expected CBOR encode result */
      },
+
+    /* 25. Both IV and partial IV to test t_cose_params_check() */
+    {
+         UBX(iv_and_partial_iv),
+         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+         T_COSE_SUCCESS, /* Expected encode result */
+         T_COSE_SUCCESS, /* Expected decode result */
+         T_COSE_ERR_DUPLICATE_PARAMETER, /* Expected check result */
+         NULL, /* Call back for decode check */
+         QCBOR_SUCCESS /* Expected CBOR encode result */
+     },
+
+    /* 26. alg id marked crit */
+    {
+        UBX(crit_alg_id), /* CBOR encoded header params */
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
+        T_COSE_SUCCESS, /* Expected encode result */
+        T_COSE_SUCCESS, /* Expected decode result */
+        T_COSE_SUCCESS, /* Expected check result */
+        NULL, /* Call back for decode check */
+        QCBOR_SUCCESS /* Expected CBOR encode result */
+    },
+
+
 
     // TODO: test for empty parameters
 
@@ -667,6 +721,7 @@ static const struct param_test param_tests[] = {
     {
         {NULL, 0},
         {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0},
+        0,
         0,
         0,
         NULL,
@@ -738,7 +793,7 @@ param_test(void)
         }
 
         /* This is just to be able to set break points by test number. */
-        if(i == 24) {
+        if(i == 26) {
             t_cose_result = 0;
         }
 
@@ -779,43 +834,46 @@ param_test(void)
             decoded_parameter = NULL;
 
             t_cose_result = t_cose_headers_decode(&decode_context,
-                                                  (struct t_cose_header_location){0,0},
-                                                  param_decoder, NULL,
-                                                 &param_storage,
-                                                 &decoded_parameter,
-                                                 &encoded_prot_params);
+                                                   (struct t_cose_header_location){0,0},
+                                                   param_decoder,
+                                                   NULL,
+                                                  &param_storage,
+                                                  &decoded_parameter,
+                                                  &encoded_prot_params);
 
             if(t_cose_result != param_test->decode_result) {
                 return i * 1000 + 4;
             }
 
             if(t_cose_result == T_COSE_SUCCESS) {
-                struct t_cose_parameter decoded = param_storage.storage[0];
-
                 if(param_test->check_cb) {
                     int32_t r;
-                    r = param_test->check_cb(&decoded);
+                    r = param_test->check_cb(decoded_parameter);
                     if(r) {
                         return i * 1000 + 10 + r;
                     }
-                } else {
-                    if(decoded.value_type != param_test->unencoded.value_type) {
+                } else if(param_test->unencoded.value_type != NO_ENCODE_TEST) {
+                    if(decoded_parameter->value_type != param_test->unencoded.value_type) {
                         return i * 1000;
                     }
-                    switch(decoded.value_type) {
+                    switch(decoded_parameter->value_type) {
                         case T_COSE_PARAMETER_TYPE_INT64:
-                            if(decoded.value.int64 != param_test->unencoded.value.int64) {
+                            if(decoded_parameter->value.int64 != param_test->unencoded.value.int64) {
                                 return i * 1000 + 5;
                             }
                             break;
 
                         case T_COSE_PARAMETER_TYPE_TEXT_STRING:
                         case T_COSE_PARAMETER_TYPE_BYTE_STRING:
-                            if(q_useful_buf_compare(decoded.value.string, param_test->unencoded.value.string)) {
+                            if(q_useful_buf_compare(decoded_parameter->value.string, param_test->unencoded.value.string)) {
                                 return i * 1000 + 6;
                             }
                             break;
                     }
+                }
+
+                if(t_cose_params_check(decoded_parameter) != param_test->check_result) {
+                    return i * 1000 + 7;
                 }
             }
         }
