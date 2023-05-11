@@ -138,7 +138,7 @@ struct t_cose_parameter;
  * different parameters or types of parameters.
  */
 typedef enum t_cose_err_t
-t_cose_special_param_encode_cb(const struct t_cose_parameter  *parameter,
+t_cose_param_special_encode_cb(const struct t_cose_parameter  *parameter,
                                QCBOREncodeContext             *cbor_encoder);
 
 
@@ -181,13 +181,13 @@ t_cose_special_param_encode_cb(const struct t_cose_parameter  *parameter,
  * to output.
  */
 typedef enum t_cose_err_t
-t_cose_special_param_decode_cb(void                    *cb_context,
+t_cose_param_special_decode_cb(void                    *cb_context,
                                QCBORDecodeContext      *cbor_decoder,
                                struct t_cose_parameter *parameter);
 
 
-struct t_cose_special_param_encode {
-    t_cose_special_param_encode_cb *encode_cb;
+struct t_cose_param_special_encode {
+    t_cose_param_special_encode_cb *encode_cb;
     /** Encoder callbacks can use any one of these types that
      * they see fit. The variety is for the convenience of the
      * encoder callback. */
@@ -201,7 +201,7 @@ struct t_cose_special_param_encode {
 };
 
 
-struct t_cose_special_param_decode {
+struct t_cose_param_special_decode {
     /** Decoder callbacks of type t_cose_special_param_encode_cb can
      * use any one of these types that they see fit. The variety is
      * for the convenience of the decoder callback. */
@@ -267,8 +267,8 @@ struct t_cose_parameter {
     union {
         int64_t                            int64;
         struct q_useful_buf_c              string;
-        struct t_cose_special_param_encode special_encode;
-        struct t_cose_special_param_decode special_decode;
+        struct t_cose_param_special_encode special_encode;
+        struct t_cose_param_special_decode special_decode;
     } value;
 
     /** next parameter in the linked list or NULL at the end of the list. */
@@ -470,7 +470,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       const struct t_cose_header_location location,
-                      t_cose_special_param_decode_cb     *special_decode_cb,
+                      t_cose_param_special_decode_cb     *special_decode_cb,
                       void                               *special_decode_ctx,
                       struct t_cose_parameter_storage    *parameter_storage,
                       struct t_cose_parameter           **decoded_params,
@@ -510,8 +510,8 @@ t_cose_params_check(const struct t_cose_parameter *parameters);
  * \c to_be_appended may be \c NULL.
  */
 static void
-t_cose_parameter_list_append(struct t_cose_parameter **existing,
-                             struct t_cose_parameter *to_be_appended);
+t_cose_params_append(struct t_cose_parameter **existing,
+                     struct t_cose_parameter *to_be_appended);
 
 
 
@@ -544,29 +544,29 @@ t_cose_parameter_list_append(struct t_cose_parameter **existing,
  * at all).
  */
 static struct t_cose_parameter
-t_cose_make_alg_id_parameter(int32_t alg_id);
+t_cose_pram_make_alg_id(int32_t alg_id);
 
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 static struct t_cose_parameter
-t_cose_make_ct_uint_parameter(uint32_t content_type);
+t_cose_param_make_ct_uint(uint32_t content_type);
 
 
 static struct t_cose_parameter
-t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type);
+t_cose_param_make_ct_tstr(struct q_useful_buf_c content_type);
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 
 static struct t_cose_parameter
-t_cose_make_kid_parameter(struct q_useful_buf_c kid);
+t_cose_param_make_kid(struct q_useful_buf_c kid);
 
 
 static struct t_cose_parameter
-t_cose_make_iv_parameter(struct q_useful_buf_c iv);
+t_cose_param_make_iv(struct q_useful_buf_c iv);
 
 
 static struct t_cose_parameter
-t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv);
+t_cose_param_make_partial_iv(struct q_useful_buf_c iv);
 
 
 
@@ -580,7 +580,7 @@ t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv);
  * \return The found parameter or NULL.
  */
 const struct t_cose_parameter *
-t_cose_find_parameter(const struct t_cose_parameter *parameter_list, int64_t label);
+t_cose_param_find(const struct t_cose_parameter *parameter_list, int64_t label);
 
 
 /**
@@ -595,7 +595,7 @@ t_cose_find_parameter(const struct t_cose_parameter *parameter_list, int64_t lab
  * of the wrong type and the parameter not being protected.
  */
 int32_t
-t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool prot);
+t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool prot);
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 
@@ -603,7 +603,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool
 * not being present and not being the right type.
 */
 struct q_useful_buf_c
-t_cose_find_parameter_content_type_tstr(const struct t_cose_parameter *parameter_list);
+t_cose_param_find_content_type_tstr(const struct t_cose_parameter *parameter_list);
 
 /*
  * This returns T_COSE_EMPTY_UINT_CONTENT_TYPE for all errors include it
@@ -611,7 +611,7 @@ t_cose_find_parameter_content_type_tstr(const struct t_cose_parameter *parameter
  * value for a CoAP content type).
  */
 uint32_t
-t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_list);
+t_cose_param_find_content_type_int(const struct t_cose_parameter *parameter_list);
 
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
@@ -620,21 +620,21 @@ t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_
  * not being present and not being the right type.
  */
 struct q_useful_buf_c
-t_cose_find_parameter_kid(const struct t_cose_parameter *parameter_list);
+t_cose_param_find_kid(const struct t_cose_parameter *parameter_list);
 
 
 /* This returns NULL_Q_USEFUL_BUF_C for all errors including it
 * not being present and not being the right type.
 */
 struct q_useful_buf_c
-t_cose_find_parameter_iv(const struct t_cose_parameter *parameter_list);
+t_cose_param_find_iv(const struct t_cose_parameter *parameter_list);
 
 
 /* This returns NULL_Q_USEFUL_BUF_C for all errors including it
 * not being present and not being the right type.
 */
 struct q_useful_buf_c
-t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list);
+t_cose_param_find_partial_iv(const struct t_cose_parameter *parameter_list);
 
 
 /**
@@ -659,8 +659,8 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list);
  * partial_iv parameters are present.
  */
 enum t_cose_err_t
-t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
-                                struct t_cose_parameters      *returned_params);
+t_cose_params_common(const struct t_cose_parameter *decoded_params,
+                     struct t_cose_parameters      *returned_params);
 
 
 
@@ -671,7 +671,7 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
 
 
 static inline struct t_cose_parameter
-t_cose_make_alg_id_parameter(int32_t alg_id)
+t_cose_pram_make_alg_id(int32_t alg_id)
 {
     /* The weird world of initializers, compound literals for
      * C and C++...
@@ -681,7 +681,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      *
      * 1) Assignments -- an expression is required
      * 2) Initialization of a variable upon its declaration.
-     * 3) Initialization of a static const data structure -- initialized 
+     * 3) Initialization of a static const data structure -- initialized
      *        data in data sections of executable object code
      *
      * The inline functions here provide 1) and 2) for C and C++, but not 3).
@@ -737,7 +737,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
 }
 
 static inline struct t_cose_parameter
-t_cose_make_ct_uint_parameter(uint32_t content_type)
+t_cose_param_make_ct_uint(uint32_t content_type)
 {
     struct t_cose_parameter parameter;
 
@@ -754,7 +754,7 @@ t_cose_make_ct_uint_parameter(uint32_t content_type)
 }
 
 static inline struct t_cose_parameter
-t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type)
+t_cose_param_make_ct_tstr(struct q_useful_buf_c content_type)
 {
     struct t_cose_parameter parameter;
 
@@ -771,7 +771,7 @@ t_cose_make_ct_tstr_parameter(struct q_useful_buf_c content_type)
 }
 
 static inline struct t_cose_parameter
-t_cose_make_kid_parameter(struct q_useful_buf_c kid)
+t_cose_param_make_kid(struct q_useful_buf_c kid)
 {
     struct t_cose_parameter parameter;
 
@@ -788,7 +788,7 @@ t_cose_make_kid_parameter(struct q_useful_buf_c kid)
 }
 
 static inline struct t_cose_parameter
-t_cose_make_iv_parameter(struct q_useful_buf_c iv)
+t_cose_param_make_iv(struct q_useful_buf_c iv)
 {
     struct t_cose_parameter parameter;
 
@@ -805,7 +805,7 @@ t_cose_make_iv_parameter(struct q_useful_buf_c iv)
 }
 
 static inline struct t_cose_parameter
-t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv)
+t_cose_param_make_partial_iv(struct q_useful_buf_c iv)
 {
     struct t_cose_parameter parameter;
 
@@ -824,7 +824,7 @@ t_cose_make_partial_iv_parameter(struct q_useful_buf_c iv)
 
 
 static inline void
-t_cose_parameter_list_append(struct t_cose_parameter **existing,
+t_cose_params_append(struct t_cose_parameter **existing,
                              struct t_cose_parameter *to_be_appended)
 {
     struct t_cose_parameter *ex;
