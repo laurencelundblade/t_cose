@@ -720,7 +720,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool
  * Public function. See t_cose_parameters.h
  */
 uint32_t
-t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_list)
+t_cose_find_parameter_content_type_uint(const struct t_cose_parameter *parameter_list)
 {
     const struct t_cose_parameter *p_found;
 
@@ -728,6 +728,7 @@ t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_
                                     T_COSE_HEADER_PARAM_CONTENT_TYPE);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
+       p_found->value.int64 >= 0 &&
        p_found->value.int64 < UINT16_MAX) {
         return (uint32_t)p_found->value.int64;
     } else {

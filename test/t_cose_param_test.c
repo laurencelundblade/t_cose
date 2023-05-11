@@ -1,10 +1,12 @@
-//
-//  t_cose_param_test.c
-//  t_cose_test
-//
-//  Created by Laurence Lundblade on 9/20/22.
-//  Copyright © 2022-2023 Laurence Lundblade. All rights reserved.
-//
+/*
+ *  t_cose_param_test.c
+ *
+ * Copyright 2022-2023, Laurence Lundblade
+ * Created by Laurence Lundblade on 9/20/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
 
 #include "t_cose_param_test.h"
 
@@ -369,7 +371,7 @@ static const uint8_t x8[] = {0x40, 0xA1, 0xff};
 
 static const uint8_t x9[] = {0xA1, 0x01, 0x01};
 
-static const uint8_t x10[] = {0x52, 0xA3, 0x18, 0x2C, 0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F, 0x01, 0x26, 0x02, 0x81, 0x18, 0x2C, 0xA5, 0x18, 0x21, 0x43, 0x01, 0x02, 0x03, 0x03, 0x18, 0x2A, 0x04, 0x4D, 0x74, 0x68, 0x69, 0x73, 0x2D, 0x69, 0x73, 0x2D, 0x61, 0x2D, 0x6B, 0x69, 0x64, 0x05, 0x48, 0x69, 0x76, 0x69, 0x76, 0x69, 0x76, 0x69, 0x76, 0x06, 0x43, 0x70, 0x69, 0x76};
+static const uint8_t common_parameters[] = {0x52, 0xA3, 0x18, 0x2C, 0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F, 0x01, 0x26, 0x02, 0x81, 0x18, 0x2C, 0xA5, 0x18, 0x21, 0x43, 0x01, 0x02, 0x03, 0x03, 0x18, 0x2A, 0x04, 0x4D, 0x74, 0x68, 0x69, 0x73, 0x2D, 0x69, 0x73, 0x2D, 0x61, 0x2D, 0x6B, 0x69, 0x64, 0x05, 0x48, 0x69, 0x76, 0x69, 0x76, 0x69, 0x76, 0x69, 0x76, 0x06, 0x43, 0x70, 0x69, 0x76};
 
 
 static const uint8_t x11[] = {0x43, 0xA1, 0x01, 0x26, 0xA0};
@@ -748,7 +750,7 @@ static struct param_test_combo param_combo_tests[] = {
     },
     /* 1. Several parameters success test */
     {
-        UBX(x10),
+        UBX(common_parameters),
         (int []){0, 1, 11, 12, 14, 15, 16, INT_MAX},
         T_COSE_SUCCESS,
         QCBOR_SUCCESS,
@@ -777,7 +779,6 @@ param_test(void)
     const struct param_test        *param_test;
     QCBORDecodeContext              decode_context;
     struct q_useful_buf_c           encoded_prot_params;
-    struct q_useful_buf_c           string;
     struct t_cose_parameter_storage param_storage;
 
 
@@ -926,126 +927,6 @@ param_test(void)
     }
 
 
-
-    /* One test that is not so data driven to test the encoding vector feature. */
-
-    param_array[0] = param_tests[1].unencoded;
-
-    param_array[1] = t_cose_make_ct_uint_parameter(42);
-    param_array[0].next = &param_array[1];
-
-    param_array[2] = t_cose_make_kid_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"));
-    param_array[1].next = &param_array[2];
-
-    param_array[3] = t_cose_make_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"));
-    param_array[2].next = &param_array[3];
-
-    param_array[4] = t_cose_make_partial_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"));
-    param_array[3].next = &param_array[4];
-
-    param_array[5] = param_tests[0].unencoded;
-    param_array[4].next = &param_array[5];
-
-    param_array[6] = t_cose_make_alg_id_parameter(T_COSE_ALGORITHM_ES256);
-    param_array[5].next = &param_array[6];
-
-
-    QCBOREncode_Init(&qcbor_encoder, encode_buffer);
-    t_cose_result = t_cose_headers_encode(&qcbor_encoder,
-                                          &param_array[0],
-                                          NULL);
-
-    if(t_cose_result != T_COSE_SUCCESS) {
-        return -1;
-    }
-
-    qcbor_result = QCBOREncode_Finish(&qcbor_encoder, &encoded_params);
-    if(qcbor_result != QCBOR_SUCCESS) {
-        return -2;
-    }
-
-    if(q_useful_buf_compare(encoded_params, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(x10))) {
-        return -3;
-    }
-
-
-    if(t_cose_find_parameter_alg_id(NULL, true) != T_COSE_ALGORITHM_NONE) {
-        return -4;
-    }
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    if(t_cose_find_parameter_content_type_int(NULL) != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-        return -5;
-    }
-#endif
-
-
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_kid(NULL))) {
-        return -6;
-    }
-
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_iv(NULL))) {
-        return -7;
-    }
-
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_partial_iv(NULL))) {
-        return -8;
-    }
-
-
-    QCBORDecode_Init(&decode_context, encoded_params, 0);
-
-    struct t_cose_parameter *dec;
-
-
-    param_storage.size = sizeof(param_array)/sizeof(struct t_cose_parameter);
-    param_storage.storage = param_array;
-    param_storage.used = 0;
-    dec = NULL;
-
-
-    t_cose_result = t_cose_headers_decode(&decode_context,
-                                          (struct t_cose_header_location){0,0},
-                                          NULL,
-                                          NULL,
-                                          &param_storage,
-                                          &dec,
-                                          &encoded_prot_params);
-
-    qcbor_result = QCBORDecode_Finish(&decode_context);
-    if(qcbor_result != QCBOR_SUCCESS) {
-        return -9;
-    }
-    if(t_cose_result != T_COSE_SUCCESS) {
-        return -10; //i * 1000 + 1;
-    }
-
-    if(t_cose_find_parameter_alg_id(dec, true) != T_COSE_ALGORITHM_ES256) {
-        return -11;
-    }
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    if(t_cose_find_parameter_content_type_int (dec) != 42) {
-        return -12;
-    }
-#endif
-
-
-    string = t_cose_find_parameter_kid(dec);
-    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"))) {
-        return -13;
-    }
-
-    string = t_cose_find_parameter_iv(dec);
-    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"))) {
-        return -14;
-    }
-
-    string = t_cose_find_parameter_partial_iv(dec);
-    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"))) {
-        return -15;
-    }
-
     /* Empty parameters section test */
     QCBOREncode_Init(&qcbor_encoder, encode_buffer);
     t_cose_result = t_cose_headers_encode(&qcbor_encoder,
@@ -1069,9 +950,7 @@ param_test(void)
         }
     }
 
-    param_storage.size = sizeof(param_array)/sizeof(struct t_cose_parameter);
-    param_storage.used = 0;
-    param_storage.storage = param_array;
+    T_COSE_PARAM_STORAGE_INIT(param_storage, param_array);
     struct t_cose_parameter *decoded_parameter;
 
     decoded_parameter = NULL;
@@ -1091,6 +970,228 @@ param_test(void)
 
     if(decoded_parameter != NULL) {
         return -900;
+    }
+
+
+
+
+    if(t_cose_find_parameter_alg_id(NULL, true) != T_COSE_ALGORITHM_NONE) {
+        return -4;
+    }
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    if(t_cose_find_parameter_content_type_uint(NULL) != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
+        return -5;
+    }
+#endif
+
+    if(!q_useful_buf_c_is_null(t_cose_find_parameter_kid(NULL))) {
+        return -6;
+    }
+
+    if(!q_useful_buf_c_is_null(t_cose_find_parameter_iv(NULL))) {
+        return -7;
+    }
+
+    if(!q_useful_buf_c_is_null(t_cose_find_parameter_partial_iv(NULL))) {
+        return -8;
+    }
+
+    return 0;
+}
+
+
+
+
+int_fast32_t
+common_params_test(void)
+{
+    struct t_cose_parameter         param_array[20];
+    struct q_useful_buf_c           encoded_params;
+    enum t_cose_err_t               t_cose_result;
+    QCBORError                      qcbor_result;
+    QCBOREncodeContext              qcbor_encoder;
+    Q_USEFUL_BUF_MAKE_STACK_UB(     encode_buffer, 200);
+    QCBORDecodeContext              decode_context;
+    struct q_useful_buf_c           encoded_prot_params;
+    struct q_useful_buf_c           string;
+    struct t_cose_parameter_storage param_storage;
+    struct t_cose_parameter        *dec;
+    struct t_cose_parameters        common_params;
+
+    /*  --- Make a list of the common parameters defined in 9052 --- */
+
+    param_array[0] = param_tests[1].unencoded;
+
+    param_array[1] = t_cose_make_ct_uint_parameter(42);
+    param_array[0].next = &param_array[1];
+
+    param_array[2] = t_cose_make_kid_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"));
+    param_array[1].next = &param_array[2];
+
+    param_array[3] = t_cose_make_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"));
+    param_array[2].next = &param_array[3];
+
+    param_array[4] = t_cose_make_partial_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"));
+    param_array[3].next = &param_array[4];
+
+    param_array[5] = param_tests[0].unencoded;
+    param_array[4].next = &param_array[5];
+
+    param_array[6] = t_cose_make_alg_id_parameter(T_COSE_ALGORITHM_ES256);
+    param_array[5].next = &param_array[6];
+
+    /* --- Encode them and make sure the CBOR is as expected --- */
+    QCBOREncode_Init(&qcbor_encoder, encode_buffer);
+    t_cose_result = t_cose_headers_encode(&qcbor_encoder,
+                                          &param_array[0],
+                                          NULL);
+
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return -1;
+    }
+
+    qcbor_result = QCBOREncode_Finish(&qcbor_encoder, &encoded_params);
+    if(qcbor_result != QCBOR_SUCCESS) {
+        return -2;
+    }
+
+    if(q_useful_buf_compare(encoded_params, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(common_parameters))) {
+        return -3;
+    }
+
+    /* --- Decode what was encoded ---*/
+    QCBORDecode_Init(&decode_context, encoded_params, 0);
+
+    T_COSE_PARAM_STORAGE_INIT(param_storage,param_array);
+    dec = NULL;
+
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                          (struct t_cose_header_location){0,0},
+                                          NULL,
+                                          NULL,
+                                          &param_storage,
+                                          &dec,
+                                          &encoded_prot_params);
+
+    qcbor_result = QCBORDecode_Finish(&decode_context);
+    if(qcbor_result != QCBOR_SUCCESS) {
+        return -9;
+    }
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return -10;
+    }
+
+    /* Check that they decoded correctly */
+    if(t_cose_find_parameter_alg_id(dec, true) != T_COSE_ALGORITHM_ES256) {
+        return -11;
+    }
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    if(t_cose_find_parameter_content_type_uint (dec) != 42) {
+        return -12;
+    }
+#endif
+
+    string = t_cose_find_parameter_kid(dec);
+    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"))) {
+        return -13;
+    }
+
+    string = t_cose_find_parameter_iv(dec);
+    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"))) {
+        return -14;
+    }
+
+    string = t_cose_find_parameter_partial_iv(dec);
+    if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"))) {
+        return -15;
+    }
+
+    if( t_cose_common_header_parameters(dec, &common_params) != T_COSE_ERR_DUPLICATE_PARAMETER) {
+        /* It is supposed to be duplicate because of iv and partial_iv */
+        return -88;
+    }
+
+
+
+
+
+    /* --- Do it again for parameters that can't exist with those above --- */
+    param_array[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("text/foo"));
+
+    param_array[1] = t_cose_make_kid_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"));
+    param_array[0].next = &param_array[1];
+
+    param_array[2] = t_cose_make_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"));
+    param_array[1].next = &param_array[2];
+
+    param_array[3] = t_cose_make_alg_id_parameter(T_COSE_ALGORITHM_ES256);
+    param_array[2].next = &param_array[3];
+
+    /* --- Encode them and make sure the CBOR is as expected --- */
+    QCBOREncode_Init(&qcbor_encoder, encode_buffer);
+    t_cose_result = t_cose_headers_encode(&qcbor_encoder,
+                                          &param_array[0],
+                                          NULL);
+
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return -1;
+    }
+
+    qcbor_result = QCBOREncode_Finish(&qcbor_encoder, &encoded_params);
+    if(qcbor_result != QCBOR_SUCCESS) {
+        return -2;
+    }
+
+   /* Don't bother with comparison to expected the second time */
+
+    /* --- Decode what was encoded ---*/
+    QCBORDecode_Init(&decode_context, encoded_params, 0);
+
+    T_COSE_PARAM_STORAGE_INIT(param_storage,param_array);
+    dec = NULL;
+
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                          (struct t_cose_header_location){0,0},
+                                          NULL,
+                                          NULL,
+                                          &param_storage,
+                                          &dec,
+                                          &encoded_prot_params);
+
+    qcbor_result = QCBORDecode_Finish(&decode_context);
+    if(qcbor_result != QCBOR_SUCCESS) {
+        return -9;
+    }
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return -10;
+    }
+
+
+    t_cose_result = t_cose_common_header_parameters(dec, &common_params);
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return -30;
+    }
+
+    if(common_params.cose_algorithm_id != T_COSE_ALGORITHM_ES256) {
+        return -50;
+    }
+
+    if(q_useful_buf_compare(common_params.kid, Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"))) {
+        return -53;
+    }
+
+    if(q_useful_buf_compare(common_params.content_type_tstr, Q_USEFUL_BUF_FROM_SZ_LITERAL("text/foo"))) {
+        return -54;
+    }
+
+    if(q_useful_buf_compare(common_params.iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"))) {
+        return -55;
+    }
+
+    if(!q_useful_buf_c_is_null(common_params.partial_iv)) {
+        return -57;
     }
 
     return 0;

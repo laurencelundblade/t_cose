@@ -611,7 +611,7 @@ t_cose_find_parameter_content_type_tstr(const struct t_cose_parameter *parameter
  * value for a CoAP content type).
  */
 uint32_t
-t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_list);
+t_cose_find_parameter_content_type_uint(const struct t_cose_parameter *parameter_list);
 
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
