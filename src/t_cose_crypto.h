@@ -83,8 +83,6 @@ extern "C" {
  * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm
  *    - See t_cose_algorithm_is_ecdsa()
  *    - If not ECDSA add another function like t_cose_algorithm_is_ecdsa()
- * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm is added
- *    - See \ref T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
  * - Support another hash implementation that is not a service
  *    - See struct \ref t_cose_crypto_hash
  *
@@ -525,25 +523,6 @@ struct t_cose_crypto_hmac {
 };
 
 /**
- * The size of the output of SHA-256.
- *
- * (It is safe to define these independently here as they are
- * well-known and fixed. There is no need to reference
- * platform-specific headers and incur messy dependence.)
- */
-#define T_COSE_CRYPTO_SHA256_SIZE 32
-
-/**
- * The size of the output of SHA-384 in bytes.
- */
-#define T_COSE_CRYPTO_SHA384_SIZE 48
-
-/**
- * The size of the output of SHA-512 in bytes.
- */
-#define T_COSE_CRYPTO_SHA512_SIZE 64
-
-/**
  * Size of the signature (tag) output for the HMAC-SHA256.
  */
 #define T_COSE_CRYPTO_HMAC256_TAG_SIZE   T_COSE_CRYPTO_SHA256_SIZE
@@ -572,20 +551,6 @@ struct t_cose_crypto_hmac {
  * holding a key. It is set at 200, far above what is needed to be generous and because
  * 200 bytes isn't very much. */
 #define T_COSE_CRYPTO_HMAC_MAX_KEY 200
-
-/**
- * The maximum needed to hold a hash. It is smaller and less stack is needed
- * if the larger hashes are disabled.
- */
-#if !defined(T_COSE_DISABLE_ES512) || !defined(T_COSE_DISABLE_PS512)
-    #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
-#else
-    #if !defined(T_COSE_DISABLE_ES384) || !defined(T_COSE_DISABLE_PS384)
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
-    #else
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
-    #endif
-#endif
 
 
 /**
