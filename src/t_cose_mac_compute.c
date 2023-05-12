@@ -100,7 +100,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
      */
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
-    param_storage[0] = t_cose_pram_make_alg_id(me->cose_algorithm_id);
+    param_storage[0] = t_cose_param_make_alg_id(me->cose_algorithm_id);
     param_storage[1] = t_cose_param_make_kid(me->kid);
     param_storage[0].next = &param_storage[1];
     p_tmp = &param_storage[0];

@@ -29,7 +29,7 @@ t_cose_signature_sign_headers_eddsa_cb(struct t_cose_signature_sign   *me_x,
     struct t_cose_signature_sign_eddsa *me =
                                     (struct t_cose_signature_sign_eddsa *)me_x;
 
-    me->local_params[0]  = t_cose_pram_make_alg_id(T_COSE_ALGORITHM_EDDSA);
+    me->local_params[0]  = t_cose_param_make_alg_id(T_COSE_ALGORITHM_EDDSA);
     if(!q_useful_buf_c_is_null(me->kid)) {
         me->local_params[1] = t_cose_param_make_kid(me->kid);
         me->local_params[0].next = &me->local_params[1];

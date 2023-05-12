@@ -27,7 +27,7 @@ t_cose_signature_sign_headers_main_cb(struct t_cose_signature_sign   *me_x,
     struct t_cose_signature_sign_main *me =
                                     (struct t_cose_signature_sign_main *)me_x;
 
-    me->local_params[0]  = t_cose_pram_make_alg_id(me->cose_algorithm_id);
+    me->local_params[0]  = t_cose_param_make_alg_id(me->cose_algorithm_id);
     if(!q_useful_buf_c_is_null(me->kid)) {
         me->local_params[1] = t_cose_param_make_kid(me->kid);
         me->local_params[0].next = &me->local_params[1];

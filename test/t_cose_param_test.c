@@ -946,7 +946,7 @@ param_test(void)
     param_array[5] = param_tests[0].unencoded;
     param_array[4].next = &param_array[5];
 
-    param_array[6] = t_cose_pram_make_alg_id(T_COSE_ALGORITHM_ES256);
+    param_array[6] = t_cose_param_make_alg_id(T_COSE_ALGORITHM_ES256);
     param_array[5].next = &param_array[6];
 
 
