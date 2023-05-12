@@ -16,11 +16,8 @@
 #include "t_cose_util.h"
 
 
-// TODO: test the parameter write callback
-// TODO: test the parameter read callback
 // TODO: check in on stack usage of label list
 // TODO: check on in stack usage in general here
-// TODO: test the find parameter functions
 // TODO: put the encode stuff first in the file
 
 /**

@@ -780,6 +780,7 @@ param_test(void)
     QCBORDecodeContext              decode_context;
     struct q_useful_buf_c           encoded_prot_params;
     struct t_cose_parameter_storage param_storage;
+    struct t_cose_parameter        *decoded_parameter;
 
 
     /* Test is driven by data in param_tests and param_combo_tests.
@@ -825,10 +826,7 @@ param_test(void)
 
         /* Decode test */
         if(!q_useful_buf_c_is_empty(param_test->encoded)) {
-            param_storage.size = sizeof(param_array)/sizeof(struct t_cose_parameter);
-            param_storage.used = 0;
-            param_storage.storage = param_array;
-            struct t_cose_parameter *decoded_parameter;
+            T_COSE_PARAM_STORAGE_INIT(param_storage, param_array);
 
             QCBORDecode_Init(&decode_context, param_test->encoded, 0);
 
@@ -950,7 +948,6 @@ param_test(void)
         }
 
         T_COSE_PARAM_STORAGE_INIT(param_storage, param_array);
-        struct t_cose_parameter *decoded_parameter;
 
         decoded_parameter = NULL;
 
@@ -1056,7 +1053,6 @@ common_params_test(void)
     if(!q_useful_buf_c_is_null(t_cose_param_find_partial_iv(NULL))) {
         return -8;
     }
-
 
     QCBORDecode_Init(&decode_context, encoded_params, 0);
 
