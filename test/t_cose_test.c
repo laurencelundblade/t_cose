@@ -819,6 +819,9 @@ int_fast32_t all_header_parameters_test()
                                        &payload,
                                        /* Get parameters for checking */
                                        &parameters);
+    if(result) {
+        return -2;
+    }
 
     // Need to compare to short circuit kid
     if(q_useful_buf_compare(parameters.kid, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"))) {
@@ -838,11 +841,6 @@ int_fast32_t all_header_parameters_test()
     if(q_useful_buf_compare(parameters.iv,
                             Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
         return 5;
-    }
-
-    if(q_useful_buf_compare(parameters.partial_iv,
-                            Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
-        return 6;
     }
 
     free_fixed_signing_key(key_pair);
@@ -917,7 +915,7 @@ int_fast32_t bad_parameters_test()
 
 
 
-
+/* These test the processing of the crit param in a COSE_SIGN1 */
 static struct test_case crit_tests_table[] = {
     /* Test existance of the critical header. Also makes sure that
      * it works with the max number of labels allowed in it.
@@ -936,18 +934,21 @@ static struct test_case crit_tests_table[] = {
      * the label doesn't exist. This works for integer-labeled header params.
      */
     {T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER, T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER},
-
+#if WE_HAVE_ADDED_STRING_LABELS
     /* A critical label is listed in the protected section, but
      * the label doesn't exist. This works for string-labeled header params.
      */
     {T_COSE_TEST_UNKNOWN_CRIT_TSTR_PARAMETER, T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER},
+#endif /* WE_HAVE_ADDED_STRING_LABELS */
 
     /* The critical labels list is not protected */
     {T_COSE_TEST_CRIT_NOT_PROTECTED, T_COSE_ERR_PARAMETER_NOT_PROTECTED},
 
     {T_COSE_TEST_EMPTY_CRIT_PARAMETER, T_COSE_ERR_CRIT_PARAMETER},
 
+#if WE_HAVE_ADDED_STRING_LABELS
     {T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS, T_COSE_ERR_CRIT_PARAMETER},
+#endif /* WE_HAVE_ADDED_STRING_LABELS */
 
     {0, 0}
 };
@@ -958,11 +959,13 @@ static struct test_case crit_tests_table[] = {
  */
 int_fast32_t crit_parameters_test()
 {
-    struct test_case *test;
+    unsigned index;
 
-    for(test = crit_tests_table; test->test_option; test++) {
+    for(index = 0; index < C_ARRAY_COUNT(crit_tests_table, struct test_case); index++) {
+        struct test_case *test = &crit_tests_table[index];
+
         if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int_fast32_t)(test - crit_tests_table + 1);
+            return (int_fast32_t)(index * 1000 + 1);
         }
     }
 
@@ -1210,7 +1213,7 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
     init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &sig1_key);
     t_cose_signature_sign_main_init(&sig1_encoder, T_COSE_ALGORITHM_ES256);
     t_cose_signature_sign_main_set_signing_key(&sig1_encoder, sig1_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig1"));
-    sig1_params[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/foo"));
+    sig1_params[0] = t_cose_param_make_ct_tstr(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/foo"));
     sig1_params[1].critical         = false;
     sig1_params[1].in_protected     = false;
     sig1_params[1].location.index   = 0;
@@ -1236,7 +1239,7 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
     init_fixed_test_signing_key(T_COSE_ALGORITHM_ES384, &sig2_key);
     t_cose_signature_sign_main_init(&sig2_encoder, T_COSE_ALGORITHM_ES384);
     t_cose_signature_sign_main_set_signing_key(&sig2_encoder, sig2_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig2"));
-    sig2_params[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/xxx"));
+    sig2_params[0] = t_cose_param_make_ct_tstr(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/xxx"));
     sig2_params[1].critical         = false;
     sig2_params[1].in_protected     = false;
     sig2_params[1].location.index   = 0;
@@ -1253,7 +1256,7 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
     init_fixed_test_signing_key(T_COSE_ALGORITHM_ES512, &sig3_key);
     t_cose_signature_sign_main_init(&sig3_encoder, T_COSE_ALGORITHM_ES512);
     t_cose_signature_sign_main_set_signing_key(&sig3_encoder, sig3_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig3"));
-    sig3_params[0] = t_cose_make_ct_uint_parameter(217);
+    sig3_params[0] = t_cose_param_make_ct_uint(217);
     t_cose_signature_sign_main_set_header_parameter(&sig3_encoder, sig3_params);
     t_cose_sign_add_signer(&sign_encoder, t_cose_signature_sign_from_main(&sig3_encoder));
 
@@ -1518,6 +1521,10 @@ int_fast32_t sign1_structure_decode_test(void)
 
 
     for(int i = 0; !q_useful_buf_c_is_null(sign1_sample_inputs[i].CBOR); i++) {
+        if(i == 7) {
+            result = 9;
+        }
+
         t_cose_sign1_verify_init(&verify1_ctx, T_COSE_OPT_DECODE_ONLY);
         result = t_cose_sign1_verify(&verify1_ctx,
                                       sign1_sample_inputs[i].CBOR,

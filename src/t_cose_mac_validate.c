@@ -199,7 +199,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
 
     /* === End of the decoding of the array of four === */
     if((me->option_flags & T_COSE_OPT_REQUIRE_KID) &&
-        q_useful_buf_c_is_null(t_cose_find_parameter_kid(decoded_params))) {
+        q_useful_buf_c_is_null(t_cose_param_find_kid(decoded_params))) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
@@ -232,8 +232,9 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_validate_setup(&hmac_ctx,
-                                  t_cose_find_parameter_alg_id(decoded_params, true),
+                                  t_cose_param_find_alg_id(decoded_params, true),
                                   me->validation_key);
+
     if(return_value) {
         goto Done;
     }
@@ -252,6 +253,14 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     }
 
     return_value = t_cose_crypto_hmac_validate_finish(&hmac_ctx, tag);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* --- Check for critical parameters --- */
+    if(!(context->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
+        return_value = t_cose_params_check(decoded_params);
+    }
 
 Done:
     if(return_params != NULL) {
