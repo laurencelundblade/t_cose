@@ -452,7 +452,7 @@ Done:
 
 
 
-
+/* Return true if there is a second occurance of target in param_list */
 static bool
 param_dup_detect_2(const struct t_cose_parameter *target,
                   const struct t_cose_parameter *params_list)
@@ -467,7 +467,7 @@ param_dup_detect_2(const struct t_cose_parameter *target,
     return false;
 }
 
-
+/* Returns true if there is any duplicate label in a parameters list. */
 static bool
 param_dup_detect(const struct t_cose_parameter *params_list)
 {
