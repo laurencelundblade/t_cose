@@ -149,10 +149,8 @@ if (BUILD_TESTS)
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
         set(TEST_SRC_EXTRA examples/init_keys_psa.c)
-        set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
         set(TEST_SRC_EXTRA examples/init_keys_ossl.c)
-        set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "Test")
         set(TEST_SRC_EXTRA examples/init_keys_test.c)
         set(TEST_EXTRA_DEFS -DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS)
@@ -165,7 +163,7 @@ if (BUILD_TESTS)
     target_link_libraries(t_cose_test PRIVATE t_cose ${CRYPTO_LIBRARY})
     # Crypto defs are needed because the tests include headers from src/
     target_compile_definitions(t_cose_test PRIVATE ${CRYPTO_COMPILE_DEFS} ${TEST_EXTRA_DEFS})
-    
+
     add_test(NAME t_cose_test COMMAND t_cose_test)
 
 endif()
