@@ -157,7 +157,7 @@ cose_hash_alg_to_ossl(int32_t cose_hash_alg_id)
     return EVP_get_digestbynid(nid);
 }
 
-
+/* As cose_hash_alg_to_ossl(), but for HMAC algorithms. */
 static const EVP_MD *
 cose_hmac_alg_to_ossl(int32_t cose_hmac_alg_id)
 {
@@ -999,7 +999,6 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
         return T_COSE_ERR_HASH_GENERAL_FAIL;
     }
 
-    hash_ctx->cose_hash_alg_id = cose_hash_alg_id;
     hash_ctx->update_error = 1; /* 1 is success in OpenSSL */
 
     return T_COSE_SUCCESS;
@@ -1055,6 +1054,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 
 
 
+
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -1065,59 +1065,67 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
 {
     int                         ossl_result;
     const EVP_MD               *message_digest;
-    EVP_MD_CTX*                 mdctx;
     Q_USEFUL_BUF_MAKE_STACK_UB( key_buf, T_COSE_CRYPTO_HMAC_MAX_KEY);
     struct q_useful_buf_c       key_bytes;
-    EVP_PKEY                   *pkey;
+    enum t_cose_err_t           result;
 
     message_digest = cose_hmac_alg_to_ossl(cose_alg_id);
     if(message_digest == NULL) {
-        return T_COSE_ERR_UNSUPPORTED_HASH;
+        return T_COSE_ERR_UNSUPPORTED_HASH; // TODO: error code
     }
 
-    t_cose_crypto_export_symmetric_key(signing_key,
-                                       key_buf,
-                                       &key_bytes);
+    result = t_cose_crypto_export_symmetric_key(signing_key, /* in: key to export */
+                                                key_buf,     /* in: buffer to write to */
+                                               &key_bytes); /* out: exported key */
+    if(result != T_COSE_SUCCESS) {
+        /* This happens when the key is bigger than T_COSE_CRYPTO_HMAC_MAX_KEY */
+        return T_COSE_ERR_HASH_GENERAL_FAIL; // TODO: better error code
+    }
 
-    mdctx = EVP_MD_CTX_new();
-    if(mdctx == NULL) {
+    hmac_ctx->evp_ctx = EVP_MD_CTX_new();
+    if(hmac_ctx->evp_ctx == NULL) {
         return T_COSE_ERR_INSUFFICIENT_MEMORY;
     }
-    hmac_ctx->context.ptr = mdctx;
 
-    /* The case from size_t to int is safe because t_cose_crypto_export_symmetric_key()
+    /* The cast from size_t to int is safe because t_cose_crypto_export_symmetric_key()
      * will never return a key larger than T_COSE_CRYPTO_HMAC_MAX_KEY because
-     * that is the size of it's input buffer as defined above/here. */
-    pkey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC,       /* in: type */
-                                NULL,                /* in: engine */
-                                key_bytes.ptr,       /* in: key */
-                                (int)key_bytes.len); /* in: keylen */
-    if(pkey == NULL) {
-        EVP_MD_CTX_free(mdctx);
+     * that is the size of its input buffer as defined above/here. */
+    hmac_ctx->evp_pkey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC,       /* in: type */
+                                              NULL,                /* in: engine */
+                                              key_bytes.ptr,       /* in: key */
+                                              (int)key_bytes.len); /* in: keylen */
+    if(hmac_ctx->evp_pkey == NULL) {
+        EVP_MD_CTX_free(hmac_ctx->evp_ctx);
         return T_COSE_ERR_INSUFFICIENT_MEMORY;
     }
 
-    ossl_result = EVP_DigestSignInit(mdctx, /* in: ctx -- EVP Context to initialize */
+    /* EVP_MAC is not used because it is not available in OpenSSL 1.1. */
+
+    ossl_result = EVP_DigestSignInit(hmac_ctx->evp_ctx, /* in: ctx -- EVP Context to initialize */
                                      NULL,  /* in/out: pctx */
                                      message_digest, /* in: type Digest function/type/algorithm */
                                      NULL,  /* in: Engine -- not used */
-                                     pkey); /* in: pkey -- the HMAC key */
-    if(ossl_result == 0) {
-        EVP_MD_CTX_free(mdctx);
+                                     hmac_ctx->evp_pkey); /* in: pkey -- the HMAC key */
+    if(ossl_result != 1) {
+        EVP_MD_CTX_free(hmac_ctx->evp_ctx);
         return T_COSE_ERR_HASH_GENERAL_FAIL;
     }
 
     return T_COSE_SUCCESS;
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
                           struct q_useful_buf_c      payload)
 {
     int  ossl_result;
 
-    ossl_result = EVP_DigestSignUpdate(hmac_ctx->context.ptr, payload.ptr, payload.len);
-    if(ossl_result == 0) {
+    ossl_result = EVP_DigestSignUpdate(hmac_ctx->evp_ctx, payload.ptr, payload.len);
+    if(ossl_result != 1) {
         return T_COSE_ERR_FAIL; // TODO: better error code
     }
 
@@ -1137,10 +1145,10 @@ t_cose_crypto_hmac_compute_finish(struct t_cose_crypto_hmac *hmac_ctx,
     size_t in_out_len;
 
     in_out_len = tag_buf.len;
+    ossl_result = EVP_DigestSignFinal(hmac_ctx->evp_ctx, tag_buf.ptr, &in_out_len);
 
-    ossl_result = EVP_DigestSignFinal(hmac_ctx->context.ptr, tag_buf.ptr, &in_out_len);
-
-    EVP_MD_CTX_free(hmac_ctx->context.ptr);
+    EVP_MD_CTX_free(hmac_ctx->evp_ctx);
+    EVP_PKEY_free(hmac_ctx->evp_pkey);
 
     if(ossl_result == 0) {
         return T_COSE_ERR_FAIL; // TODO: better error code
