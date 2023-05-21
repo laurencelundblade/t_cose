@@ -434,6 +434,7 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
                            struct q_useful_buf_c signature);
 #endif /* T_COSE_DISABLE_EDDSA */
 
+
 #ifdef T_COSE_USE_PSA_CRYPTO
 #include "psa/crypto.h"
 
@@ -569,9 +570,19 @@ struct t_cose_crypto_hmac {
 #define T_COSE_CRYPTO_HMAC512_TAG_SIZE   T_COSE_CRYPTO_SHA512_SIZE
 
 /**
- * Max size of the tag output for the HMAC operations.
+ * Max size of the tag output for the HMAC operations. This works up to SHA3-512.
  */
+/* TODO: should this vary with T_COSE_CRYPTO_MAX_HASH_SIZE? */
 #define T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE  T_COSE_CRYPTO_SHA512_SIZE
+
+
+/**
+ * Max size of an HMAC key. RFC 2160 which says the key should be the block size of the hash
+ * function used and that a longer key is allowed, but doesn't increase security. The block size
+ * of SHA-512 is 1024 bits and of SHA3-224 is 1152. This constant is for internal buffers
+ * holding a key. It is set at 200, far above what is needed to be generous and because
+ * 200 bytes isn't very much. */
+#define T_COSE_CRYPTO_HMAC_MAX_KEY 200
 
 /**
  * The maximum needed to hold a hash. It is smaller and less stack is needed
