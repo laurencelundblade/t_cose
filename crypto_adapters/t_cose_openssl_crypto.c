@@ -1071,7 +1071,7 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
 
     message_digest = cose_hmac_alg_to_ossl(cose_alg_id);
     if(message_digest == NULL) {
-        return T_COSE_ERR_UNSUPPORTED_HASH; // TODO: error code
+        return T_COSE_ERR_UNSUPPORTED_HMAC_ALG;
     }
 
     result = t_cose_crypto_export_symmetric_key(signing_key, /* in: key to export */
@@ -1079,7 +1079,7 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
                                                &key_bytes); /* out: exported key */
     if(result != T_COSE_SUCCESS) {
         /* This happens when the key is bigger than T_COSE_CRYPTO_HMAC_MAX_KEY */
-        return T_COSE_ERR_HASH_GENERAL_FAIL; // TODO: better error code
+        return T_COSE_ERR_UNSUPPORTED_KEY_LENGTH;
     }
 
     hmac_ctx->evp_ctx = EVP_MD_CTX_new();
@@ -1108,7 +1108,7 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
                                      hmac_ctx->evp_pkey); /* in: pkey -- the HMAC key */
     if(ossl_result != 1) {
         EVP_MD_CTX_free(hmac_ctx->evp_ctx);
-        return T_COSE_ERR_HASH_GENERAL_FAIL;
+        return T_COSE_ERR_HMAC_GENERAL_FAIL;
     }
 
     return T_COSE_SUCCESS;
@@ -1126,7 +1126,7 @@ t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
 
     ossl_result = EVP_DigestSignUpdate(hmac_ctx->evp_ctx, payload.ptr, payload.len);
     if(ossl_result != 1) {
-        return T_COSE_ERR_FAIL; // TODO: better error code
+        return T_COSE_ERR_HMAC_GENERAL_FAIL;
     }
 
     return T_COSE_SUCCESS;
@@ -1150,8 +1150,8 @@ t_cose_crypto_hmac_compute_finish(struct t_cose_crypto_hmac *hmac_ctx,
     EVP_MD_CTX_free(hmac_ctx->evp_ctx);
     EVP_PKEY_free(hmac_ctx->evp_pkey);
 
-    if(ossl_result == 0) {
-        return T_COSE_ERR_FAIL; // TODO: better error code
+    if(ossl_result != 1) {
+        return T_COSE_ERR_HMAC_GENERAL_FAIL;
     }
 
     tag->ptr = tag_buf.ptr;
@@ -1191,7 +1191,7 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
     }
 
     if(q_useful_buf_compare(computed_tag, input_tag)) {
-        return T_COSE_ERR_SIG_VERIFY;
+        return T_COSE_ERR_HMAC_VERIFY;
     }
 
     return T_COSE_SUCCESS;
