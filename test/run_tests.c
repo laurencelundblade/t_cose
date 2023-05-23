@@ -75,15 +75,16 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SIGN1 */
 
     // TODO: should these really be conditional on T_COSE_DISABLE_SIGN_VERIFY_TESTS
+
+    TEST_ENTRY(sign_verify_multi),
+
+#endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
+
     TEST_ENTRY(compute_validate_mac_basic_test),
     TEST_ENTRY(compute_validate_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_mac_test),
     TEST_ENTRY(compute_validate_detached_content_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_detached_content_mac_test),
-
-    TEST_ENTRY(sign_verify_multi),
-
-#endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 #ifndef T_COSE_DISABLE_SIGN1
@@ -238,6 +239,9 @@ int RunTestsTCose(const char    *szTestNames[],
                 (*pfOutput)( " PASSED", poutCtx, 1);
             }
         }
+        /* TODO using special error code to indicate if a test
+         * did not actually run due to lack of algorithm support?
+         */
     }
 
     if(pNumTestsRun) {

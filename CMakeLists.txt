@@ -136,15 +136,16 @@ if (BUILD_TESTS)
     set(TEST_SRC_COMMON
         main.c
         test/run_tests.c
-        test/t_cose_make_test_messages.c
-        test/t_cose_test.c
+        test/t_cose_compute_validate_mac_test.c
         test/t_cose_crypto_test.c
-        test/t_cose_param_test.c
         test/t_cose_encrypt_decrypt_test.c
+        test/t_cose_make_test_messages.c
+        test/t_cose_param_test.c
+        test/t_cose_test.c
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")
-        list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c test/t_cose_compute_validate_mac_test.c)
+        list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c)
     endif()
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")

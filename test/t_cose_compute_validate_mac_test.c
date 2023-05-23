@@ -185,6 +185,9 @@ int_fast32_t compute_validate_mac_fail_test()
     QCBORError                   cbor_error;
     size_t                       tamper_offset;
 
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return 0;
+    }
 
     /* Make an HMAC key that will be used for both computing the
      * authentication tag and validation.
@@ -413,6 +416,9 @@ int_fast32_t compute_validate_detached_content_mac_fail_test()
     struct t_cose_key            key;
     QCBORError                   cbor_error;
 
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return 0;
+    }
 
     /* ---- Set up ---- */
 
