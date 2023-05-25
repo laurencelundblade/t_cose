@@ -122,6 +122,7 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
     TEST_ENTRY(param_test),
+    TEST_ENTRY(common_params_test),
     TEST_ENTRY(base_encrypt_decrypt_test)
 
 };
@@ -215,6 +216,13 @@ int RunTestsTCose(const char    *szTestNames[],
         }
 
         int32_t nTestResult = (int32_t)(t->test_fun)();
+
+        if(nTestResult == INT32_MIN) {
+            /* INT32_MIN means tests didn't do any testing. It is typically
+             * returned when the algorithms needed for a test aren't
+             * available when checked by t_cose_is_algorithm_supported(). */
+            continue;
+        }
         nTestsRun++;
         if(pfOutput) {
             (*pfOutput)(t->szTestName, poutCtx, 0);
