@@ -323,7 +323,6 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
 }
 
 
-#ifndef T_COSE_DISABLE_EDDSA
 
 /*
  * See documentation in t_cose_crypto.h
@@ -362,7 +361,6 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
-#endif /* !T_COSE_DISABLE_EDDSA */
 
 /*
  * See documentation in t_cose_crypto.h
