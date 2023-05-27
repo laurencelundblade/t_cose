@@ -29,12 +29,17 @@ typedef struct {
 
 static test_entry s_tests[] = {
 
+#ifndef T_COSE_DISABLE_ESDH
+    TEST_ENTRY(esdh_examples),
+#endif /* !T_COSE_DISABLE_ESDH */
+
     TEST_ENTRY(one_step_sign_example),
     TEST_ENTRY(two_step_sign_example),
     TEST_ENTRY(two_step_sign_example_new),
     TEST_ENTRY(two_step_sign_example_new_verify),
 
     TEST_ENTRY(encrypt0_example),
+
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(key_wrap_example),
 #endif /* !T_COSE_DISABLE_KEYWRAP */
@@ -44,7 +49,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY(hpke_example)
 #endif /* !T_COSE_DISABLE_HPKE */
 };
-
 
 
 int main(int argc, const char * argv[])

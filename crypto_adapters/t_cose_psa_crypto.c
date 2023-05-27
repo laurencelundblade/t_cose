@@ -671,20 +671,23 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
     psa_status_t         status;
 
    switch (cose_algorithm_id) {
+    case T_COSE_ELLIPTIC_CURVE_P_256:
     case T_COSE_HPKE_KEM_ID_P256:
         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_bitlen = 256;
         break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
     case T_COSE_HPKE_KEM_ID_P384:
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 384;
          break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
     case T_COSE_HPKE_KEM_ID_P521:
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 521;
          break;
     default:
-        return(T_COSE_ERR_UNSUPPORTED_KEM_ALG);
+        return(T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG);
     }
 
     /* generate ephemeral key pair: skE, pkE */
@@ -730,7 +733,6 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 
     return(T_COSE_SUCCESS);
 }
-
 
 #ifndef T_COSE_DISABLE_KEYWRAP
 
@@ -1014,9 +1016,9 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                                         struct t_cose_key    *key_handle)
 {
     psa_algorithm_t       psa_algorithm;
-    psa_key_handle_t      psa_key_handle;
+    psa_key_handle_t      psa_key_handle = 0;
     psa_status_t          status;
-    psa_key_attributes_t  attributes;
+    psa_key_attributes_t  attributes = PSA_KEY_ATTRIBUTES_INIT;
     size_t                key_bitlen;
     psa_key_type_t        psa_keytype;
     psa_key_usage_t       psa_key_usage;
@@ -1040,7 +1042,6 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
-        case T_COSE_ALGORITHM_A128KW:
             psa_algorithm = PSA_ALG_GCM;
             psa_keytype = PSA_KEY_TYPE_AES;
             psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
@@ -1048,7 +1049,6 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
             break;
 
         case T_COSE_ALGORITHM_A192GCM:
-        case T_COSE_ALGORITHM_A192KW:
             psa_algorithm = PSA_ALG_GCM;
             psa_keytype = PSA_KEY_TYPE_AES;
             psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
@@ -1056,7 +1056,6 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
             break;
 
         case T_COSE_ALGORITHM_A256GCM:
-        case T_COSE_ALGORITHM_A256KW:
             psa_algorithm = PSA_ALG_GCM;
             psa_keytype = PSA_KEY_TYPE_AES;
             psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
@@ -1229,6 +1228,72 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
 /*
  * See documentation in t_cose_crypto.h
  */
+
+enum t_cose_err_t
+t_cose_crypto_key_agreement(const int32_t         cose_algorithm_id,
+                           struct t_cose_key      private_key,
+                           struct q_useful_buf_c  public_key,
+                           struct q_useful_buf    symmetric_key,
+                           struct q_useful_buf_c  info,
+                           size_t                 *symmetric_key_len
+                           )
+{
+    psa_status_t status;
+    psa_algorithm_t key_agreement_alg;
+    int32_t hash_alg;
+    Q_USEFUL_BUF_MAKE_STACK_UB(derived_key, PSA_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE );
+    enum t_cose_err_t err;
+    size_t ecdhe_derived_key_len;
+
+    switch(cose_algorithm_id) {
+
+    /* All three content key distribution algorithms
+     * use HKDF-SHA256.
+     */
+    case  T_COSE_ALGORITHM_ECDH_ES_A128KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A192KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A256KW:
+        key_agreement_alg = PSA_ALG_ECDH;
+        hash_alg = T_COSE_ALGORITHM_SHA_256;
+        break;
+    default:
+        return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+    }
+
+    /* Produce ECDHE derived key */
+    status = psa_raw_key_agreement( key_agreement_alg,                // algorithm id
+                                    private_key.key.handle,           // client secret key
+                                    public_key.ptr, public_key.len,   // server public key
+                                    derived_key.ptr, derived_key.len, // buffer to store derived key
+                                    &ecdhe_derived_key_len );         // length of derived key
+    if( status != PSA_SUCCESS )
+    {
+        return T_COSE_ERR_KEY_AGREEMENT_FAIL;
+    }
+
+    /* assertion: symmetric_key_len <= derived_key.len */
+    /* HKDF-based Key Derivation */
+    err = t_cose_crypto_hkdf(hash_alg,
+                             NULL_Q_USEFUL_BUF_C, // empty salt
+                             (struct q_useful_buf_c)
+                                {
+                                    derived_key.ptr,
+                                    ecdhe_derived_key_len
+                                },
+                             info,
+                             symmetric_key);
+    if(err) {
+        return T_COSE_ERR_HKDF_FAIL;
+    }
+
+    *symmetric_key_len = symmetric_key.len;
+
+    return T_COSE_SUCCESS;
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                            struct t_cose_key      key,
@@ -1253,8 +1318,8 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
             break;
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+            break;
     }
-
 
     status = psa_aead_decrypt((psa_key_handle_t)key.key.handle,
                               psa_algorithm_id,

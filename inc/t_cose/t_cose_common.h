@@ -237,6 +237,27 @@ struct t_cose_crypto_hpke_suite_t {
     uint16_t    aead_id; // Authenticated Encryption with Associated Data id
 };
 
+/*!
+ * \brief ESDH ciphersuite
+ */
+struct t_cose_crypto_esdh_suite_t {
+    int16_t    kw_id;    // Keywrap id
+    int16_t    ckd_id;   // Content Key Distribution id
+    int16_t    curve_id; // Curve id
+};
+
+
+/*!
+ * \brief Data items needed for information context structure
+ */
+struct t_cose_info_t {
+    int32_t enc_alg; // encryption algorithm
+    uint8_t sender_identity_type_id; // sender identity type
+    struct q_useful_buf_c  sender_identity; // sender identity
+    uint8_t recipient_identity_type_id; // recipient identity type
+    struct q_useful_buf_c  recipient_identity; // recipient identity
+    struct t_cose_encrypt_enc *enc_ctx; // encryption context
+};
 
 
 /* Private value. Intentionally not documented for Doxygen.
@@ -531,6 +552,7 @@ enum t_cose_err_t {
 
     /** Something went wrong with Key Wrap. */
     T_COSE_ERR_KW_FAILED = 63,
+
     /** The signature algorithm needs an extra buffer, but none was provided.
      * See \ref t_cose_sign1_verify_set_auxiliary_buffer for more details.
      */
@@ -571,6 +593,12 @@ enum t_cose_err_t {
 
     /** The specific KEM is not supported.  */
     T_COSE_ERR_UNSUPPORTED_KEM_ALG = 75,
+
+    /** The key agreement failed.  */
+    T_COSE_ERR_KEY_AGREEMENT_FAIL = 76,
+
+    /** HKDF failed.  */
+    T_COSE_ERR_HKDF_FAIL = 77,
 
 };
 
