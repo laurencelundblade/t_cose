@@ -664,14 +664,17 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
     psa_status_t         status;
 
    switch (cose_algorithm_id) {
+    case T_COSE_ELLIPTIC_CURVE_P_256:
     case T_COSE_HPKE_KEM_ID_P256:
         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_bitlen = 256;
         break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
     case T_COSE_HPKE_KEM_ID_P384:
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 384;
          break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
     case T_COSE_HPKE_KEM_ID_P521:
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 521;
