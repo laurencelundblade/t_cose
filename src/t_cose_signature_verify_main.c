@@ -2,6 +2,7 @@
  * t_cose_signature_verify_main.c
  *
  * Copyright (c) 2022-2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Arm Limited. All rights reserved.
  * Created by Laurence Lundblade on 7/19/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -142,7 +143,6 @@ Done:
 
 
 
-
 /**
  * \brief "Main" verifier of t_cose_signature_verify_cb.
  *
@@ -185,6 +185,7 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
                                 QCBORDecodeContext              *cbor_decoder,
                                 struct t_cose_parameter        **decoded_params)
 {
+#ifndef T_COSE_DISABLE_COSE_SIGN
     const struct t_cose_signature_verify_main *me =
                             (const struct t_cose_signature_verify_main *)me_x;
     QCBORError             qcbor_error;
@@ -233,6 +234,19 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
 
 Done:
     return return_value;
+
+#else /* !T_COSE_DISABLE_COSE_SIGN */
+
+    (void)me_x;
+    (void)option_flags;
+    (void)loc;
+    (void)sign_inputs;
+    (void)param_storage;
+    (void)cbor_decoder;
+    (void)decoded_params;
+
+    return T_COSE_ERR_UNSUPPORTED;
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
 }
 
 

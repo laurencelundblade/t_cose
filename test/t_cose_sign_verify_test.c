@@ -2,7 +2,7 @@
  *  t_cose_sign_verify_test.c
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -313,10 +313,8 @@ int_fast32_t sign_verify_basic_test(void)
     return 0;
 }
 
-/*
- * Public function, see t_cose_sign_verify_test.h
- */
-int_fast32_t sig_fail_test(int32_t cose_alg)
+
+static int_fast32_t sig_fail_test(int32_t cose_alg)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -986,7 +984,7 @@ Done:
 
 
 
-
+#ifndef T_COSE_DISABLE_COSE_SIGN
 int_fast32_t sign_verify_multi(void)
 {
     enum t_cose_err_t              result;
@@ -1095,7 +1093,6 @@ int_fast32_t sign_verify_multi(void)
 }
 
 
-
 static enum t_cose_err_t
 make_triple_signed(struct q_useful_buf buffer,
                    struct q_useful_buf_c *signed_message)
@@ -1190,10 +1187,9 @@ int32_t verify_multi_test(void)
     init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &ecdsa_key);
     t_cose_signature_verify_main_init(&verify_ecdsa);
     t_cose_signature_verify_main_set_key(&verify_ecdsa,
-                                         ecdsa_key,
-                                         Q_USEFUL_BUF_FROM_SZ_LITERAL("ecsda_kid"));
+                                          ecdsa_key,
+                                          Q_USEFUL_BUF_FROM_SZ_LITERAL("ecsda_kid"));
     t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_ecdsa);
-
 
     err = t_cose_sign_verify(&verify_ctx,
                               cose_sign,
@@ -1215,18 +1211,15 @@ int32_t verify_multi_test(void)
 #endif /* QCBOR_FOR_T_COSE_2 */
 
 
-
-
     struct t_cose_signature_verify_eddsa verify_eddsa;
     struct t_cose_key                   eddsa_key;
     init_fixed_test_signing_key(T_COSE_ALGORITHM_EDDSA, &eddsa_key);
     t_cose_signature_verify_eddsa_init(&verify_eddsa, 0);  // TODO: why does this have option flags and _main_ doesn't
     t_cose_signature_verify_eddsa_set_key(&verify_eddsa,
-                                         eddsa_key,
-                                         Q_USEFUL_BUF_FROM_SZ_LITERAL("eddsa_kid"));
+                                           eddsa_key,
+                                           Q_USEFUL_BUF_FROM_SZ_LITERAL("eddsa_kid"));
     t_cose_signature_verify_eddsa_set_auxiliary_buffer(&verify_eddsa, auxiliary_buffer);
     t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_eddsa);
-
 
 
     struct t_cose_signature_verify_main verify_rsa;
@@ -1234,8 +1227,8 @@ int32_t verify_multi_test(void)
     init_fixed_test_signing_key(T_COSE_ALGORITHM_PS256, &rsa_key);
     t_cose_signature_verify_main_init(&verify_rsa);
     t_cose_signature_verify_main_set_key(&verify_rsa,
-                                         rsa_key,
-                                         Q_USEFUL_BUF_FROM_SZ_LITERAL("rsa_kid"));
+                                          rsa_key,
+                                          Q_USEFUL_BUF_FROM_SZ_LITERAL("rsa_kid"));
     t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_rsa);
 
     err = t_cose_sign_verify(&verify_ctx,
@@ -1256,9 +1249,9 @@ int32_t verify_multi_test(void)
 #endif /* QCBOR_FOR_T_COSE_2 */
 
     return 0;
-
-
 }
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
+
 
 /*
 
@@ -1270,6 +1263,6 @@ int32_t verify_multi_test(void)
  - Require one sig and one fails because the data is corrupt/key is wrong
 
 - Use one message signed with ES256, EdDSA and RS2048
- 
+
 
  */
