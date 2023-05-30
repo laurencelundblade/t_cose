@@ -196,7 +196,7 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
  *
  * @param cose_algorithm_id  Crypto algorithm.
  *
- * Returns the key length (in bits) or UINT_MAX in case of an
+ * Returns the key length (in bits) or 0 in case of an
  * unknown algorithm id.
  */
 static unsigned int
@@ -208,8 +208,8 @@ bits_in_crypto_alg(int32_t cose_algorithm_id)
         case T_COSE_ALGORITHM_A192GCM: return 192;
         case T_COSE_ALGORITHM_AES256CCM_16_128:
         case T_COSE_ALGORITHM_A256GCM: return 256;
-        default: return UINT_MAX;
     }
+    return 0;
 }
 
 
