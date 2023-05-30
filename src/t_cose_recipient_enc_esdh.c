@@ -162,6 +162,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                         info_struct, // Info Structure
                         &output_kek_len);
 
+    /* Free ephemeral key (which is not a symmetric key!) */
+    /* TBD: Rename the function to t_cose_crypto_free_key() */
     t_cose_crypto_free_symmetric_key(ephemeral_key);
 
     if (return_value != T_COSE_SUCCESS) {
@@ -282,6 +284,9 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
     /* Close recipient array */
     QCBOREncode_CloseArray(cbor_encoder);
+
+    /* Free KEK */
+    t_cose_crypto_free_symmetric_key(kek_handle);
 
     return(T_COSE_SUCCESS);
 }
