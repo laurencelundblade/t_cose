@@ -1139,6 +1139,29 @@ void
 t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 
 
+/**
+ * \brief Key Agreement
+ *
+ * Computes a shared secret based on the provided key agreement
+ * algorithm. Is used to generate a ECDHE-derived symmetric key.
+ *
+ * \param[in] cose_algorithm_id      Algorithm id.
+ * \param[in] private_key            Private key.
+ * \param[in] public_key             Public key
+ * \param[in,out] symmetric_key      Buffer where to place the derived symmetric key.
+ * \param[in] info                   Info structure.
+ * \param[in,out] symmetric_key_len  Length of the derived key.
+ *
+ * \return Error code.
+ */
+enum t_cose_err_t
+t_cose_crypto_key_agreement(const int32_t         cose_algorithm_id,
+                           struct t_cose_key      private_key,
+                           struct q_useful_buf_c  public_key,
+                           struct q_useful_buf    symmetric_key,
+                           struct q_useful_buf_c  info,
+                           size_t                 *symmetric_key_len
+                           );
 
 /**
  * \brief RFC 5869 HKDF
