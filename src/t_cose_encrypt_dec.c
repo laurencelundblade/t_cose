@@ -62,6 +62,7 @@ is_soft_verify_error(enum t_cose_err_t error)
 static enum t_cose_err_t
 decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
                       const struct t_cose_header_location header_location,
+                      const struct t_cose_alg_and_bits      cek_alg,
                       QCBORDecodeContext                 *cbor_decoder,
                       struct q_useful_buf                 cek_buffer,
                       struct t_cose_parameter           **rcpnt_params_list,
@@ -85,11 +86,12 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
             rcpnt_decoder->decode_cb(
                 rcpnt_decoder,     /* in: me ptr of the recipient decoder */
                 header_location,   /* in: header location to record */
+                cek_alg,           /* in: alg & bits for COSE_KDF_Context construction */
                 cbor_decoder,      /* in: CBOR decoder context */
                 cek_buffer,        /* in: buffer to write CEK to */
                 me->p_storage,     /* in: parameter nodes storage pool */
                 rcpnt_params_list, /* out: linked list of decoded params */
-                cek
+                cek                /* out: the returned CEK */
            );
 
         /* This is pretty much the same as for decrypting recipients */
@@ -153,6 +155,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     const char                    *msg_type_string;
     Q_USEFUL_BUF_MAKE_STACK_UB(    enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
     struct q_useful_buf_c          enc_structure;
+    struct t_cose_alg_and_bits     cek_alg;
+    uint32_t                       bits_in_key;
 
 
     /* --- Get started decoding array of four and tags --- */
@@ -194,6 +198,11 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     body_enc_algorithm_id = t_cose_param_find_alg_id(body_params_list, true);
     all_params_list = body_params_list;
 
+    bits_in_key = bits_in_crypto_alg(body_enc_algorithm_id);
+    if(bits_in_key == UINT32_MAX) {
+        return T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
+    }
+
     /* --- The Ciphertext --- */
     if(!q_useful_buf_c_is_null(detached_ciphertext)) {
         QCBORDecode_GetNull(&cbor_decoder);
@@ -214,11 +223,15 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         header_location.nesting = 1;
         header_location.index   = 0;
 
+        cek_alg.cose_alg_id = body_enc_algorithm_id;
+        cek_alg.alg_bits = bits_in_key; // TODO: cast / type?
+
         /* Loop over the array of COSE_Recipients */
         QCBORDecode_EnterArray(&cbor_decoder, NULL);
         while(1) {
             return_value = decrypt_one_recipient(me,
                                                  header_location,
+                                                 cek_alg,
                                                  &cbor_decoder,
                                                  cek_buf,
                                                 &rcpnt_params_list,
