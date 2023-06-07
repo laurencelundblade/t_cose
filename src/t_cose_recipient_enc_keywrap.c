@@ -23,7 +23,7 @@
 enum t_cose_err_t
 t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
                                            const struct q_useful_buf_c   plaintext,
-                                           const struct t_cose_alg_and_bits cek_alg,
+                                           const struct t_cose_alg_and_bits ce_alg,
                                            QCBOREncodeContext           *cbor_encoder)
 {
     struct t_cose_recipient_enc_keywrap *me;
@@ -34,7 +34,7 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
     struct q_useful_buf_c                encrypted_cek_result;
     struct q_useful_buf_c                protected_params_not;
 
-    (void)cek_alg; /* No COSE_KDF_Context is built for key wrap. */
+    (void)ce_alg; /* No COSE_KDF_Context is built for key wrap. */
 
     me = (struct t_cose_recipient_enc_keywrap *) me_x;
 
