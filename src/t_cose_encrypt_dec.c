@@ -62,7 +62,7 @@ is_soft_verify_error(enum t_cose_err_t error)
 static enum t_cose_err_t
 decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
                       const struct t_cose_header_location header_location,
-                      const struct t_cose_alg_and_bits      cek_alg,
+                      const struct t_cose_alg_and_bits    ce_alg,
                       QCBORDecodeContext                 *cbor_decoder,
                       struct q_useful_buf                 cek_buffer,
                       struct t_cose_parameter           **rcpnt_params_list,
@@ -86,7 +86,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
             rcpnt_decoder->decode_cb(
                 rcpnt_decoder,     /* in: me ptr of the recipient decoder */
                 header_location,   /* in: header location to record */
-                cek_alg,           /* in: alg & bits for COSE_KDF_Context construction */
+                ce_alg,            /* in: alg & bits for COSE_KDF_Context construction */
                 cbor_decoder,      /* in: CBOR decoder context */
                 cek_buffer,        /* in: buffer to write CEK to */
                 me->p_storage,     /* in: parameter nodes storage pool */
@@ -144,9 +144,9 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     struct t_cose_header_location  header_location;
     struct t_cose_parameter       *body_params_list;
     struct q_useful_buf_c          nonce_cbor;
-    int32_t                        body_enc_algorithm_id;
     struct q_useful_buf_c          protected_params;
     struct q_useful_buf_c          cipher_text;
+    struct t_cose_alg_and_bits     ce_alg;
     struct q_useful_buf_c          cek;
     struct t_cose_key              cek_key;
     MakeUsefulBufOnStack(          cek_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
@@ -155,8 +155,6 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     const char                    *msg_type_string;
     Q_USEFUL_BUF_MAKE_STACK_UB(    enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
     struct q_useful_buf_c          enc_structure;
-    struct t_cose_alg_and_bits     cek_alg;
-    uint32_t                       bits_in_key;
 
 
     /* --- Get started decoding array of four and tags --- */
@@ -195,11 +193,11 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
     nonce_cbor = t_cose_param_find_iv(body_params_list);
-    body_enc_algorithm_id = t_cose_param_find_alg_id(body_params_list, true);
+    ce_alg.cose_alg_id = t_cose_param_find_alg_id(body_params_list, true);
     all_params_list = body_params_list;
 
-    bits_in_key = bits_in_crypto_alg(body_enc_algorithm_id);
-    if(bits_in_key == UINT32_MAX) {
+    ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
+    if(ce_alg.bits_in_key == UINT32_MAX) {
         return T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
     }
 
@@ -223,15 +221,12 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         header_location.nesting = 1;
         header_location.index   = 0;
 
-        cek_alg.cose_alg_id = body_enc_algorithm_id;
-        cek_alg.alg_bits = bits_in_key; // TODO: cast / type?
-
         /* Loop over the array of COSE_Recipients */
         QCBORDecode_EnterArray(&cbor_decoder, NULL);
         while(1) {
             return_value = decrypt_one_recipient(me,
                                                  header_location,
-                                                 cek_alg,
+                                                 ce_alg,
                                                  &cbor_decoder,
                                                  cek_buf,
                                                 &rcpnt_params_list,
@@ -266,9 +261,9 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         /* The decrypted cek bytes must be a t_cose_key for the AEAD API */
         return_value =
             t_cose_crypto_make_symmetric_key_handle(
-                body_enc_algorithm_id, /* in: algorithm ID */
-                cek,                   /* in: CEK bytes */
-                &cek_key               /* out: t_cose_key */
+                ce_alg.cose_alg_id,  /* in: algorithm ID */
+                cek,                 /* in: CEK bytes */
+                &cek_key             /* out: t_cose_key */
             );
         if(return_value != T_COSE_SUCCESS) {
             goto Done;
@@ -336,7 +331,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     // TODO: handle single-recipient HPKE
     return_value =
         t_cose_crypto_aead_decrypt(
-            body_enc_algorithm_id, /* in: cose alg id to decrypt payload */
+            ce_alg.cose_alg_id,    /* in: cose alg id to decrypt payload */
             cek_key,               /* in: content encryption key */
             nonce_cbor,            /* in: iv / nonce for decrypt */
             enc_structure,         /* in: the AAD for the AEAD */

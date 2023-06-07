@@ -778,6 +778,8 @@ struct t_cose_sign_inputs {
 };
 
 
+
+
 /* A COSE algorithm ID and the number of bits for the key. Typically,
  * the number of bits in the key is known from the alg ID, but not
  * always. This structure is typically used to give input for
@@ -785,12 +787,13 @@ struct t_cose_sign_inputs {
  *
  * alg_bits should be size_t to be completely type-consistent,
  * but that would push the size of this structure over an
- * an alignment boundary and double it's size.
+ * an alignment boundary and double its size.
  */
 struct t_cose_alg_and_bits {
     int32_t   cose_alg_id;
-    uint32_t  alg_bits;
+    uint32_t  bits_in_key;
 };
+
 
 
 

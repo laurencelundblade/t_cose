@@ -38,21 +38,20 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     QCBOREncodeContext           cbor_encoder;
     unsigned                     message_type;
     struct q_useful_buf_c        nonce;
-    struct q_useful_buf_c        cek_bytes;
     struct t_cose_parameter      params[2]; /* 1 for Alg ID plus 1 for IV */
     struct q_useful_buf_c        body_prot_headers;
     struct q_useful_buf_c        enc_structure;
+    struct t_cose_alg_and_bits   ce_alg;
     Q_USEFUL_BUF_MAKE_STACK_UB(  cek_buffer, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
+    struct q_useful_buf_c        cek_bytes;
+    struct t_cose_key            cek_handle;
     Q_USEFUL_BUF_MAKE_STACK_UB(  nonce_buffer, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
     Q_USEFUL_BUF_MAKE_STACK_UB(  enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
-    struct t_cose_key            cek_handle;
     const char                  *enc_struct_string;
     struct q_useful_buf          encrypt_buffer;
     struct q_useful_buf_c        encrypt_output;
     bool                         is_cose_encrypt0;
     struct t_cose_recipient_enc *recipient;
-    struct t_cose_alg_and_bits   cek_alg;
-    uint32_t                     bits_in_key;
 
 
     /* ---- Figure out the COSE message type ---- */
@@ -65,17 +64,19 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         default: return T_COSE_ERR_FAIL; // TODO: better error code
     }
 
+
     /* ---- Algorithm ID, IV and parameter list ---- */
     /* Determine algorithm parameters */
-    bits_in_key = bits_in_crypto_alg(me->payload_cose_algorithm_id);
-    if(bits_in_key == UINT32_MAX) {
+    ce_alg.cose_alg_id = me->payload_cose_algorithm_id;
+    ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
+    if(ce_alg.bits_in_key == UINT32_MAX) {
         // TODO: this may not be the full error check for unsupported.
         return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
-    params[0] = t_cose_param_make_alg_id(me->payload_cose_algorithm_id);
+    params[0] = t_cose_param_make_alg_id(ce_alg.cose_alg_id);
 
     /* Generate random nonce (aka iv) */
-    return_value = t_cose_crypto_get_random(nonce_buffer, bits_in_key / 8, &nonce);
+    return_value = t_cose_crypto_get_random(nonce_buffer, ce_alg.bits_in_key  / 8, &nonce);
     params[1] = t_cose_param_make_iv(nonce);
 
     params[0].next = &params[1];
@@ -136,12 +137,12 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
          * conveyed to the recipient by some key distribution method in
          * a COSE_Recipient). */
         return_value = t_cose_crypto_get_random(cek_buffer,
-                                                bits_in_key / 8,
+                                                ce_alg.bits_in_key  / 8,
                                                 &cek_bytes);
         if (return_value != T_COSE_SUCCESS) {
             goto Done;
         }
-        return_value = t_cose_crypto_make_symmetric_key_handle(me->payload_cose_algorithm_id, /* in: alg id */
+        return_value = t_cose_crypto_make_symmetric_key_handle(ce_alg.cose_alg_id, /* in: alg id */
                                                                cek_bytes, /* in: key bytes */
                                                               &cek_handle); /* out: key handle */
     }
@@ -167,7 +168,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
     // TODO: support AE (in addition to AEAD) algorithms
     return_value =
-        t_cose_crypto_aead_encrypt(me->payload_cose_algorithm_id, /* in: AEAD algorithm ID */
+        t_cose_crypto_aead_encrypt(ce_alg.cose_alg_id, /* in: AEAD algorithm ID */
                                    cek_handle,     /* in: content encryption key handle */
                                    nonce,          /* in: nonce / IV */
                                    enc_structure,  /* in: additional data to authenticate */
@@ -196,17 +197,13 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
             recipient != NULL;
             recipient = recipient->next_in_list) {
 
-            cek_alg.cose_alg_id = me->payload_cose_algorithm_id;
-            cek_alg.alg_bits    = bits_in_key;
-
-
             /* Array holding the COSE_Recipients */
             QCBOREncode_OpenArray(&cbor_encoder);
 
             /* This does the public-key crypto and outputs a COSE_Recipient */
             return_value = recipient->creat_cb(recipient,
                                                cek_bytes,
-                                               cek_alg,
+                                               ce_alg,
                                               &cbor_encoder);
             if(return_value) {
                 goto Done;
