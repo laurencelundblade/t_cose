@@ -17,8 +17,7 @@
 #include "t_cose/t_cose_key.h"
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose_util.h"
-
-/* Warning: this is still early development. Documentation may be incorrect.*/
+#include "t_cose_qcbor_gap.h"
 
 
 /**
@@ -138,7 +137,6 @@ is_soft_verify_error(enum t_cose_err_t error)
 }
 
 
-#ifdef QCBOR_FOR_T_COSE_2
 
 /* Return the number of parameters in a linked list of parameters. */
 static int
@@ -222,7 +220,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
 {
     struct t_cose_signature_verify *verifier;
     enum t_cose_err_t               return_value;
-    SaveDecodeCursor                saved_cursor;
+    QCBORSaveDecodeCursor           saved_cursor;
     struct t_cose_parameter        *tmp_sig_param_list;
     struct t_cose_parameter        *best_sig_param_list;
     int                             param_count;
@@ -314,77 +312,6 @@ Done:
 
     return return_value;
 }
-
-#else /* QCBOR_FOR_T_COSE_2 */
-
-#ifndef _MSC_VER
-#warning "Linking against QCBOR 1.x, not 2.x. No use of multiple verifiers on COSE_Signatures"
-#endif
-
-static enum t_cose_err_t
-verify_one_signature(struct t_cose_sign_verify_ctx       *me,
-                     const struct t_cose_header_location  header_location,
-                     struct t_cose_sign_inputs           *sign_inputs,
-                     QCBORDecodeContext                  *cbor_decoder,
-                     struct t_cose_parameter            **sig_param_list)
-{
-    struct t_cose_signature_verify *verifier;
-    enum t_cose_err_t               return_value;
-    struct t_cose_parameter        *tmp_sig_param_list;
-
-
-    verifier = me->verifiers;
-    tmp_sig_param_list = NULL;
-
-    return_value =
-        verifier->verify_cb(verifier,         /* in:  me context */
-                            me->option_flags, /* in: option_flags */
-                            header_location,  /* in: nesting/index */
-                            sign_inputs,      /* in: everything covered by signature */
-                            me->p_storage,    /* in: pool of t_cose_parameter structs */
-                            cbor_decoder,     /* in: decoder */
-                            &tmp_sig_param_list);  /* out: linked list of decoded params*/
-
-    t_cose_params_append(sig_param_list, tmp_sig_param_list);
-
-    if(return_value == T_COSE_SUCCESS) {
-        /* If here, then the decode was a success, the crypto
-         * verified, and the signature CBOR was consumed. Nothing
-         * to do but leave. */
-        return T_COSE_SUCCESS;
-    }
-
-    if(return_value == T_COSE_ERR_NO_MORE) {
-        return T_COSE_ERR_NO_MORE;
-    }
-
-    /* Remember the last verifier that failed. */
-    me->last_verifier = verifier;
-
-    if(return_value == T_COSE_ERR_SIG_VERIFY) {
-        /* The verifier was for the right algorithm and the key
-         * was the right kid and such, but the actual crypto
-         * failed to verify the bytes. In most cases the caller
-         * will want to fail the whole thing if this happens.
-         */
-        return T_COSE_ERR_SIG_VERIFY;
-    }
-
-
-    if(!is_soft_verify_error(return_value)) {
-        /* Something is very wrong. Need to abort the entire
-         * COSE mesage. */
-        return return_value;
-    }
-
-    /* Without QCBOR 2.x, it's not possible to rewind and try
-     * a different verifier, so error out.
-     */
-    return T_COSE_ERR_CANT_PROCESS_MULTIPLE;
-}
-
-
-#endif /* QCBOR_FOR_T_COSE_2 */
 
 
 

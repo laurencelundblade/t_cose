@@ -1071,16 +1071,9 @@ int_fast32_t sign_verify_multi(void)
                                 &verified_payload,
                                  NULL);
 
-
-#ifdef QCBOR_FOR_T_COSE_2
     if(result) {
         return 3;
     }
-#else
-    if(result != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
-        return 33;
-    }
-#endif /* QCBOR_FOR_T_COSE_2 */
 
 
     if(q_useful_buf_compare(verified_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))){
