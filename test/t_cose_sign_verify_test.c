@@ -986,7 +986,6 @@ Done:
 
 
 
-
 int_fast32_t sign_verify_multi(void)
 {
     enum t_cose_err_t              result;
@@ -1197,16 +1196,9 @@ int32_t verify_multi_test(void)
     /* Not all verifier were configured, but verify all was requested so
      * decline is expected */
 
-#ifdef QCBOR_FOR_T_COSE_2
     if(err != T_COSE_ERR_DECLINE) {
         return 11;
     }
-#else
-    if(err != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
-        return 33;
-    }
-#endif /* QCBOR_FOR_T_COSE_2 */
-
 
 
 
@@ -1237,20 +1229,11 @@ int32_t verify_multi_test(void)
                              &payload,
                               NULL);
 
-
-#ifdef QCBOR_FOR_T_COSE_2
     if(err) {
         return 3;
     }
-#else
-    if(err != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
-        return 33;
-    }
-#endif /* QCBOR_FOR_T_COSE_2 */
 
     return 0;
-
-
 }
 
 /*
