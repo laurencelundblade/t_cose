@@ -1271,63 +1271,50 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
  */
 
 enum t_cose_err_t
-t_cose_crypto_key_agreement(const int32_t         cose_algorithm_id,
-                           struct t_cose_key      private_key,
-                           struct q_useful_buf_c  public_key,
-                           struct q_useful_buf    symmetric_key,
-                           struct q_useful_buf_c  info,
-                           size_t                 *symmetric_key_len
+t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
+                            struct t_cose_key      private_key,
+                            struct t_cose_key      public_key,
+                            struct q_useful_buf    symmetric_key,
+                            size_t                *symmetric_key_len
                            )
 {
     psa_status_t status;
+    size_t pubKey_len;
+    enum t_cose_err_t return_value;
     psa_algorithm_t key_agreement_alg;
-    int32_t hash_alg;
-    Q_USEFUL_BUF_MAKE_STACK_UB(derived_key, PSA_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE );
-    enum t_cose_err_t err;
-    size_t ecdhe_derived_key_len;
+    Q_USEFUL_BUF_MAKE_STACK_UB(pubKey, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE );
 
     switch(cose_algorithm_id) {
-
-    /* All three content key distribution algorithms
-     * use HKDF-SHA256.
-     */
-    case  T_COSE_ALGORITHM_ECDH_ES_A128KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A128KW:
     case T_COSE_ALGORITHM_ECDH_ES_A192KW:
     case T_COSE_ALGORITHM_ECDH_ES_A256KW:
         key_agreement_alg = PSA_ALG_ECDH;
-        hash_alg = T_COSE_ALGORITHM_SHA_256;
         break;
     default:
         return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
     }
 
-    /* Produce ECDHE derived key */
-    status = psa_raw_key_agreement( key_agreement_alg,                // algorithm id
-                                    private_key.key.handle,           // client secret key
-                                    public_key.ptr, public_key.len,   // server public key
-                                    derived_key.ptr, derived_key.len, // buffer to store derived key
-                                    &ecdhe_derived_key_len );         // length of derived key
+    /* Export public key for use with PSA Crypto API */
+    return_value = t_cose_crypto_export_public_key(
+                         public_key,
+                         pubKey,
+                         &pubKey_len);
+
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
+    }
+
+    /* Produce ECDH derived key */
+    status = psa_raw_key_agreement( key_agreement_alg,       // algorithm id
+                                    private_key.key.handle,  // client secret key
+                                    pubKey.ptr, pubKey_len,  // server public key
+                                    symmetric_key.ptr,       // buffer to store derived key
+                                    symmetric_key.len,       // length of the buffer for derived key
+                                    symmetric_key_len );     // length of derived key
     if( status != PSA_SUCCESS )
     {
         return T_COSE_ERR_KEY_AGREEMENT_FAIL;
     }
-
-    /* assertion: symmetric_key_len <= derived_key.len */
-    /* HKDF-based Key Derivation */
-    err = t_cose_crypto_hkdf(hash_alg,
-                             NULL_Q_USEFUL_BUF_C, // empty salt
-                             (struct q_useful_buf_c)
-                                {
-                                    derived_key.ptr,
-                                    ecdhe_derived_key_len
-                                },
-                             info,
-                             symmetric_key);
-    if(err) {
-        return T_COSE_ERR_HKDF_FAIL;
-    }
-
-    *symmetric_key_len = symmetric_key.len;
 
     return T_COSE_SUCCESS;
 }

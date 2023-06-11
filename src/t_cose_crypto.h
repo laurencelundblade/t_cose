@@ -130,6 +130,11 @@ extern "C" {
                               (input_length) + 1) +                             \
      T_COSE_CIPHER_IV_MAX_SIZE)
 
+/** The maximum output size of the symmetric produced by a key agreement algorithm, in bytes.
+ *  If we support an ECC curve with 521 bits, then the value below must be set to 66 bytes
+ *  because ceil( 521 / 8 ) = 66 bytes.
+ */
+#define T_COSE_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE 66
 
 #define T_COSE_EC_P256_SIG_SIZE 64  /* size for secp256r1 */
 #define T_COSE_EC_P384_SIG_SIZE 96  /* size for secp384r1 */
@@ -1147,20 +1152,18 @@ t_cose_crypto_free_symmetric_key(struct t_cose_key key);
  *
  * \param[in] cose_algorithm_id      Algorithm id.
  * \param[in] private_key            Private key.
- * \param[in] public_key             Public key
+ * \param[in] public_key             Public key.
  * \param[in,out] symmetric_key      Buffer where to place the derived symmetric key.
- * \param[in] info                   Info structure.
  * \param[in,out] symmetric_key_len  Length of the derived key.
  *
  * \return Error code.
  */
 enum t_cose_err_t
-t_cose_crypto_key_agreement(const int32_t         cose_algorithm_id,
-                           struct t_cose_key      private_key,
-                           struct q_useful_buf_c  public_key,
-                           struct q_useful_buf    symmetric_key,
-                           struct q_useful_buf_c  info,
-                           size_t                 *symmetric_key_len
+t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
+                            struct t_cose_key      private_key,
+                            struct t_cose_key      public_key,
+                            struct q_useful_buf    symmetric_key,
+                            size_t                *symmetric_key_len
                            );
 
 /**

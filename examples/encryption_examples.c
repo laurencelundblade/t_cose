@@ -636,6 +636,6 @@ esdh_examples(void)
 Done:
     printf("---- Completed %d ESDH Examples successfully out of 27 ----\n\n",
             total_success);
-    return (int32_t)total_success;
+    return (int32_t)(27 - total_success);
 }
 #endif /* !T_COSE_DISABLE_ESDH */

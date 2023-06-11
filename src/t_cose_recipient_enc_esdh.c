@@ -63,7 +63,10 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     struct q_useful_buf_c   protected_params_not;
     struct t_cose_key       kek_handle;
     size_t                  target_kek_len;
+    int32_t                 hash_alg;
+    size_t                  ecdhe_derived_key_len;
     struct t_cose_recipient_enc_esdh *context;
+    Q_USEFUL_BUF_MAKE_STACK_UB(derived_key, T_COSE_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE );
 
     context = (struct t_cose_recipient_enc_esdh *)me_x;
 
@@ -156,11 +159,57 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     /* --- Generation of ECDHE derived key with HKDF applied afterwards ---- */
     return_value = t_cose_crypto_key_agreement(
                         context->esdh_suite.ckd_id, // Content Key Distribution Method
-                        ephemeral_key, // Private Key
-                        (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len}, // Public Key
-                        (struct q_useful_buf) {.ptr = kek, .len = target_kek_len}, // KEK
-                        info_struct, // Info Structure
-                        &output_kek_len);
+                        ephemeral_key,              // Private Key
+                        context->pkR,               // Public Key
+                        derived_key,                // Derived Key
+                        &ecdhe_derived_key_len);
+
+    if(return_value) {
+        return T_COSE_ERR_KEY_AGREEMENT_FAIL;
+    }
+
+    /* Determine hash algorithm for HKDF and the length of the
+     * KEK to be produced. The length of the KEK aligns with
+     * the AES KW algorithm selected.
+     *
+     * All three ES-DH content key distribution algorithms use SHA256
+     * with the HKDF-based key derivation function.
+     */
+
+    switch(context->esdh_suite.ckd_id) {
+    case T_COSE_ALGORITHM_ECDH_ES_A128KW:
+        output_kek_len = 128/8;
+        hash_alg = T_COSE_ALGORITHM_SHA_256;
+        break;
+    case T_COSE_ALGORITHM_ECDH_ES_A192KW:
+        output_kek_len = 192/8;
+        hash_alg = T_COSE_ALGORITHM_SHA_256;
+        break;
+    case T_COSE_ALGORITHM_ECDH_ES_A256KW:
+        output_kek_len = 256/8;
+        hash_alg = T_COSE_ALGORITHM_SHA_256;
+        break;
+    default:
+        return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+    }
+
+    /* HKDF-based Key Derivation */
+    return_value = t_cose_crypto_hkdf(hash_alg,       // Hash Algorithm
+                             NULL_Q_USEFUL_BUF_C,     // Empty Salt
+                             (struct q_useful_buf_c)  // IKM
+                                {
+                                    derived_key.ptr,
+                                    ecdhe_derived_key_len
+                                },
+                             info_struct,             // Info Context Structure
+                             (struct q_useful_buf)  // OKM
+                                {
+                                    kek,
+                                    output_kek_len
+                                });
+    if(return_value) {
+        return T_COSE_ERR_HKDF_FAIL;
+    }
 
     /* Free ephemeral key (which is not a symmetric key!) */
     /* TBD: Rename the function to t_cose_crypto_free_key() */
