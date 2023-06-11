@@ -111,6 +111,67 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 }
 
 
+
+static bool
+is_valid_tag_for_message(uint64_t tag_num, const uint64_t *valid_list)
+{
+    const uint64_t *l;
+
+    for(l = valid_list; *l != CBOR_TAG_INVALID64; l++) {
+        if(tag_num == *l) {
+            return true;
+        }
+    }
+    return false;
+}
+
+enum t_cose_err_t
+process_tags2(uint64_t  tag_on_item,
+              uint32_t  options,
+              uint64_t *valid_list,
+              uint64_t *end_tag)
+{
+    uint64_t  option_tag;
+    bool      tag_on_item_relevant;
+
+    option_tag = options & T_COSE_OPT_MESSAGE_TYPE_MASK;
+    tag_on_item_relevant = is_valid_tag_for_message(tag_on_item, valid_list );
+
+
+    if((options & T_COSE_OPT_TAG_REQUIRED) && tag_on_item_relevant) {
+        /* It is required that the tag number on the COSE message say which type
+         * of COSE signed message it is.
+         */
+        return T_COSE_ERR_INCORRECTLY_TAGGED;
+    }
+
+    if((options & T_COSE_OPT_TAG_PROHIBITED) && !tag_on_item_relevant) {
+        /* It is required that there be no tag number on the COSE message
+         * indicating the COSE signed message type. Note that there could
+         * be other tag numbers present.
+         */
+        return T_COSE_ERR_INCORRECTLY_TAGGED;
+    }
+
+
+    if(option_tag != T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
+        /* Override or explicit message type in options. */
+        if(!is_valid_tag_for_message(option_tag, valid_list)) {
+            return T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE;
+        }
+        *end_tag = option_tag;
+    } else {
+        /* Reliance on tag number on COSE message */
+        if(tag_on_item_relevant) {
+            return T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+        }
+        *end_tag = tag_on_item;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
 #ifndef T_COSE_DISABLE_MAC0
 // TODO: try to combine with create_tbs_hash so that no buffer for headers
 // is needed. Make sure it doesn't make sign-only or mac-only object code big

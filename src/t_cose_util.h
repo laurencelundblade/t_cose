@@ -29,6 +29,13 @@ extern "C" {
  *
  */
 
+enum t_cose_err_t
+process_tags2(uint64_t  tag_on_item,
+              uint32_t  options,
+              uint64_t *valid_list,
+              uint64_t *end_tag);
+
+
 
 /**
  * This value represents an invalid or in-error algorithm ID.  The

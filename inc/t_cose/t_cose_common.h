@@ -582,7 +582,11 @@ enum t_cose_err_t {
     /** The length of an input is invalid. In particular, this occurs with the OpenSSL crypto
      * adaptor when a size greater than MAX_INT is given because OpenSSL
      * input lengths are type int rather than size_t. */
-    T_COSE_ERR_INVALID_LENGTH = 77
+    T_COSE_ERR_INVALID_LENGTH = 77,
+
+    T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE = 78,
+
+    T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE = 79,
 
 };
 
