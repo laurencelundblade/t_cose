@@ -585,7 +585,6 @@ esdh_examples(void)
                 }
 
                 t_cose_recipient_enc_esdh_init(&recipient,
-                                                aes_kw_alg,   /* keywrap id */
                                                 ckd_id,       /* content key distribution id */
                                                 curve);       /* curve id */
 

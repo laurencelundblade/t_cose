@@ -44,7 +44,6 @@ struct t_cose_recipient_enc_esdh {
 /**
  * @brief Initialize the creator COSE_Recipient for ESDH content key distribution.
 
- * @param[in]  kw_id     The key wrap algorithm ID.
  * @param[in]  ckd_id    The content key distribution algorithm ID.
  * @param[in]  curve_id  The curve ID.
  *
@@ -57,7 +56,6 @@ struct t_cose_recipient_enc_esdh {
  */
 static void
 t_cose_recipient_enc_esdh_init(struct t_cose_recipient_enc_esdh *context,
-                               int16_t                          kw_id,
                                int16_t                          ckd_id,
                                int16_t                          curve_id);
 
@@ -92,14 +90,12 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
 static inline void
 t_cose_recipient_enc_esdh_init(struct t_cose_recipient_enc_esdh *me,
-                               int16_t                          kw_id,
                                int16_t                          ckd_id,
                                int16_t                          curve_id
                                )
 {
     memset(me, 0, sizeof(*me));
     me->e.creat_cb = t_cose_recipient_create_esdh_cb_private;
-    me->esdh_suite.kw_id = kw_id;
     me->esdh_suite.ckd_id = ckd_id;
     me->esdh_suite.curve_id = curve_id;
 }

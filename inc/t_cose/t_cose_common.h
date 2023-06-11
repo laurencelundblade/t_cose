@@ -240,7 +240,6 @@ struct t_cose_crypto_hpke_suite_t {
  * \brief ESDH ciphersuite
  */
 struct t_cose_crypto_esdh_suite_t {
-    int16_t    kw_id;    // Keywrap id
     int16_t    ckd_id;   // Content Key Distribution id
     int16_t    curve_id; // Curve id
 };

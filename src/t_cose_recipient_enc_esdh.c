@@ -64,21 +64,22 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     struct t_cose_key       kek_handle;
     size_t                  target_kek_len;
     int32_t                 hash_alg;
+    int32_t                 kw_alg;
     size_t                  ecdhe_derived_key_len;
     struct t_cose_recipient_enc_esdh *context;
     Q_USEFUL_BUF_MAKE_STACK_UB(derived_key, T_COSE_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE );
 
     context = (struct t_cose_recipient_enc_esdh *)me_x;
 
-    switch (context->esdh_suite.kw_id)
+    switch (context->esdh_suite.ckd_id)
     {
-    case T_COSE_ALGORITHM_A128KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A128KW:
         target_kek_len = 16;
         break;
-    case T_COSE_ALGORITHM_A192KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A192KW:
         target_kek_len = 24;
         break;
-    case T_COSE_ALGORITHM_A256KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A256KW:
         target_kek_len = 32;
         break;
     default:
@@ -225,16 +226,19 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         return_value = t_cose_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A256GCM,
                                       (struct q_useful_buf_c) {.ptr = kek, .len = output_kek_len},
                                                 &kek_handle);
+        kw_alg = T_COSE_ALGORITHM_A256KW;
         break;
     case T_COSE_ALGORITHM_ECDH_ES_A192KW:
         return_value = t_cose_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A192GCM,
                                       (struct q_useful_buf_c) {.ptr = kek, .len = output_kek_len},
                                                 &kek_handle);
+        kw_alg = T_COSE_ALGORITHM_A192KW;
         break;
     case T_COSE_ALGORITHM_ECDH_ES_A128KW:
         return_value = t_cose_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
                                       (struct q_useful_buf_c) {.ptr = kek, .len = output_kek_len},
                                                 &kek_handle);
+        kw_alg = T_COSE_ALGORITHM_A128KW;
         break;
     default:
         return(T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG);
@@ -321,7 +325,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
      * t_cose_crypto_kw_wrap() will catch incorrect algorithm ID errors
      */
     QCBOREncode_OpenBytes(cbor_encoder, &encrypted_cek_destination);
-    return_value = t_cose_crypto_kw_wrap(context->esdh_suite.kw_id,
+    return_value = t_cose_crypto_kw_wrap(kw_alg,        // key wrap algorithm
                                          kek_handle,    // key encryption key
                                          cek,           // "plaintext" = cek
                                          encrypted_cek_destination,
