@@ -833,9 +833,28 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
                          size_t                 number,
                          struct q_useful_buf_c *random);
 
-/* TBD: Generate key */
+/**
+ * \brief Requests generation of a public / private key.
+ *
+ * \param[in] key                t_cose_key structure to hold the key pair
+ *
+ * \param[in] cose_algorithm_id  algorithm identifier
+ *                               (e.g. for a NIST P256r1 curve)
+ *
+ * This function will either return a key in form of a t_cose_key
+ * structure, or produce an error.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully generated a public/private key pair/
+ *
+ * \retval T_COSE_ERR_UNSUPPORTED_KEM_ALG
+ *         Unknown algorithm
+ *
+ * \retval T_COSE_ERR_KEY_GENERATION_FAILED
+ *         Key generation failed
+ */
 enum t_cose_err_t
-t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
+t_cose_crypto_generate_key(struct t_cose_key    *key,
                            int32_t               cose_algorithm_id);
 
 /**
