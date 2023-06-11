@@ -12,6 +12,7 @@
 
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
+#include "t_cose/t_cose_signature_main.h"
 #include "t_cose/t_cose_signature_verify_main.h"
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose/t_cose_parameters.h"
@@ -89,7 +90,7 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     int32_t                      cose_algorithm_id;
     enum t_cose_err_t            return_value;
     struct q_useful_buf_c        kid;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  tbs_hash_buffer, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  tbs_hash_buffer, T_COSE_MAIN_MAX_HASH_SIZE);
     struct q_useful_buf_c        tbs_hash;
 
     (void)kid;

@@ -173,6 +173,12 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
          * as a byte string to the CBOR encode context.
          */
         return_value = signer->sign1_cb(signer, &sign_inputs, cbor_encoder);
+        if(return_value == T_COSE_ERR_SIG_IN_PROGRESS) {
+            me->started = true;
+        } else {
+            /* Reset the started value to enable reuse of the context */
+            me->started = false;
+        }
     }
     if(return_value != T_COSE_SUCCESS) {
         goto Done;

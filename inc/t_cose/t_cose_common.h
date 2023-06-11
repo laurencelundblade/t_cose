@@ -219,6 +219,25 @@ extern "C" {
 /* Definition of struct t_cose_key is moved to t_cose_key.h */
 
 
+/**
+ * The size of the output of SHA-256.
+ *
+ * (It is safe to define these independently here as they are
+ * well-known and fixed. There is no need to reference
+ * platform-specific headers and incur messy dependence.)
+ */
+#define T_COSE_CRYPTO_SHA256_SIZE 32
+
+/**
+ * The size of the output of SHA-384 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA384_SIZE 48
+
+/**
+ * The size of the output of SHA-512 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA512_SIZE 64
+
 // TODO: this may not belong in common.h
 enum t_cose_key_usage_flags {
     T_COSE_KEY_USAGE_FLAG_NONE = 0,
@@ -594,6 +613,11 @@ enum t_cose_err_t {
 
     /** General unsupported operation failure. */
     T_COSE_ERR_UNSUPPORTED = 81,
+  
+    /* A signing operation is in progress. The function returning this value
+     * can be called again until it returns \ref T_COSE_SUCCESS or error.
+     */
+    T_COSE_ERR_SIG_IN_PROGRESS = 82,
 };
 
 

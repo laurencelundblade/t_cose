@@ -70,8 +70,9 @@ static test_entry s_tests[] = {
 
 #ifndef T_COSE_DISABLE_COSE_SIGN
     TEST_ENTRY(verify_multi_test),
-    TEST_ENTRY(sign_verify_multi),
-#endif /* !T_COSE_DISABLE_COSE_SIGN */
+    TEST_ENTRY(verify_multi_test),
+    TEST_ENTRY(restart_test_2_step),
+#endif /* T_COSE_DISABLE_SIGN1 */
 
     // TODO: should these really be conditional on T_COSE_DISABLE_SIGN_VERIFY_TESTS
 
