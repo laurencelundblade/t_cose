@@ -200,7 +200,7 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
  * unknown algorithm id.
  */
 static unsigned int
-bits_in_crypto_alg(int32_t cose_algorithm_id)
+bits_in_content_encryption_alg(int32_t cose_algorithm_id)
 {
     switch(cose_algorithm_id) {
         case T_COSE_ALGORITHM_AES128CCM_16_128:
@@ -521,7 +521,7 @@ create_info_structure(int32_t enc_alg,
     QCBOREncode_OpenArray(&cbor_encoder);
 
     /* keyDataLength */
-    QCBOREncode_AddUInt64(&cbor_encoder, bits_in_crypto_alg(enc_alg));
+    QCBOREncode_AddUInt64(&cbor_encoder, bits_in_content_encryption_alg(enc_alg));
 
     /* recipients-inner.protected header */
     QCBOREncode_AddBytes(&cbor_encoder, protected_headers);
