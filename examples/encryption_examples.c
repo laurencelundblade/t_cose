@@ -511,130 +511,88 @@ Done:
 int32_t
 esdh_examples(void)
 {
-    struct t_cose_encrypt_enc        enc_ctx;
     enum t_cose_err_t                result;
-    struct t_cose_recipient_enc_esdh recipient;
-    struct q_useful_buf_c            cose_encrypted_message;
-    struct q_useful_buf_c            decrypted_plain_text;
     struct t_cose_key                skR;
     struct t_cose_key                pkR;
+    struct t_cose_encrypt_enc        enc_ctx;
+    struct t_cose_recipient_enc_esdh recipient;
+    struct t_cose_info_t info;
+    struct q_useful_buf_c            cose_encrypted_message;
     Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 400);
-    Q_USEFUL_BUF_MAKE_STACK_UB  (    decrypted_plaintext_buffer, 50);
-    struct t_cose_recipient_dec_esdh dec_recipient;
-    struct t_cose_encrypt_dec_ctx    dec_ctx;
-    int32_t curve;
-    int32_t enc_alg;
-    int32_t aes_kw_alg;
-    int32_t ckd_id;
-    uint8_t total_success = 0;
+    enum t_cose_err_t                err;
 
-    printf("\n---- START ESDH EXAMPLES ----\n");
+    printf("\n---- START EXAMPLE ESDH ----\n");
+    printf("Create COSE_Encrypt with detached payload using ESDH\n");
 
-    for (curve = T_COSE_ELLIPTIC_CURVE_P_256; curve <= T_COSE_ELLIPTIC_CURVE_P_521; curve ++)
-    {
-        /* Create a key pair.  This is a fixed test key pair. The creation
-         * of this key pair is crypto-library dependent because t_cose_key
-         * is crypto-library dependent. See t_cose_key.h and the examples
-         * to understand key-pair creation better. */
-        result = init_fixed_test_encryption_key(curve,
-                                               &pkR, /* out: public key to be used for encryption */
-                                               &skR); /* out: corresponding private key for decryption */
-        if(result != T_COSE_SUCCESS) {
-            goto Done;
-        }
+    /* Create a key pair.  This is a fixed test key pair. The creation
+     * of this key pair is crypto-library dependent because t_cose_key
+     * is crypto-library dependent. See t_cose_key.h and the examples
+     * to understand key-pair creation better. */
+    result = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                           &pkR, /* out: public key to be used for encryption */
+                                           &skR); /* out: corresponding private key for decryption */
+    if(result != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
-        for (enc_alg = T_COSE_ALGORITHM_A128GCM; enc_alg <= T_COSE_ALGORITHM_A256GCM; enc_alg++)
-        {
-            for (aes_kw_alg = T_COSE_ALGORITHM_A256KW; aes_kw_alg <= T_COSE_ALGORITHM_A128KW; aes_kw_alg++)
-            {
-                printf("\nCreate COSE_Encrypt with included payload using ESDH with ");
-                if (curve == T_COSE_ELLIPTIC_CURVE_P_256) printf("NIST P-256r1, ");
-                if (curve == T_COSE_ELLIPTIC_CURVE_P_384) printf("NIST P-384r1, ");
-                if (curve == T_COSE_ELLIPTIC_CURVE_P_521) printf("NIST P-521r1, ");
-                if (enc_alg == T_COSE_ALGORITHM_A128GCM) printf("AES-128-GCM, ");
-                if (enc_alg == T_COSE_ALGORITHM_A192GCM) printf("AES-192-GCM, ");
-                if (enc_alg == T_COSE_ALGORITHM_A256GCM) printf("AES-256-GCM, ");
-                if (aes_kw_alg == T_COSE_ALGORITHM_A128KW) printf("AES-128-KW\n");
-                if (aes_kw_alg == T_COSE_ALGORITHM_A192KW) printf("AES-192-KW\n");
-                if (aes_kw_alg == T_COSE_ALGORITHM_A256KW) printf("AES-256-KW\n");
+    /* Initialize the encryption context telling it we want
+     * a COSE_Encrypt (not a COSE_Encrypt0) because we're doing ECDH with a
+     * COSE_Recipient. Also tell it the AEAD algorithm for the
+     * body of the message.
+     */
+    t_cose_encrypt_enc_init(&enc_ctx,
+                             T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
+                             T_COSE_ALGORITHM_A128GCM);
 
-                /* Initialize the encryption context telling it we want
-                 * a COSE_Encrypt (not a COSE_Encrypt0) because we're doing ECDH with a
-                 * COSE_Recipient. Also tell it the AEAD algorithm for the
-                 * body of the message.
-                 */
-                t_cose_encrypt_enc_init(&enc_ctx,
-                                         T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
-                                         enc_alg);
+    /* Create the recipient object telling it the algorithm and the public key
+     * for the COSE_Recipient it's going to make.
+     */
+    t_cose_recipient_enc_esdh_init(&recipient,
+                                    T_COSE_ALGORITHM_ECDH_ES_A128KW, /* content key distribution id */
+                                    T_COSE_ELLIPTIC_CURVE_P_256);    /* curve id */
 
-                /* Create the recipient object telling it the algorithm and the public key
-                 * for the COSE_Recipient it's going to make. Then give that object
-                 * to the main encryption context. (Only one recipient is set here, but
-                 * there could be more)
-                 */
-                switch(aes_kw_alg){
-                case T_COSE_ALGORITHM_A256KW:
-                    ckd_id = T_COSE_ALGORITHM_ECDH_ES_A256KW;
-                    break;
-                case T_COSE_ALGORITHM_A192KW:
-                    ckd_id = T_COSE_ALGORITHM_ECDH_ES_A192KW;
-                    break;
-                case T_COSE_ALGORITHM_A128KW:
-                    ckd_id = T_COSE_ALGORITHM_ECDH_ES_A128KW;
-                    break;
-                }
+    t_cose_recipient_enc_esdh_set_key(&recipient,
+                                       pkR,
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
 
-                t_cose_recipient_enc_esdh_init(&recipient,
-                                                ckd_id,       /* content key distribution id */
-                                                curve);       /* curve id */
+    /* Set Context Info structure */
+    info.enc_alg = T_COSE_ALGORITHM_A128GCM;
+    info.sender_identity_type_id = 1;
+    info.recipient_identity_type_id = 1;
+    info.sender_identity = Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_SENDER_IDENTITY);
+    info.recipient_identity = Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY);
+    info.enc_ctx = &enc_ctx;
 
-                t_cose_recipient_enc_esdh_set_key(&recipient,
-                                                   pkR,
-                                                   Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
+    t_cose_recipient_enc_esdh_set_info(&recipient, &info);
 
-                struct t_cose_info_t info;
-                info.enc_alg = enc_alg;
-                info.sender_identity_type_id = 1;
-                info.recipient_identity_type_id = 1;
-                info.sender_identity = Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_SENDER_IDENTITY);
-                info.recipient_identity = Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY);
-                info.enc_ctx = &enc_ctx;
+    /* Give the recipient object to the main encryption context.
+     * (Only one recipient is set here, but there could be more).
+     */
+    t_cose_encrypt_add_recipient(&enc_ctx,
+                                 (struct t_cose_recipient_enc *)&recipient);
 
-                t_cose_recipient_enc_esdh_set_info(&recipient, &info);
+    /* Now do the actual encryption */
+    result = t_cose_encrypt_enc(&enc_ctx, /* in: encryption context */
+                                 Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD), /* in: payload to encrypt */
+                                 NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                 cose_encrypt_message_buffer, /* in: buffer for COSE_Encrypt */
+                                 &cose_encrypted_message); /* out: COSE_Encrypt */
 
-                t_cose_encrypt_add_recipient(&enc_ctx,
-                                             (struct t_cose_recipient_enc *)&recipient);
+     if (result != T_COSE_SUCCESS) {
+         printf("error encrypting (%d)\n", result);
+         goto Done;
+     }
 
-                /* Now do the actual encryption */
-                result = t_cose_encrypt_enc(&enc_ctx, /* in: encryption context */
-                                             Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD), /* in: payload to encrypt */
-                                             NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
-                                             cose_encrypt_message_buffer, /* in: buffer for COSE_Encrypt */
-                                             &cose_encrypted_message); /* out: COSE_Encrypt */
+     print_useful_buf("\nCOSE_Encrypt: ", cose_encrypted_message);
 
-                if (result != T_COSE_SUCCESS) {
-                    printf("error encrypting (%d)\n", result);
-                    goto Done;
-                }
-
-                print_useful_buf("\nCOSE_Encrypt: ", cose_encrypted_message);
-
-                /* Decryption goes in here.
-                 * TBD
-                 */
-                total_success++;
-            } // aes_kw_alg
-        } // enc_alg
-
-        /* Free test keys */
-        free_fixed_test_encryption_key(pkR);
-        free_fixed_test_encryption_key(skR);
-
-    } // curve
+     /* TBD: Decryption goes in here.
+      * Assume everything worked fine.
+      */
+     err = 0;
 
 Done:
-    printf("---- Completed %d ESDH Examples successfully out of 27 ----\n\n",
-            total_success);
-    return (int32_t)(27 - total_success);
+     printf("---- %s EXAMPLE ESDH (%d) ----\n\n",
+                err ? "FAILED" : "COMPLETED", err);
+         return (int32_t)err;
 }
 #endif /* !T_COSE_DISABLE_ESDH */
