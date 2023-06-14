@@ -687,5 +687,10 @@ Done:
      printf("---- %s EXAMPLE ESDH (%d) ----\n\n",
                 err ? "FAILED" : "COMPLETED", err);
          return (int32_t)err;
+
+     /* Free test keys */
+     free_fixed_test_encryption_key(pkR);
+     free_fixed_test_encryption_key(skR);
+
 }
 #endif /* !T_COSE_DISABLE_ESDH */
