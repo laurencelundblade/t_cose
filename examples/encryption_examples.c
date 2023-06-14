@@ -519,7 +519,6 @@ esdh_example(void)
     struct t_cose_info_t info;
     struct q_useful_buf_c            cose_encrypted_message;
     Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 400);
-    enum t_cose_err_t                err;
 
     printf("\n---- START EXAMPLE ESDH ----\n");
     printf("Create COSE_Encrypt with attached payload using ESDH\n");
@@ -588,12 +587,12 @@ esdh_example(void)
      /* TBD: Decryption goes in here.
       * Assume everything worked fine.
       */
-     err = 0;
+     result = 0;
 
 Done:
      printf("---- %s EXAMPLE ESDH (%d) ----\n\n",
-                err ? "FAILED" : "COMPLETED", err);
-         return (int32_t)err;
+             result ? "FAILED" : "COMPLETED", result);
+         return (int32_t)result;
 }
 
 int32_t
@@ -607,7 +606,6 @@ esdh_example_detached(void)
     struct t_cose_info_t info;
     struct q_useful_buf_c            cose_encrypted_message;
     Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 400);
-    enum t_cose_err_t                err;
     struct q_useful_buf_c            encrypted_detached_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB  (    encrypted_detached_ciphertext_buffer, 50);
 
@@ -681,12 +679,12 @@ esdh_example_detached(void)
      /* TBD: Decryption goes in here.
       * Assume everything worked fine.
       */
-     err = 0;
+     result = 0;
 
 Done:
      printf("---- %s EXAMPLE ESDH (%d) ----\n\n",
-                err ? "FAILED" : "COMPLETED", err);
-         return (int32_t)err;
+             result ? "FAILED" : "COMPLETED", result);
+         return (int32_t)result;
 
      /* Free test keys */
      free_fixed_test_encryption_key(pkR);
