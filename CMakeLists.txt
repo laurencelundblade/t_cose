@@ -144,7 +144,7 @@ if (BUILD_TESTS)
         test/t_cose_make_test_messages.c
         test/t_cose_param_test.c
         test/t_cose_test.c
-        example/examples_keys.c
+        examples/example_keys.c
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")
