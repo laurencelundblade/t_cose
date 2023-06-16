@@ -74,7 +74,6 @@ init_signing_key_from_xx(int32_t               cose_algorithm_id,
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
-
     /* OK to call this multiple times */
     crypto_result = psa_crypto_init();
     if(crypto_result != PSA_SUCCESS) {
@@ -133,39 +132,6 @@ init_signing_key_from_xx(int32_t               cose_algorithm_id,
 }
 
 
-/*
- * EC private keys are byte strings encoded according to SEC1.
- * This seems to be the case for all the different serialization
- * formats like ASN.1 and COSE_Key.
- *
- * Usually the private serialization format includes other info
- * like the curve for which the key is to be used and an option
- * to include the public key.
- *
- * The serialization formats for EC public keys is more complex
- * because of point compression and because sometimes a y coordinate
- * or sign bit is included. I haven't figured this all out yet.
- *
- * Note that RFC 5480 defines a format for public keys and RFC 5915
- * builds on it adding private keys.
- *
- *
- * These are the same keys as in init_keys_ossl.c so that messages
- * made with openssl-based tests and examples can be verified those
- * made by mbedtls tests and examples.  These were made with openssl
- * as detailed in init_keys_ossl.c.  Then just the private key was
- * pulled out to be put here because mbedtls just needs the private
- * key, unlike openssl for which there is a full RFC 5915 DER
- * structure. These were pulled out of the DER by identifying the key
- * with openssl asn1parse and then finding those bytes in the C
- * variable holding the rfc5915 (perhaps there is a better way, but
- * it worked).
- */
-
-
-#include <fcntl.h>
-
-#include <unistd.h>
 
 /*
  * Public function, see init_keys.h
@@ -175,8 +141,6 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
                             struct t_cose_key *key_pair)
 {
     struct q_useful_buf_c key_bytes;
-
-
 
     /* PSA doesn't support EdDSA so no keys for it here (OpenSSL does). */
 
@@ -209,10 +173,6 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
-    int x = open("/tmp/foo2.der", O_CREAT | O_RDWR);
-    ssize_t y = write(x, key_bytes.ptr, key_bytes.len);
-    close(x);
-
     return init_signing_key_from_xx(cose_algorithm_id, key_bytes, key_pair);
 }
 
@@ -229,63 +189,67 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
 
 
 
-// TODO: passing curves not algorithm ids
 enum t_cose_err_t
-init_fixed_test_encryption_key(uint32_t           cose_algorithm_id,
-                               struct t_cose_key *public_key,
-                               struct t_cose_key *private_key)
+init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
+                                  struct t_cose_key *public_key,
+                                  struct t_cose_key *private_key)
 {
-    psa_status_t status;
-    psa_key_attributes_t skR_attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t skR_handle = PSA_KEY_HANDLE_INIT;
-    psa_key_type_t type_public;
-    psa_key_type_t type_private;
-    uint32_t key_bitlen;
-
+    psa_status_t          status;
+    // TODO: these are structure initializers will this work for c++?
+    psa_key_attributes_t  skR_attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_key_handle_t      skR_handle = PSA_KEY_HANDLE_INIT;
+    psa_key_type_t        type_public;
+    psa_key_type_t        type_private;
+    uint32_t              key_bitlen;
+    struct q_useful_buf_c key_bytes;
 
     psa_crypto_init();
 
-    switch (cose_algorithm_id) {
+    switch (cose_ec_curve_id) {
     case T_COSE_ELLIPTIC_CURVE_P_256:
          type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_raw);
          key_bitlen = 256;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_384:
          type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
          key_bitlen = 384;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_521:
          type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
          key_bitlen = 521;
          break;
     default:
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
     }
 
-    /* Set up the recipient's public key (pkR) */
-
-
     /* Import private key */
-    psa_set_key_usage_flags(&skR_attributes, PSA_KEY_USAGE_DERIVE);
+    psa_set_key_usage_flags(&skR_attributes, PSA_KEY_USAGE_DERIVE|PSA_KEY_USAGE_COPY);
     psa_set_key_algorithm(&skR_attributes, PSA_ALG_ECDH);
     psa_set_key_type(&skR_attributes, type_private);
     psa_set_key_bits(&skR_attributes, key_bitlen);
 
-    // TODO: fix this for different key sizes
     status = psa_import_key(&skR_attributes,
-                             ec_P_256_priv_key_raw, sizeof(ec_P_256_priv_key_raw),
-                             &skR_handle);
+                            key_bytes.ptr, key_bytes.len,
+                            &skR_handle);
 
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
     private_key->key.handle = skR_handle;
-    public_key->key.handle = skR_handle;
 
+    status = psa_copy_key(skR_handle,
+                          &skR_attributes, // TODO: right attributes?
+                          (mbedtls_svc_key_id_t *)&(public_key->key.handle));
+    if (status != PSA_SUCCESS) {
+        return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+    }
 
     return T_COSE_SUCCESS;
 }

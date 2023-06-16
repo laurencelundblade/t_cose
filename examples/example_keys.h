@@ -27,15 +27,21 @@
  * structure as a struct t_cose_key.  The varying import functions are
  * in init_keys_xxxx.[ch].
  *
- * Some day, this will all be CBOR-format COSE_Keys...
+ * Note how ridiculously piece meal the formats for DER-
+ * encoded keys are. Perhaps a dozen RFCs :-(. Implementations
+ * are also hit-or-miss in what they support.
+ *
+ * Also, this doesn't get into any password protected key formats.
+ *
+ * Some day this will all be CBOR-format COSE_Keys... :^)
  */
 
 
 
 
 /*
- * Each EC NIST curve key is in two formats here, RFC 5915 DER and a
- * raw private key. This is needed because OpenSSL primarily supports
+ * Each EC NIST curve key is in two formats here, RFC 5915 DER format and a
+ * raw private key format. This is needed because OpenSSL primarily supports
  * the DER formats and MbedTLS the raw private key.  The underly bit
  * serialization of the key is SEC1 for both.  Three key sizes are
  * provided.
@@ -88,6 +94,16 @@
  *    06 08 2A8648CE3D030107
  *  A1 44
  *    03 42 000440416C8CDAA0F7A175695553C3279C109CE9277E53C5862AA715EDC636F171...
+ *
+ * See also:
+ *  https://stackoverflow.com/questions/71890050/set-an-evp-pkey-from-ec-raw-points-pem-or-der-in-both-openssl-1-1-1-and-3-0-x/71896633#71896633
+ *
+ * [SEC1]
+ * Certicom Research, "SEC 1: Elliptic Curve Cryptography", Standards for
+ * Efficient Cryptography, May 2009, <https://www.secg.org/sec1-v2.pdf>.
+ *
+ * Note that there are also public key formats. They aren't used
+ * here because the test uses always need a private key.
  */
 extern const unsigned char ec_P_256_key_pair_der[121];
 extern const unsigned char ec_P_256_priv_key_raw[32];

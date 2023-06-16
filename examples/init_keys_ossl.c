@@ -95,41 +95,6 @@ Done:
 
 
 /*
- * These are RFC 5915 format EC private keys. The ASN.1 for them is:
- *
- *    ECPrivateKey ::= SEQUENCE {
- *       version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
- *       privateKey     OCTET STRING,
- *       parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
- *       publicKey  [1] BIT STRING OPTIONAL
- *    }
- *
- * The byte arrays below are DER encoding of this. They include
- * the public key (which is optional).
- *
- * They also include ECParameters so identification of the curve and
- * such are part of the data and don't have to be specified in the
- * API call to OpenSSL.
- *
- * These are the same key as in init_keys_psa.c (but there only the private
- * key bytes are needed because the PSA import doesn't need the DER or
- * the public key).
- *
- * See also:
- *  https://stackoverflow.com/
- *  questions/71890050/
- *  set-an-evp-pkey-from-ec-raw-points-pem-or-der-in-both-openssl-1-1-1-and-3-0-x/
- *  71896633#71896633
- */
-
-
-
-#include <fcntl.h>
-
-#include <unistd.h>
-
-
-/*
  * Public function, see init_key.h
  */
 enum t_cose_err_t
@@ -165,12 +130,6 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
     default:
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
-
-
-    int x = open("/tmp/foo2.der", O_CREAT | O_RDWR);
-    ssize_t y = write(x, der_encoded_key.ptr, der_encoded_key.len);
-    close(x);
-
 
     /* Turn the DER bytes into a t_cose_key */
     return init_signing_key_der(cose_algorithm_id,
@@ -241,9 +200,9 @@ Done:
  * Public function, see init_key.h
  */
 enum t_cose_err_t
-init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
-                               struct t_cose_key *public_key,
-                               struct t_cose_key *private_key)
+init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
+                                  struct t_cose_key *public_key,
+                                  struct t_cose_key *private_key)
 {
     enum t_cose_err_t err;
 
