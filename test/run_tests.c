@@ -50,14 +50,11 @@ static test_entry s_tests[] = {
 #endif
     TEST_ENTRY(hkdf_test),
 
-#ifndef T_COSE_DISABLE_SIGN1
     TEST_ENTRY(sign1_structure_decode_test),
-#endif /* T_COSE_DISABLE_SIGN1 */
 
     TEST_ENTRY(crypto_context_test),
 
 #ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
-#ifndef T_COSE_DISABLE_SIGN1
     /* Many tests can be run without a crypto library integration and
      * provide good test coverage of everything but the signing and
      * verification. These tests can't be run with signing and
@@ -70,25 +67,24 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_known_good_test),
     TEST_ENTRY(sign_verify_unsupported_test),
     TEST_ENTRY(sign_verify_bad_auxiliary_buffer),
+
+#ifndef T_COSE_DISABLE_COSE_SIGN
     TEST_ENTRY(verify_multi_test),
-    
+    TEST_ENTRY(verify_multi_test),
+    TEST_ENTRY(restart_test_2_step),
 #endif /* T_COSE_DISABLE_SIGN1 */
 
-#ifndef T_COSE_DISABLE_MAC0
     // TODO: should these really be conditional on T_COSE_DISABLE_SIGN_VERIFY_TESTS
+
+#endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
+
     TEST_ENTRY(compute_validate_mac_basic_test),
     TEST_ENTRY(compute_validate_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_mac_test),
     TEST_ENTRY(compute_validate_detached_content_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_detached_content_mac_test),
-#endif /* T_COSE_DISABLE_MAC0 */
-
-    TEST_ENTRY(sign_verify_multi),
-
-#endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-#ifndef T_COSE_DISABLE_SIGN1
     /* These tests can't run if short-circuit signatures are disabled.
      * The most critical ones are replicated in the group of tests
      * that require a real crypto library. Typically short-circuit
@@ -118,7 +114,6 @@ static test_entry s_tests[] = {
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),
 #endif /* T_COSE_DISABLE_HASH_FAIL_TEST */
-#endif /* T_COSE_DISABLE_SIGN1 */
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
     TEST_ENTRY(param_test),
@@ -240,6 +235,9 @@ int RunTestsTCose(const char    *szTestNames[],
                 (*pfOutput)( " PASSED", poutCtx, 1);
             }
         }
+        /* TODO using special error code to indicate if a test
+         * did not actually run due to lack of algorithm support?
+         */
     }
 
     if(pNumTestsRun) {

@@ -2,6 +2,7 @@
  * t_cose_sign_verify.c
  *
  * Copyright 2019-2023, Laurence Lundblade
+ * Copyright (c) 2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -136,6 +137,8 @@ is_soft_verify_error(enum t_cose_err_t error)
     }
 }
 
+
+#ifndef T_COSE_DISABLE_COSE_SIGN
 
 
 /* Return the number of parameters in a linked list of parameters. */
@@ -441,7 +444,7 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
 
     return return_value;
 }
-
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
 
 
 /*
@@ -532,6 +535,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                                             signature);
 
     } else {
+
+#ifndef T_COSE_DISABLE_COSE_SIGN
         /* --- The array of COSE_Signatures --- */
         QCBORDecode_EnterArray(&cbor_decoder, NULL);
 
@@ -541,6 +546,9 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                                                &decoded_params);
 
         QCBORDecode_ExitArray(&cbor_decoder);
+#else
+        return_value = T_COSE_ERR_UNSUPPORTED;
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
     }
 
 
