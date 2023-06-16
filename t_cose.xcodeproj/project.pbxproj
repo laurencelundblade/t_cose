@@ -347,7 +347,6 @@
 		E7AE887B29A4C26F0093B326 /* examples_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = examples_main.c; sourceTree = "<group>"; };
 		E7AE887F29A4C3C20093B326 /* encryption_examples.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = encryption_examples.h; sourceTree = "<group>"; };
 		E7AE888029A4C3C20093B326 /* encryption_examples.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = encryption_examples.c; sourceTree = "<group>"; };
-		E7AE888C29A6A79E0093B326 /* rsa_test_key.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rsa_test_key.h; sourceTree = "<group>"; };
 		E7AE888D29A6DF140093B326 /* init_keys_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init_keys_test.c; sourceTree = "<group>"; };
 		E7AE889129AB72740093B326 /* t_cose_encrypt_decrypt_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_encrypt_decrypt_test.h; sourceTree = "<group>"; };
 		E7AE889229AB72740093B326 /* t_cose_encrypt_decrypt_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_encrypt_decrypt_test.c; sourceTree = "<group>"; };
@@ -535,7 +534,6 @@
 		E73CDAA123A082A500D262E0 /* examples */ = {
 			isa = PBXGroup;
 			children = (
-				E7AE888C29A6A79E0093B326 /* rsa_test_key.h */,
 				E7AE887229A49B3A0093B326 /* signing_examples.c */,
 				E7AE888029A4C3C20093B326 /* encryption_examples.c */,
 				E7AE887129A49B3A0093B326 /* signing_examples.h */,

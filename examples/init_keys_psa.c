@@ -176,9 +176,7 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
 {
     struct q_useful_buf_c key_bytes;
 
- //   int x = open("/tmp/foo2.der", O_CREAT | O_RDWR);
-    //ssize_t y = write(x, x_ec256_key_pair, sizeof(x_ec256_key_pair));
-    //close(x);
+
 
     /* PSA doesn't support EdDSA so no keys for it here (OpenSSL does). */
 
@@ -210,6 +208,10 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
     default:
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
+
+    int x = open("/tmp/foo2.der", O_CREAT | O_RDWR);
+    ssize_t y = write(x, key_bytes.ptr, key_bytes.len);
+    close(x);
 
     return init_signing_key_from_xx(cose_algorithm_id, key_bytes, key_pair);
 }

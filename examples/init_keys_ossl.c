@@ -124,6 +124,10 @@ Done:
 
 
 
+#include <fcntl.h>
+
+#include <unistd.h>
+
 
 /*
  * Public function, see init_key.h
@@ -161,6 +165,12 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
     default:
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
+
+
+    int x = open("/tmp/foo2.der", O_CREAT | O_RDWR);
+    ssize_t y = write(x, der_encoded_key.ptr, der_encoded_key.len);
+    close(x);
+
 
     /* Turn the DER bytes into a t_cose_key */
     return init_signing_key_der(cose_algorithm_id,
