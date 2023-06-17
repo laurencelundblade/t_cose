@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
-# Copyright (c) 2022 Arm Limited. All rights reserved.
+# Copyright (c) 2022-2023 Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -23,6 +23,7 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_sign1_sign.o \
         src/t_cose_sign1_verify.o \
         src/t_cose_signature_sign_main.o \
+        src/t_cose_signature_sign_restart.o \
         src/t_cose_signature_sign_eddsa.o \
         src/t_cose_signature_verify_main.o \
         src/t_cose_signature_verify_eddsa.o \
@@ -34,7 +35,8 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_recipient_enc_keywrap.o \
         src/t_cose_recipient_dec_hpke.o \
         src/t_cose_recipient_enc_hpke.o \
-        src/hpke.o 
+        src/hpke.o \
+        src/t_cose_qcbor_gap.o
 
 
 # ---- Object files for test suite ----
@@ -45,13 +47,15 @@ TEST_OBJ=test/t_cose_test.o \
          test/t_cose_compute_validate_mac_test.o \
          test/t_cose_param_test.o \
          test/t_cose_crypto_test.o \
-         test/t_cose_encrypt_decrypt_test.o
+         test/t_cose_encrypt_decrypt_test.o \
+         examples/example_keys.o
 
 
 # ---- Object files for examples ----
 EXAMPLE_OBJ=examples/examples_main.o \
             examples/signing_examples.o \
             examples/encryption_examples.o \
+            examples/example_keys.o \
             examples/print_buf.o
 
 

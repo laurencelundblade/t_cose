@@ -2,7 +2,7 @@
  *  t_cose_test_crypto.c
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,6 +17,7 @@
 #include "t_cose_test_crypto.h"
 #include "t_cose_util.h"
 
+#define SIGN_ITERATION_COUNT 5
 
 /*
  * This file is stub crypto for initial bring up and test of t_cose.
@@ -169,6 +170,36 @@ Done:
     return return_value;
 }
 
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_restart(bool                   started,
+                           int32_t                cose_algorithm_id,
+                           struct t_cose_key      signing_key,
+                           void                  *crypto_context,
+                           struct q_useful_buf_c  hash_to_sign,
+                           struct q_useful_buf    signature_buffer,
+                           struct q_useful_buf_c *signature)
+{
+    struct t_cose_test_crypto_context *cc = (struct t_cose_test_crypto_context *)crypto_context;
+
+    /* If this is the first iteration */
+    if(!started) {
+        cc->sign_iterations_left = SIGN_ITERATION_COUNT;
+    }
+    if(cc->sign_iterations_left-- > 1) {
+        return T_COSE_ERR_SIG_IN_PROGRESS;
+    }
+
+    return t_cose_crypto_sign(cose_algorithm_id,
+                              signing_key,
+                              crypto_context,
+                              hash_to_sign,
+                              signature_buffer,
+                              signature);
+}
+
 
 /*
  * See documentation in t_cose_crypto.h
@@ -176,7 +207,6 @@ Done:
 enum t_cose_err_t
 t_cose_crypto_verify(int32_t                cose_algorithm_id,
                      struct t_cose_key      verification_key,
-                     struct q_useful_buf_c  kid,
                      void                  *crypto_context,
                      struct q_useful_buf_c  hash_to_verify,
                      struct q_useful_buf_c  signature)
@@ -186,7 +216,6 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
     struct t_cose_test_crypto_context *cc = (struct t_cose_test_crypto_context *)crypto_context;
 
     (void)verification_key;
-    (void)kid;
 
     /* This is used for testing the crypto context */
     if(cc != NULL && cc->test_error != T_COSE_SUCCESS) {
@@ -323,7 +352,6 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
 }
 
 
-#ifndef T_COSE_DISABLE_EDDSA
 
 /*
  * See documentation in t_cose_crypto.h
@@ -349,20 +377,17 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
  */
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
-                           struct q_useful_buf_c kid,
                            void                 *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature)
 {
     (void)verification_key;
-    (void)kid;
     (void)crypto_context;
     (void)tbs;
     (void)signature;
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
-#endif /* !T_COSE_DISABLE_EDDSA */
 
 /*
  * See documentation in t_cose_crypto.h
@@ -608,13 +633,17 @@ t_cose_crypto_ecdh(struct t_cose_key      private_key,
 }
 
 
-enum t_cose_err_t
-t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
-                   struct q_useful_buf_c  salt,
-                   struct q_useful_buf_c  ikm,
-                   struct q_useful_buf_c  info,
-                   struct q_useful_buf    okm_buffer)
+
+t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
+                   const struct q_useful_buf_c salt,
+                   const struct q_useful_buf_c ikm,
+                   const struct q_useful_buf_c info,
+                   const struct q_useful_buf   okm_buffer)
 {
+    (void)cose_hash_algorithm_id;
+    (void)salt;
+    (void)ikm;
+    (void)info;
     /* This makes a fixed fake output of all x's */
     (void)UsefulBuf_Set(okm_buffer, 'x');
     return T_COSE_SUCCESS;

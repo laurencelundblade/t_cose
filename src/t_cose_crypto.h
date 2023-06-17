@@ -1,7 +1,7 @@
 /*
  * t_cose_crypto.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -86,8 +86,6 @@ extern "C" {
  * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm
  *    - See t_cose_algorithm_is_ecdsa()
  *    - If not ECDSA add another function like t_cose_algorithm_is_ecdsa()
- * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm is added
- *    - See \ref T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
  * - Support another hash implementation that is not a service
  *    - See struct \ref t_cose_crypto_hash
  *
@@ -272,6 +270,43 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
 
 
 /**
+ * \brief Perform public key signing in a restartable manner. Part of the t_cose
+ * crypto adaptation layer.
+ *
+ * \param[in] started           If false, then this is the first call of a
+ *                              signing operation. If it is true, this is a
+ *                              subsequent call.
+ *
+ * \retval T_COSE_ERR_SIG_IN_PROGRESS
+ *         Signing is in progress, the function needs to be called again with
+ *         the same parameters.
+ *
+ * For other parameters and possible return values and general description see
+ * t_cose_crypto_sign.
+ *
+ * To complete a signing operation this function needs to be called multiple
+ * times. For a signing operation the first call to this function must happen
+ * with \c started == false, and all subsequent calls for this signing operation
+ * must happen with \c started == true. When the return value is
+ * \c T_COSE_ERR_SIG_IN_PROGRESS the data in the output parameters is undefined.
+ * The function must be called again (and again...) until \c T_COSE_SUCCESS or
+ * an error is returned.
+ *
+ * Note that this function is only implemented if the crypto adapter supports
+ * restartable operation, and even in that case it might not be available for
+ * all algorithms.
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_restart(bool                   started,
+                           int32_t                cose_algorithm_id,
+                           struct t_cose_key      signing_key,
+                           void                  *crypto_context,
+                           struct q_useful_buf_c  hash_to_sign,
+                           struct q_useful_buf    signature_buffer,
+                           struct q_useful_buf_c *signature);
+
+
+/**
  * \brief Perform public key signature verification. Part of the
  * t_cose crypto adaptation layer.
  *
@@ -284,17 +319,12 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  *                              locally (\c \#define) if the needed one
  *                              hasn't been registered.
  * \param[in] verification_key  The verification key to use.
- * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] crypto_context       Pointer to adaptor-specific context. May be NULL.
  * \param[in] hash_to_verify    The hash of the data that is to be verified.
  * \param[in] signature         The COSE-format signature.
  *
  * This verifies that the \c signature passed in was over the \c
  * hash_to_verify passed in.
- *
- * The public key used to verify the signature is selected by the \c
- * kid if it is not \c NULL_Q_USEFUL_BUF_C or the \c key_select if it
- * is.
  *
  * The key selected must be, or include, a public key of the correct
  * type for \c cose_algorithm_id.
@@ -308,9 +338,6 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  *         Signature verification failed. For example, the
  *         cryptographic operations completed successfully but hash
  *         wasn't as expected.
- * \retval T_COSE_ERR_UNKNOWN_KEY
- *         The key identified by \c key_select or a \c kid was
- *         not found.
  * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
  *         The key was found, but it was the wrong type
  *         for the operation.
@@ -328,12 +355,10 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct t_cose_key     verification_key,
-                     struct q_useful_buf_c kid,
                      void                  *crypto_context,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature);
 
-#ifndef T_COSE_DISABLE_EDDSA
 
 /**
  * \brief Perform public key signing for EdDSA.
@@ -399,7 +424,6 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
  * an incrementally computed hash.
  *
  * \param[in] verification_key  The verification key to use.
- * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] tbs               The data to be verified.
  * \param[in] signature         The COSE-format signature.
  *
@@ -412,9 +436,6 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
  *         Signature verification failed. For example, the
  *         cryptographic operations completed successfully but hash
  *         wasn't as expected.
- * \retval T_COSE_ERR_UNKNOWN_KEY
- *         The key identified by \c key_select or a \c kid was
- *         not found.
  * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
  *         The key was found, but it was the wrong type
  *         for the operation.
@@ -431,11 +452,10 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
  */
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
-                           struct q_useful_buf_c kid,
                            void                  *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature);
-#endif /* T_COSE_DISABLE_EDDSA */
+
 
 #ifdef T_COSE_USE_PSA_CRYPTO
 #include "psa/crypto.h"
@@ -501,7 +521,6 @@ struct t_cose_crypto_hash {
         /* --- The context for OpenSSL crypto --- */
         EVP_MD_CTX  *evp_ctx;
         int          update_error; /* Used to track error return by SHAXXX_Update() */
-        int32_t      cose_hash_alg_id; /* COSE integer ID for the hash alg */
 
    #elif T_COSE_USE_B_CON_SHA256
         /* --- Specific context for Brad Conte's sha256.c --- */
@@ -527,6 +546,12 @@ struct t_cose_crypto_hmac {
     #ifdef T_COSE_USE_PSA_CRYPTO
         /* --- The context for PSA Crypto (MBed Crypto) --- */
         psa_mac_operation_t op_ctx;
+
+    #elif T_COSE_USE_OPENSSL_CRYPTO
+        /* --- The context for OpenSSL crypto --- */
+        EVP_MD_CTX  *evp_ctx;
+        EVP_PKEY    *evp_pkey;
+
     #else
         /* --- Default: generic pointer / handle --- */
         union {
@@ -536,25 +561,6 @@ struct t_cose_crypto_hmac {
         int64_t status;
     #endif
 };
-
-/**
- * The size of the output of SHA-256.
- *
- * (It is safe to define these independently here as they are
- * well-known and fixed. There is no need to reference
- * platform-specific headers and incur messy dependence.)
- */
-#define T_COSE_CRYPTO_SHA256_SIZE 32
-
-/**
- * The size of the output of SHA-384 in bytes.
- */
-#define T_COSE_CRYPTO_SHA384_SIZE 48
-
-/**
- * The size of the output of SHA-512 in bytes.
- */
-#define T_COSE_CRYPTO_SHA512_SIZE 64
 
 /**
  * Size of the signature (tag) output for the HMAC-SHA256.
@@ -572,23 +578,19 @@ struct t_cose_crypto_hmac {
 #define T_COSE_CRYPTO_HMAC512_TAG_SIZE   T_COSE_CRYPTO_SHA512_SIZE
 
 /**
- * Max size of the tag output for the HMAC operations.
+ * Max size of the tag output for the HMAC operations. This works up to SHA3-512.
  */
+/* TODO: should this vary with T_COSE_CRYPTO_MAX_HASH_SIZE? */
 #define T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE  T_COSE_CRYPTO_SHA512_SIZE
 
+
 /**
- * The maximum needed to hold a hash. It is smaller and less stack is needed
- * if the larger hashes are disabled.
- */
-#if !defined(T_COSE_DISABLE_ES512) || !defined(T_COSE_DISABLE_PS512)
-    #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
-#else
-    #if !defined(T_COSE_DISABLE_ES384) || !defined(T_COSE_DISABLE_PS384)
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
-    #else
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
-    #endif
-#endif
+ * Max size of an HMAC key. RFC 2160 which says the key should be the block size of the hash
+ * function used and that a longer key is allowed, but doesn't increase security. The block size
+ * of SHA-512 is 1024 bits and of SHA3-224 is 1152. This constant is for internal buffers
+ * holding a key. It is set at 200, far above what is needed to be generous and because
+ * 200 bytes isn't very much. */
+#define T_COSE_CRYPTO_HMAC_MAX_KEY 200
 
 
 /**
@@ -793,7 +795,7 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
 
 
 
-
+// TODO: rename this to have hmac in its name
 static inline size_t t_cose_tag_size(int32_t cose_alg_id)
 {
     switch(cose_alg_id) {
@@ -1204,11 +1206,11 @@ t_cose_crypto_ecdh(struct t_cose_key      private_key,
  * See RFC 5869 for a detailed description.
  */
 enum t_cose_err_t
-t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
-                   struct q_useful_buf_c  salt,
-                   struct q_useful_buf_c  ikm,
-                   struct q_useful_buf_c  info,
-                   struct q_useful_buf    okm_buffer);
+t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
+                   const struct q_useful_buf_c salt,
+                   const struct q_useful_buf_c ikm,
+                   const struct q_useful_buf_c info,
+                   const struct q_useful_buf   okm_buffer);
 
 
 

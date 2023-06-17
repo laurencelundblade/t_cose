@@ -173,7 +173,7 @@ int_fast32_t kw_test(void)
          * this dynamically. The below tests will correctly link
          * on 2.28, but will fail to run so this exception is needed.
          */
-        return 0;
+        return INT32_MIN; /* Means no testing was actually done */
     }
 
     e = t_cose_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
@@ -299,6 +299,8 @@ int_fast32_t hkdf_test(void)
                             okm)) {
         return 2;
     }
+#else
+    (void)okm;
 #endif
 
     return 0;
@@ -314,7 +316,7 @@ int_fast32_t ecdh_test(void)
     Q_USEFUL_BUF_MAKE_STACK_UB(shared_key_buf, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE);
 
 
-    err = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+    err = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                         &public_key,
                                         &private_key);
     if(err != T_COSE_SUCCESS) {
