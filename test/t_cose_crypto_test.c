@@ -9,6 +9,7 @@
  */
 
 #include "t_cose_crypto_test.h"
+#include "init_keys.h"
 
 #include "../src/t_cose_crypto.h" /* NOT a public interface so this test can't run against an installed library */
 
@@ -301,4 +302,36 @@ int_fast32_t hkdf_test(void)
 #endif
 
     return 0;
+}
+
+
+int_fast32_t ecdh_test(void)
+{
+    enum t_cose_err_t  err;
+    struct t_cose_key  public_key;
+    struct t_cose_key  private_key;
+    struct q_useful_buf_c shared_key;
+    Q_USEFUL_BUF_MAKE_STACK_UB(shared_key_buf, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE);
+
+
+    err = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                        &public_key,
+                                        &private_key);
+    if(err != T_COSE_SUCCESS) {
+        return -1;
+    }
+
+    err = t_cose_crypto_ecdh(private_key,
+                             public_key,
+                             shared_key_buf,
+                            &shared_key);
+
+    if(err != T_COSE_SUCCESS) {
+        return (int32_t)err;
+    }
+
+
+
+    return 0;
+
 }
