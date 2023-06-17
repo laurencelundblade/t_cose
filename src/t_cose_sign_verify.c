@@ -2,6 +2,7 @@
  * t_cose_sign_verify.c
  *
  * Copyright 2019-2023, Laurence Lundblade
+ * Copyright (c) 2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,8 +18,7 @@
 #include "t_cose/t_cose_key.h"
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose_util.h"
-
-/* Warning: this is still early development. Documentation may be incorrect.*/
+#include "t_cose_qcbor_gap.h"
 
 
 /**
@@ -49,7 +49,8 @@ is_soft_verify_error(enum t_cose_err_t error)
 }
 
 
-#ifdef QCBOR_FOR_T_COSE_2
+#ifndef T_COSE_DISABLE_COSE_SIGN
+
 
 /* Return the number of parameters in a linked list of parameters. */
 static int
@@ -133,7 +134,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
 {
     struct t_cose_signature_verify *verifier;
     enum t_cose_err_t               return_value;
-    SaveDecodeCursor                saved_cursor;
+    QCBORSaveDecodeCursor           saved_cursor;
     struct t_cose_parameter        *tmp_sig_param_list;
     struct t_cose_parameter        *best_sig_param_list;
     int                             param_count;
@@ -226,127 +227,8 @@ Done:
     return return_value;
 }
 
-#else /* QCBOR_FOR_T_COSE_2 */
-
-#ifndef _MSC_VER
-#warning "Linking against QCBOR 1.x, not 2.x. No use of multiple verifiers on COSE_Signatures"
-#endif
-
-static enum t_cose_err_t
-verify_one_signature(struct t_cose_sign_verify_ctx       *me,
-                     const struct t_cose_header_location  header_location,
-                     struct t_cose_sign_inputs           *sign_inputs,
-                     QCBORDecodeContext                  *cbor_decoder,
-                     struct t_cose_parameter            **sig_param_list)
-{
-    struct t_cose_signature_verify *verifier;
-    enum t_cose_err_t               return_value;
-    struct t_cose_parameter        *tmp_sig_param_list;
 
 
-    verifier = me->verifiers;
-    tmp_sig_param_list = NULL;
-
-    return_value =
-        verifier->verify_cb(verifier,         /* in:  me context */
-                            me->option_flags, /* in: option_flags */
-                            header_location,  /* in: nesting/index */
-                            sign_inputs,      /* in: everything covered by signature */
-                            me->p_storage,    /* in: pool of t_cose_parameter structs */
-                            cbor_decoder,     /* in: decoder */
-                            &tmp_sig_param_list);  /* out: linked list of decoded params*/
-
-    t_cose_params_append(sig_param_list, tmp_sig_param_list);
-
-    if(return_value == T_COSE_SUCCESS) {
-        /* If here, then the decode was a success, the crypto
-         * verified, and the signature CBOR was consumed. Nothing
-         * to do but leave. */
-        return T_COSE_SUCCESS;
-    }
-
-    if(return_value == T_COSE_ERR_NO_MORE) {
-        return T_COSE_ERR_NO_MORE;
-    }
-
-    /* Remember the last verifier that failed. */
-    me->last_verifier = verifier;
-
-    if(return_value == T_COSE_ERR_SIG_VERIFY) {
-        /* The verifier was for the right algorithm and the key
-         * was the right kid and such, but the actual crypto
-         * failed to verify the bytes. In most cases the caller
-         * will want to fail the whole thing if this happens.
-         */
-        return T_COSE_ERR_SIG_VERIFY;
-    }
-
-
-    if(!is_soft_verify_error(return_value)) {
-        /* Something is very wrong. Need to abort the entire
-         * COSE mesage. */
-        return return_value;
-    }
-
-    /* Without QCBOR 2.x, it's not possible to rewind and try
-     * a different verifier, so error out.
-     */
-    return T_COSE_ERR_CANT_PROCESS_MULTIPLE;
-}
-
-
-#endif /* QCBOR_FOR_T_COSE_2 */
-
-
-
-/* Run all the verifiers against the a COSE_Sign1 signature (not a COSE_Signature).
- *
- * Called once. Expect it will be inlined. Separate function for
- * code readability.
- */
-static enum t_cose_err_t
-call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
-                     const struct t_cose_parameter   *body_params_list,
-                     const struct t_cose_sign_inputs *sign_inputs,
-                     const struct q_useful_buf_c      signature)
-{
-    enum t_cose_err_t               return_value;
-    struct t_cose_signature_verify *verifier;
-
-    return_value = T_COSE_ERR_NO_VERIFIERS;
-
-    for(verifier = me->verifiers;
-        verifier != NULL;
-        verifier = (struct t_cose_signature_verify *)(verifier)->rs.next) {
-
-        /* Call the verifier to attempt a verification. It will
-         * compute the tbs and try to run the crypto (unless
-         * T_COSE_OPT_DECODE_ONLY is set). Note also that the only
-         * reason that the verifier is called even when
-         * T_COSE_OPT_DECODE_ONLY is set here for a COSE_Sign1 is
-         * so the aux buffer size can be computed for EdDSA.
-         */
-        return_value =
-            verifier->verify1_cb(verifier,         /* in/out: me pointer for this verifier */
-                                 me->option_flags, /* in: option flags from top-level caller */
-                                 sign_inputs,      /* in: everything covered by signing */
-                                 body_params_list, /* in: linked list of header params from body */
-                                 signature);       /* in: the signature */
-        if(return_value == T_COSE_SUCCESS) {
-            break;
-        }
-        if(!is_soft_verify_error(return_value)) {
-            /* Decode error or a signature verification failure or such. */
-            break;
-        }
-
-        /* Algorithm or kid didn't match or verifier
-         * declined for some other reason. Continue trying other verifiers.
-         */
-    }
-
-    return return_value;
-}
 
 
 /*
@@ -421,6 +303,58 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
                 /* decline. Continue to try other COSE_Signatures. */
             }
         }
+    }
+
+    return return_value;
+}
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
+
+
+
+/* Run all the verifiers against the a COSE_Sign1 signature (not a COSE_Signature).
+ *
+ * Called once. Expect it will be inlined. Separate function for
+ * code readability.
+ */
+static enum t_cose_err_t
+call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
+                     const struct t_cose_parameter   *body_params_list,
+                     const struct t_cose_sign_inputs *sign_inputs,
+                     const struct q_useful_buf_c      signature)
+{
+    enum t_cose_err_t               return_value;
+    struct t_cose_signature_verify *verifier;
+
+    return_value = T_COSE_ERR_NO_VERIFIERS;
+
+    for(verifier = me->verifiers;
+        verifier != NULL;
+        verifier = (struct t_cose_signature_verify *)(verifier)->rs.next) {
+
+        /* Call the verifier to attempt a verification. It will
+         * compute the tbs and try to run the crypto (unless
+         * T_COSE_OPT_DECODE_ONLY is set). Note also that the only
+         * reason that the verifier is called even when
+         * T_COSE_OPT_DECODE_ONLY is set here for a COSE_Sign1 is
+         * so the aux buffer size can be computed for EdDSA.
+         */
+        return_value =
+        verifier->verify1_cb(verifier,         /* in/out: me pointer for this verifier */
+                             me->option_flags, /* in: option flags from top-level caller */
+                             sign_inputs,      /* in: everything covered by signing */
+                             body_params_list, /* in: linked list of header params from body */
+                             signature);       /* in: the signature */
+        if(return_value == T_COSE_SUCCESS) {
+            break;
+        }
+        if(!is_soft_verify_error(return_value)) {
+            /* Decode error or a signature verification failure or such. */
+            break;
+        }
+
+        /* Algorithm or kid didn't match or verifier
+         * declined for some other reason. Continue trying other verifiers.
+         */
     }
 
     return return_value;
@@ -523,6 +457,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                                             signature);
 
     } else {
+
+#ifndef T_COSE_DISABLE_COSE_SIGN
         /* --- The array of COSE_Signatures --- */
         QCBORDecode_EnterArray(&cbor_decoder, NULL);
 
@@ -532,6 +468,9 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                                                &decoded_params);
 
         QCBORDecode_ExitArray(&cbor_decoder);
+#else
+        return_value = T_COSE_ERR_UNSUPPORTED;
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
     }
 
 

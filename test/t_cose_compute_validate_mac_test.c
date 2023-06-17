@@ -16,8 +16,6 @@
 #include "t_cose_compute_validate_mac_test.h"
 
 
-#ifndef T_COSE_DISABLE_MAC0
-
 #define KEY_hmac256 \
 0x0b, 0x2d, 0x6f, 0x32, 0x53, 0x67, 0x86, 0xb3, 0x8f, 0x83, 0x56, 0xaa, \
 0xe0, 0x8c, 0x05, 0x52, 0x79, 0x31, 0xdd, 0x43, 0xef, 0xe9, 0xf4, 0x12, \
@@ -187,6 +185,9 @@ int_fast32_t compute_validate_mac_fail_test()
     QCBORError                   cbor_error;
     size_t                       tamper_offset;
 
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return 0;
+    }
 
     /* Make an HMAC key that will be used for both computing the
      * authentication tag and validation.
@@ -243,7 +244,7 @@ int_fast32_t compute_validate_mac_fail_test()
                                  &payload,    /* Payload from maced_cose */
                                   NULL);
 
-    if(result != T_COSE_ERR_SIG_VERIFY) {
+    if(result != T_COSE_ERR_HMAC_VERIFY) {
         return_value = 5000 + (int32_t)result;
     }
 
@@ -413,12 +414,13 @@ int_fast32_t compute_validate_detached_content_mac_fail_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(  maced_cose_buffer, 300);
     struct q_useful_buf_c        maced_cose;
     struct t_cose_key            key;
-    struct q_useful_buf_c        payload;
     QCBORError                   cbor_error;
 
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return 0;
+    }
 
     /* ---- Set up ---- */
-    payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
 
     /* Make an HMAC key that will be used for both computing the
      * authentication tag and validation.
@@ -441,7 +443,9 @@ int_fast32_t compute_validate_detached_content_mac_fail_test()
 
     QCBOREncode_AddNULL(&cbor_encode);
 
-    result = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
+    result = t_cose_mac_encode_tag(&mac_ctx,
+                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                   &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
@@ -454,20 +458,20 @@ int_fast32_t compute_validate_detached_content_mac_fail_test()
     }
 
     /* Set up tampered detached payload */
-    struct q_useful_buf_c temp_const = Q_USEFUL_BUF_FROM_SZ_LITERAL("hayload");
 
     t_cose_mac_validate_init(&validate_ctx, 0);
 
     t_cose_mac_set_validate_key(&validate_ctx, key);
 
-    result = t_cose_mac_validate(&validate_ctx,
-                                  maced_cose, /* COSE to validate */
-                                  NULL_Q_USEFUL_BUF_C,
-                                 &temp_const, /* detached payload */
-                                  NULL);
+    result = t_cose_mac_validate_detached(&validate_ctx, /* in: me*/
+                                           maced_cose, /* in: COSE message to validate */
+                                           NULL_Q_USEFUL_BUF_C, /* in: AAD */
+                                           Q_USEFUL_BUF_FROM_SZ_LITERAL("hayload"), /* in: detached payload */
+                                          NULL); /* out: decoded parameters */
 
-    if(result != T_COSE_ERR_SIG_VERIFY) {
+    if(result != T_COSE_ERR_HMAC_VERIFY) {
         return_value = 5000 + (int32_t)result;
+        goto Done;
     }
 
     return_value = 0;
@@ -621,5 +625,3 @@ int_fast32_t compute_validate_get_size_detached_content_mac_test()
 
     return 0;
 }
-
-#endif /* !T_COSE_DISABLE_MAC0 */

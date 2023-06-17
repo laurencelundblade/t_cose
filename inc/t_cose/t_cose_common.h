@@ -2,7 +2,7 @@
  * t_cose_common.h
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,7 +17,6 @@
 #include <stdbool.h>
 #include "t_cose/q_useful_buf.h" /* For t_cose_key and t_cose_sign_inputs */
 
-//#define T_COSE_DISABLE_EDDSA
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +25,7 @@ extern "C" {
 
 /*
  * API Design Overview
- * 
+ *
  * t_cose is made up of a collection of objects (in the
  * object-oriented programming sense) that correspond to the main
  * objects defined in CDDL by the COSE standard (RFC 9052). These
@@ -83,7 +82,7 @@ extern "C" {
  * checked by actually designing and implementing it). These are not
  * needed for COSE_Mac0.
  *
- * 
+ *
  * COSE_Message
  *
  * t_cose_message_create() and t_cose_message_decode handle
@@ -158,8 +157,8 @@ extern "C" {
  * database look ups, use of certificates, counter signatures
  * and such, all without changing the source or even object
  * code of the core t_cose library.
- * 
- * COSE_Key 
+ *
+ * COSE_Key
  *
  * Some formats of COSE_recipient have parameters that are in the
  * COSE_key format. It would be useful to have some library code to
@@ -168,7 +167,7 @@ extern "C" {
  */
 
 
-  
+
 /**
  * \file t_cose_common.h
  *
@@ -219,6 +218,25 @@ extern "C" {
 
 /* Definition of struct t_cose_key is moved to t_cose_key.h */
 
+
+/**
+ * The size of the output of SHA-256.
+ *
+ * (It is safe to define these independently here as they are
+ * well-known and fixed. There is no need to reference
+ * platform-specific headers and incur messy dependence.)
+ */
+#define T_COSE_CRYPTO_SHA256_SIZE 32
+
+/**
+ * The size of the output of SHA-384 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA384_SIZE 48
+
+/**
+ * The size of the output of SHA-512 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA512_SIZE 64
 
 // TODO: this may not belong in common.h
 enum t_cose_key_usage_flags {
@@ -584,10 +602,26 @@ enum t_cose_err_t {
      * input lengths are type int rather than size_t. */
     T_COSE_ERR_INVALID_LENGTH = 77,
 
-    T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE = 78,
+    /** The HMAC algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_HMAC_ALG = 78,
 
-    T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE = 79,
+    /** The HMAC algorithm is not supported.  */
+    T_COSE_ERR_HMAC_GENERAL_FAIL = 79,
 
+    /** The HMAC did not successfully verify.  */
+    T_COSE_ERR_HMAC_VERIFY = 80,
+
+    /** General unsupported operation failure. */
+    T_COSE_ERR_UNSUPPORTED = 81,
+  
+    /* A signing operation is in progress. The function returning this value
+     * can be called again until it returns \ref T_COSE_SUCCESS or error.
+     */
+    T_COSE_ERR_SIG_IN_PROGRESS = 82,
+
+    T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE = 83,
+
+    T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE = 84,
 };
 
 
@@ -656,7 +690,7 @@ enum t_cose_err_t {
  */
 #define T_COSE_OPT_OMIT_CBOR_TAG 0x00000400
 
-  
+
 /**
  * When verifying or signing a COSE message, cryptographic operations
  * like verification and decryption will not be performed. Keys needed
@@ -773,6 +807,24 @@ struct t_cose_sign_inputs {
     struct q_useful_buf_c  sign_protected;
     struct q_useful_buf_c  payload;
 };
+
+
+
+
+/* A COSE algorithm ID and the number of bits for the key. Typically,
+ * the number of bits in the key is known from the alg ID, but not
+ * always. This structure is typically used to give input for
+ * the construction of COSE_KDF_Context.
+ *
+ * alg_bits should be size_t to be completely type-consistent,
+ * but that would push the size of this structure over an
+ * an alignment boundary and double its size.
+ */
+struct t_cose_alg_and_bits {
+    int32_t   cose_alg_id;
+    uint32_t  bits_in_key;
+};
+
 
 
 

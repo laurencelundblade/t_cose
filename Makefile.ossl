@@ -59,7 +59,7 @@ CRYPTO_EXAMPLE_OBJ=examples/init_keys_ossl.o
 # ---- other configuration ----
 # Use as needed. It has been used to disable features that aren't ready
 # or that aren't passing tests
-OTHER_OPTS=-DT_COSE_DISABLE_HPKE  -DT_COSE_DISABLE_MAC0
+OTHER_OPTS=-DT_COSE_DISABLE_HPKE
 
 
 # ---- compiler configuration -----
@@ -109,7 +109,7 @@ libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 	cc -shared $^ -o $@ $(CRYPTO_LIB) $(QCBOR_LIB)
 
 t_cose_test: main.o $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
-	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
+	cc -dead_strip -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 t_cose_basic_example_ossl: examples/t_cose_basic_example_ossl.o examples/encryption_examples_ossl.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)

@@ -2,6 +2,7 @@
  * t_cose_signature_verify_main.c
  *
  * Copyright (c) 2022-2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Arm Limited. All rights reserved.
  * Created by Laurence Lundblade on 7/19/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -11,6 +12,7 @@
 
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
+#include "t_cose/t_cose_signature_main.h"
 #include "t_cose/t_cose_signature_verify_main.h"
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose/t_cose_parameters.h"
@@ -88,8 +90,10 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     int32_t                      cose_algorithm_id;
     enum t_cose_err_t            return_value;
     struct q_useful_buf_c        kid;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  tbs_hash_buffer, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  tbs_hash_buffer, T_COSE_MAIN_MAX_HASH_SIZE);
     struct q_useful_buf_c        tbs_hash;
+
+    (void)kid;
 
     /* --- Get the parameters values needed --- */
     cose_algorithm_id = t_cose_param_find_alg_id(parameter_list, true);
@@ -131,14 +135,12 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     /* -- Verify the signature -- */
     return_value = t_cose_crypto_verify(cose_algorithm_id,
                                         me->verification_key,
-                                        kid,
                                         me->crypto_context,
                                         tbs_hash,
                                         signature);
 Done:
     return return_value;
 }
-
 
 
 
@@ -184,6 +186,7 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
                                 QCBORDecodeContext              *cbor_decoder,
                                 struct t_cose_parameter        **decoded_params)
 {
+#ifndef T_COSE_DISABLE_COSE_SIGN
     const struct t_cose_signature_verify_main *me =
                             (const struct t_cose_signature_verify_main *)me_x;
     QCBORError             qcbor_error;
@@ -232,6 +235,19 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
 
 Done:
     return return_value;
+
+#else /* !T_COSE_DISABLE_COSE_SIGN */
+
+    (void)me_x;
+    (void)option_flags;
+    (void)loc;
+    (void)sign_inputs;
+    (void)param_storage;
+    (void)cbor_decoder;
+    (void)decoded_params;
+
+    return T_COSE_ERR_UNSUPPORTED;
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
 }
 
 

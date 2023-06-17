@@ -21,7 +21,6 @@
  *        Only HMAC is supported so far.
  */
 
-#ifndef T_COSE_DISABLE_MAC0
 
 
 /*
@@ -35,8 +34,6 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params)
 {
-    (void)payload_is_detached;
-
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
@@ -53,9 +50,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     QCBORItem                     item;
     uint64_t                      message_type;
 
-
-    *payload = NULL_Q_USEFUL_BUF_C;
-    decoded_params = NULL; // TODO: check that this is right and necessary
+    decoded_params = NULL;
 
     QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
 
@@ -67,7 +62,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    return_value = process_tags2(QCBORDecode_GetNthTag(&&decode_context, &item, 0),
+    return_value = process_tags2(QCBORDecode_GetNthTag(&decode_context, &item, 0),
                                  me->option_flags,
                                  (uint64_t []){T_COSE_OPT_MESSAGE_TYPE_MAC0, CBOR_TAG_INVALID64},
                                  &message_type);
@@ -76,7 +71,6 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     }
 
     const struct t_cose_header_location l = {0,0};
-    decoded_params = NULL;
     /* --- The protected parameters --- */
     t_cose_headers_decode(&decode_context,
                           l,
@@ -95,7 +89,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
         QCBORDecode_GetByteString(&decode_context, payload);
     }
 
-    /* --- The tag --- */
+    /* --- The HMAC tag --- */
     QCBORDecode_GetByteString(&decode_context, &tag);
 
     /* --- Finish up the CBOR decode --- */
@@ -184,11 +178,3 @@ Done:
 
     return return_value;
 }
-
-#else /* !T_COSE_DISABLE_MAC0 */
-
-/* So some of the build checks don't get confused by an empty object file */
-void t_cose_mac_validate_placeholder(void)
-{}
-
-#endif /* !T_COSE_DISABLE_MAC0 */
