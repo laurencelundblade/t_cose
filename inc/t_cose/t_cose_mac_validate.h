@@ -36,7 +36,7 @@ extern "C" {
 struct t_cose_mac_validate_ctx {
     /* Private data structure */
     struct t_cose_key                validation_key;
-    int32_t                          option_flags;
+    uint32_t                         option_flags;
     uint64_t                         auTags[T_COSE_MAX_TAGS_TO_RETURN];
     struct t_cose_parameter          __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  parameter_storage;
@@ -53,7 +53,7 @@ struct t_cose_mac_validate_ctx {
  */
 static void
 t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
-                         int32_t                         option_flags);
+                         uint32_t                        option_flags);
 
 
 /**
@@ -162,7 +162,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
 
 static inline void
 t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *me,
-                         int32_t                         option_flags)
+                         uint32_t                        option_flags)
 {
     memset(me, 0, sizeof(*me));
     me->option_flags = option_flags;

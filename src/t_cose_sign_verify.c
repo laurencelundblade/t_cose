@@ -389,21 +389,10 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
     /* --- Process opening array of 4 and tags --- */
     QCBORDecode_EnterArray(&cbor_decoder, &array_item);
-    if(QCBORDecode_GetError(&cbor_decoder)) {
-        /* Done2 re-uses CBOR->COSE error mapping code. */
-        goto Done2;
-    }
-
-
-    return_value = process_tags2(QCBORDecode_GetNthTag(&cbor_decoder, &array_item, 0),
-                                 me->option_flags,
-                                 (uint64_t []){T_COSE_OPT_MESSAGE_TYPE_SIGN1,
-                                               T_COSE_OPT_MESSAGE_TYPE_SIGN,
-                                               CBOR_TAG_INVALID64},
-                                 &message_type_tag_number);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
+    /* Let t_cose_headers_decode deal with any CBOR decode
+     * issues from entering the array. It already does
+     * those checks anyway for itself.
+     */
 
 
     /* --- The main body header parameters --- */
@@ -422,6 +411,20 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
+
+    /* Intentionally done after header decode because
+     * header decode does the CBOR decode error check.
+     */
+    return_value = process_tags2(QCBORDecode_GetNthTag(&cbor_decoder, &array_item, 0),
+                                 me->option_flags,
+                                 (uint64_t []){T_COSE_OPT_MESSAGE_TYPE_SIGN1,
+                                     T_COSE_OPT_MESSAGE_TYPE_SIGN,
+                                     CBOR_TAG_INVALID64},
+                                 &message_type_tag_number);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
 
 
     /* --- The payload --- */
@@ -491,7 +494,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         /* A decode error overrides the other errors detected above. */
         return_value = qcbor_decode_error_to_t_cose_error(cbor_error,
                                                       T_COSE_ERR_SIGN1_FORMAT);
-        goto Done;
     }
     /* --- End of the decoding of the array of four --- */
 
@@ -501,6 +503,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         /* param check must not override non-decoding errors. */
         goto Done;
     }
+
     if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
         return_value = t_cose_params_check(decoded_params);
     }
