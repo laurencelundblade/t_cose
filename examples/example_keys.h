@@ -171,8 +171,8 @@ extern const unsigned char RSA_2048_key_pair_der[1191];
  *
  *  0:d=0  hl=2 l=  46 cons: SEQUENCE
  *  2:d=1  hl=2 l=   1 prim: INTEGER           :00
- * 5:d=1  hl=2 l=   5 cons: SEQUENCE
- * 7:d=2  hl=2 l=   3 prim: OBJECT            :ED25519
+ *  5:d=1  hl=2 l=   5 cons: SEQUENCE
+ *  7:d=2  hl=2 l=   3 prim: OBJECT            :ED25519
  * 12:d=1  hl=2 l=  34 prim: OCTET STRING      [HEX DUMP]:04205FE39B7455A073D138C2E7D4E50630529FCE7DDCE822802A685DA899165D4458
  */
 extern const unsigned char ed25519_key_pair_der[48];

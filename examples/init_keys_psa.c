@@ -188,16 +188,16 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
 
 
 
-
+/*
+ * Public function, see init_keys.h
+ */
 enum t_cose_err_t
 init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
                                   struct t_cose_key *public_key,
                                   struct t_cose_key *private_key)
 {
     psa_status_t          status;
-    // TODO: these are structure initializers will this work for c++?
-    psa_key_attributes_t  skR_attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t      skR_handle = PSA_KEY_HANDLE_INIT;
+    psa_key_attributes_t  attributes;
     psa_key_type_t        type_public;
     psa_key_type_t        type_private;
     uint32_t              key_bitlen;
@@ -207,45 +207,58 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
 
     switch (cose_ec_curve_id) {
     case T_COSE_ELLIPTIC_CURVE_P_256:
-         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_raw);
-         key_bitlen = 256;
+         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_raw);
+         key_bitlen   = 256;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_384:
-         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
-         key_bitlen = 384;
+         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
+         key_bitlen   = 384;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_521:
-         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
-         key_bitlen = 521;
+         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
+         key_bitlen   = 521;
          break;
     default:
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
     }
 
-    /* Import private key */
-    psa_set_key_usage_flags(&skR_attributes, PSA_KEY_USAGE_DERIVE|PSA_KEY_USAGE_COPY);
-    psa_set_key_algorithm(&skR_attributes, PSA_ALG_ECDH);
-    psa_set_key_type(&skR_attributes, type_private);
-    psa_set_key_bits(&skR_attributes, key_bitlen);
+    /* Import as a private key / key pair */
+    /* Would be nice not to have PSA_KEY_USAGE_COPY on the private
+     * key, but it is needed to make the copy for the public key.
+     */
+    attributes = psa_key_attributes_init();
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_COPY);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
+    psa_set_key_type(&attributes, type_private);
+    psa_set_key_bits(&attributes, key_bitlen);
 
-    status = psa_import_key(&skR_attributes,
+    status = psa_import_key(&attributes,
                             key_bytes.ptr, key_bytes.len,
-                            &skR_handle);
+                            (mbedtls_svc_key_id_t *)(&private_key->key.handle));
 
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
-    private_key->key.handle = skR_handle;
-
-    status = psa_copy_key(skR_handle,
-                          &skR_attributes, // TODO: right attributes?
+    /* Make a copy that is the public key, There's still a private
+     * key in the key handle. Maybe there is a more correct way
+     * to do all this so the private key can't be copied and the
+     * public key can, but I figured out how to do all that yet.
+     */
+    attributes = psa_key_attributes_init();
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_COPY);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
+    psa_set_key_type(&attributes, type_private);
+    // TODO: why doesn't this work? psa_set_key_type(&attributes, type_public);
+    psa_set_key_bits(&attributes, key_bitlen);
+    status = psa_copy_key((mbedtls_svc_key_id_t)private_key->key.handle,
+                          &attributes,
                           (mbedtls_svc_key_id_t *)&(public_key->key.handle));
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
@@ -259,9 +272,9 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
  * Public function, see init_keys.h
  */
 void
-free_fixed_test_encryption_key(struct t_cose_key key_pair)
+free_fixed_test_ec_encryption_key(struct t_cose_key key)
 {
-    psa_destroy_key((psa_key_handle_t)key_pair.key.handle);
+    psa_destroy_key((psa_key_handle_t)key.key.handle);
 }
 
 

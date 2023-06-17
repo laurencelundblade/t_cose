@@ -80,7 +80,7 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
 
 
 void
-free_fixed_test_encryption_key(struct t_cose_key key_pair);
+free_fixed_test_ec_encryption_key(struct t_cose_key key);
 
 
 

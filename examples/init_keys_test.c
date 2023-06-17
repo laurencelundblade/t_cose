@@ -56,7 +56,7 @@ init_fixed_test_ec_encryption_key(int32_t            cose_algorithm_id,
  * Public function, see init_key.h
  */
 void
-free_fixed_test_encryption_key(struct t_cose_key key_pair)
+free_fixed_test_ec_encryption_key(struct t_cose_key key_pair)
 {
     (void)key_pair;
 }

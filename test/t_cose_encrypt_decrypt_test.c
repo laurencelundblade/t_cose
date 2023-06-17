@@ -437,8 +437,8 @@ int32_t base_encrypt_decrypt_test(void)
     if(rv) {
         return rv;
     }
-    free_fixed_test_encryption_key(skR);
-    free_fixed_test_encryption_key(pkR);
+    free_fixed_test_ec_encryption_key(skR);
+    free_fixed_test_ec_encryption_key(pkR);
 #endif /* T_COSE_DISABLE_HPKE */
     return 0;
 

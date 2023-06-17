@@ -150,25 +150,12 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
 
 
 static enum t_cose_err_t
-init_encryption_key_der(int32_t               cose_algorithm_id,
-                        struct q_useful_buf_c der_encoded,
+init_encryption_key_der(struct q_useful_buf_c der_encoded,
                         struct t_cose_key    *key_pair)
 {
     EVP_PKEY          *pkey;
-    int                key_type;
     enum t_cose_err_t  return_value;
     long               der_length;
-
-    switch (cose_algorithm_id) {
-     case T_COSE_ALGORITHM_ES256:
-     case T_COSE_ALGORITHM_ES384:
-     case T_COSE_ALGORITHM_ES512:
-         key_type = EVP_PKEY_EC;
-         break;
-
-     default:
-         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-     }
 
     /* Safely convert size_t to long */
     if(der_encoded.len > LONG_MAX) {
@@ -177,14 +164,13 @@ init_encryption_key_der(int32_t               cose_algorithm_id,
     der_length = (long)der_encoded.len;
 
     /* This imports the public key too */
-    pkey = d2i_PrivateKey(key_type, /* in: type */
+    pkey = d2i_PrivateKey(EVP_PKEY_EC, /* in: type */
                           NULL, /* unused: defined as EVP_PKEY **a */
                           (const unsigned char **)&der_encoded.ptr, /*in: pointer to DER byes; out: unused */
                           der_length /* in: length of DER bytes */
                           );
     if(pkey == NULL) {
-        // TODO: better error?
-        return_value = T_COSE_ERR_FAIL;
+        return_value = T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
         goto Done;
     }
 
@@ -204,16 +190,29 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
                                   struct t_cose_key *public_key,
                                   struct t_cose_key *private_key)
 {
-    enum t_cose_err_t err;
+    enum t_cose_err_t     err;
+    struct q_useful_buf_c der_encoded;
 
-    err = init_encryption_key_der(T_COSE_ALGORITHM_ES256,
-                                  Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_key_pair_der),
-                                  public_key);
+    switch(cose_ec_curve_id) {
+        case T_COSE_ELLIPTIC_CURVE_P_256:
+            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_key_pair_der);
+            break;
+        case T_COSE_ELLIPTIC_CURVE_P_384:
+            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_key_pair_der);
+            break;
+        case T_COSE_ELLIPTIC_CURVE_P_521:
+            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_key_pair_der);
+            break;
+        default:
+            return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+    }
+
+    err = init_encryption_key_der(der_encoded, public_key);
 
     *private_key = *public_key;
     EVP_PKEY_up_ref((EVP_PKEY *)public_key->key.ptr);
 
-    return 0;
+    return T_COSE_SUCCESS;
 }
 
 
@@ -221,9 +220,9 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
  * Public function, see init_key.h
  */
 void
-free_fixed_test_encryption_key(struct t_cose_key key_pair)
+free_fixed_test_ec_encryption_key(struct t_cose_key key)
 {
-    (void)key_pair;
+    EVP_PKEY_free(key.key.ptr);
 }
 
 
