@@ -29,7 +29,7 @@
  *
  * Note how ridiculously piece meal the formats for DER-
  * encoded keys are. Perhaps a dozen RFCs :-(. Implementations
- * are also hit-or-miss in what they support.
+ * seem to be hit-or-miss in what they support.
  *
  * Also, this doesn't get into any password protected key formats.
  *
@@ -102,8 +102,9 @@
  * Certicom Research, "SEC 1: Elliptic Curve Cryptography", Standards for
  * Efficient Cryptography, May 2009, <https://www.secg.org/sec1-v2.pdf>.
  *
- * Note that there are also public key formats. They aren't used
- * here because the test uses always need a private key.
+ * Note that there are also standard public key only formats. They aren't used
+ * here because the test uses always need a private key, but some
+ * applications and uses of t_cose might use them.
  */
 extern const unsigned char ec_P_256_key_pair_der[121];
 extern const unsigned char ec_P_256_priv_key_raw[32];
