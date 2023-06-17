@@ -318,54 +318,6 @@ Done:
 
 
 
-/* Run all the verifiers against the a COSE_Sign1 signature (not a COSE_Signature).
- *
- * Called once. Expect it will be inlined. Separate function for
- * code readability.
- */
-static enum t_cose_err_t
-call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
-                     const struct t_cose_parameter   *body_params_list,
-                     const struct t_cose_sign_inputs *sign_inputs,
-                     const struct q_useful_buf_c      signature)
-{
-    enum t_cose_err_t               return_value;
-    struct t_cose_signature_verify *verifier;
-
-    return_value = T_COSE_ERR_NO_VERIFIERS;
-
-    for(verifier = me->verifiers;
-        verifier != NULL;
-        verifier = (struct t_cose_signature_verify *)(verifier)->rs.next) {
-
-        /* Call the verifier to attempt a verification. It will
-         * compute the tbs and try to run the crypto (unless
-         * T_COSE_OPT_DECODE_ONLY is set). Note also that the only
-         * reason that the verifier is called even when
-         * T_COSE_OPT_DECODE_ONLY is set here for a COSE_Sign1 is
-         * so the aux buffer size can be computed for EdDSA.
-         */
-        return_value =
-            verifier->verify1_cb(verifier,         /* in/out: me pointer for this verifier */
-                                 me->option_flags, /* in: option flags from top-level caller */
-                                 sign_inputs,      /* in: everything covered by signing */
-                                 body_params_list, /* in: linked list of header params from body */
-                                 signature);       /* in: the signature */
-        if(return_value == T_COSE_SUCCESS) {
-            break;
-        }
-        if(!is_soft_verify_error(return_value)) {
-            /* Decode error or a signature verification failure or such. */
-            break;
-        }
-
-        /* Algorithm or kid didn't match or verifier
-         * declined for some other reason. Continue trying other verifiers.
-         */
-    }
-
-    return return_value;
-}
 
 
 /*
@@ -445,6 +397,58 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
     return return_value;
 }
 #endif /* !T_COSE_DISABLE_COSE_SIGN */
+
+
+
+/* Run all the verifiers against the a COSE_Sign1 signature (not a COSE_Signature).
+ *
+ * Called once. Expect it will be inlined. Separate function for
+ * code readability.
+ */
+static enum t_cose_err_t
+call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
+                     const struct t_cose_parameter   *body_params_list,
+                     const struct t_cose_sign_inputs *sign_inputs,
+                     const struct q_useful_buf_c      signature)
+{
+    enum t_cose_err_t               return_value;
+    struct t_cose_signature_verify *verifier;
+
+    return_value = T_COSE_ERR_NO_VERIFIERS;
+
+    for(verifier = me->verifiers;
+        verifier != NULL;
+        verifier = (struct t_cose_signature_verify *)(verifier)->rs.next) {
+
+        /* Call the verifier to attempt a verification. It will
+         * compute the tbs and try to run the crypto (unless
+         * T_COSE_OPT_DECODE_ONLY is set). Note also that the only
+         * reason that the verifier is called even when
+         * T_COSE_OPT_DECODE_ONLY is set here for a COSE_Sign1 is
+         * so the aux buffer size can be computed for EdDSA.
+         */
+        return_value =
+        verifier->verify1_cb(verifier,         /* in/out: me pointer for this verifier */
+                             me->option_flags, /* in: option flags from top-level caller */
+                             sign_inputs,      /* in: everything covered by signing */
+                             body_params_list, /* in: linked list of header params from body */
+                             signature);       /* in: the signature */
+        if(return_value == T_COSE_SUCCESS) {
+            break;
+        }
+        if(!is_soft_verify_error(return_value)) {
+            /* Decode error or a signature verification failure or such. */
+            break;
+        }
+
+        /* Algorithm or kid didn't match or verifier
+         * declined for some other reason. Continue trying other verifiers.
+         */
+    }
+
+    return return_value;
+}
+
 
 
 /*
