@@ -382,6 +382,11 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     struct t_cose_sign_inputs       sign_inputs;
     QCBORItem                       array_item;
     uint64_t                        message_type_tag_number;
+    uint64_t                        first_tag;
+
+    static const uint64_t valid_tags[] = {T_COSE_OPT_MESSAGE_TYPE_SIGN1,
+                                          T_COSE_OPT_MESSAGE_TYPE_SIGN,
+                                          CBOR_TAG_INVALID64};
 
 
     /* --- Decoding of the array of four starts here --- */
@@ -412,15 +417,15 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         goto Done;
     }
 
-    /* Intentionally done after header decode because
-     * header decode does the CBOR decode error check.
-     */
-    return_value = process_tags2(QCBORDecode_GetNthTag(&cbor_decoder, &array_item, 0),
-                                 me->option_flags,
-                                 (uint64_t []){T_COSE_OPT_MESSAGE_TYPE_SIGN1,
-                                     T_COSE_OPT_MESSAGE_TYPE_SIGN,
-                                     CBOR_TAG_INVALID64},
-                                 &message_type_tag_number);
+
+    /* --- CBOR tag processing --- */
+    /* After, to take advantage of error processing in header decode */
+    first_tag = QCBORDecode_GetNthTag(&cbor_decoder, &array_item, 0);
+    return_value = t_cose_process_tags(first_tag, /* in: tag on message if any */
+                                       me->option_flags, /* in: option flags from initialization */
+                                       valid_tags, /* in: list of tags allowed here */
+                                       &message_type_tag_number /* out: the determined message type */
+                                       );
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

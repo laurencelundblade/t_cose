@@ -84,8 +84,6 @@ struct t_cose_sign_verify_ctx {
  * \param[in]      option_flags  Options controlling the verification.
  *
  * This must be called before using the verification context.
- *
- * TODO: describe (and implement) selection of COSE_Sign1 vs COSE_Sign.
  */
 static void
 t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,

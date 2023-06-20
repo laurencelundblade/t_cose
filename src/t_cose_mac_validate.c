@@ -56,16 +56,17 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
 
     /* --- The array of 4 and tags --- */
     QCBORDecode_EnterArray(&decode_context, &item);
+    // TODO: optimize this the way t_cose_sign_verify is optimized.
     return_value = qcbor_decode_error_to_t_cose_error(
                                         QCBORDecode_GetError(&decode_context),
                                         T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    return_value = process_tags2(QCBORDecode_GetNthTag(&decode_context, &item, 0),
-                                 me->option_flags,
-                                 (uint64_t []){T_COSE_OPT_MESSAGE_TYPE_MAC0, CBOR_TAG_INVALID64},
-                                 &message_type);
+    return_value = t_cose_process_tags(QCBORDecode_GetNthTag(&decode_context, &item, 0),
+                                       me->option_flags,
+                                       (uint64_t []){T_COSE_OPT_MESSAGE_TYPE_MAC0, CBOR_TAG_INVALID64},
+                                      &message_type);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

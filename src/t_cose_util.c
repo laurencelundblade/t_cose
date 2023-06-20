@@ -112,8 +112,9 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 
 
 
+
 static bool
-is_valid_tag_for_message(uint64_t tag_num, const uint64_t *valid_list)
+is_valid_tag_num_for_message(uint64_t tag_num, const uint64_t *valid_list)
 {
     const uint64_t *l;
 
@@ -125,27 +126,31 @@ is_valid_tag_for_message(uint64_t tag_num, const uint64_t *valid_list)
     return false;
 }
 
+
+/*
+ * Public function. See t_cose_util.h
+ */
 enum t_cose_err_t
-process_tags2(uint64_t  tag_on_item,
-              uint32_t  options,
-              uint64_t *valid_list,
-              uint64_t *end_tag)
+t_cose_process_tags(const uint64_t  tag_num_on_message,
+                    const uint32_t  options,
+                    const uint64_t *valid_list,
+                    uint64_t       *message_type_tag_num)
 {
-    uint64_t  option_tag;
+    uint64_t  options_tag_num;
     bool      tag_on_item_relevant;
 
-    option_tag = options & T_COSE_OPT_MESSAGE_TYPE_MASK;
-    tag_on_item_relevant = is_valid_tag_for_message(tag_on_item, valid_list );
+    options_tag_num = options & T_COSE_OPT_MESSAGE_TYPE_MASK;
+    tag_on_item_relevant = is_valid_tag_num_for_message(tag_num_on_message, valid_list );
 
 
-    if((options & T_COSE_OPT_TAG_REQUIRED) && tag_on_item_relevant) {
+    if((options & T_COSE_OPT_TAG_REQUIRED) && !tag_on_item_relevant) {
         /* It is required that the tag number on the COSE message say which type
          * of COSE signed message it is.
          */
         return T_COSE_ERR_INCORRECTLY_TAGGED;
     }
 
-    if((options & T_COSE_OPT_TAG_PROHIBITED) && !tag_on_item_relevant) {
+    if((options & T_COSE_OPT_TAG_PROHIBITED) && tag_on_item_relevant) {
         /* It is required that there be no tag number on the COSE message
          * indicating the COSE signed message type. Note that there could
          * be other tag numbers present.
@@ -154,18 +159,18 @@ process_tags2(uint64_t  tag_on_item,
     }
 
 
-    if(option_tag != T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
+    if(options_tag_num != T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
         /* Override or explicit message type in options. */
-        if(!is_valid_tag_for_message(option_tag, valid_list)) {
+        if(!is_valid_tag_num_for_message(options_tag_num, valid_list)) {
             return T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE;
         }
-        *end_tag = option_tag;
+        *message_type_tag_num = options_tag_num;
     } else {
         /* Reliance on tag number on COSE message */
-        if(tag_on_item_relevant) {
+        if(!tag_on_item_relevant) {
             return T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
         }
-        *end_tag = tag_on_item;
+        *message_type_tag_num = tag_num_on_message;
     }
 
     return T_COSE_SUCCESS;

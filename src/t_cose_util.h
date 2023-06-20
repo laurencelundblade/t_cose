@@ -29,11 +29,39 @@ extern "C" {
  *
  */
 
+
+
+/**
+ * \brief General purpose CBOR tag processor for COSE messages.
+ *
+ * \param[in] tag_num_on_message     Tag number on message or \c CBOR_TAG_INVALID64.
+ * \param[in] options                Option flags from message decoder init()
+ * \param[in] valid_list             List of tag numbers valid for this message.
+ * \param[out] message_type_tag_num  The determined message type
+ *
+ * The first item in a CBOR message, usually an array may
+ * have no CBOR tag numbers, one CBOR tag numbers or many
+ * CBOR tag numbers. If there are many, only the one closest
+ * to the array item is considered here. It is the one passed
+ * as \c tag_num_on_message. It is usually obtained as the 0th
+ * tag number on the array item as returned by QCBORDecode_GetNthTag().
+ *
+ * \c options is from the message processing initialization function,
+ * (e.g., t_cose_sign_verify_init). It has some flags and may have
+ * the message type expressed as a CBOR tag number. The
+ * processing done here considered the tag number on the message
+ * if there is one and the options and comes up with the
+ * message type or an error.
+ *
+ * This can be used for signed, encrypted or mac'd messages
+ * by varying the \c valid_list. It is an array of tag numbers that
+ * are considered valid ended by \c CBOR_TAG_INVALID64.
+ */
 enum t_cose_err_t
-process_tags2(uint64_t  tag_on_item,
-              uint32_t  options,
-              uint64_t *valid_list,
-              uint64_t *end_tag);
+t_cose_process_tags(const uint64_t  tag_num_on_message,
+                    const uint32_t  options,
+                    const uint64_t *valid_list,
+                    uint64_t       *message_type_tag_num);
 
 
 
