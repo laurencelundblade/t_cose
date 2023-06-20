@@ -13,6 +13,7 @@
 #include "t_cose/t_cose_sign_sign.h"
 #include "t_cose/t_cose_signature_sign.h"
 #include "t_cose/t_cose_parameters.h"
+#include "t_cose_util.h"
 
 
 /**
@@ -50,19 +51,15 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     if(message_type_tag_number != CBOR_TAG_COSE_SIGN1 &&
        message_type_tag_number != CBOR_TAG_COSE_SIGN) {
         /* Caller didn't ask for CBOR_TAG_COSE_SIGN or CBOR_TAG_COSE_SIGN1 */
-        return_value = T_COSE_ERR_BAD_OPT;
-        goto Done;
+        return T_COSE_ERR_BAD_OPT;
     }
     if(signer == NULL) {
         /* No signers configured. */
-        return_value = T_COSE_ERR_NO_SIGNERS;
-        goto Done;
+        return T_COSE_ERR_NO_SIGNERS;
     }
-    if(message_type_tag_number == CBOR_TAG_COSE_SIGN1 &&
-       signer->rs.next != NULL) {
+    if(message_type_tag_number == CBOR_TAG_COSE_SIGN1 && signer->rs.next != NULL) {
         /* Only one signer allowed for COSE_Sign1 */
-        return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
-        goto Done;
+        return T_COSE_ERR_TOO_MANY_SIGNERS;
     }
 #endif /* ! T_COSE_DISABLE_USAGE_GUARDS */
 
@@ -100,8 +97,6 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
      * t_cose_sign_encode_finish() or other. No need to track here as
      * the QCBOR encoder tracks them internally.
      */
-
-Done:
     return return_value;
 }
 
@@ -116,12 +111,9 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
                           QCBOREncodeContext          *cbor_encoder)
 {
     enum t_cose_err_t             return_value;
-    QCBORError                    cbor_err;
     struct t_cose_signature_sign *signer;
     struct t_cose_sign_inputs     sign_inputs;
     uint64_t                      message_type_tag_number;
-
-    message_type_tag_number = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
 
 #ifndef T_COSE_DISABLE_USAGE_GUARDS
     /* --- Early error check --- */
@@ -130,15 +122,14 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
      * errors will be caught correctly later, but it does make it a
      * bit easier for the caller to debug problems.
      */
-    cbor_err = QCBOREncode_GetErrorState(cbor_encoder);
-    if(cbor_err == QCBOR_ERR_BUFFER_TOO_SMALL) {
-        return_value = T_COSE_ERR_TOO_SMALL;
-        goto Done;
-    } else if(cbor_err != QCBOR_SUCCESS) {
-        return_value = T_COSE_ERR_CBOR_FORMATTING;
+    return_value = qcbor_encode_error_to_t_cose_error(QCBOREncode_GetErrorState(cbor_encoder));
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 #endif /* !T_COSE_DISABLE_USAGE_GUARDS */
+
+    message_type_tag_number = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
+
 
     /* --- Signature for COSE_Sign1 or signatures for COSE_Sign --- */
     sign_inputs.body_protected = me->encoded_prot_params;

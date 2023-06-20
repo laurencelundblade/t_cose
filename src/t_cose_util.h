@@ -257,6 +257,10 @@ enum t_cose_err_t
 qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t format_error);
 
 
+enum t_cose_err_t
+qcbor_encode_error_to_t_cose_error(QCBORError qcbor_error);
+
+
 /**
  * \brief Look for an integer in a zero-terminated list of integers.
  *

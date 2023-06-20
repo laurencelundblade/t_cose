@@ -50,6 +50,13 @@ t_cose_signature_sign1_restart_cb(struct t_cose_signature_sign     *me_x,
         me->buffer_for_tbs_hash.ptr = me->c_buffer_for_tbs_hash;
         me->buffer_for_tbs_hash.len = sizeof(me->c_buffer_for_tbs_hash);
 
+        /* Check encoder state before QCBOREncode_OpenBytes() for sensible
+         * error reporting. */
+        return_value = qcbor_encode_error_to_t_cose_error(QCBOREncode_GetErrorState(qcbor_encoder));
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+
         /* The signature gets written directly into the output buffer.
          * The matching QCBOREncode_CloseBytes call further down still
          * needs do a memmove to make space for the CBOR header, but
