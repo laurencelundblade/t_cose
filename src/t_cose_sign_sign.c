@@ -107,7 +107,7 @@ Done:
 
 
 /*
- * Pubilc Function. See t_cose_sign_sign.h
+ * Public Function. See t_cose_sign_sign.h
  */
 enum t_cose_err_t
 t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
