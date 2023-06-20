@@ -144,7 +144,7 @@ t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
 
     (void)me_x;
     (void)sign_inputs;
-    (void)qcbor_encoder;
+    (void)cbor_encoder;
 
     return T_COSE_ERR_UNSUPPORTED;
 #endif /* !T_COSE_DISABLE_COSE_SIGN */

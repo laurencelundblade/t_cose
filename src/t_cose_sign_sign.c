@@ -124,7 +124,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
      */
     return_value = qcbor_encode_error_to_t_cose_error(QCBOREncode_GetErrorState(cbor_encoder));
     if(return_value != T_COSE_SUCCESS) {
-        goto Done;
+        return return_value;;
     }
 #endif /* !T_COSE_DISABLE_USAGE_GUARDS */
 
@@ -164,7 +164,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         while(signer != NULL) {
             return_value = signer->sign_cb(signer, &sign_inputs, cbor_encoder);
             if(return_value != T_COSE_SUCCESS) {
-                goto Done;
+                return return_value;;
             }
             signer = (struct t_cose_signature_sign *)signer->rs.next;
         }
@@ -182,7 +182,6 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
      * errors.  Some are detected at the start of this function, but
      * they cannot all be deteced there.
      */
-Done:
     return return_value;
 }
 
