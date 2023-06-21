@@ -617,21 +617,7 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
     return T_COSE_SUCCESS;
 }
 
-/*
-enum t_cose_err_t
-t_cose_crypto_ecdh(struct t_cose_key      private_key,
-                   struct t_cose_key      public_key,
-                   struct q_useful_buf    shared_key_buf,
-                   struct q_useful_buf_c *shared_key)
-{
-    (void)private_key;
-    (void)public_key;
-    (void)shared_key_buf;
-    (void)shared_key;
 
-    return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
-}
- */
 
 
 enum t_cose_err_t
