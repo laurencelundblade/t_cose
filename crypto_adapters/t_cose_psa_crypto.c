@@ -1325,6 +1325,10 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 
 
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_ecdh(struct t_cose_key      private_key,
                    struct t_cose_key      public_key,
@@ -1340,11 +1344,9 @@ t_cose_crypto_ecdh(struct t_cose_key      private_key,
                                         public_key_buf.ptr,     /* in: PK buffer      */
                                         public_key_buf.len,     /* in: PK buffer size */
                                        &pub_key_len);           /* out: Result length */
-
     if(psa_status != PSA_SUCCESS) {
         return T_COSE_ERR_FAIL; // TODO: error code
     }
-
 
 
     psa_status = psa_raw_key_agreement(PSA_ALG_ECDH,
@@ -1354,15 +1356,14 @@ t_cose_crypto_ecdh(struct t_cose_key      private_key,
                                        shared_key_buf.ptr,
                                        shared_key_buf.len,
                                        &(shared_key->len));
-
     if(psa_status != PSA_SUCCESS) {
         return T_COSE_ERR_FAIL; // TODO: error code
     }
 
-
-
-    return 0;
+    return T_COSE_SUCCESS;
 }
+
+
 
 
 

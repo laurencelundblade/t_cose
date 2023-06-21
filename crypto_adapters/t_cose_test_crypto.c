@@ -617,7 +617,7 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
     return T_COSE_SUCCESS;
 }
 
-
+/*
 enum t_cose_err_t
 t_cose_crypto_ecdh(struct t_cose_key      private_key,
                    struct t_cose_key      public_key,
@@ -631,9 +631,10 @@ t_cose_crypto_ecdh(struct t_cose_key      private_key,
 
     return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
 }
+ */
 
 
-
+enum t_cose_err_t
 t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
                    const struct q_useful_buf_c salt,
                    const struct q_useful_buf_c ikm,

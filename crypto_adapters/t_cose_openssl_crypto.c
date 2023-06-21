@@ -2065,10 +2065,14 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
 
 
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
-t_cose_crypto_ecdh(struct t_cose_key private_key,
-                   struct t_cose_key public_key,
-                   struct q_useful_buf shared_key_buf,
+t_cose_crypto_ecdh(struct t_cose_key      private_key,
+                   struct t_cose_key      public_key,
+                   struct q_useful_buf    shared_key_buf,
                    struct q_useful_buf_c *shared_key)
 {
     int           ossl_status;
@@ -2107,17 +2111,19 @@ t_cose_crypto_ecdh(struct t_cose_key private_key,
     if(shared_key_len > shared_key_buf.len) {
         return T_COSE_ERR_FAIL; // TODO: error code
     }
-    ossl_status = EVP_PKEY_derive(ctx, shared_key_buf.ptr, &shared_key_buf.len);
+    ossl_status = EVP_PKEY_derive(ctx, shared_key_buf.ptr, &shared_key_len);
     if(ossl_status != 1) {
         return T_COSE_ERR_FAIL; // TODO: error code
     }
 
     shared_key->ptr = shared_key_buf.ptr;
+    shared_key->len = shared_key_len;
 
     EVP_PKEY_CTX_free(ctx);
 
     return T_COSE_SUCCESS;
 }
+
 
 
 

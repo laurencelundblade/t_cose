@@ -1148,8 +1148,8 @@ t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 /**
  * \brief Elliptic curve diffie-helman.
  *
- * \param[in] private_key     One of the input EC keys
- * \param[in] public_key      The other input EC key
+ * \param[in] private_key     The private EC Key
+ * \param[in] public_key      The public EC key
  * \param[in] shared_key_buf  Buffer to write the derived shared key in to
  * \param[out] shared_key     The derived shared key
  *
