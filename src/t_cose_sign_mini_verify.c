@@ -1,9 +1,14 @@
-//
-//  t_cose_sign_mini_verify.c
-//
-//  Created by Laurence Lundblade on 8/17/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_sign_mini_verify.c
+ *
+ * Copyright 2022-2023, Laurence Lundblade
+ *
+ * Created by Laurence Lundblade on 8/17/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
 
 #include "t_cose/t_cose_sign_mini_verify.h"
 #include "t_cose_crypto.h"
@@ -34,29 +39,46 @@
  */
 
 
-/*
- * This is configured only for ES-384 (but can be changed for other)
- */
+
+#ifdef T_COSE_MINI_VERIFY_SELECT_ES256
+#define HASH_ALG_TO_USE  -16 /* IANA registration for SHA 256 */
+#define SIG_ALG_TO_USE   T_COSE_ALGORITHM_ES256
+#define HASH_LENGTH      32  /* Length of SHA 256 */
+#define PROT_HEADERS_FRAG  "\x44\xA1\x01\x26" // For ES256
+#endif /* T_COSE_MINI_VERIFY_SELECT_ES256 */
+
+#ifdef T_COSE_MINI_VERIFY_SELECT_ES384
 #define HASH_ALG_TO_USE  -43 /* IANA registration for SHA 384 */
 #define SIG_ALG_TO_USE   T_COSE_ALGORITHM_ES384
 #define HASH_LENGTH      48  /* Length of SHA 384 */
+#define PROT_HEADERS_FRAG  "\x44\xA1\x01\x38\x22" // For ES384
+#endif /* T_COSE_MINI_VERIFY_SELECT_ES384 */
+
+#ifdef T_COSE_MINI_VERIFY_SELECT_ES512
+#define HASH_ALG_TO_USE  -44 /* IANA registration for SHA 512 */
+#define SIG_ALG_TO_USE   T_COSE_ALGORITHM_ES512
+#define HASH_LENGTH      96  /* Length of SHA 512 */
+#define PROT_HEADERS_FRAG  "\x44\xA1\x01\x38\x23" // For ES512
+#endif /* T_COSE_MINI_VERIFY_SELECT_ES512 */
 
 
 /*
  * Hard coded CBOR fragments used both for comparison to expected
- * input and for makeing the Sig_structure.
+ * input and for making the Sig_structure.
  */
-#define PROT_HEADERS_FRAG  "\x44\xA1\x01\x38\x22" // For ES384
 #define NULL_BSTR_FRAG     "\x40"
 #define ARRAY_OF_FOUR_FRAG "\x84"
 #define EMPTY_MAP_FRAG     "\xa0"
 
+#define FIRST_PART ARRAY_OF_FOUR_FRAG PROT_HEADERS_FRAG EMPTY_MAP_FRAG
+
+
 
 
 static inline enum t_cose_err_t
-create_tbs_hash(struct q_useful_buf_c  encoded_payload,
-                struct q_useful_buf    buffer_for_hash,
-                struct q_useful_buf_c *hash)
+create_tbs_hash(const struct q_useful_buf_c  encoded_payload,
+                struct q_useful_buf          buffer_for_hash,
+                struct q_useful_buf_c       *hash)
 {
     enum t_cose_err_t           return_value;
     struct t_cose_crypto_hash   hash_ctx;
@@ -119,39 +141,10 @@ Done:
 
 
 
-/* Standard CBOR Major type for positive integers of various lengths */
-#define CBOR_MAJOR_TYPE_POSITIVE_INT 0
-
-/* Standard CBOR Major type for negative integer of various lengths */
-#define CBOR_MAJOR_TYPE_NEGATIVE_INT 1
-
-/* Standard CBOR Major type for an array of arbitrary 8-bit bytes. */
+/* Standard CBOR Major type for an array of arbitrary 8-bit bytes.
+ * (The only type decoded here in mini_verify). */
 #define CBOR_MAJOR_TYPE_BYTE_STRING  2
 
-/* Standard CBOR Major type for a UTF-8 string. Note this is true 8-bit UTF8
- with no encoding and no NULL termination */
-#define CBOR_MAJOR_TYPE_TEXT_STRING  3
-
-/* Standard CBOR Major type for an ordered array of other CBOR data items */
-#define CBOR_MAJOR_TYPE_ARRAY        4
-
-/* Standard CBOR Major type for CBOR MAP. Maps an array of pairs. The
- first item in the pair is the "label" (key, name or identfier) and the second
- item is the value.  */
-#define CBOR_MAJOR_TYPE_MAP          5
-
-/* Standard CBOR major type for a tag number. This creates a CBOR "tag" that
- * is the tag number and a data item that follows as the tag content.
- *
- * Note that this was called an optional tag in RFC 7049, but there's
- * not really anything optional about it. It was misleading. It is
- * renamed in RFC 8949.
- */
-#define CBOR_MAJOR_TYPE_TAG          6
-#define CBOR_MAJOR_TYPE_OPTIONAL     6
-
-/* Standard CBOR extra simple types like floats and the values true and false */
-#define CBOR_MAJOR_TYPE_SIMPLE       7
 
 /*
  These are special values for the AdditionalInfo bits that are part of
@@ -166,6 +159,7 @@ Done:
 #define ADDINFO_RESERVED3  30
 #define LEN_IS_INDEFINITE  31
 
+
 /*
  *  The expects a CBOR byte string at the start of
  * input_cbor. Anything else will result in an error.
@@ -174,7 +168,7 @@ Done:
  * is returned in decoded_byte_string.
  *
  * This is derived/copied from the core of QCBOR. It is specifically
- * for decoding only byte strings. The byte string must less than UINT32_MAX
+ * for decoding only byte strings. The byte string must be less than UINT32_MAX
  * in length. This choice is made so the code is smaller on 32-bit machines
  * with no need for 64-bit ints.
  *
@@ -183,7 +177,7 @@ Done:
  * WARNING: the pointer manipulation here needs review,
  * fuzzing and testing.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 decode_byte_string(struct q_useful_buf_c   input_cbor,
                    struct q_useful_buf_c  *decoded_byte_string,
                    struct q_useful_buf_c  *encoded_byte_string )
@@ -201,7 +195,7 @@ decode_byte_string(struct q_useful_buf_c   input_cbor,
     const int nAdditionalInfo = nInitialByte & 0x1f;
 
     if(nTmpMajorType != CBOR_MAJOR_TYPE_BYTE_STRING) {
-        return T_COSE_ERR_SIGN1_FORMAT; // Not a byte string
+        return T_COSE_ERR_SIGN1_FORMAT; /* Not a byte string */
     }
 
     p++;
@@ -234,7 +228,7 @@ decode_byte_string(struct q_useful_buf_c   input_cbor,
     }
 
     if(p + byte_string_length > p_end) {
-        // String contents is off the end.
+        /* String contents is off the end. */
         return T_COSE_ERR_CBOR_NOT_WELL_FORMED;
     }
 
@@ -248,16 +242,8 @@ decode_byte_string(struct q_useful_buf_c   input_cbor,
 }
 
 
-
-/* Static string that is the first part of the COSE_Sign1
- * with the header parameters that have the algorithm.
- * The expected algorithm ID is here and compiled in.
- */
-static uint8_t first_part[] = ARRAY_OF_FOUR_FRAG PROT_HEADERS_FRAG EMPTY_MAP_FRAG;
-
-
 /*
- * The main public entry point.
+ * Public function. See t_cose_sign_mini_verify.h.
  */
 enum t_cose_err_t
 t_cose_sign1_mini_verify(struct q_useful_buf_c   cose_sign1,
@@ -270,23 +256,24 @@ t_cose_sign1_mini_verify(struct q_useful_buf_c   cose_sign1,
     Q_USEFUL_BUF_MAKE_STACK_UB(  hash_buf, HASH_LENGTH);
     struct q_useful_buf_c        tbs_hash;
     enum t_cose_err_t            return_value;
+    const struct q_useful_buf_c  expected_first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL(FIRST_PART);
 
 
-    /* --- The opening of the array and header params --- */
+    /* --- The opening of the array and alg ID header param --- */
     /* The first part of the input is just checked by
      * a memcmp(). No decoding is done. It is always the
      * same -- an array of 4, the compiled-in protected
      * header with the signing algorithm identifier and the
      * empty unprotected header.
      */
-    if(cose_sign1.len < sizeof(first_part)-1) {
+    if(cose_sign1.len < expected_first_part.len) {
         /* Input is too short */
         return T_COSE_ERR_SIGN1_FORMAT;
     }
 
-    if(memcmp(first_part, cose_sign1.ptr, sizeof(first_part)-1)) {
+    if(memcmp(expected_first_part.ptr, cose_sign1.ptr, expected_first_part.len)) {
         /* Badly formatted CBOR input or not the algorithm
-         * we are hear */
+         * this was compiled for. */
         return T_COSE_ERR_SIGN1_FORMAT;
     }
 
@@ -294,17 +281,17 @@ t_cose_sign1_mini_verify(struct q_useful_buf_c   cose_sign1,
      * UsefulInBuf, but the objective here is minimal
      * lines of code and dependency for both code size
      * and ease of security analysis.
-     *
-     * Or probably this pointer math could be made
-     * pretty and easier to understand with a little more work.
      */
     in      = cose_sign1;
-    in.ptr  = (uint8_t *)in.ptr + sizeof(first_part)-1;
-    in.len -= sizeof(first_part)-1;
+    in.ptr  = (uint8_t *)in.ptr + expected_first_part.len;
+    in.len -= expected_first_part.len;
 
 
     /* --- The payload ---- */
-    decode_byte_string(in, payload, &encoded_byte_string);
+    return_value = decode_byte_string(in, payload, &encoded_byte_string);
+    if(return_value != T_COSE_SUCCESS) {
+        return return_value;
+    }
 
     in.ptr  = (uint8_t *)in.ptr + encoded_byte_string.len;
     in.len -= encoded_byte_string.len;
@@ -318,22 +305,25 @@ t_cose_sign1_mini_verify(struct q_useful_buf_c   cose_sign1,
     return_value = create_tbs_hash(encoded_byte_string,
                                    hash_buf,
                                    &tbs_hash);
-    if(return_value) {
+    if(return_value != T_COSE_SUCCESS) {
         return return_value;
     }
 
 
     /* --- The signature --- */
-    decode_byte_string(in, &signature, &encoded_byte_string);
+    return_value = decode_byte_string(in, &signature, &encoded_byte_string);
+    if(return_value != T_COSE_SUCCESS) {
+        return return_value;
+    }
 
     if((in.len - encoded_byte_string.len) != 0) {
         /* All the bytes in the input were not used. */
         return T_COSE_ERR_SIGN1_FORMAT;
     }
 
-   return t_cose_crypto_verify(SIG_ALG_TO_USE,
-                               verification_key,
-                               NULL_Q_USEFUL_BUF_C, /* No key id */
-                               tbs_hash,
-                               signature);
+   return t_cose_crypto_verify(SIG_ALG_TO_USE,      /* in: algorithm_id */
+                               verification_key,    /* in: verification key */
+                               NULL_Q_USEFUL_BUF_C, /* in: key id */
+                               tbs_hash,            /* in: hash to verify */
+                               signature);          /* in: signature */
 }
