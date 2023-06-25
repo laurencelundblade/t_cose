@@ -1,7 +1,7 @@
 /*
  *  t_cose_mini_sign1_sign.h
  *
- * Copyright 2022, Laurence Lundblade
+ * Copyright 2022-2023, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -71,9 +71,6 @@ extern "C" {
  * any header parameter except the algorithm ID. There is also
  * a maximum size of the payload at UINT16_MAX.
  *
- * This is roughly 500 bytes of object code versus 1,500 bytes for
- * t_cose_sign1_sign().
- *
  * Even if you don't need small object code, this is
  * a super easy to use COSE Sign1 API if ES256 is good enough
  * and you don't need any other header parameters.
@@ -83,8 +80,11 @@ extern "C" {
  * for the output buffer. If \ref output_buffer is too small
  * an error will be returned.
  *
+ * The object code size is about 500 bytes plus the crypto library.
  * This works with either OpenSSL and PSA Crypto (MbedTLS). It
- * is less object code with PSA Crypto.
+ * is less total object code with PSA Crypto. This contrasts
+ * with about 1500 bytes plus QCBOR plus the crypto library
+ * for t_cose_sign1_sign().
  *
  * ES384 and ES512 are also supported, but you have to modify
  * the source to switch to one of them. The source could be

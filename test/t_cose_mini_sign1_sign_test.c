@@ -69,22 +69,25 @@ static const uint8_t payload[] = {
 int32_t mini_sign1_sign_test(void) {
 
     enum t_cose_err_t               err;
-    MakeUsefulBufOnStack(           output, sizeof(payload) + T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES256);
+    MakeUsefulBufOnStack(           out_buffer, sizeof(payload) + T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES512);
     struct q_useful_buf_c           cose_sign1;
     struct t_cose_key               key_pair;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     struct q_useful_buf_c           verified_payload;
 
+    // TODO: tests for different algorithms
+    // How to do this with compiled-in algorithm?
 
     err = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
     if(err) {
         return 10;
     }
 
+    /* The main happy-path test */
     err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
-                           key_pair,
-                           output,
-                          &cose_sign1);
+                                 key_pair,
+                                 out_buffer,
+                                &cose_sign1);
     if(err) {
         return 20;
     }
@@ -99,8 +102,43 @@ int32_t mini_sign1_sign_test(void) {
         return 30;
     }
 
+    if(q_useful_buf_compare(verified_payload, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload))) {
+        return 50;
+    }
+
+    /* Test with a buffer that is too small */
+    out_buffer.len -= 30;
+    err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
+                                 key_pair,
+                                 out_buffer,
+                                &cose_sign1);
+    //if(err != T_COSE_ERR_TOO_SMALL) {
+    //    return 100;
+    //}
+
+    /* Payload bigger than UINT16_MAX */
+    struct q_useful_buf_c long_payload = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload);
+    long_payload.len = UINT16_MAX + 1;
+
+    err = t_cose_mini_sign1_sign(long_payload,
+                                 key_pair,
+                                 out_buffer,
+                                &cose_sign1);
+    if(err != T_COSE_ERR_TOO_LONG) {
+        return 200;
+    }
+
+    /* Wrong key type */
+    // TODO: psa signing doesn't check crypto lib. Is that OK?
+    key_pair.crypto_lib = (enum t_cose_crypto_lib_t) 42;
+    err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
+                                 key_pair,
+                                 out_buffer,
+                                &cose_sign1);
+    if(err != T_COSE_ERR_INCORRECT_KEY_FOR_LIB) {
+        return 200;
+    }
+
     return 0;
 }
 
-
-// TODO: test for output buffer too small

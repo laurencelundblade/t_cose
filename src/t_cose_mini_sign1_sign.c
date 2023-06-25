@@ -33,7 +33,11 @@
 #define T_COSE_MINI_SIGN_SELECT_ES512
 */
 
+#if !defined(T_COSE_MINI_SIGN_SELECT_ES256) && \
+    !defined(T_COSE_MINI_SIGN_SELECT_ES384) && \
+    !defined(T_COSE_MINI_SIGN_SELECT_ES512)
 #define T_COSE_MINI_SIGN_SELECT_ES256
+#endif
 
 
 #if defined(T_COSE_MINI_SIGN_SELECT_ES256)
@@ -184,7 +188,7 @@ t_cose_mini_sign1_sign(const struct q_useful_buf_c payload,
 
     if(payload_head.ptr == NULL) {
         /* The payload is too large (the only reason encode_bstr_head()
-         * errors out.
+         * errors out).
          */
         return T_COSE_ERR_TOO_LONG;
     }
@@ -263,7 +267,10 @@ t_cose_mini_sign1_sign(const struct q_useful_buf_c payload,
      * I'm not as sharp as I used to be...
      *
      * Or said another way, this code doesn't have the same security /
-     * buffer level that QCBOR has, but it should be safe enough.
+     * buffer level that QCBOR has. It hasn't gone through the same
+     * security review and static analysis and such yet either. In
+     * theory it is safe, but I'd advise you review and analyze
+     * before security-critical use.
      */
 
 Done:
