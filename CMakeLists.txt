@@ -67,6 +67,7 @@ set(T_COSE_SRC_COMMON
     src/t_cose_sign1_verify.c
     src/t_cose_util.c
     src/t_cose_short_circuit.c
+    src/t_cose_mini_sign1_sign.c
 )
 
 find_package(QCBOR REQUIRED)
@@ -106,6 +107,7 @@ if (BUILD_TESTS)
         test/run_tests.c
         test/t_cose_make_test_messages.c
         test/t_cose_test.c
+        test/t_cose_mini_sign1_sign_test.c
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")
