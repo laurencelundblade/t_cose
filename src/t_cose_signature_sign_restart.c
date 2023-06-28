@@ -19,6 +19,8 @@
 #include "t_cose_util.h"
 #include "t_cose_crypto.h"
 
+#include <stdio.h>
+
 
 /** This is an implementation of \ref t_cose_signature_sign_headers_cb */
 static void
@@ -46,6 +48,8 @@ t_cose_signature_sign1_restart_cb(struct t_cose_signature_sign     *me_x,
     struct q_useful_buf_c       signature;
     bool                        do_signing_step = true;
 
+    printf("Start %d\n", me->started);
+
     if(!me->started) {
         me->buffer_for_tbs_hash.ptr = me->c_buffer_for_tbs_hash;
         me->buffer_for_tbs_hash.len = sizeof(me->c_buffer_for_tbs_hash);
@@ -63,6 +67,9 @@ t_cose_signature_sign1_restart_cb(struct t_cose_signature_sign     *me_x,
          * at least we avoid the need to allocate an extra buffer.
          */
         QCBOREncode_OpenBytes(qcbor_encoder, &(me->buffer_for_signature));
+
+        printf("OpenBytes\n");
+
 
         if(QCBOREncode_IsBufferNULL(qcbor_encoder)) {
             /* Size calculation mode */
@@ -102,6 +109,8 @@ t_cose_signature_sign1_restart_cb(struct t_cose_signature_sign     *me_x,
                     me->tbs_hash,
                     me->buffer_for_signature,
                     &signature);
+        printf("Did Signing %d\n", return_value);
+
         if(return_value == T_COSE_ERR_SIG_IN_PROGRESS) {
             me->started = true;
             goto Done;
