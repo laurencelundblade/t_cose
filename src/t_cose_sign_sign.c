@@ -122,7 +122,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
      * errors will be caught correctly later, but it does make it a
      * bit easier for the caller to debug problems.
      */
-    return_value = qcbor_encode_error_to_t_cose_error(QCBOREncode_GetErrorState(cbor_encoder));
+    return_value = qcbor_encode_error_to_t_cose_error(cbor_encoder);
     if(return_value != T_COSE_SUCCESS) {
         return return_value;;
     }

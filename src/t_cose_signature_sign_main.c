@@ -56,7 +56,7 @@ t_cose_signature_sign1_main_cb(struct t_cose_signature_sign     *me_x,
 
     /* Check encoder state before QCBOREncode_OpenBytes() for sensible
      * error reporting. */
-    return_value = qcbor_encode_error_to_t_cose_error(QCBOREncode_GetErrorState(cbor_encoder));
+    return_value = qcbor_encode_error_to_t_cose_error(cbor_encoder);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
