@@ -123,6 +123,8 @@ t_cose_signature_sign1_restart_cb(struct t_cose_signature_sign     *me_x,
     QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
 
 Done:
+    printf("Done %d %d\n", return_value, QCBOREncode_GetErrorState(qcbor_encoder));
+
     return return_value;
 }
 
