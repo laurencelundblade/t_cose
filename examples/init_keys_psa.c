@@ -220,10 +220,6 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
          type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 521;
-         test_public_key = fixed_test_p521r1_public_key;
-         test_public_key_len = sizeof(fixed_test_p521r1_public_key);
-         test_private_key = fixed_test_p521r1_private_key;
-         test_private_key_len = sizeof(fixed_test_p521r1_private_key);
          break;
     default:
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;

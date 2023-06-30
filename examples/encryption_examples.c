@@ -527,7 +527,7 @@ esdh_example(void)
      * of this key pair is crypto-library dependent because t_cose_key
      * is crypto-library dependent. See t_cose_key.h and the examples
      * to understand key-pair creation better. */
-    result = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                            &pkR, /* out: public key to be used for encryption */
                                            &skR); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
@@ -616,7 +616,7 @@ esdh_example_detached(void)
      * of this key pair is crypto-library dependent because t_cose_key
      * is crypto-library dependent. See t_cose_key.h and the examples
      * to understand key-pair creation better. */
-    result = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                            &pkR, /* out: public key to be used for encryption */
                                            &skR); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
@@ -687,8 +687,8 @@ Done:
          return (int32_t)result;
 
      /* Free test keys */
-     free_fixed_test_encryption_key(pkR);
-     free_fixed_test_encryption_key(skR);
+     free_fixed_test_ec_encryption_key(pkR);
+     free_fixed_test_ec_encryption_key(skR);
 
 }
 #endif /* !T_COSE_DISABLE_ESDH */
