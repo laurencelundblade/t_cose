@@ -588,6 +588,10 @@ struct t_cose_crypto_hmac {
 /* TODO: should this vary with T_COSE_CRYPTO_MAX_HASH_SIZE? */
 #define T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE  T_COSE_CRYPTO_SHA512_SIZE
 
+/**
+ * Maximum size of the hash output
+ */
+#define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
 
 /**
  * Max size of an HMAC key. RFC 2160 which says the key should be the block size of the hash
