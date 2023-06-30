@@ -2,6 +2,7 @@
  * t_cose_sign_sign.c
  *
  * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -96,8 +97,8 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
                                          &me->encoded_prot_params);
 
     /* Failures in CBOR encoding will be caught in
-     * t_cose_sign_encode_finish() or other. No need to track here as the QCBOR
-     * encoder tracks them internally.
+     * t_cose_sign_encode_finish() or other. No need to track here as
+     * the QCBOR encoder tracks them internally.
      */
 
 Done:
@@ -106,7 +107,7 @@ Done:
 
 
 /*
- * Pubilc Function. See t_cose_sign_sign.h
+ * Public Function. See t_cose_sign_sign.h
  */
 enum t_cose_err_t
 t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
@@ -145,6 +146,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     signer = me->signers;
 
     if(T_COSE_OPT_IS_SIGN(me->option_flags)) {
+#ifndef T_COSE_DISABLE_COSE_SIGN
         /* --- One or more COSE_Signatures for COSE_Sign --- */
 
         /* Output the arrray of signers, each of which is an array of
@@ -160,6 +162,9 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
             signer = (struct t_cose_signature_sign *)signer->rs.next;
         }
         QCBOREncode_CloseArray(cbor_encoder);
+#else
+        return_value = T_COSE_ERR_UNSUPPORTED;
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
 
     } else {
         /* --- Single signature for COSE_Sign1 --- */
@@ -168,6 +173,12 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
          * as a byte string to the CBOR encode context.
          */
         return_value = signer->sign1_cb(signer, &sign_inputs, cbor_encoder);
+        if(return_value == T_COSE_ERR_SIG_IN_PROGRESS) {
+            me->started = true;
+        } else {
+            /* Reset the started value to enable reuse of the context */
+            me->started = false;
+        }
     }
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -178,8 +189,8 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     QCBOREncode_CloseArray(cbor_encoder);
 
     /* The layer above this must check for and handle CBOR encoding
-     * errors.  Some are detected at the start of
-     * this function, but they cannot all be deteced there.
+     * errors.  Some are detected at the start of this function, but
+     * they cannot all be deteced there.
      */
 Done:
     return return_value;

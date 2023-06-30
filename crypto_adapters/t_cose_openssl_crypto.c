@@ -2106,6 +2106,69 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
 #endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_ecdh(struct t_cose_key      private_key,
+                   struct t_cose_key      public_key,
+                   struct q_useful_buf    shared_key_buf,
+                   struct q_useful_buf_c *shared_key)
+{
+    int           ossl_status;
+    EVP_PKEY_CTX *ctx;
+    size_t        shared_key_len;
+
+    ctx = EVP_PKEY_CTX_new((EVP_PKEY *)private_key.key.ptr, /* in: pkey */
+                           NULL);                           /* in: engine */
+    if(ctx == NULL) {
+        return T_COSE_ERR_FAIL; // TODO error code
+    }
+
+    /* Pretty sure EVP_PKEY_derive works with finite-field
+     * DH in addition to ECDH, but that is not made
+     * use of here. If finite-field DH is needed,
+     * maybe this here implementation can be wrapped
+     * by an inline function named t_cose_crypto_ffdh()
+     */
+
+    ossl_status = EVP_PKEY_derive_init(ctx);
+    if(ossl_status != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ossl_status = EVP_PKEY_derive_set_peer(ctx,
+                                           (EVP_PKEY *)public_key.key.ptr);
+    if(ossl_status != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+
+    ossl_status = EVP_PKEY_derive(ctx, NULL, &shared_key_len);
+    if(ossl_status != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+    if(shared_key_len > shared_key_buf.len) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+    ossl_status = EVP_PKEY_derive(ctx, shared_key_buf.ptr, &shared_key_len);
+    if(ossl_status != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    shared_key->ptr = shared_key_buf.ptr;
+    shared_key->len = shared_key_len;
+
+    EVP_PKEY_CTX_free(ctx);
+
+    return T_COSE_SUCCESS;
+}
+
+
+
+
 #include "openssl/kdf.h"
 
 
@@ -2114,11 +2177,11 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
-                   struct q_useful_buf_c  salt,
-                   struct q_useful_buf_c  ikm,
-                   struct q_useful_buf_c  info,
-                   struct q_useful_buf    okm_buffer)
+t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
+                   const struct q_useful_buf_c salt,
+                   const struct q_useful_buf_c ikm,
+                   const struct q_useful_buf_c info,
+                   const struct q_useful_buf   okm_buffer)
 {
     int               ossl_result;
     EVP_PKEY_CTX     *ctx;
@@ -2162,6 +2225,12 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
         goto Done1;
     }
 
+    /* See comment above in configure_pkey_context(). The following
+     * OpenSSL APIs should have the argments declared as const, but
+     * they are not so this pragma is necessary t_cose can compile
+     * with "-Wcast-qual". */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
     ossl_result = EVP_PKEY_CTX_set_hkdf_md(ctx, message_digest);
     if(ossl_result != 1) {
         return_value = T_COSE_ERR_HKDF_FAIL;
@@ -2188,6 +2257,7 @@ t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
         return_value = T_COSE_ERR_HKDF_FAIL;
         goto Done1;
     }
+#pragma GCC diagnostic pop
 
     ossl_result = EVP_PKEY_derive(ctx,
                                   okm_buffer.ptr,
