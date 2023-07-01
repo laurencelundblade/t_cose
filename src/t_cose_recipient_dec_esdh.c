@@ -102,7 +102,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
      * The KEK used to encrypt the CEK with AES-KW is then
      * found in an inner recipient array.
      */
-    alg = t_cose_find_parameter_alg_id(*params, false);
+    alg = t_cose_param_find_alg_id(*params, false);
     if (alg != T_COSE_ALGORITHM_A128KW &&
         alg != T_COSE_ALGORITHM_A192KW &&
         alg != T_COSE_ALGORITHM_A256KW)
