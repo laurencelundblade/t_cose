@@ -85,6 +85,7 @@ t_cose_recipient_enc_esdh_set_info(struct t_cose_recipient_enc_esdh *me,
 enum t_cose_err_t
 t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                         struct q_useful_buf_c         cek,
+                                        const struct t_cose_alg_and_bits ce_alg,
                                         QCBOREncodeContext           *cbor_encoder);
 
 

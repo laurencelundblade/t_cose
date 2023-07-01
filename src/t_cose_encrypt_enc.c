@@ -195,30 +195,6 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         *encrypted_detached = encrypt_output;
     }
 
-#ifndef T_COSE_DISABLE_ESDH
-    /* Hash encrypted payload for use in the info context structure. */
-    if(!q_useful_buf_is_null(me->extern_hash_buffer)) {
-        /* Caller gave us a (bigger) buffer for hash buffer */
-        hash_buffer = me->extern_hash_buffer;
-    }
-    me->hash_cose_algorithm_id = T_COSE_ALGORITHM_SHA_256;
-
-    return_value = t_cose_crypto_hash_start(&hash_ctx, T_COSE_ALGORITHM_SHA_256);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    t_cose_crypto_hash_update(&hash_ctx, encrypt_output);
-
-    /* Finish the hash */
-    return_value = t_cose_crypto_hash_finish(&hash_ctx,
-                                             hash_buffer,
-                                             &hash);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-#endif /* T_COSE_DISABLE_ESDH */
-
     /* ---- COSE_Recipients for COSE_Encrypt message ---- */
     if ( !is_cose_encrypt0 ) {
         for(recipient = me->recipients_list;

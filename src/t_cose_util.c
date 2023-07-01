@@ -417,6 +417,8 @@ create_enc_structure(const char            *context_string,
  * The structure described below is based on Section 5.2 of RFC 9053
  * with further details added in draft-ietf-suit-firmware-encryption.
  *
+ * Note: The structure below is work in progress and likely to be changed.
+ *
  * The following CDDL describes the content of the context information
  * structure used for ES-DH.
  *
@@ -563,10 +565,10 @@ create_info_structure(int32_t enc_alg,
     QCBOREncode_OpenArray(&cbor_encoder);
 
     /* hash of the encrypted payload/firmware in form of a SUIT_Digest structure */
+    /* Likely to be removed in the future */
+//    QCBOREncode_AddInt64(&cbor_encoder, hash_algorithm_id);
 
-    QCBOREncode_AddInt64(&cbor_encoder, hash_algorithm_id);
-
-    QCBOREncode_AddBytes(&cbor_encoder, hash_encrypted_payload);
+//    QCBOREncode_AddBytes(&cbor_encoder, hash_encrypted_payload);
 
     QCBOREncode_CloseArray(&cbor_encoder);
 

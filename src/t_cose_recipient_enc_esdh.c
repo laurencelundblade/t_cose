@@ -30,6 +30,7 @@
 enum t_cose_err_t
 t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                         struct q_useful_buf_c         cek,
+                                        const struct t_cose_alg_and_bits ce_alg,
                                         QCBOREncodeContext           *cbor_encoder)
 {
     struct q_useful_buf_c   protected_params;
@@ -114,7 +115,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     }
 
     /* Create COSE_recipient array */
-    QCBOREncode_OpenArray(cbor_encoder);
+//    QCBOREncode_OpenArray(cbor_encoder);
 
     /* --- Make Info structure ---- */
 
@@ -336,7 +337,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     QCBOREncode_CloseBytes(cbor_encoder, encrypted_cek_result.len);
 
     /* Close recipient array */
-    QCBOREncode_CloseArray(cbor_encoder);
+//    QCBOREncode_CloseArray(cbor_encoder);
 
     /* Free KEK */
     t_cose_crypto_free_symmetric_key(kek_handle);
