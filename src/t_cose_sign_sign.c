@@ -39,20 +39,20 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     struct t_cose_parameter       *parameters;
     uint64_t                       message_type_tag_number;
 
-    /* There must be at least one signer configured (a signer is an
-     * object, a callback & context, that makes a signature). See
-     * struct t_cose_signature_sign. Here the signer object is
-     * expected to be configured with the key material and such.
-     */
+    /* --- Basic set up and error checks --- */
     signer = me->signers;
     message_type_tag_number = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
-
 #ifndef T_COSE_DISABLE_USAGE_GUARDS
     if(message_type_tag_number != CBOR_TAG_COSE_SIGN1 &&
        message_type_tag_number != CBOR_TAG_COSE_SIGN) {
         /* Caller didn't ask for CBOR_TAG_COSE_SIGN or CBOR_TAG_COSE_SIGN1 */
         return T_COSE_ERR_BAD_OPT;
     }
+    /* There must be at least one signer configured (a "signer" is an
+     * object that makes a signature; see struct
+     * t_cose_signature_sign). The signer object must be configured
+     * with the key material and such.
+     */
     if(signer == NULL) {
         /* No signers configured. */
         return T_COSE_ERR_NO_SIGNERS;
@@ -65,19 +65,17 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
 
 
     /* --- Make list of the body header parameters --- */
-    parameters = NULL;
-    if(message_type_tag_number == CBOR_TAG_COSE_SIGN1) {
-        /* For a COSE_Sign1, the header parameters go in the main body
-         * header parameter section, and the signatures part just
-         * contains a raw signature bytes, not an array of
-         * COSE_Signature. This gets the parameters from the
-         * signer. */
-        signer->headers_cb(signer, &parameters);
-    }
-
     /* Form up the full list of body header parameters which may
      * include the COSE_Sign1 algorithm ID and kid. It may also
      * include the caller-added parameters like content type. */
+    parameters = NULL;
+    if(message_type_tag_number == CBOR_TAG_COSE_SIGN1) {
+        /* For a COSE_Sign1, the parameters go in the main body header
+         * parameter section, and the signature part just contains raw
+         * signature bytes, not an array of COSE_Signature. This gets
+         * the parameters from the signer. */
+        signer->headers_cb(signer, &parameters);
+    }
     t_cose_params_append(&parameters, me->added_body_parameters);
 
     /* --- Add the CBOR tag indicating COSE message type --- */
@@ -93,9 +91,8 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
                                          parameters,
                                          &me->encoded_prot_params);
 
-    /* Failures in CBOR encoding will be caught in
-     * t_cose_sign_encode_finish() or other. No need to track here as
-     * the QCBOR encoder tracks them internally.
+    /* Failures in CBOR encoding will be caught in t_cose_sign_encode_finish()
+     * or other. No need to track here as the QCBOR encoder tracks them internally.
      */
     return return_value;
 }
@@ -158,7 +155,8 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         /* --- One or more COSE_Signatures for COSE_Sign --- */
 
         /* Output the arrray of signers, each of which is an array of
-         * headers and signature. The surrounding array is handled here.
+         * headers and signature. The surrounding array is handled
+         * here.
          */
         return_value = T_COSE_ERR_NO_SIGNERS;
         QCBOREncode_OpenArray(cbor_encoder);

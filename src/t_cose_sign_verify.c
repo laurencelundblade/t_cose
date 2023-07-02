@@ -407,10 +407,12 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
 /**
  * \brief Run all the verifiers against a COSE_Sign1 signature
  *
- * \param[in] me                                   Signature verication context
- * \param[in] body_params_list
- * \param[in] sign_inputs
- * \param[in] signature
+ * \param[in] me                Signature verication context.
+ * \param[in] body_params_list  Params from main COSE_SIgn body (not from
+ *                              COSE_Recipients).
+ * \param[in] sign_inputs       All the stuff (content, headers...) covered
+ *                              by sig.
+ * \param[in] signature         Actual bytes of the signature.
  */
 static enum t_cose_err_t
 call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
