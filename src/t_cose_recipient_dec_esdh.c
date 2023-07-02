@@ -76,12 +76,17 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     struct q_useful_buf_c  protected_params;
     enum t_cose_err_t      cose_result;
     struct esdh_sender_info  sender_info;
-    int                    psa_ret;
+    //int                    psa_ret;
     MakeUsefulBufOnStack(enc_struct_buf, 50); // TODO: allow this to be
                                               // supplied externally
     struct q_useful_buf_c enc_struct;
 
     me = (struct t_cose_recipient_dec_esdh *)me_x;
+
+    // TODO: some of these will have to get used
+    (void)ce_alg;
+    (void)cek_buffer;
+    (void)cek;
 
     /* One recipient */
     QCBORDecode_EnterArray(cbor_decoder, NULL);
