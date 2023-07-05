@@ -10,7 +10,6 @@
  *
  */
 
-#ifndef T_COSE_DISABLE_ESDH
 
 #include <stdint.h>
 #include "qcbor/qcbor_spiffy_decode.h"
@@ -23,7 +22,7 @@
 #include "t_cose_util.h"
 
 
-// TODO: maybe rearrange this to align with what happens in crypto adaptor layer
+// TODO: this turns into a COSE_Key decoder
 struct esdh_sender_info {
     uint64_t               kem_id;
     uint64_t               kdf_id;
@@ -73,20 +72,28 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     QCBORError             result;
     int64_t                alg = 0;
     struct q_useful_buf_c  cek_encrypted;
+    struct q_useful_buf_c  info_struct;
+    struct q_useful_buf_c  kek;
+    struct t_cose_key      kekx;
+    struct q_useful_buf_c  derived_key;
     struct q_useful_buf_c  protected_params;
     enum t_cose_err_t      cose_result;
     struct esdh_sender_info  sender_info;
-    //int                    psa_ret;
-    MakeUsefulBufOnStack(enc_struct_buf, 50); // TODO: allow this to be
+    int32_t                cose_key_wrap_alg;
+    int32_t                kdf_hash_alg;
+    const struct t_cose_parameter *salt_param;
+    struct q_useful_buf_c  salt;
+    struct t_cose_key      ephemeral_key;
+    MakeUsefulBufOnStack(  kek_buffer ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH));
+
+    MakeUsefulBufOnStack(  derived_secret_buf ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)); // TODO: size this correctly
+    MakeUsefulBufOnStack(info_buf, 50); // TODO: allow this to be
                                               // supplied externally
-    struct q_useful_buf_c enc_struct;
 
     me = (struct t_cose_recipient_dec_esdh *)me_x;
 
     // TODO: some of these will have to get used
     (void)ce_alg;
-    (void)cek_buffer;
-    (void)cek;
 
     /* One recipient */
     QCBORDecode_EnterArray(cbor_decoder, NULL);
@@ -107,19 +114,11 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
      * The KEK used to encrypt the CEK with AES-KW is then
      * found in an inner recipient array.
      */
-    alg = t_cose_param_find_alg_id(*params, false);
-    if (alg != T_COSE_ALGORITHM_A128KW &&
-        alg != T_COSE_ALGORITHM_A192KW &&
-        alg != T_COSE_ALGORITHM_A256KW)
-        return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
 
     // TODO: put kid processing back in
 
     /* get CEK */
     QCBORDecode_GetByteString(cbor_decoder, &cek_encrypted);
-
-
-    /* TBD: Here we need to look at the inner recipient structure */
 
     /* Close out decoding and error check */
     QCBORDecode_ExitArray(cbor_decoder);
@@ -128,61 +127,91 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
-    /* --- Make the Enc_structure ---- */
-    cose_result = create_enc_structure("Enc_Recipient", /* in: context string */
-                         protected_params,
-                         NULL_Q_USEFUL_BUF_C, /* in: Externally supplied AAD */
-                         enc_struct_buf,
-                         &enc_struct);
+
+    alg = t_cose_param_find_alg_id(*params, false);
+
+    switch(alg) {
+    case T_COSE_ALGORITHM_ECDH_ES_A128KW:
+        kek_buffer.len = 128/8;
+        cose_key_wrap_alg = T_COSE_ALGORITHM_A128KW;
+        kdf_hash_alg = T_COSE_ALGORITHM_SHA_256;
+        break;
+
+    case T_COSE_ALGORITHM_ECDH_ES_A192KW:
+        kek_buffer.len = 192/8;
+        cose_key_wrap_alg = T_COSE_ALGORITHM_A192KW;
+        kdf_hash_alg = T_COSE_ALGORITHM_SHA_256;
+        break;
+
+    case T_COSE_ALGORITHM_ECDH_ES_A256KW:
+        kek_buffer.len = 256/8;
+        cose_key_wrap_alg = T_COSE_ALGORITHM_A256KW;
+        kdf_hash_alg = T_COSE_ALGORITHM_SHA_256;
+
+        break;
+    default:
+        return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+    }
+
+
+    /* --- Run ECDH --- */
+    /* Inputs: pub key, ephemeral key
+     * Outputs: shared key */
+    cose_result = t_cose_crypto_ecdh(me->skr, /* in: secret key */
+                                     ephemeral_key, /* in: public key */
+                                     derived_secret_buf, /* in: output buf */
+                                     &derived_key /* out: derived key*/
+                                     );
+    if(cose_result != T_COSE_SUCCESS) {
+         goto Done;
+     }
+
+
+    /* --- Make the info structure ---- */
+    // TODO: make the info structure. Just set to 'x's for now
+    info_struct = UsefulBuf_Set(info_buf, 'x');
+
+
+
+    /* --- Run the HKDF --- */
+    salt_param = t_cose_param_find(*params, -20); /* The salt parameter */ // TODO: constant for salt param label
+    if(salt_param != NULL) {
+        if(salt_param->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+            goto Done;
+        }
+        salt = salt_param->value.string;
+    } else {
+        salt = NULL_Q_USEFUL_BUF_C;
+    }
+
+    cose_result = t_cose_crypto_hkdf(kdf_hash_alg,
+                                     salt, /* in: salt */
+                                     derived_key, /* in: ikm */
+                                     info_struct, /* in: info */
+                                     kek_buffer); /* in/out: buffer and kek */
+    if(cose_result != T_COSE_SUCCESS) {
+        goto Done;
+    }
+    kek.ptr = kek_buffer.ptr;
+    kek.len = kek_buffer.len;
+
+
+
+    /* Perform key unrwap. */
+    cose_result = t_cose_crypto_make_symmetric_key_handle(cose_key_wrap_alg,
+                                                          kek,
+                                                          &kekx);
     if(cose_result != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    /*
-    // TODO: There is a big rearrangement necessary when the crypto adaptation
-    // layer calls for ESDH are sorted out. Lots of work to complete that...
-    esdh_suite_t     suite;
-    size_t           cek_len_in_out;
+    cose_result = t_cose_crypto_kw_unwrap(
+                        cose_key_wrap_alg, /* in: key wrap algorithm */
+                        kekx, /* in: key encryption key */
+                        cek_encrypted, /* in: encrypted CEK */
+                        cek_buffer, /* in: buffer for CEK */
+                        cek); /* out: the CEK*/
 
-    // TODO: check that the sender_info decode happened correctly
-    // before proceeding
-   suite.aead_id = (uint16_t)sender_info.aead_id;
-    suite.kdf_id = (uint16_t)sender_info.kdf_id;
-    suite.kem_id = (uint16_t)sender_info.kem_id;
-
-    cek_len_in_out = cek_buffer.len;
-
-    psa_ret = mbedtls_esdh_decrypt(
-             ESDH_MODE_BASE,                  // ESDH mode
-             suite,                           // ciphersuite
-             NULL, 0, NULL,                   // PSK for authentication
-             0, NULL,                         // pkS
-             (psa_key_handle_t)me->skr.key.handle, // skR handle
-             sender_info.enc.len,                         // pkE_len
-             sender_info.enc.ptr,                         // pkE
-             cek_encrypted.len,                  // Ciphertext length
-             cek_encrypted.ptr,                  // Ciphertext
-        // TODO: fix the const-ness all the way down so the cast can be removed
-             enc_struct.len, (uint8_t *)(uintptr_t)enc_struct.ptr,   // AAD
-             0, NULL,                         // Info
-             &cek_len_in_out,                   // Plaintext length
-             cek_buffer.ptr                   // Plaintext
-         );
-
-     if (psa_ret != 0) {
-         return(T_COSE_ERR_ESDH_DECRYPT_FAIL);
-     }
-
-    cek->ptr = cek_buffer.ptr;
-    cek->len = cek_len_in_out;
-*/
 Done:
     return(cose_result);
 }
-
-#else /* T_COSE_DISABLE_ESDH */
-
-/* Place holder for compiler tools that don't like files with no functions */
-void t_cose_recipient_dec_esdh_placeholder(void) {}
-
-#endif /* T_COSE_DISABLE_ESDH */
