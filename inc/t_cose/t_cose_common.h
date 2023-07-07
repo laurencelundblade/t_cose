@@ -255,7 +255,26 @@ struct t_cose_crypto_hpke_suite_t {
     uint16_t    aead_id; // Authenticated Encryption with Associated Data id
 };
 
+/*!
+ * \brief ESDH ciphersuite
+ */
+struct t_cose_crypto_esdh_suite_t {
+    int16_t    ckd_id;   // Content Key Distribution id
+    int16_t    curve_id; // Curve id
+};
 
+
+/*!
+ * \brief Data items needed for information context structure
+ */
+struct t_cose_info_t {
+    int32_t enc_alg; // encryption algorithm
+    uint8_t sender_identity_type_id; // sender identity type
+    struct q_useful_buf_c  sender_identity; // sender identity
+    uint8_t recipient_identity_type_id; // recipient identity type
+    struct q_useful_buf_c  recipient_identity; // recipient identity
+    struct t_cose_encrypt_enc *enc_ctx; // encryption context
+};
 
 /* Private value. Intentionally not documented for Doxygen.
  * This is the size allocated for the encoded protected headers.  It
@@ -611,17 +630,23 @@ enum t_cose_err_t {
     /** The HMAC did not successfully verify.  */
     T_COSE_ERR_HMAC_VERIFY = 80,
 
+    /** The key agreement failed.  */
+    T_COSE_ERR_KEY_AGREEMENT_FAIL = 81,
+
     /** General unsupported operation failure. */
-    T_COSE_ERR_UNSUPPORTED = 81,
+    T_COSE_ERR_UNSUPPORTED = 82,
   
     /* A signing operation is in progress. The function returning this value
      * can be called again until it returns \ref T_COSE_SUCCESS or error.
      */
-    T_COSE_ERR_SIG_IN_PROGRESS = 82,
+    T_COSE_ERR_SIG_IN_PROGRESS = 83,
 
-    T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE = 83,
+    /* A T_COSE_OPT_XXX is invalid in some way. */
+    T_COSE_ERR_BAD_OPT = 84,
 
-    T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE = 84,
+    T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE = 85,
+
+    T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE = 86,
 };
 
 
@@ -741,12 +766,9 @@ enum t_cose_err_t {
 #define T_COSE_OPT_MESSAGE_TYPE_MAC         97
 #define T_COSE_OPT_MESSAGE_TYPE_MAC0        17
 
-// TODO: more meaningful names
+// TODO: get rid of this
 #define T_COSE_OPT_IS_SIGN1(opts) \
    ((T_COSE_OPT_MESSAGE_TYPE_MASK & opts) == T_COSE_OPT_MESSAGE_TYPE_SIGN1)
-
-#define T_COSE_OPT_IS_SIGN(opts) \
-((T_COSE_OPT_MESSAGE_TYPE_MASK & opts) == T_COSE_OPT_MESSAGE_TYPE_SIGN)
 
 /* Not expecting any more. */
 

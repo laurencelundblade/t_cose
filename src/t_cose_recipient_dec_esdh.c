@@ -1,5 +1,5 @@
 /*
- * t_cose_recipient_dec_hpke.c
+ * t_cose_recipient_dec_esdh.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
@@ -10,22 +10,21 @@
  *
  */
 
-#ifndef T_COSE_DISABLE_HPKE
+#ifndef T_COSE_DISABLE_ESDH
 
 #include <stdint.h>
 #include "qcbor/qcbor_spiffy_decode.h"
-#include "t_cose/t_cose_recipient_dec_hpke.h"  /* Interface implemented */
+#include "t_cose/t_cose_recipient_dec_esdh.h"  /* Interface implemented */
 #include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
-#include "hpke.h"
 #include "t_cose_util.h"
 
 
 // TODO: maybe rearrange this to align with what happens in crypto adaptor layer
-struct hpke_sender_info {
+struct esdh_sender_info {
     uint64_t               kem_id;
     uint64_t               kdf_id;
     uint64_t               aead_id;
@@ -33,7 +32,7 @@ struct hpke_sender_info {
 };
 
 static enum t_cose_err_t
-hpke_sender_info_decode_cb(void                    *cb_context,
+esdh_sender_info_decode_cb(void                    *cb_context,
                             QCBORDecodeContext      *cbor_decoder,
                             struct t_cose_parameter *parameter)
 {
@@ -42,7 +41,7 @@ hpke_sender_info_decode_cb(void                    *cb_context,
     }
     // TODO: this will have to cascade to an external supplied
     // special header decoder too
-    struct hpke_sender_info  *sender_info = (struct hpke_sender_info  *)cb_context;
+    struct esdh_sender_info  *sender_info = (struct esdh_sender_info  *)cb_context;
 
     QCBORDecode_EnterArray(cbor_decoder, NULL);
     QCBORDecode_GetUInt64(cbor_decoder, &(sender_info->kem_id));
@@ -61,37 +60,40 @@ hpke_sender_info_decode_cb(void                    *cb_context,
 
 /* This is an implementation of t_cose_recipient_dec_cb */
 enum t_cose_err_t
-t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
+t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                                      const struct t_cose_header_location loc,
-                                     struct t_cose_alg_and_bits      ce_alg,
+                                     const struct t_cose_alg_and_bits    ce_alg,
                                      QCBORDecodeContext *cbor_decoder,
                                      struct q_useful_buf cek_buffer,
                                      struct t_cose_parameter_storage *p_storage,
                                      struct t_cose_parameter **params,
                                      struct q_useful_buf_c *cek)
 {
-    struct t_cose_recipient_dec_hpke *me;
+    struct t_cose_recipient_dec_esdh *me;
     QCBORError             result;
     int64_t                alg = 0;
     struct q_useful_buf_c  cek_encrypted;
     struct q_useful_buf_c  protected_params;
     enum t_cose_err_t      cose_result;
-    struct hpke_sender_info  sender_info;
-    int                    psa_ret;
+    struct esdh_sender_info  sender_info;
+    //int                    psa_ret;
     MakeUsefulBufOnStack(enc_struct_buf, 50); // TODO: allow this to be
                                               // supplied externally
     struct q_useful_buf_c enc_struct;
 
-    me = (struct t_cose_recipient_dec_hpke *)me_x;
+    me = (struct t_cose_recipient_dec_esdh *)me_x;
 
-    (void)ce_alg; /* TODO: Still up for debate whether COSE-HPKE does COSE_KDF_Context or not. */
+    // TODO: some of these will have to get used
+    (void)ce_alg;
+    (void)cek_buffer;
+    (void)cek;
 
     /* One recipient */
     QCBORDecode_EnterArray(cbor_decoder, NULL);
 
     cose_result = t_cose_headers_decode(cbor_decoder, /* in: decoder to read from */
                                 loc,          /* in: location in COSE message*/
-                                hpke_sender_info_decode_cb, /* in: callback for specials */
+                                esdh_sender_info_decode_cb, /* in: callback for specials */
                                 &sender_info, /* in: context for callback */
                                 p_storage,    /* in: parameter storage */
                                 params,       /* out: list of decoded params */
@@ -101,8 +103,14 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         goto Done;
     }
 
-    alg = t_cose_param_find_alg_id(*params, true);
-    if (alg != T_COSE_ALGORITHM_HPKE_v1_BASE)
+    /* Recipient array contains AES Key Wrap algorithm.
+     * The KEK used to encrypt the CEK with AES-KW is then
+     * found in an inner recipient array.
+     */
+    alg = t_cose_param_find_alg_id(*params, false);
+    if (alg != T_COSE_ALGORITHM_A128KW &&
+        alg != T_COSE_ALGORITHM_A192KW &&
+        alg != T_COSE_ALGORITHM_A256KW)
         return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
 
     // TODO: put kid processing back in
@@ -110,6 +118,8 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     /* get CEK */
     QCBORDecode_GetByteString(cbor_decoder, &cek_encrypted);
 
+
+    /* TBD: Here we need to look at the inner recipient structure */
 
     /* Close out decoding and error check */
     QCBORDecode_ExitArray(cbor_decoder);
@@ -128,21 +138,22 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         goto Done;
     }
 
+    /*
     // TODO: There is a big rearrangement necessary when the crypto adaptation
-    // layer calls for HPKE are sorted out. Lots of work to complete that...
-    hpke_suite_t     suite;
+    // layer calls for ESDH are sorted out. Lots of work to complete that...
+    esdh_suite_t     suite;
     size_t           cek_len_in_out;
 
     // TODO: check that the sender_info decode happened correctly
     // before proceeding
-    suite.aead_id = (uint16_t)sender_info.aead_id;
+   suite.aead_id = (uint16_t)sender_info.aead_id;
     suite.kdf_id = (uint16_t)sender_info.kdf_id;
     suite.kem_id = (uint16_t)sender_info.kem_id;
 
     cek_len_in_out = cek_buffer.len;
 
-    psa_ret = mbedtls_hpke_decrypt(
-             HPKE_MODE_BASE,                  // HPKE mode
+    psa_ret = mbedtls_esdh_decrypt(
+             ESDH_MODE_BASE,                  // ESDH mode
              suite,                           // ciphersuite
              NULL, 0, NULL,                   // PSK for authentication
              0, NULL,                         // pkS
@@ -159,19 +170,19 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
          );
 
      if (psa_ret != 0) {
-         return(T_COSE_ERR_HPKE_DECRYPT_FAIL);
+         return(T_COSE_ERR_ESDH_DECRYPT_FAIL);
      }
 
     cek->ptr = cek_buffer.ptr;
     cek->len = cek_len_in_out;
-
+*/
 Done:
     return(cose_result);
 }
 
-#else /* T_COSE_DISABLE_HPKE */
+#else /* T_COSE_DISABLE_ESDH */
 
 /* Place holder for compiler tools that don't like files with no functions */
-void t_cose_recipient_dec_hpke_placeholder(void) {}
+void t_cose_recipient_dec_esdh_placeholder(void) {}
 
-#endif /* T_COSE_DISABLE_HPKE */
+#endif /* T_COSE_DISABLE_ESDH */

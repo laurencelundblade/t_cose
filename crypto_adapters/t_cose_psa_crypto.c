@@ -726,14 +726,17 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
     psa_status_t         status;
 
    switch (cose_algorithm_id) {
+    case T_COSE_ELLIPTIC_CURVE_P_256:
     case T_COSE_HPKE_KEM_ID_P256:
         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_bitlen = 256;
         break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
     case T_COSE_HPKE_KEM_ID_P384:
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 384;
          break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
     case T_COSE_HPKE_KEM_ID_P521:
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 521;
@@ -1322,6 +1325,100 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 
     return aead_psa_status_to_t_cose_err(status, T_COSE_ERR_DECRYPT_FAIL);
 }
+
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+
+enum t_cose_err_t
+t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
+                            struct t_cose_key      private_key,
+                            struct t_cose_key      public_key,
+                            struct q_useful_buf    symmetric_key,
+                            size_t                *symmetric_key_len
+                           )
+{
+    psa_status_t status;
+    size_t pubKey_len;
+    enum t_cose_err_t return_value;
+    psa_algorithm_t key_agreement_alg;
+    Q_USEFUL_BUF_MAKE_STACK_UB(pubKey, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE );
+
+    switch(cose_algorithm_id) {
+    case T_COSE_ALGORITHM_ECDH_ES_A128KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A192KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A256KW:
+        key_agreement_alg = PSA_ALG_ECDH;
+        break;
+    default:
+        return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+    }
+
+    /* Export public key for use with PSA Crypto API */
+    return_value = t_cose_crypto_export_public_key(
+                         public_key,
+                         pubKey,
+                         &pubKey_len);
+
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
+    }
+
+    /* Produce ECDH derived key */
+    status = psa_raw_key_agreement( key_agreement_alg,       // algorithm id
+                                    (psa_key_handle_t)private_key.key.handle,  // client secret key
+                                    pubKey.ptr, pubKey_len,  // server public key
+                                    symmetric_key.ptr,       // buffer to store derived key
+                                    symmetric_key.len,       // length of the buffer for derived key
+                                    symmetric_key_len );     // length of derived key
+    if( status != PSA_SUCCESS )
+    {
+        return T_COSE_ERR_KEY_AGREEMENT_FAIL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_ecdh(struct t_cose_key      private_key,
+                   struct t_cose_key      public_key,
+                   struct q_useful_buf    shared_key_buf,
+                   struct q_useful_buf_c *shared_key)
+{
+    psa_status_t         psa_status;
+    MakeUsefulBufOnStack(public_key_buf, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE);
+    size_t               pub_key_len;
+
+    /* Export public key */
+    psa_status = psa_export_public_key((mbedtls_svc_key_id_t)public_key.key.handle, /* in: Key handle     */
+                                        public_key_buf.ptr,     /* in: PK buffer      */
+                                        public_key_buf.len,     /* in: PK buffer size */
+                                       &pub_key_len);           /* out: Result length */
+    if(psa_status != PSA_SUCCESS) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+
+    psa_status = psa_raw_key_agreement(PSA_ALG_ECDH,
+                                       (mbedtls_svc_key_id_t)private_key.key.handle,
+                                       public_key_buf.ptr,
+                                       pub_key_len,
+                                       shared_key_buf.ptr,
+                                       shared_key_buf.len,
+                                       &(shared_key->len));
+    if(psa_status != PSA_SUCCESS) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    return T_COSE_SUCCESS;
+}
+
 
 
 

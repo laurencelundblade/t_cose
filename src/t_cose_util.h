@@ -15,6 +15,7 @@
 
 #include <stdint.h>
 #include "qcbor/qcbor_common.h" /* For QCBORError */
+#include "qcbor/qcbor_encode.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 
@@ -244,6 +245,21 @@ create_enc_structure(const char             *context_string,
                      struct q_useful_buf_c  *enc_structure);
 
 
+/*
+ * Create the info structure for ESDH-based content key distribution,
+ * as described draft-ietf-suit-firmware-encryption.
+ */
+enum t_cose_err_t
+create_info_structure(int32_t enc_alg,
+                      uint8_t sender_identity_type_id,
+                      struct q_useful_buf_c  sender_identity,
+                      uint8_t recipient_identity_type_id,
+                      struct q_useful_buf_c  recipient_identity,
+                      struct q_useful_buf_c  protected_headers,
+                      const int32_t          hash_algorithm_id,
+                      struct q_useful_buf_c  hash_encrypted_payload,
+                      struct q_useful_buf    buffer_for_info,
+                      struct q_useful_buf_c *info_structure);
 
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
@@ -290,6 +306,10 @@ struct q_useful_buf_c get_short_circuit_kid(void);
  */
 enum t_cose_err_t
 qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t format_error);
+
+
+enum t_cose_err_t
+qcbor_encode_error_to_t_cose_error(QCBOREncodeContext *cbor_encoder);
 
 
 /**
