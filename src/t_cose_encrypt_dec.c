@@ -157,14 +157,17 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
 
     QCBORDecode_EnterArray(&cbor_decoder, &array_item);
 
-    message_type = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
-
-    /* Check whether tag is CBOR_TAG_COSE_ENCRYPT or CBOR_TAG_COSE_ENCRYPT0 */
-    // TODO: allow tag determination of message_type
-    if (QCBORDecode_IsTagged(&cbor_decoder, &array_item, CBOR_TAG_COSE_ENCRYPT) == false &&
-        QCBORDecode_IsTagged(&cbor_decoder, &array_item, CBOR_TAG_COSE_ENCRYPT0) == false) {
-        return T_COSE_ERR_INCORRECTLY_TAGGED;
+    const uint64_t signing_tag_nums[] = {CBOR_TAG_COSE_ENCRYPT, CBOR_TAG_COSE_ENCRYPT0, CBOR_TAG_INVALID64};
+    return_value = t_cose_tags_and_type(signing_tag_nums,
+                                        me->option_flags,
+                                        &array_item,
+                                        &cbor_decoder,
+                                        me->unprocessed_tag_nums,
+                                       &message_type);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
     }
+
 
     /* --- The header parameters --- */
     /* The location of body header parameters is 0, 0 */

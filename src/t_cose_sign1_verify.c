@@ -13,7 +13,6 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_sign_verify.h"
 #include "t_cose/t_cose_standard_constants.h"
-#include "t_cose_util.h"
 
 /**
  * \file t_cose_sign1_verify.c
@@ -64,58 +63,6 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
 
 
 
-/**
- * \brief Copy tags for t_cose v1 compatibility.
- *
- * \param[in] me                 The verification context.
- * \param[in] cbor_decoder     The decoder context to pull from.
- *
- * \return This returns one of the error codes defined by \ref
- *         t_cose_err_t.
- *
- */
-static enum t_cose_err_t
-copy_tags(struct t_cose_sign1_verify_ctx *me, QCBORDecodeContext *cbor_decoder)
-{
-    QCBORError  cbor_error;
-    QCBORItem   item;
-    uint64_t    uTag;
-    uint32_t    item_tag_index = 0;
-    int         returned_tag_index;
-
-    cbor_error = QCBORDecode_PeekNext(cbor_decoder, &item);
-    if(cbor_error) {
-        return qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_SIGN1_FORMAT);
-    }
-
-    /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */
-#if CBOR_TAG_INVALID64 != 0xffffffffffffffff
-#error Initializing return tags array
-#endif
-    returned_tag_index = 0;
-    memset(me->auTags, 0xff, sizeof(me->auTags));
-
-    for(item_tag_index = 0; ; item_tag_index++) {
-        uTag = QCBORDecode_GetNthTag(cbor_decoder, &item, item_tag_index);
-        if(uTag == CBOR_TAG_INVALID64) {
-            break;
-        }
-        if(returned_tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
-            return T_COSE_ERR_TOO_MANY_TAGS;
-        }
-        if((uTag == CBOR_TAG_COSE_SIGN1 || uTag == CBOR_TAG_COSE_SIGN) && item_tag_index == 0) {
-            continue;
-        }
-
-        me->auTags[returned_tag_index] = uTag;
-        returned_tag_index++;
-    }
-
-    return T_COSE_SUCCESS;
-}
-
-
-
 enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct q_useful_buf_c           cose_sign1,
@@ -128,15 +75,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
 
     QCBORDecode_Init(&cbor_decoder, cose_sign1, 0);
 
-    /* t_cose 2 has simplified tag processing. This does the copying
-     * of tags that t_cose sig verification doesn't.
-     */
-    return_value = copy_tags(me, &cbor_decoder);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-
+ 
     return_value = t_cose_sign_verify(&(me->me2),
                                       cose_sign1,
                                       NULL_Q_USEFUL_BUF_C,
@@ -146,13 +85,11 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 
-    /* t_cose 2 doesn't fill in the common parameters data structure
-     * but we need it filled in for t_cose 1 compatibility.
-     */
     if(parameters != NULL) {
         return_value = t_cose_params_common(decoded_params,
                                             parameters);
     }
+
 
 Done:
     return return_value;

@@ -114,11 +114,11 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 
 
 static bool
-is_valid_tag_num_for_message(uint64_t tag_num, const uint64_t *valid_list)
+is_valid_tag_for_message(uint64_t tag_num, const uint64_t *relevant_cose_tag_nums)
 {
     const uint64_t *l;
 
-    for(l = valid_list; *l != CBOR_TAG_INVALID64; l++) {
+    for(l = relevant_cose_tag_nums; *l != CBOR_TAG_INVALID64; l++) {
         if(tag_num == *l) {
             return true;
         }
@@ -131,26 +131,33 @@ is_valid_tag_num_for_message(uint64_t tag_num, const uint64_t *valid_list)
  * Public function. See t_cose_util.h
  */
 enum t_cose_err_t
-t_cose_process_tags(const uint64_t  tag_num_on_message,
-                    const uint32_t  options,
-                    const uint64_t *valid_list,
-                    uint64_t       *message_type_tag_num)
+t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
+                     uint32_t            option_flags,
+                     const QCBORItem    *item,
+                     QCBORDecodeContext *cbor_decoder,
+                     uint64_t            unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN],
+                     uint64_t           *cose_tag_num)
 {
-    uint64_t  options_tag_num;
-    bool      tag_on_item_relevant;
+    uint64_t options_tag_num;
+    uint64_t tag_on_item;
+    bool     tag_on_item_relevant;
+    unsigned item_tag_index;
+    unsigned returned_tag_index;
 
-    options_tag_num = options & T_COSE_OPT_MESSAGE_TYPE_MASK;
-    tag_on_item_relevant = is_valid_tag_num_for_message(tag_num_on_message, valid_list );
+    options_tag_num = option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
+    tag_on_item = QCBORDecode_GetNthTag(cbor_decoder, item, 0);
+    tag_on_item_relevant = is_valid_tag_for_message(tag_on_item,
+                                                    relevant_cose_tag_nums );
 
 
-    if((options & T_COSE_OPT_TAG_REQUIRED) && !tag_on_item_relevant) {
+    if((option_flags & T_COSE_OPT_TAG_REQUIRED) && tag_on_item_relevant) {
         /* It is required that the tag number on the COSE message say which type
          * of COSE signed message it is.
          */
         return T_COSE_ERR_INCORRECTLY_TAGGED;
     }
 
-    if((options & T_COSE_OPT_TAG_PROHIBITED) && tag_on_item_relevant) {
+    if((option_flags & T_COSE_OPT_TAG_PROHIBITED) && !tag_on_item_relevant) {
         /* It is required that there be no tag number on the COSE message
          * indicating the COSE signed message type. Note that there could
          * be other tag numbers present.
@@ -161,16 +168,43 @@ t_cose_process_tags(const uint64_t  tag_num_on_message,
 
     if(options_tag_num != T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
         /* Override or explicit message type in options. */
-        if(!is_valid_tag_num_for_message(options_tag_num, valid_list)) {
+        if(!is_valid_tag_for_message(options_tag_num, relevant_cose_tag_nums)) {
             return T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE;
         }
-        *message_type_tag_num = options_tag_num;
+        *cose_tag_num = options_tag_num;
     } else {
         /* Reliance on tag number on COSE message */
-        if(!tag_on_item_relevant) {
+        if(tag_on_item_relevant) {
             return T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
         }
-        *message_type_tag_num = tag_num_on_message;
+        *cose_tag_num = tag_on_item;
+    }
+
+
+    /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */
+#if CBOR_TAG_INVALID64 != 0xffffffffffffffff
+#error Initializing unprocessed_tag_nums array
+#endif
+
+    memset(unprocessed_tag_nums, 0xff, sizeof(uint64_t[T_COSE_MAX_TAGS_TO_RETURN]));
+    item_tag_index = 0;
+    returned_tag_index = 0;
+    if(tag_on_item_relevant) {
+        item_tag_index++;
+    }
+
+    while(1) {
+        tag_on_item = QCBORDecode_GetNthTag(cbor_decoder, item, item_tag_index);
+
+        item_tag_index++;
+        if(tag_on_item == CBOR_TAG_INVALID64) {
+            break;
+        }
+        if(returned_tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
+            return T_COSE_ERR_TOO_MANY_TAGS;
+        }
+        unprocessed_tag_nums[returned_tag_index] = tag_on_item;
+        returned_tag_index++;
     }
 
     return T_COSE_SUCCESS;

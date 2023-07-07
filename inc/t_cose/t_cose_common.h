@@ -747,6 +747,16 @@ enum t_cose_err_t {
 #define T_COSE_OPT_NO_CRIT_PARAM_CHECK  0x00001000
 
 
+/**
+ * The maximum number of unprocessed tags that can be returned by
+ * t_cose_xxx_get_nth_tag(). The CWT
+ * tag is an example of the tags that might returned. The COSE tags
+ * that are processed, don't count here.
+ */
+#define T_COSE_MAX_TAGS_TO_RETURN 4
+
+
+
 /* The lower 8 bits of the options give the type of the
  * COSE message to decode.
  * TODO: this may not be implmented correctly yet

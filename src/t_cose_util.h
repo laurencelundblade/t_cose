@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include "qcbor/qcbor_common.h" /* For QCBORError */
 #include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 
@@ -32,37 +33,44 @@ extern "C" {
 
 
 
-/**
- * \brief General purpose CBOR tag processor for COSE messages.
+
+/*
+ * \brief Process CBOR tag numbers and figure out message type.
  *
- * \param[in] tag_num_on_message     Tag number on message or \c CBOR_TAG_INVALID64.
- * \param[in] options                Option flags from message decoder init()
- * \param[in] valid_list             List of tag numbers valid for this message.
- * \param[out] message_type_tag_num  The determined message type
+ * \param[in] relevant_cose_tag_nums  List of tag numbers relevant for
+ *                                    message type being processed, ending
+ *                                    with \ref CBOR_TAG_INVALID64
+ * \param[in] option_flags            Flags passed to xxxx_init() that
+ *                                    say how to process tag nums, plus
+ *                                    optional default message type.
+ * \param[in] item                    The QCBORItem of the array that
+ *                                    opens the message so the tag
+ *                                    numbers on it can be processed.
+ * \param[in] cbor_decoder            Needed to process the tag numbers
+ *                                    on item.
+ * \param[out] unprocessed_tag_nums   Any additional tag numbers that were
+ *                                    not used to determine the message
+ *                                    type.
+ * \param[out] cost_tag_num           The end result message type.
  *
- * The first item in a CBOR message, usually an array may
- * have no CBOR tag numbers, one CBOR tag numbers or many
- * CBOR tag numbers. If there are many, only the one closest
- * to the array item is considered here. It is the one passed
- * as \c tag_num_on_message. It is usually obtained as the 0th
- * tag number on the array item as returned by QCBORDecode_GetNthTag().
+ * Either this will error out or \c cose_tag_num will identify the
+ * message type and be one of those listed in \c relevant_cose_tag_nums.
+ * This also puts any additional tag numbers that are not the
+ * one returned in \c cose_tag_num in \c unprocessed_tag_nums. This
+ * genric processor can be used for all the CBOR message types with
+ * tag numbers (e.g., COSE_Sign1, COSE_Encrypt,...)
  *
- * \c options is from the message processing initialization function,
- * (e.g., t_cose_sign_verify_init). It has some flags and may have
- * the message type expressed as a CBOR tag number. The
- * processing done here considered the tag number on the message
- * if there is one and the options and comes up with the
- * message type or an error.
- *
- * This can be used for signed, encrypted or mac'd messages
- * by varying the \c valid_list. It is an array of tag numbers that
- * are considered valid ended by \c CBOR_TAG_INVALID64.
+ * \c option_flags are a critical input. It may contain the
+ * tag number of the expected type and option flags that say
+ * how the tag numbers are to be interpreted and error conditions.
  */
 enum t_cose_err_t
-t_cose_process_tags(const uint64_t  tag_num_on_message,
-                    const uint32_t  options,
-                    const uint64_t *valid_list,
-                    uint64_t       *message_type_tag_num);
+t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
+                     uint32_t            option_flags,
+                     const QCBORItem    *item,
+                     QCBORDecodeContext *cbor_decoder,
+                     uint64_t            unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN],
+                     uint64_t           *cose_tag_num);
 
 
 

@@ -391,22 +391,28 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     struct t_cose_sign_inputs       sign_inputs;
     QCBORItem                       array_item;
     uint64_t                        message_type_tag_number;
-    uint64_t                        first_tag;
-
-    static const uint64_t valid_tags[] = {T_COSE_OPT_MESSAGE_TYPE_SIGN1,
-                                          T_COSE_OPT_MESSAGE_TYPE_SIGN,
-                                          CBOR_TAG_INVALID64};
 
 
-    /* --- Decoding of the array of four starts here --- */
+    /* --- Decoding of the array of 4, tags and message type --- */
     QCBORDecode_Init(&cbor_decoder, message, QCBOR_DECODE_MODE_NORMAL);
 
     /* --- Process opening array of 4 and tags --- */
     QCBORDecode_EnterArray(&cbor_decoder, &array_item);
-    /* Let t_cose_headers_decode deal with any CBOR decode
-     * issues from entering the array. It already does
-     * those checks anyway for itself.
-     */
+    if(QCBORDecode_GetError(&cbor_decoder)) {
+        /* Done2 re-uses CBOR->COSE error mapping code. */
+        goto Done2;
+    }
+
+    const uint64_t signing_tag_nums[] = {T_COSE_OPT_MESSAGE_TYPE_SIGN1, T_COSE_OPT_MESSAGE_TYPE_SIGN, CBOR_TAG_INVALID64};
+    return_value = t_cose_tags_and_type(signing_tag_nums,
+                                        me->option_flags,
+                                        &array_item,
+                                        &cbor_decoder,
+                                        me->unprocessed_tag_nums,
+                                       &message_type_tag_number);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
 
     /* --- The main body header parameters --- */
@@ -425,20 +431,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-
-
-    /* --- CBOR tag processing --- */
-    /* After, to take advantage of error processing in header decode */
-    first_tag = QCBORDecode_GetNthTag(&cbor_decoder, &array_item, 0);
-    return_value = t_cose_process_tags(first_tag, /* in: tag on message if any */
-                                       me->option_flags, /* in: option flags from initialization */
-                                       valid_tags, /* in: list of tags allowed here */
-                                       &message_type_tag_number /* out: the determined message type */
-                                       );
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
 
 
     /* --- The payload --- */

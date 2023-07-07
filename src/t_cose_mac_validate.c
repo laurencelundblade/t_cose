@@ -34,6 +34,8 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params)
 {
+    (void)payload_is_detached;
+
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
@@ -50,30 +52,36 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     QCBORItem                     item;
     uint64_t                      message_type;
 
-    decoded_params = NULL;
+
+    *payload = NULL_Q_USEFUL_BUF_C;
+    decoded_params = NULL; // TODO: check that this is right and necessary
 
     QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
 
-    /* --- The array of 4 and tags --- */
+    /* --- The array of 4 and type determination and tags --- */
     QCBORDecode_EnterArray(&decode_context, &item);
-    // TODO: optimize this the way t_cose_sign_verify is optimized.
     return_value = qcbor_decode_error_to_t_cose_error(
                                         QCBORDecode_GetError(&decode_context),
                                         T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    return_value = t_cose_process_tags(QCBORDecode_GetNthTag(&decode_context, &item, 0),
-                                       me->option_flags,
-                                       (uint64_t []){T_COSE_OPT_MESSAGE_TYPE_MAC0, CBOR_TAG_INVALID64},
-                                      &message_type);
+
+    const uint64_t mac_tag_nums[] = {T_COSE_OPT_MESSAGE_TYPE_MAC0, CBOR_TAG_INVALID64};
+    return_value = t_cose_tags_and_type(mac_tag_nums,
+                                        me->option_flags,
+                                        &item,
+                                        &decode_context,
+                                        me->unprocessed_tag_nums,
+                                        &message_type);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    const struct t_cose_header_location l = {0,0};
+
     /* --- The protected parameters --- */
-    t_cose_headers_decode(&decode_context,
+    const struct t_cose_header_location l = {0,0};
+    decoded_params = NULL;    t_cose_headers_decode(&decode_context,
                           l,
                           NULL,
                           NULL,
