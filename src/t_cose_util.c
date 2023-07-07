@@ -150,14 +150,14 @@ t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
                                                     relevant_cose_tag_nums );
 
 
-    if((option_flags & T_COSE_OPT_TAG_REQUIRED) && tag_on_item_relevant) {
+    if((option_flags & T_COSE_OPT_TAG_REQUIRED) && !tag_on_item_relevant) {
         /* It is required that the tag number on the COSE message say which type
          * of COSE signed message it is.
          */
         return T_COSE_ERR_INCORRECTLY_TAGGED;
     }
 
-    if((option_flags & T_COSE_OPT_TAG_PROHIBITED) && !tag_on_item_relevant) {
+    if((option_flags & T_COSE_OPT_TAG_PROHIBITED) && tag_on_item_relevant) {
         /* It is required that there be no tag number on the COSE message
          * indicating the COSE signed message type. Note that there could
          * be other tag numbers present.
@@ -174,7 +174,7 @@ t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
         *cose_tag_num = options_tag_num;
     } else {
         /* Reliance on tag number on COSE message */
-        if(tag_on_item_relevant) {
+        if(!tag_on_item_relevant) {
             return T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
         }
         *cose_tag_num = tag_on_item;
