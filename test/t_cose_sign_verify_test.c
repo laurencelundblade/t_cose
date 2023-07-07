@@ -1254,9 +1254,6 @@ int32_t verify_multi_test(void)
 #include "../crypto_adapters/t_cose_psa_crypto.h"
 #endif
 
-
-
-
 #if (defined(T_COSE_USE_PSA_CRYPTO) && PSA_CRYPTO_HAS_RESTARTABLE_SIGNING) || \
      defined(T_COSE_USE_B_CON_SHA256)
 

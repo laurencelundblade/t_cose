@@ -34,8 +34,6 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params)
 {
-    (void)payload_is_detached;
-
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
@@ -52,9 +50,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     QCBORItem                     item;
     uint64_t                      message_type;
 
-
-    *payload = NULL_Q_USEFUL_BUF_C;
-    decoded_params = NULL; // TODO: check that this is right and necessary
+    decoded_params = NULL;
 
     QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
 
@@ -81,7 +77,8 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
 
     /* --- The protected parameters --- */
     const struct t_cose_header_location l = {0,0};
-    decoded_params = NULL;    t_cose_headers_decode(&decode_context,
+    decoded_params = NULL;
+    t_cose_headers_decode(&decode_context,
                           l,
                           NULL,
                           NULL,
@@ -93,8 +90,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     if (payload_is_detached) {
         /* detached payload: the payload should be set by caller */
         QCBORDecode_GetNull(&decode_context);
-    }
-    else {
+    } else {
         QCBORDecode_GetByteString(&decode_context, payload);
     }
 

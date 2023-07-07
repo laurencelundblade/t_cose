@@ -23,9 +23,6 @@
 
 
 
-
-
-
 void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
                          uint32_t                        option_flags)
