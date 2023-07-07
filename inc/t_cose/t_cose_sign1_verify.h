@@ -248,7 +248,7 @@ t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *contex
  * payload is an indefinite-length byte string, this error will be
  * returned.
  */
-static enum t_cose_err_t
+enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                     struct q_useful_buf_c           sign1,
                     struct q_useful_buf_c          *payload,
@@ -414,6 +414,15 @@ t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *me)
 {
     return t_cose_signature_verify_eddsa_auxiliary_buffer_size(&(me->eddsa_verifier));
 }
+
+
+static inline uint64_t
+t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *me,
+                         size_t                                n)
+{
+    return t_cose_sign_verify_nth_tag(&(me->me2), n);
+}
+
 
 #ifdef __cplusplus
 }

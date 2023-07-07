@@ -135,7 +135,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     QCBORDecodeContext             cbor_decoder;
     QCBORItem                      array_item;
     QCBORError                     cbor_error;
-    uint32_t                       message_type;
+    uint64_t                       message_type;
     struct t_cose_header_location  header_location;
     struct t_cose_parameter       *body_params_list;
     struct q_useful_buf_c          nonce_cbor;
