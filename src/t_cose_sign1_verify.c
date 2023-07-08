@@ -68,10 +68,6 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
 {
     enum t_cose_err_t        return_value;
     struct t_cose_parameter *decoded_params;
-    QCBORDecodeContext       cbor_decoder;
-
-    QCBORDecode_Init(&cbor_decoder, cose_sign1, 0);
-
  
     return_value = t_cose_sign_verify(&(me->me2),
                                       cose_sign1,
@@ -86,7 +82,6 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
         return_value = t_cose_params_common(decoded_params,
                                             parameters);
     }
-
 
 Done:
     return return_value;
