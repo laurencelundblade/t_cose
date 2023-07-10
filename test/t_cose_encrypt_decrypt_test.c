@@ -362,7 +362,7 @@ int32_t dec_fixed()
                                       NULL_Q_USEFUL_BUF_C);
 
 
-    t_cose_encrypt_dec_add_recipient(&dec_ctx, &esdh);
+    t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&esdh);
 
     t_cose_err = t_cose_encrypt_dec(&dec_ctx,
                                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(foo_cbor),
