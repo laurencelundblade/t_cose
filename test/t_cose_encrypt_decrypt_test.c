@@ -371,7 +371,7 @@ int32_t dec_fixed()
                                     &decrypted_payload,
                                     NULL);
 
-    return 0;
+    return t_cose_err ? 0 : 1;
 
 
 }
