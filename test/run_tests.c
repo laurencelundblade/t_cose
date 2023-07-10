@@ -122,7 +122,9 @@ static test_entry s_tests[] = {
 
     TEST_ENTRY(param_test),
     TEST_ENTRY(common_params_test),
-    TEST_ENTRY(base_encrypt_decrypt_test)
+    TEST_ENTRY(base_encrypt_decrypt_test),
+
+    TEST_ENTRY(dec_fixed)
 
 };
 

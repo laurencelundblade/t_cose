@@ -22,38 +22,78 @@
 #include "t_cose_util.h"
 
 
-// TODO: this turns into a COSE_Key decoder
-struct esdh_sender_info {
-    uint64_t               kem_id;
-    uint64_t               kdf_id;
-    uint64_t               aead_id;
-    struct q_useful_buf_c  enc;
-};
-
 static enum t_cose_err_t
-esdh_sender_info_decode_cb(void                    *cb_context,
+decode_ephemeral_key(void                    *cb_context,
                             QCBORDecodeContext      *cbor_decoder,
                             struct t_cose_parameter *parameter)
 {
-    if(parameter->label != T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO) {
+    (void) cb_context; /* Not used because key goes back into parameter */
+    if(parameter->label != T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY) {
         return 0;
     }
-    // TODO: this will have to cascade to an external supplied
-    // special header decoder too
-    struct esdh_sender_info  *sender_info = (struct esdh_sender_info  *)cb_context;
+    struct q_useful_buf_c  x;
+    struct q_useful_buf_c  y_string;
+    bool                   y_bool;
+    int64_t                kty;
+    int64_t                curve;
+    enum t_cose_err_t      result;
+    QCBORItem              y;
 
-    QCBORDecode_EnterArray(cbor_decoder, NULL);
-    QCBORDecode_GetUInt64(cbor_decoder, &(sender_info->kem_id));
-    QCBORDecode_GetUInt64(cbor_decoder, &(sender_info->kdf_id));
-    QCBORDecode_GetUInt64(cbor_decoder, &(sender_info->aead_id));
-    QCBORDecode_GetByteString(cbor_decoder, &(sender_info->enc));
-    QCBORDecode_ExitArray(cbor_decoder);
+    // TODO: this will have to cascade to an external supplied special header decoder
+    // TODO: this is pretty generic and can probably move to t_cose_key.c
+
+    QCBORDecode_EnterMap(cbor_decoder, NULL);
+
+    QCBORDecode_GetInt64InMapN(cbor_decoder, T_COSE_KEY_COMMON_KTY, &kty);
+    QCBORDecode_GetInt64InMapN(cbor_decoder, T_COSE_KEY_PARAM_CRV, &curve);
+    QCBORDecode_GetByteStringInMapN(cbor_decoder, T_COSE_KEY_PARAM_X_COORDINATE, &x);
+    QCBORDecode_GetItemInMapN(cbor_decoder, T_COSE_KEY_PARAM_Y_COORDINATE, QCBOR_TYPE_ANY, &y);
+
+    QCBORDecode_ExitMap(cbor_decoder);
     if(QCBORDecode_GetError(cbor_decoder)) {
-        sender_info->kem_id = UINT64_MAX; /* This indicates failure */
+        return 99; // TODO: is this right?
     }
 
+    /* If y is a bool, then point compression is used and y is a boolean
+     * indicating the sign. If not then it is a byte string with the y.
+     * Anything else is an error. See RFC 9053 7.1.1.
+     */
+    switch(y.uDataType) {
+        case QCBOR_TYPE_BYTE_STRING:
+            y_string = y.val.string;
+            y_bool = true; /* Unused. Only here to avoid compiler warning */
+            break;
+
+        case QCBOR_TYPE_TRUE:
+            y_bool = true;
+            y_string = NULL_Q_USEFUL_BUF_C;
+            break;
+
+        case QCBOR_TYPE_FALSE:
+            y_bool = true;
+            y_string = NULL_Q_USEFUL_BUF_C;
+            break;
+
+        default:
+            return 77;
+    }
+
+    /* Turn it into a t_cose_key that is imported into the library */
+
+    if(curve > INT32_MAX || curve < INT32_MIN) {
+        // Make sure cast is safe
+        return 99; // TODO: error
+    }
+    result = t_cose_crypto_import_ec2_pubkey((int32_t)curve,
+                                          x,
+                                          y_string,
+                                          y_bool,
+                                          &parameter->value.special_decode.value.key);
+
+    // TODO: set the parameter type?
+
     // TODO: more error handling
-    return 0;
+    return result;
 }
 
 
@@ -78,10 +118,10 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     struct q_useful_buf_c  derived_key;
     struct q_useful_buf_c  protected_params;
     enum t_cose_err_t      cose_result;
-    struct esdh_sender_info  sender_info;
     int32_t                cose_key_wrap_alg;
     int32_t                kdf_hash_alg;
     const struct t_cose_parameter *salt_param;
+    const struct t_cose_parameter *ephem_param;
     struct q_useful_buf_c  salt;
     struct t_cose_key      ephemeral_key;
     MakeUsefulBufOnStack(  kek_buffer ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH));
@@ -92,16 +132,14 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
 
     me = (struct t_cose_recipient_dec_esdh *)me_x;
 
-    // TODO: some of these will have to get used
-    (void)ce_alg;
 
     /* One recipient */
     QCBORDecode_EnterArray(cbor_decoder, NULL);
 
     cose_result = t_cose_headers_decode(cbor_decoder, /* in: decoder to read from */
                                 loc,          /* in: location in COSE message*/
-                                esdh_sender_info_decode_cb, /* in: callback for specials */
-                                &sender_info, /* in: context for callback */
+                                decode_ephemeral_key, /* in: callback for specials */
+                                NULL, /* in: context for callback */
                                 p_storage,    /* in: parameter storage */
                                 params,       /* out: list of decoded params */
                                &protected_params /* out: encoded prot params */
@@ -128,25 +166,25 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     }
 
 
-    alg = t_cose_param_find_alg_id(*params, false);
+    alg = t_cose_param_find_alg_id(*params, true);
 
     switch(alg) {
     case T_COSE_ALGORITHM_ECDH_ES_A128KW:
-        kek_buffer.len = 128/8;
+        kek_buffer.len    = 128/8;
         cose_key_wrap_alg = T_COSE_ALGORITHM_A128KW;
-        kdf_hash_alg = T_COSE_ALGORITHM_SHA_256;
+        kdf_hash_alg      = T_COSE_ALGORITHM_SHA_256;
         break;
 
     case T_COSE_ALGORITHM_ECDH_ES_A192KW:
-        kek_buffer.len = 192/8;
+        kek_buffer.len    = 192/8;
         cose_key_wrap_alg = T_COSE_ALGORITHM_A192KW;
-        kdf_hash_alg = T_COSE_ALGORITHM_SHA_256;
+        kdf_hash_alg      = T_COSE_ALGORITHM_SHA_256;
         break;
 
     case T_COSE_ALGORITHM_ECDH_ES_A256KW:
-        kek_buffer.len = 256/8;
+        kek_buffer.len    = 256/8;
         cose_key_wrap_alg = T_COSE_ALGORITHM_A256KW;
-        kdf_hash_alg = T_COSE_ALGORITHM_SHA_256;
+        kdf_hash_alg      = T_COSE_ALGORITHM_SHA_256;
 
         break;
     default:
@@ -157,6 +195,16 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     /* --- Run ECDH --- */
     /* Inputs: pub key, ephemeral key
      * Outputs: shared key */
+
+    ephem_param = t_cose_param_find(*params, -1);
+    if(ephem_param == NULL) {
+        return 99; // TODO: error code
+    }
+
+    memcpy(&ephemeral_key,
+           ephem_param->value.special_decode.value.little_buf,
+           sizeof(ephemeral_key));
+
     cose_result = t_cose_crypto_ecdh(me->skr, /* in: secret key */
                                      ephemeral_key, /* in: public key */
                                      derived_secret_buf, /* in: output buf */
@@ -168,7 +216,9 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
 
 
     /* --- Make the info structure ---- */
+    (void)ce_alg;
     // TODO: make the info structure. Just set to 'x's for now
+    // LOTS to do here!
     info_struct = UsefulBuf_Set(info_buf, 'x');
 
 
