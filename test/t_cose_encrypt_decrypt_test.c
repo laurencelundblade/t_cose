@@ -335,6 +335,8 @@ unsigned char foo_cbor[] = {
 
 #include "t_cose/t_cose_recipient_dec_esdh.h"
 
+#include "init_keys.h"
+
 
 int32_t dec_fixed()
 {
@@ -342,15 +344,23 @@ int32_t dec_fixed()
     MakeUsefulBufOnStack(plain_text_buf, 200);
     struct q_useful_buf_c decrypted_payload;
     enum t_cose_err_t t_cose_err;
+    struct t_cose_key private_key;
+    struct t_cose_key public_key;
 
     struct t_cose_recipient_dec_esdh esdh;
 
 
 
     t_cose_encrypt_dec_init(&dec_ctx, CBOR_TAG_COSE_ENCRYPT);
- //   t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
     t_cose_recipient_dec_esdh_init(&esdh);
+    init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_521,
+                                      &private_key,
+                                      &public_key);
+    t_cose_recipient_dec_esdh_set_skr(&esdh,
+                                      private_key,
+                                      NULL_Q_USEFUL_BUF_C);
+
 
     t_cose_encrypt_dec_add_recipient(&dec_ctx, &esdh);
 

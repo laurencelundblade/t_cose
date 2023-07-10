@@ -126,7 +126,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     struct t_cose_key      ephemeral_key;
     MakeUsefulBufOnStack(  kek_buffer ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH));
 
-    MakeUsefulBufOnStack(  derived_secret_buf ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)); // TODO: size this correctly
+    MakeUsefulBufOnStack(  derived_secret_buf ,10+T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)); // TODO: size this correctly
     MakeUsefulBufOnStack(info_buf, 50); // TODO: allow this to be
                                               // supplied externally
 
@@ -201,9 +201,8 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
         return 99; // TODO: error code
     }
 
-    memcpy(&ephemeral_key,
-           ephem_param->value.special_decode.value.little_buf,
-           sizeof(ephemeral_key));
+
+    ephemeral_key = ephem_param->value.special_decode.value.key;
 
     cose_result = t_cose_crypto_ecdh(me->skr, /* in: secret key */
                                      ephemeral_key, /* in: public key */
@@ -263,5 +262,5 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                         cek); /* out: the CEK*/
 
 Done:
-    return(cose_result);
+    return cose_result;
 }

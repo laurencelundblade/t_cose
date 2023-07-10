@@ -1512,7 +1512,7 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_COPY);
     psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
     psa_set_key_type(&attributes, type_public);
-    psa_set_key_bits(&attributes, key_bitlen);
+    //psa_set_key_bits(&attributes, key_bitlen);
 
     /* This converts to a serialized representation of an EC Point
      * described in
@@ -1542,7 +1542,7 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
     uint8_t first_byte;
     if(q_useful_buf_c_is_null(y_coord)) {
         /* This is point compression */
-        first_byte = y_bool ? 0x02 : 0x03;
+        first_byte = y_bool ? 0x03 : 0x02;
     } else {
         first_byte = 0x04;
     }

@@ -2072,7 +2072,7 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
 
     /* Check for space in the output buffer */
     expected_unwrapped_size = ciphertext.len - 8;
-    if(plaintext_buffer.len <= expected_unwrapped_size) {
+    if(plaintext_buffer.len < expected_unwrapped_size) {
         return T_COSE_ERR_TOO_SMALL;
     }
 
@@ -2297,9 +2297,6 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
     EC_GROUP              *ec_group;
     uint8_t                first_byte;
     EVP_PKEY              *evp_pkey;
-
-
-    // TODO: really make sure this size is right for the curve types supported
     UsefulOutBuf_MakeOnStack (import_form, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE + 5);
 
     switch (cose_ec_curve_id) {
@@ -2352,10 +2349,6 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
     } else {
         first_byte = 0x04;
     }
-
-    // TODO: is padding of x necessary? Jim's code goes to
-    // a lot of trouble to look up the group and get the length.
-
     UsefulOutBuf_AppendByte(&import_form, first_byte);
     UsefulOutBuf_AppendUsefulBuf(&import_form, x_coord);
     if(first_byte == 0x04) {
@@ -2365,23 +2358,48 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
 
 
     ec_key = EC_KEY_new();
+    if(ec_key == NULL) {
+        return 99;
+    }
 
     ec_group = EC_GROUP_new_by_curve_name(nid);
+    if(ec_group == NULL) {
+        return 99;
+    }
 
+    // TODO: this and related are to be depreacted, so they say...
     ossl_result = EC_KEY_set_group(ec_key, ec_group);
+    if(ossl_result != 1) {
+        return 99;
+    }
 
     ec_point = EC_POINT_new(ec_group);
+    if(ec_point == NULL) {
+        return 99;
+    }
 
     ossl_result = EC_POINT_oct2point(ec_group,
                                      ec_point,
                                      import_octets.ptr, import_octets.len,
                                      NULL);
+    if(ossl_result != 1) {
+         return 99;
+     }
 
     ossl_result = EC_KEY_set_public_key(ec_key, ec_point);
+    if(ossl_result != 1) {
+        return 99;
+    }
 
     evp_pkey = EVP_PKEY_new();
+    if(evp_pkey == NULL) {
+         return 99;
+     }
 
     ossl_result = EVP_PKEY_set1_EC_KEY(evp_pkey, ec_key);
+    if(ossl_result != 1) {
+        return 99;
+    }
 
     pub_key->key.ptr = evp_pkey;
 
