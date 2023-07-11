@@ -338,7 +338,7 @@ unsigned char foo_cbor[] = {
 #include "init_keys.h"
 
 
-int32_t dec_fixed()
+int32_t dec_fixed(void)
 {
     struct t_cose_encrypt_dec_ctx dec_ctx;
     MakeUsefulBufOnStack(plain_text_buf, 200);
