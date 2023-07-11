@@ -48,7 +48,9 @@ static test_entry s_tests[] = {
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
 #endif
+
     TEST_ENTRY(hkdf_test),
+
 
 #ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
     TEST_ENTRY(ecdh_test),
