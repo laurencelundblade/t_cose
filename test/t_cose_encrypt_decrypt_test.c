@@ -310,3 +310,11 @@ int32_t base_encrypt_decrypt_test(void)
 }
 
 
+#include "init_keys.h"
+
+
+int32_t dec_fixed(void)
+{
+    return 0;
+}
+
