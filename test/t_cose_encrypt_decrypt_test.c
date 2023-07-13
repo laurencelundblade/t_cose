@@ -309,12 +309,25 @@ int32_t base_encrypt_decrypt_test(void)
 
 }
 
+#include "t_cose/t_cose_recipient_dec_esdh.h"
 
 #include "init_keys.h"
 
 
 int32_t dec_fixed(void)
 {
+    struct t_cose_encrypt_dec_ctx dec_ctx;
+    MakeUsefulBufOnStack(plain_text_buf, 200);
+    struct q_useful_buf_c decrypted_payload;
+    enum t_cose_err_t t_cose_err;
+    struct t_cose_key private_key;
+    struct t_cose_key public_key;
+
+    struct t_cose_recipient_dec_esdh esdh;
+
+
+    t_cose_encrypt_dec_init(&dec_ctx, CBOR_TAG_COSE_ENCRYPT);
+
     return 0;
 }
 
