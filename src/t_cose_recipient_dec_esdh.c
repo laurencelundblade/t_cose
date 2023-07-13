@@ -51,7 +51,7 @@ decode_ephemeral_key(void                    *cb_context,
 
     QCBORDecode_ExitMap(cbor_decoder);
     if(QCBORDecode_GetError(cbor_decoder)) {
-        return 99; // TODO: is this right?
+        return T_COSE_ERR_FAIL; // TODO: is this right?
     }
 
     /* If y is a bool, then point compression is used and y is a boolean
@@ -82,7 +82,7 @@ decode_ephemeral_key(void                    *cb_context,
 
     if(curve > INT32_MAX || curve < INT32_MIN) {
         // Make sure cast is safe
-        return 99; // TODO: error
+        return T_COSE_ERR_FAIL; // TODO: error
     }
     result = t_cose_crypto_import_ec2_pubkey((int32_t)curve,
                                           x,
@@ -198,13 +198,13 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
 
     ephem_param = t_cose_param_find(*params, -1);
     if(ephem_param == NULL) {
-        return 99; // TODO: error code
+        return T_COSE_ERR_FAIL; // TODO: error code
     }
 
 
     ephemeral_key = ephem_param->value.special_decode.value.key;
 
-    cose_result = t_cose_crypto_ecdh(me->skr, /* in: secret key */
+    cose_result = t_cose_crypto_ecdh(me->private_key, /* in: secret key */
                                      ephemeral_key, /* in: public key */
                                      derived_secret_buf, /* in: output buf */
                                      &derived_key /* out: derived key*/

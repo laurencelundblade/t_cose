@@ -368,7 +368,7 @@ int32_t dec_fixed(void)
     init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_521,
                                       &private_key,
                                       &public_key);
-    t_cose_recipient_dec_esdh_set_skr(&esdh,
+    t_cose_recipient_dec_esdh_set_key(&esdh,
                                       private_key,
                                       NULL_Q_USEFUL_BUF_C);
 
