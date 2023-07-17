@@ -153,8 +153,9 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                          &protected_hdr);
 
 
-    /* --- Make Info structure ---- */
 #if 0
+
+    /* --- Make Info structure ---- */
     (void)ce_alg; // TODO: put this to use
     return_value = create_info_structure(context->info->enc_alg,
                                          context->info->sender_identity_type_id,

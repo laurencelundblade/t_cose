@@ -369,6 +369,7 @@ esdh_example(void)
 
     print_useful_buf("Decrypted Payload:", decrypted_payload);
 
+
 Done:
      printf("---- %s EXAMPLE ESDH (%d) ----\n\n",
              result ? "FAILED" : "COMPLETED", result);
