@@ -23,6 +23,10 @@ extern "C" {
 #endif
 
 
+/* The default size of the COSE_KDF_Context. See t_cose_recipient_enc_esdh_kdf_buf()
+ * and T_COSE_ERR_KDF_BUFFER_TOO_SMALL. */
+#define T_COSE_ENC_COSE_KDF_CONTEXT 200
+
 struct t_cose_recipient_enc_esdh {
     /* Private data structure */
 
@@ -133,6 +137,25 @@ t_cose_recipient_enc_esdh_supp_info(struct t_cose_recipient_enc_esdh *context,
                                     const struct q_useful_buf_c       supp_other_info,
                                     const struct q_useful_buf_c       supp_priv_info);
 
+
+/**
+ * \brief Configure a larger buffer used to serialize the COSE_KDF_Context.
+ *
+ * \param[in] context           The t_cose signing context.
+ * \param[in] kdf_buffer  The buffer used to serialize the COSE_KDF_Context.
+ *
+ * For normal use the internal buffer for the COSE_KDF_Context is larger enough.
+ * If the error \ref T_COSE_ERR_KDF_BUFFER_TOO_SMALL occurs use this
+ * to set a larger buffer.
+ *
+ * \ref T_COSE_ERR_KDF_BUFFER_TOO_SMALL will occur if the protected headers
+ * are large, or if fields like party U, party V or SuppPubInfo are large. On the decryption
+ * side, these come in as header parameters so the caller must anticiapte the
+ * largest possible value. Often these are empty so there is no issue.
+ */
+void
+t_cose_recipient_enc_esdh_kdf_buf(struct t_cose_recipient_enc_esdh *context,
+                                  struct q_useful_buf               kdf_buffer);
 
 /* =========================================================================
      BEGINNING OF PRIVATE INLINE IMPLEMENTATION
