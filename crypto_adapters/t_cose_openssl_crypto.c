@@ -1430,9 +1430,57 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
  */
 enum t_cose_err_t
 t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
-                           int32_t               cose_algorithm_id)
+                           int32_t               cose_ec_curve_id)
 {
-    /* TBD: This is a dummy function */
+    EC_KEY *ec_key;
+    int ossl_result;
+    int nid;
+    size_t key_bitlen;
+    EC_GROUP *ec_group;
+    EVP_PKEY *evp_pkey;
+
+    switch (cose_ec_curve_id) {
+    case T_COSE_ELLIPTIC_CURVE_P_256:
+         nid  = NID_X9_62_prime256v1;
+         key_bitlen   = 256;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
+         nid  = NID_secp384r1;
+         key_bitlen   = 384;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
+         nid  = NID_secp521r1;
+         key_bitlen   = 521;
+         break;
+
+    default:
+         return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+    }
+
+    ec_key = EC_KEY_new();
+
+    ec_group = EC_GROUP_new_by_curve_name(nid);
+    if(ec_group == NULL) {
+        return 99;
+    }
+
+    EC_KEY_set_group(ec_key, ec_group);
+
+    ossl_result = EC_KEY_generate_key(ec_key);
+
+
+    evp_pkey = EVP_PKEY_new();
+     if(evp_pkey == NULL) {
+          return 99;
+      }
+
+    ossl_result = EVP_PKEY_set1_EC_KEY(evp_pkey, ec_key);
+    if(ossl_result != 1) {
+        return 99;
+    }
+
+    ephemeral_key->key.ptr = evp_pkey;
+
     return T_COSE_SUCCESS;
 }
 
@@ -2406,6 +2454,8 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
     return T_COSE_SUCCESS;
 }
 
+
+
 enum t_cose_err_t
 t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
                              int32_t               *curve,
@@ -2415,13 +2465,91 @@ t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
                              struct q_useful_buf_c *y_coord,
                              bool                  *y_bool)
 {
-    (void)curve;
-    (void)x_coord;
-    (void)x_coord_buf;
-    (void)y_coord_buf;
-    (void)y_coord;
-    (void)y_bool;
-    (void)pub_key;
+    EC_KEY *ec_key;
+    const EC_POINT      *ec_point;
+    const EC_GROUP *ec_group;
+    uint8_t export_buf [T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE + 5];
+    struct q_useful_buf_c export;
+    size_t export_len;
+    uint8_t first_byte;
+    size_t len;
 
-    return T_COSE_ERR_FAIL;
+    ec_key = EVP_PKEY_get1_EC_KEY((EVP_PKEY *)pub_key.key.ptr);
+    if(ec_key == NULL) {
+        return 99; // TODO: error code
+    }
+
+    ec_point = EC_KEY_get0_public_key(ec_key);
+    if(ec_point == NULL) {
+        return 99; // TODO: error code
+    }
+
+
+    ec_group = EC_KEY_get0_group(ec_key);
+    if(ec_group == NULL) {
+        return 99;
+    }
+
+    /*
+     size_t EC_POINT_point2oct(const EC_GROUP *group, const EC_POINT *p,
+     point_conversion_form_t form,
+     unsigned char *buf, size_t len, BN_CTX *ctx);
+     */
+
+    export_len = EC_POINT_point2oct(ec_group, /* in: group */
+                                     ec_point, /* in: point*/
+                                     POINT_CONVERSION_UNCOMPRESSED, /* in: point conversion form */
+                                     export_buf, /* in/out: buffer to output to */
+                                     sizeof(export_buf), /* in: */
+                                     NULL /* in: BN_CTX */
+                                     );
+
+    first_byte = export_buf[0];
+    export = (struct q_useful_buf_c){export_buf+1, export_len-1};
+
+    /* export_buf is one first byte, the x-coord and maybe the y-coord
+     * per SEC1.
+     */
+
+
+    switch(EC_GROUP_get_curve_name(ec_group)) {
+    case NID_X9_62_prime256v1:
+        *curve = T_COSE_ELLIPTIC_CURVE_P_256;
+        break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
+        *curve = T_COSE_ELLIPTIC_CURVE_P_384;
+        break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
+        *curve = T_COSE_ELLIPTIC_CURVE_P_521;
+        break;
+    default:
+        return T_COSE_ERR_FAIL;
+    }
+
+
+    switch(first_byte) {
+        case 0x04:
+            len = (export_len - 1 ) / 2;
+            *y_coord = UsefulBuf_Copy(y_coord_buf, UsefulBuf_Tail(export, len));
+            break;
+
+        case 0x02:
+            len = export_len - 1;
+            *y_coord = NULL_Q_USEFUL_BUF_C;
+            *y_bool = true;
+            break;
+
+        case 0x03:
+            len = export_len - 1;
+            *y_coord = NULL_Q_USEFUL_BUF_C;
+            *y_bool = false;
+            break;
+
+        default:
+            return T_COSE_ERR_FAIL;
+    }
+    *x_coord = UsefulBuf_Copy(x_coord_buf, UsefulBuf_Head(export, len));
+    // TODO: errors when buffer is too small
+
+    return T_COSE_SUCCESS;
 }
