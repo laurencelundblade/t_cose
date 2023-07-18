@@ -63,6 +63,32 @@ t_cose_recipient_dec_esdh_set_key(struct t_cose_recipient_dec_esdh *context,
                                   struct q_useful_buf_c             kid);
 
 
+/**
+ *
+ * Normally these fields are decoded out of parameters in the COSE recipient so there
+ * is no need to set them. This method is provided for use cases where they are not
+ * sent and a nil value is not sufficient.
+ */
+static inline void
+t_cose_recipient_dec_esdh_party_info(struct t_cose_recipient_dec_esdh *context,
+                                     const struct q_useful_buf_c       party_u_ident,
+                                     const struct q_useful_buf_c       party_v_ident);
+
+
+/**
+ *
+ * Normally supp_other_info is decoded from the header parameters. This method is provided for
+ * use cases where it is not sent and a nil value is not sufficient.
+ *
+ * supp_priv_info is never decoded from a header parameter. If it is used, it must be set here.
+ * To set it and use supp_other_info from the header parameter pass NULL_Q_USEFUL_BUF_C
+ * for supp_other_info.
+ */
+static inline void
+t_cose_recipient_dec_esdh_supp_info(struct t_cose_recipient_dec_esdh *context,
+                                    const struct q_useful_buf_c       supp_other_info,
+                                    const struct q_useful_buf_c       supp_priv_info);
+
 /* =========================================================================
      BEGINNING OF PRIVATE INLINE IMPLEMENTATION
    ========================================================================= */
