@@ -842,13 +842,12 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
                          size_t                 number,
                          struct q_useful_buf_c *random);
 
+
 /**
  * \brief Requests generation of a public / private key.
  *
- * \param[in] key                t_cose_key structure to hold the key pair
- *
- * \param[in] cose_algorithm_id  algorithm identifier
- *                               (e.g. for a NIST P256r1 curve)
+ * \param[in] cose_ec_curve_id   Curve identifier from COSE curve registry.
+ * \param[out] key                t_cose_key structure to hold the key pair
  *
  * This function will either return a key in form of a t_cose_key
  * structure, or produce an error.
@@ -863,26 +862,10 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
  *         Key generation failed
  */
 enum t_cose_err_t
-t_cose_crypto_generate_key(struct t_cose_key    *key,
-                           int32_t               cose_algorithm_id);
+t_cose_crypto_generate_ec_key(int32_t            cose_ec_curve_id,
+                              struct t_cose_key *key);
 
-/**
- * \brief Exports the public key
- *
- * \param[in] key               Handle to key
- * \param[in] pk_buffer         Pointer and length of buffer into which
- *                              the resulting public key is put.
- * \param[out] pk_len               Length of public key out
- *
- * \retval T_COSE_SUCCESS
- *         Successfully exported the public key.
- * \retval T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED
- *         The public key export operation failed.
- */
-enum t_cose_err_t
-t_cose_crypto_export_public_key(struct t_cose_key      key,
-                                struct q_useful_buf    pk_buffer,
-                                size_t                *pk_len);
+
 
 /**
  * \brief Exports key
@@ -1171,28 +1154,6 @@ t_cose_crypto_aead_encrypt(int32_t                cose_algorithm_id,
 void
 t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 
-
-/**
- * \brief Key Agreement
- *
- * Computes a shared secret based on the provided key agreement
- * algorithm. Is used to generate a ECDHE-derived symmetric key.
- *
- * \param[in] cose_algorithm_id      Algorithm id.
- * \param[in] private_key            Private key.
- * \param[in] public_key             Public key.
- * \param[in,out] symmetric_key      Buffer where to place the derived symmetric key.
- * \param[in,out] symmetric_key_len  Length of the derived key.
- *
- * \return Error code.
- */
-enum t_cose_err_t
-t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
-                            struct t_cose_key      private_key,
-                            struct t_cose_key      public_key,
-                            struct q_useful_buf    symmetric_key,
-                            size_t                *symmetric_key_len
-                           );
 
 /**
  * \brief Elliptic curve diffie-helman.
