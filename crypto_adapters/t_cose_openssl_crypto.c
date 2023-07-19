@@ -95,7 +95,7 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 #endif
         T_COSE_ALGORITHM_EDDSA,
         T_COSE_ALGORITHM_A128GCM,
-        T_COSE_ALGORITHM_A192GCM, /* For 9053 key wrap and direct, not HPKE */
+        T_COSE_ALGORITHM_A192GCM,
         T_COSE_ALGORITHM_A256GCM,
 
 #ifndef T_COSE_DISABLE_KEYWRAP

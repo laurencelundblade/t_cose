@@ -981,32 +981,6 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
 
 
 /**
- * \brief HPKE Decrypt Wrapper
- *
- * \param[in] cose_algorithm_id   COSE algorithm id
- * \param[in] pkE                 pkE buffer
- * \param[in] pkR                 pkR key
- * \param[in] ciphertext          Ciphertext buffer
- * \param[in] plaintext           Plaintext buffer
- * \param[out] plaintext_len      Length of the returned plaintext
- *
- * \retval T_COSE_SUCCESS
- *         HPKE decrypt operation was successful.
- * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
- *         An unsupported algorithm was supplied to the function call.
- * \retval T_COSE_ERR_HPKE_DECRYPT_FAIL
- *         Decrypt operation failed.
- */
-enum t_cose_err_t
-t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
-                           struct q_useful_buf_c              pkE,
-                           struct t_cose_key                  pkR,
-                           struct q_useful_buf_c              ciphertext,
-                           struct q_useful_buf                plaintext,
-                           size_t                            *plaintext_len);
-
-
-/**
  * \brief Returns the t_cose_key given an algorithm and a symmetric key.
  *
  * \param[in] cose_algorithm_id  COSE algorithm id
@@ -1222,41 +1196,6 @@ t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
                    const struct q_useful_buf_c info,
                    const struct q_useful_buf   okm_buffer);
 
-
-
-#ifdef WE_NEED_THESE_FOR_HPKE
-/* HPKE doesn't use the basic hkdf. */
-
-/** \brief HKDF extract
-
- * This provides the HKDF extract function defined in RFC 5869 for
- * various hash functions. This does not use prk_buffer as in/out
- * the way t_cose_crypto_hkdf() uses okm_buffer. Instead this
- * is more like the usual use of the pair of a buffer in and a
- * constant pointer and length for the value out.
-
- */
-enum t_cose_err_t
-t_cose_crypto_hkdf_extract(int32_t                cose_hash_algorithm_id,
-                           struct q_useful_buf_c  salt,
-                           struct q_useful_buf_c  ikm,
-                           struct q_useful_buf    prk_buffer
-                           struct q_useful_buf_c *prk);
-
-
-/** \brief HKDF epxand
-
-* This provides the HKDF expand function defined in RFC 5869 for
-* various hash functions.
- * This use the okm_buffer as in/out like t_cose_crypto_hkdf().
-*/
-enum t_cose_err_t
-t_cose_crypto_hkdf_expand(int32_t                cose_hash_algorithm_id,
-                          struct q_useful_buf_c  prk,
-                          struct q_useful_buf_c  info,
-                          struct q_useful_buf    okm_buffer);
-
-#endif /* WE_NEED_THESE */
 
 
 /* Import a COSE_Key in EC2 format into a key handle.

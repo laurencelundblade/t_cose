@@ -95,7 +95,7 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_HMAC384,
         T_COSE_ALGORITHM_HMAC512,
         T_COSE_ALGORITHM_A128GCM,
-        T_COSE_ALGORITHM_A192GCM, /* For 9053 direct, not HPKE */
+        T_COSE_ALGORITHM_A192GCM,
         T_COSE_ALGORITHM_A256GCM,
 
 #if !defined NO_MBED_KW_API & !defined T_COSE_DISABLE_KEYWRAP
