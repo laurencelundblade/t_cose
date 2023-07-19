@@ -395,10 +395,10 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
  */
 enum t_cose_err_t
 t_cose_crypto_generate_ec_key(const int32_t       cose_ec_curve_id,
-                              struct t_cose_key  *ephemeral_key)
+                              struct t_cose_key  *key)
 {
-    (void)ephemeral_key;
-    (void)cose_algorithm_id;
+    (void)key;
+    (void)cose_ec_curve_id;
     return T_COSE_ERR_KEY_GENERATION_FAILED;
 }
 
