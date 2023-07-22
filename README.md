@@ -1,14 +1,16 @@
-THIS IS A DEV BRANCH FOR t_cose 2.0. It's purpose is to integrate several large changes
-(multiple signers, MAC, encryption, and restartable crypto) together before
-they merge into master to become t_cose 2.0. (Replace this message with
-an introduction to t_cose 2.0 before the merge to master.
+THIS IS THE DEV BRANCH FOR t_cose 2.0. It is an alpha quality release. The major 
+features are in place, but are subject to change. Test and documentation is not complete.
 
 ![t_cose](https://github.com/laurencelundblade/t_cose/blob/master/t-cose-logo.png?raw=true)
 
 
-*t_cose* implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)
-and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01).
-This is the COSE_Sign1 part of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052).
+*t_cose* 2.x implements the following parts [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052)
+and [COSE, RFC 9053](https://tools.ietf.org/html/rfc9053):
+* COSE_Sign1 (single signer) with ECDSA, EdDSA and RSA algorithmns
+* COSE_Sign (multiple signatures) with ECDSA, EdDSA and RSA 
+* COSE_Mac0 (single MAC) with HMAC 256, 384 and 512
+* COSE_Encrypt0 (single recipient) with AES GCM 128, 192 and 256
+* COSE_Encrypt (multiple recipients) with ECDH + AES key wrap or just with AES key wrap
 
 **Implemented in C with minimal dependency** – There are three main
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
@@ -33,26 +35,20 @@ for signing and 1500 bytes for verifying. The caller supplies the output buffer
 and context structures so the caller has control over memory usage making it
 useful for embedded implementations that have to run in small fixed memory.
 
-## Documentation
-
-[API documentation is here](https://laurencelundblade.github.io/t_cose/)
-
 
 ## Code Status
 
-Status for t_cose 2.0 is very roughly this. COSE_Sign1 is working
-except for decoding of protected parameters. COSE_Sign works for
-a single signature.  COSE_Mac0 is generally working. COSE_Encrypt
-and COSE_Encrypt0 are somewhat working. 
+As of July 2023, the major t_cose 2.0 features are in and mostly 
+functioning. There are many details to fix, interop testing and general
+testing to do, documentation to complete and correct.
 
-There is still lots of work to do on COSE_Sign, clean up on
-COSE_Mac0 and some re design is exected for COSE_Encrypt.
-
-RSA and Eddsa integration from main is still to be done.
+Backwards compatibility with t_cose 1.x is provided, but the code size
+is much larger. Those interested in small code size should switch
+to the newer signing API.
 
 Integration with the [OpenSSL](https://www.openssl.org) and [Arm Mbed
 TLS](https://github.com/ARMmbed/mbedtls) cryptographic libraries is
-fully supported for signing, but not COSE_Mac or COSE_Encrypt.
+fully supported.
 
 
 ## Building and Dependencies
@@ -280,15 +276,6 @@ into.
 
 ### Code
 
-Here are code sizes on 64-bit x86 optimized for size
-
-     |                           | smallest | largest |
-     |---------------------------|----------|---------|
-     | signing only              |     1500 |    2300 |
-     | verification only         |     2500 |    3300 |
-     | common to sign and verify |     (500)|    (800)|
-     | combined                  |     3500 |    4800 |
-
 Things that make the code smaller:
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
 * gcc is usually smaller than llvm because stack guards are off by default
@@ -297,19 +284,6 @@ Things that make the code smaller:
 * Disable the content type header T_COSE_DISABLE_CONTENT_TYPE
 * Disable COSE_Sign structure support with T_COSE_DISABLE_COSE_SIGN
   (use only COSE_Sign1 signature structures if adequate).
-
-#### Change in code size with spiffy decode
-
-The encode size is as before.
-
-Compared to the previous t_cose, the code size for decoding/verifying
-is reduced by about 600 bytes. However, spiffy decode functions in
-QCBOR are now required and they are about 2KB, so there is a net size
-increase of 1.4KB. But use of spiffy decode will also make other parts
-of the overall SW stack smaller, perhaps by a lot, so this will likely
-break even. For example, EAT or CWT decoding will be reduced a lot
-through use of spiffy decode.  Basically, the more CBOR maps a SW
-stack has to handle, the more saving there will be from spiffy decode.
 
 
 ### Heap and stack
