@@ -78,6 +78,10 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
                                   struct t_cose_key *public_key,
                                   struct t_cose_key *private_key);
 
+enum t_cose_err_t
+init_fixed_test_ec_encryption_key2(int32_t            cose_ec_curve_id,
+                                  struct t_cose_key *public_key,
+                                  struct t_cose_key *private_key);
 
 void
 free_fixed_test_ec_encryption_key(struct t_cose_key key);

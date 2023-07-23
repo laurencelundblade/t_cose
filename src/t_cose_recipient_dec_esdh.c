@@ -198,17 +198,18 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     /* Inputs: pub key, ephemeral key
      * Outputs: shared key */
 
+    /* The ephemeral public key comes from the headers. It was
+     * processed by the decode_ephemeral_key() callback. */
     ephem_param = t_cose_param_find(*params, T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY);
     if(ephem_param == NULL) {
         return T_COSE_ERR_FAIL; // TODO: error code
     }
-
     ephemeral_key = ephem_param->value.special_decode.value.key;
 
-    cose_result = t_cose_crypto_ecdh(me->private_key, /* in: secret key */
-                                     ephemeral_key, /* in: public key */
+    cose_result = t_cose_crypto_ecdh(me->private_key,    /* in: secret key */
+                                     ephemeral_key,      /* in: public key */
                                      derived_secret_buf, /* in: output buf */
-                                     &derived_key /* out: derived key*/
+                                     &derived_key        /* out: derived key*/
                                      );
     if(cose_result != T_COSE_SUCCESS) {
          goto Done;

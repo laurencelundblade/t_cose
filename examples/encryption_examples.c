@@ -270,8 +270,8 @@ int32_t
 esdh_example(void)
 {
     enum t_cose_err_t                result;
-    struct t_cose_key                skR;
-    struct t_cose_key                pkR;
+    struct t_cose_key                privatekey;
+    struct t_cose_key                publickey;
     struct t_cose_encrypt_enc        enc_ctx;
     struct t_cose_recipient_enc_esdh recipient;
     struct t_cose_info_t info;
@@ -294,8 +294,8 @@ esdh_example(void)
      * is crypto-library dependent. See t_cose_key.h and the examples
      * to understand key-pair creation better. */
     result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
-                                           &pkR, /* out: public key to be used for encryption */
-                                           &skR); /* out: corresponding private key for decryption */
+                                              &publickey, /* out: public key to be used for encryption */
+                                              &privatekey); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -317,7 +317,7 @@ esdh_example(void)
                                     T_COSE_ELLIPTIC_CURVE_P_256);    /* curve id */
 
     t_cose_recipient_enc_esdh_set_key(&recipient,
-                                       pkR,
+                                       publickey,
                                        Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
 
     /* Set Context Info structure */
@@ -355,7 +355,7 @@ esdh_example(void)
 
     t_cose_recipient_dec_esdh_init(&dec_recipient);
 
-    t_cose_recipient_dec_esdh_set_key(&dec_recipient, skR, NULL_Q_USEFUL_BUF_C);
+    t_cose_recipient_dec_esdh_set_key(&dec_recipient, privatekey, NULL_Q_USEFUL_BUF_C);
 
     t_cose_encrypt_dec_add_recipient(&dec_ctx,
                                      (struct t_cose_recipient_dec *)&dec_recipient);

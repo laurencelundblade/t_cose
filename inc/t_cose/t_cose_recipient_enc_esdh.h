@@ -36,7 +36,7 @@ struct t_cose_recipient_enc_esdh {
       */
     struct t_cose_recipient_enc e;
 
-    struct t_cose_key           pkR; /* recipient public key */
+    struct t_cose_key           recipient_pub_key;
     struct q_useful_buf_c       kid;
     int32_t                     cose_ec_curve_id;
     int32_t                     cose_algorithm_id;
@@ -189,11 +189,11 @@ t_cose_recipient_enc_esdh_set_info(struct t_cose_recipient_enc_esdh *me,
 
 static inline void
 t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *me,
-                                  struct t_cose_key                 pkR,
+                                  struct t_cose_key                 recipient_pub_key,
                                   struct q_useful_buf_c             kid)
 {
-    me->pkR = pkR;
-    me->kid = kid;
+    me->recipient_pub_key = recipient_pub_key;
+    me->kid               = kid;
 }
 
 #ifdef __cplusplus

@@ -308,6 +308,11 @@ int32_t hkdf_test(void)
 
 #ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
 
+
+static const uint8_t expected_ecdh_p256[] = {0x3C, 0xA0, 0xA0, 0x5C, 0xC6, 0x9D, 0x1C, 0x8C, 0x52, 0x03, 0x97, 0x76, 0x9B, 0x2C, 0x02, 0xE9, 0x28, 0xDB, 0x2B, 0xBB, 0x79, 0xD4, 0x1F, 0xB0, 0xE3, 0x68, 0xFC, 0x29, 0x4C, 0xCD, 0xBB, 0xD7};
+
+
+
 int32_t ecdh_test(void)
 {
     enum t_cose_err_t           err;
@@ -333,15 +338,80 @@ int32_t ecdh_test(void)
         return (int32_t)err;
     }
 
-    /* TODO: this test should compare to an expected result, but
-     * haven't been able to get Mbed TLS and OpenSSL to produce
-     * that. Probably the issue is in the way the keys are imported
-     * and confusion about public vs private keys in imported
-     * key pairs (and lack of documentation in the crypto libraries)
-     */
+    if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(expected_ecdh_p256), shared_key)) {
+        return 44;
+    }
 
 
     return 0;
 
 }
+
+// 40 41 6C 8C DA A0 F7 A1 75 69 55 53 C3 27 9C 10 9C E9 27 7E 53 C5 86 2A A7 15 ED C6 36 F1 71 CA
+
+
+static const uint8_t x123[] = {
+    0x40, 0x41, 0x6C, 0x8C, 0xDA, 0xA0, 0xF7, 0xA1, 0x75, 0x69, 0x55, 0x53, 0xC3, 0x27, 0x9C, 0x10, 0x9C, 0xE9, 0x27, 0x7E, 0x53, 0xC5, 0x86, 0x2A, 0xA7, 0x15, 0xED, 0xC6, 0x36, 0xF1, 0x71, 0xCA
+};
+
+int32_t ec_import_export_test(void)
+{
+    enum t_cose_err_t      err;
+    struct t_cose_key      public_key;
+    struct t_cose_key      private_key;
+    struct t_cose_key      public_key_next;
+    MakeUsefulBufOnStack(  x_coord_buf, T_COSE_BITS_TO_BYTES(T_COSE_ECC_MAX_CURVE_BITS));
+    MakeUsefulBufOnStack(  y_coord_buf, T_COSE_BITS_TO_BYTES(T_COSE_ECC_MAX_CURVE_BITS));
+    struct q_useful_buf_c  x_coord;
+    struct q_useful_buf_c  y_coord;
+    bool                   y_sign;
+    int32_t                curve;
+
+    err = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                           &public_key,
+                                           &private_key);
+
+    err = t_cose_crypto_export_ec2_key(public_key,
+                                      &curve,
+                                       x_coord_buf,
+                                      &x_coord,
+                                       y_coord_buf,
+                                      &y_coord,
+                                      &y_sign);
+    if(err) {
+        return 99;
+    }
+
+    err = t_cose_crypto_import_ec2_pubkey(curve,
+                                          x_coord,
+                                          y_coord,
+                                          y_sign,
+                                          &public_key_next);
+    if(err) {
+        return 99;
+    }
+
+    err = t_cose_crypto_export_ec2_key(public_key_next,
+                                      &curve,
+                                       x_coord_buf,
+                                      &x_coord,
+                                       y_coord_buf,
+                                      &y_coord,
+                                      &y_sign);
+    if(err) {
+        return 99;
+    }
+
+    if(curve != T_COSE_ELLIPTIC_CURVE_P_256) {
+        return 88;
+    }
+
+    if(q_useful_buf_compare(x_coord, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(x123) )) {
+        return 88;
+    }
+
+    return 0;
+}
+
+
 #endif /* T_COSE_USE_B_CON_SHA256 */
