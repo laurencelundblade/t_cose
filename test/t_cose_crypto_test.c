@@ -308,10 +308,12 @@ int32_t hkdf_test(void)
 
 #ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
 
-
-static const uint8_t expected_ecdh_p256[] = {0x3C, 0xA0, 0xA0, 0x5C, 0xC6, 0x9D, 0x1C, 0x8C, 0x52, 0x03, 0x97, 0x76, 0x9B, 0x2C, 0x02, 0xE9, 0x28, 0xDB, 0x2B, 0xBB, 0x79, 0xD4, 0x1F, 0xB0, 0xE3, 0x68, 0xFC, 0x29, 0x4C, 0xCD, 0xBB, 0xD7};
-
-
+/* Expected result for cose_ex_P_256_key_pair_der. */
+static const uint8_t expected_ecdh_p256[] = {
+    0xE6, 0xBE, 0xF9, 0xB9, 0x91, 0x0C, 0xD1, 0x5A,
+    0x20, 0xEF, 0x49, 0xB2, 0x40, 0x31, 0x0C, 0x8B,
+    0xFC, 0x81, 0xDB, 0xAD, 0xBE, 0x63, 0x92, 0x7E,
+    0xB2, 0x15, 0xB5, 0xAE, 0x01, 0x1E, 0x51, 0xEB};
 
 int32_t ecdh_test(void)
 {
@@ -338,6 +340,8 @@ int32_t ecdh_test(void)
         return (int32_t)err;
     }
 
+    /* The main point of this test is that the same result comes from
+     * all the crypto libraries integrated. */
     if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(expected_ecdh_p256), shared_key)) {
         return 44;
     }
@@ -347,11 +351,20 @@ int32_t ecdh_test(void)
 
 }
 
-// 40 41 6C 8C DA A0 F7 A1 75 69 55 53 C3 27 9C 10 9C E9 27 7E 53 C5 86 2A A7 15 ED C6 36 F1 71 CA
 
+/* X coordinate from cose_ex_P_256_key_pair_der. */
+static const uint8_t x_coord_P_256[] = {
+    0x65, 0xed, 0xa5, 0xa1, 0x25, 0x77, 0xc2, 0xba,
+    0xe8, 0x29, 0x43, 0x7f, 0xe3, 0x38, 0x70, 0x1a,
+    0x10, 0xaa, 0xa3, 0x75, 0xe1, 0xbb, 0x5b, 0x5d,
+    0xe1, 0x08, 0xde, 0x43, 0x9c, 0x08, 0x55, 0x1d,
+};
 
-static const uint8_t x123[] = {
-    0x40, 0x41, 0x6C, 0x8C, 0xDA, 0xA0, 0xF7, 0xA1, 0x75, 0x69, 0x55, 0x53, 0xC3, 0x27, 0x9C, 0x10, 0x9C, 0xE9, 0x27, 0x7E, 0x53, 0xC5, 0x86, 0x2A, 0xA7, 0x15, 0xED, 0xC6, 0x36, 0xF1, 0x71, 0xCA
+static const uint8_t y_coord_P_256[] = {
+    0x1e, 0x52, 0xed, 0x75, 0x70, 0x11, 0x63, 0xf7,
+    0xf9, 0xe4, 0x0d, 0xdf, 0x9f, 0x34, 0x1b, 0x3d,
+    0xc9, 0xba, 0x86, 0x0a, 0xf7, 0xe0, 0xca, 0x7c,
+    0xa7, 0xe9, 0xee, 0xcd, 0x00, 0x84, 0xd1, 0x9c,
 };
 
 int32_t ec_import_export_test(void)
@@ -370,6 +383,9 @@ int32_t ec_import_export_test(void)
     err = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                            &public_key,
                                            &private_key);
+    if(err) {
+        return 1;
+    }
 
     err = t_cose_crypto_export_ec2_key(public_key,
                                       &curve,
@@ -379,7 +395,7 @@ int32_t ec_import_export_test(void)
                                       &y_coord,
                                       &y_sign);
     if(err) {
-        return 99;
+        return 2;
     }
 
     err = t_cose_crypto_import_ec2_pubkey(curve,
@@ -388,7 +404,7 @@ int32_t ec_import_export_test(void)
                                           y_sign,
                                           &public_key_next);
     if(err) {
-        return 99;
+        return 3;
     }
 
     err = t_cose_crypto_export_ec2_key(public_key_next,
@@ -399,15 +415,20 @@ int32_t ec_import_export_test(void)
                                       &y_coord,
                                       &y_sign);
     if(err) {
-        return 99;
+        return 4;
     }
 
     if(curve != T_COSE_ELLIPTIC_CURVE_P_256) {
-        return 88;
+        return 5;
     }
 
-    if(q_useful_buf_compare(x_coord, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(x123) )) {
-        return 88;
+    if(q_useful_buf_compare(x_coord, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(x_coord_P_256) )) {
+        return 6;
+    }
+
+
+    if(q_useful_buf_compare(y_coord, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(y_coord_P_256) )) {
+        return 6;
     }
 
     return 0;

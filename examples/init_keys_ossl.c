@@ -274,7 +274,7 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
 
     switch(cose_ec_curve_id) {
         case T_COSE_ELLIPTIC_CURVE_P_256:
-            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_key_pair_der);
+            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_key_pair_der);
             break;
         case T_COSE_ELLIPTIC_CURVE_P_384:
             der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_key_pair_der);

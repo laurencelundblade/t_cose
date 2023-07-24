@@ -54,7 +54,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ecdh_test),
     TEST_ENTRY(ec_import_export_test),
 
-    //TEST_ENTRY(dec_fixed),
     TEST_ENTRY(decrypt_known_good),
 #endif /* T_COSE_USE_B_CON_SHA256 */
 
