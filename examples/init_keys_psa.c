@@ -185,6 +185,9 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
     psa_destroy_key((psa_key_handle_t)key_pair.key.handle);
 }
 
+
+
+
 /*
  * Public function, see init_keys.h
  */

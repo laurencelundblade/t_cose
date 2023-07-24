@@ -181,6 +181,11 @@ Done:
     return return_value;
 }
 
+
+#if 0
+/* This isn't in use yet because something wasn't going right for it.
+ * It would be good to have this working for the example.
+ */
 #include <openssl/x509.h>
 
 static enum t_cose_err_t
@@ -192,7 +197,6 @@ init_encryption_pubkey_der(
     enum t_cose_err_t  return_value;
 
 
-#if 0
     EVP_PKEY          *apkey;
     EC_KEY            *ec_key;
     EC_GROUP          *ec_group;
@@ -241,7 +245,6 @@ init_encryption_pubkey_der(
 
     apkey = EVP_PKEY_new();
 
-#endif
 
     const uint8_t *pp = ec_P_256_pub_key_der;
 
@@ -260,6 +263,9 @@ init_encryption_pubkey_der(
 Done:
     return return_value;
 }
+#endif
+
+
 
 /*
  * Public function, see init_key.h
@@ -291,16 +297,10 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
         return err;
     }
 
-#if 0
-    err = init_encryption_pubkey_der(der_encoded, public_key);
-    if(err) {
-        // TODO: free the private key
-        return err;
-    }
-#else
+    /* Clone the private key since it also has the public key. Would be
+     * good to give an example of public-key only import instead.*/
     *public_key = *private_key;
     EVP_PKEY_up_ref((EVP_PKEY *)public_key->key.ptr);
-#endif
 
     return T_COSE_SUCCESS;
 }
