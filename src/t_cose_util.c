@@ -503,6 +503,7 @@ party_encode(QCBOREncodeContext           *cbor_encoder,
     } else {
         QCBOREncode_AddNULL(cbor_encoder);
     }
+    /* nonce and other are hard coded to NULL because they seen unneeded. */
     QCBOREncode_AddNULL(cbor_encoder);
     QCBOREncode_AddNULL(cbor_encoder);
     QCBOREncode_CloseArray(cbor_encoder);
@@ -514,16 +515,18 @@ party_encode(QCBOREncodeContext           *cbor_encoder,
  */
 enum t_cose_err_t
 create_kdf_context_info(const struct t_cose_alg_and_bits next_alg,
-                        const struct q_useful_buf_c      sender_identity,
-                        const struct q_useful_buf_c      recipient_identity,
+                        const struct q_useful_buf_c      party_u_identity,
+                        const struct q_useful_buf_c      party_v_identity,
                         const struct q_useful_buf_c      protected_headers,
-                        const struct q_useful_buf_c      other,
-                        const struct q_useful_buf_c      other_priv,
+                        const struct q_useful_buf_c      supp_pub_other,
+                        const struct q_useful_buf_c      supp_priv_info,
                         const struct q_useful_buf        buffer_for_info,
-                        struct q_useful_buf_c           *info_structure)
+                        struct q_useful_buf_c           *kdf_context_info)
 {
     QCBOREncodeContext  cbor_encoder;
     QCBORError          err;
+    enum t_cose_err_t   return_value;
+
 
     QCBOREncode_Init(&cbor_encoder, buffer_for_info);
     QCBOREncode_OpenArray(&cbor_encoder);
@@ -532,8 +535,8 @@ create_kdf_context_info(const struct t_cose_alg_and_bits next_alg,
     QCBOREncode_AddInt64(&cbor_encoder, next_alg.cose_alg_id);
 
     /* -----------PartyInfo ---------------*/
-    party_encode(&cbor_encoder, sender_identity);
-    party_encode(&cbor_encoder, recipient_identity);
+    party_encode(&cbor_encoder, party_u_identity);
+    party_encode(&cbor_encoder, party_v_identity);
 
 
     /* -----------SuppPubInfo---------------*/
@@ -546,24 +549,34 @@ create_kdf_context_info(const struct t_cose_alg_and_bits next_alg,
     QCBOREncode_AddBytes(&cbor_encoder, protected_headers);
 
     /* other */
-    if(!q_useful_buf_c_is_null(other)) {
-        QCBOREncode_AddBytes(&cbor_encoder, other);
+    if(!q_useful_buf_c_is_null(supp_pub_other)) {
+        QCBOREncode_AddBytes(&cbor_encoder, supp_pub_other);
     }
 
     QCBOREncode_CloseArray(&cbor_encoder);
 
     /* -----------SuppPrivInfo----------- */
-    if(!q_useful_buf_c_is_null(other_priv)) {
-        QCBOREncode_AddBytes(&cbor_encoder, other_priv);
+    if(!q_useful_buf_c_is_null(supp_priv_info)) {
+        QCBOREncode_AddBytes(&cbor_encoder, supp_priv_info);
     }
 
     QCBOREncode_CloseArray(&cbor_encoder);
 
-    err = QCBOREncode_Finish(&cbor_encoder, info_structure);
-    if(err) {
-        return T_COSE_ERR_FAIL; // TODO: improve error mapping
+    err = QCBOREncode_Finish(&cbor_encoder, kdf_context_info);
+    switch(err) {
+        case QCBOR_SUCCESS:
+            return_value = T_COSE_SUCCESS;
+            break;
+
+        case QCBOR_ERR_BUFFER_TOO_SMALL:
+            return_value =T_COSE_ERR_KDF_CONTEXT_SIZE;
+            break;
+
+        default:
+            return_value = T_COSE_ERR_CBOR_FORMATTING;
     }
-    return T_COSE_SUCCESS;
+
+    return return_value;
 }
 
 

@@ -123,8 +123,6 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     int32_t                kdf_hash_alg;
     const struct t_cose_parameter *salt_param;
     const struct t_cose_parameter *ephem_param;
-    const struct t_cose_parameter *partyu_param;
-    const struct t_cose_parameter *partyv_param;
     struct q_useful_buf_c  salt;
     struct t_cose_key      ephemeral_key;
     MakeUsefulBufOnStack(  kek_buffer ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH));
@@ -218,16 +216,12 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
      }
 
     /* --- Make Info structure ---- */
-    partyu_param = t_cose_param_find(*params, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
-    partyv_param = t_cose_param_find(*params, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
-    // TODO: error processing and type checking
-
     cose_result = create_kdf_context_info(keywrap_alg,
-                                          partyu_param == NULL ? NULL_Q_USEFUL_BUF_C : partyu_param->value.string,
-                                          partyv_param == NULL ? NULL_Q_USEFUL_BUF_C :partyv_param->value.string,
+                                          t_cose_param_find_bstr(*params, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT),
+                                          t_cose_param_find_bstr(*params, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT),
                                           protected_params,
-                                          me->other,
-                                          me->other_priv,
+                                          me->supp_pub_other,
+                                          me->supp_priv_info,
                                           info_struct_buf,
                                          &info_struct);
     if (cose_result != T_COSE_SUCCESS) {

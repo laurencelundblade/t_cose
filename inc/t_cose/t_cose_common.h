@@ -620,6 +620,12 @@ enum t_cose_err_t {
     T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE = 86,
 
     T_COSE_ERR_KDF_BUFFER_TOO_SMALL = 87,
+
+    /* Probably need to set a KDF context info buffer
+     * to be larger because there are too many protected
+     * headers, party u/v identities were added or
+     * supp info was added. TODO: see xxxx*/
+    T_COSE_ERR_KDF_CONTEXT_SIZE = 88
 };
 
 

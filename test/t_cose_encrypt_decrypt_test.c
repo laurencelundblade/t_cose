@@ -368,7 +368,7 @@ int32_t decrypt_known_good(void)
                                               &pubkey,      /* out: public key to be used for encryption */
                                               &privatekey); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
-        return (int32_t)result;
+        return (int32_t)result + 1000;
     }
 
 
@@ -391,7 +391,7 @@ int32_t decrypt_known_good(void)
                                 &params);
 
     if(result != T_COSE_SUCCESS) {
-        return -99;
+        return (int32_t)result + 2000;
     }
 
 

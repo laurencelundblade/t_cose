@@ -155,13 +155,13 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         params_tail->next = &params[2];
         params_tail = params_tail->next;
     }
-    if(!q_useful_buf_c_is_null(me->partyu)) {
-        params[3] = t_cose_param_make_unprot_bstr(me->partyu, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
+    if(!q_useful_buf_c_is_null(me->party_u_identity)) {
+        params[3] = t_cose_param_make_unprot_bstr(me->party_u_identity, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
         params_tail->next = &params[3];
         params_tail = params_tail->next;
     }
-    if(!q_useful_buf_c_is_null(me->partyv)) {
-        params[4] = t_cose_param_make_unprot_bstr(me->partyv, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
+    if(!q_useful_buf_c_is_null(me->party_v_identity)) {
+        params[4] = t_cose_param_make_unprot_bstr(me->party_v_identity, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
         params_tail->next = &params[4];
         params_tail = params_tail->next;
     }
@@ -180,11 +180,11 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
     /* --- Make Info structure ---- */
     return_value = create_kdf_context_info(kek_alg,
-                                         me->partyu,
-                                         me->partyv,
+                                         me->party_u_identity,
+                                         me->party_v_identity,
                                          protected_hdr,
-                                         me->other,
-                                         me->other_priv,
+                                         me->supp_pub_other,
+                                         me->supp_priv_info,
                                          info_struct_buf,
                                         &info_struct);
 
