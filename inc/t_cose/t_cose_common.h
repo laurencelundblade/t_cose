@@ -379,7 +379,7 @@ enum t_cose_err_t {
     T_COSE_ERR_TOO_SMALL = 25,
 
     /** More than \ref T_COSE_MAX_CRITICAL_PARAMS parameters
-     * listed in the "crit" parameter.
+     * listed in the "crit" parameter. TODO: This is not just for crit params
      */
     T_COSE_ERR_TOO_MANY_PARAMETERS = 26,
 

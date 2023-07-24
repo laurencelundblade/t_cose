@@ -13,6 +13,7 @@
 #include "t_cose/t_cose_encrypt_dec.h"
 #include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose/t_cose_recipient_dec_esdh.h"
+#include "t_cose/t_cose_recipient_enc_esdh.h"
 
 
 
@@ -313,10 +314,107 @@ int32_t base_encrypt_decrypt_test(void)
 
 
 
-
 #include "init_keys.h"
 
 #ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
+
+
+
+int32_t
+esdh_enc_dec_test(void)
+{
+    enum t_cose_err_t                result;
+    struct t_cose_key                privatekey;
+    struct t_cose_key                publickey;
+    struct t_cose_encrypt_enc        enc_ctx;
+    struct t_cose_recipient_enc_esdh recipient;
+    struct q_useful_buf_c            cose_encrypted_message;
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 400);
+    struct t_cose_encrypt_dec_ctx    dec_ctx;
+    struct t_cose_recipient_dec_esdh dec_recipient;
+
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    decrypted_buffer, 400);
+    struct q_useful_buf_c            decrypted_payload;
+    struct t_cose_parameter         *params;
+
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+        /* Mbed TLS 2.28 doesn't support key wrap. */
+        /* TODO: check for other required algorithms here */
+        return INT32_MIN;
+    }
+
+   /* Create a key pair.  This is a fixed test key pair. The creation
+     * of this key pair is crypto-library dependent because t_cose_key
+     * is crypto-library dependent. See t_cose_key.h and the examples
+     * to understand key-pair creation better. */
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                              &publickey, /* out: public key to be used for encryption */
+                                              &privatekey); /* out: corresponding private key for decryption */
+    if(result != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* Initialize the encryption context telling it we want
+     * a COSE_Encrypt (not a COSE_Encrypt0) because we're doing ECDH with a
+     * COSE_Recipient. Also tell it the AEAD algorithm for the
+     * body of the message.
+     */
+    t_cose_encrypt_enc_init(&enc_ctx,
+                             T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
+                             T_COSE_ALGORITHM_A128GCM);
+
+    /* Create the recipient object telling it the algorithm and the public key
+     * for the COSE_Recipient it's going to make.
+     */
+    t_cose_recipient_enc_esdh_init(&recipient,
+                                    T_COSE_ALGORITHM_ECDH_ES_A128KW, /* content key distribution id */
+                                    T_COSE_ELLIPTIC_CURVE_P_256);    /* curve id */
+
+    t_cose_recipient_enc_esdh_set_key(&recipient,
+                                       publickey,
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_KID));
+
+    /* Give the recipient object to the main encryption context.
+     * (Only one recipient is set here, but there could be more).
+     */
+    t_cose_encrypt_add_recipient(&enc_ctx,
+                                 (struct t_cose_recipient_enc *)&recipient);
+
+    /* Now do the actual encryption */
+    result = t_cose_encrypt_enc(&enc_ctx, /* in: encryption context */
+                                 Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD), /* in: payload to encrypt */
+                                 NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                 cose_encrypt_message_buffer, /* in: buffer for COSE_Encrypt */
+                                 &cose_encrypted_message); /* out: COSE_Encrypt */
+
+    if (result != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+
+    t_cose_encrypt_dec_init(&dec_ctx, 0);
+
+    t_cose_recipient_dec_esdh_init(&dec_recipient);
+
+    t_cose_recipient_dec_esdh_set_key(&dec_recipient, privatekey, NULL_Q_USEFUL_BUF_C);
+
+    t_cose_encrypt_dec_add_recipient(&dec_ctx,
+                                     (struct t_cose_recipient_dec *)&dec_recipient);
+
+    result = t_cose_encrypt_dec(&dec_ctx,
+                                cose_encrypted_message,
+                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                decrypted_buffer,
+                                &decrypted_payload,
+                                &params);
+    if(result != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+Done:
+
+    return (int32_t)result;
+}
 
 
 /* This comes from the COSE WG Examples repository */
@@ -363,6 +461,12 @@ int32_t decrypt_known_good(void)
     struct t_cose_parameter         *params;
     struct t_cose_key                privatekey;
     struct t_cose_key                pubkey;
+
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+        /* Mbed TLS 2.28 doesn't support key wrap. */
+        /* TODO: check for other required algorithms here */
+        return INT32_MIN;
+    }
 
     result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                               &pubkey,      /* out: public key to be used for encryption */
