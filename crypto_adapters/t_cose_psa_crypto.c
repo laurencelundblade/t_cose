@@ -1554,8 +1554,7 @@ t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
     switch(first_byte) {
         case 0x04:
             len = (export_len - 1 ) / 2;
-            struct q_useful_buf_c yy = UsefulBuf_Tail(export, len);
-            *y_coord = UsefulBuf_Copy(y_coord_buf, yy);
+            *y_coord = UsefulBuf_Copy(y_coord_buf, UsefulBuf_Tail(export, len));
             break;
 
         case 0x02:

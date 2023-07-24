@@ -117,6 +117,7 @@ check_headers(const struct t_cose_parameter *headers)
 
 }
 
+
 int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 {
     struct t_cose_encrypt_enc      enc_context;
@@ -300,12 +301,6 @@ int32_t base_encrypt_decrypt_test(void)
     if(rv) {
         return rv;
     }
-
-//    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_AES256CCM_16_128);
-//    if(rv) {
-//        return rv;
-//    }
-
 
     return 0;
 

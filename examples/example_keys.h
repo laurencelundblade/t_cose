@@ -119,9 +119,10 @@ extern const unsigned char ec_P_384_priv_key_raw[48];
 extern const unsigned char ec_P_521_key_pair_der[223];
 extern const unsigned char ec_P_521_priv_key_raw[66];
 
+
+
 /* These keys are the ones used in the COSE Work Group GitHub Examples Repository */
 extern const unsigned char cose_ex_P_256_priv_key_raw[32];
-
 extern const unsigned char cose_ex_P_256_key_pair_der[121];
 
 
