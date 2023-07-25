@@ -208,7 +208,8 @@ extern "C" {
 
 /**
  * Semantic versioning for t_cose x.y.z. Note that these were not defined
- * for some version of t_cose 1.x.
+ * for some releases of t_cose 1.x so !defined(T_COSE_VERSION_MAJOR)
+ * indicates t_cose 1.x.
  */
 #define T_COSE_VERSION_MAJOR 2
 #define T_COSE_VERSION_MINOR 0

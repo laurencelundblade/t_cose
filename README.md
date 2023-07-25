@@ -1,5 +1,6 @@
 THIS IS THE DEV BRANCH FOR t_cose 2.0. It is an alpha quality release. The major 
-features are in place, but are subject to change. Test and documentation is not complete.
+features are in place. Test and documentation are not complete.  There may be 
+minor changes.
 
 ![t_cose](https://github.com/laurencelundblade/t_cose/blob/master/t-cose-logo.png?raw=true)
 
@@ -14,7 +15,7 @@ and [COSE, RFC 9053](https://tools.ietf.org/html/rfc9053):
 
 **Implemented in C with minimal dependency** – There are three main
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
-2) A cryptographic library for ECDSA and SHA-2, 3) C99, <stdint.h>,
+2) A cryptographic library, 3) C99, <stdint.h>,
 <stddef.h>, <stdbool.h> and <string.h>.  It is  highly
 portable to different HW, OS's and cryptographic libraries. Except for
 some minor configuration for the cryptographic library, no #ifdefs or
@@ -29,11 +30,10 @@ are included.
 **Secure coding style** – Uses a construct called UsefulBuf / q_useful_buf as a
 discipline for safe coding and handling of binary data.
 
-**Small simple memory model** – Malloc is not needed. Besides the
-cryptographic library and payload buffer, about 600 bytes of heap/stack is needed
-for signing and 1500 bytes for verifying. The caller supplies the output buffer
-and context structures so the caller has control over memory usage making it
-useful for embedded implementations that have to run in small fixed memory.
+**Small simple memory model** – Malloc is not used. Stack use is generally
+small. The caller supplies the larger buffers like those for the paylod giving full 
+control of memory usage and allocation making t_cose useful for embedded 
+implementations that have to run in small fixed memory.
 
 
 ## Code Status
