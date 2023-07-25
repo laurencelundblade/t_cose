@@ -579,7 +579,8 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
     struct t_cose_sign_sign_ctx    sign_ctx;
     struct t_cose_signature_sign_eddsa  signer_eddsa;
     struct t_cose_signature_sign_main  signer_main;
-    struct t_cose_signature_sign *signer;
+    struct t_cose_signature_sign  *signer;
+    size_t                         auxiliary_buffer_size;
 
     result = init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
     if(result) {
@@ -629,10 +630,8 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
         goto Done;
     }
 
-    /*
-     * Get the expected auxiliary buffer size. For anything but EDDSA, this should be zero.
-     */
-    size_t auxiliary_buffer_size = t_cose_sign1_sign_auxiliary_buffer_size(&sign1_ctx);
+    /* ----- aux buf size for EdDSA ---- */
+    auxiliary_buffer_size = t_cose_sign1_sign_auxiliary_buffer_size(&sign1_ctx);
     if (cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
         /* TBS is a bit smaller, given it doesn't include the signature */
         expected_min = payload.len + kid.len;
@@ -643,6 +642,7 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
             goto Done;
         }
     } else if (auxiliary_buffer_size != 0) {
+        /* For anything but EDDSA, aux buf size should be zero.*/
         return_value = -3;
         goto Done;
     }
@@ -653,7 +653,7 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
     t_cose_sign1_sign_init(&sign1_ctx,  0,  cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign1_ctx, key_pair, kid);
     if (auxiliary_buffer_size > 0) {
-        /* Narrow size to exactly what is required to be sure calculation is right. */
+        /* Narrow size to exactly what is required to fully check calc. */
         auxiliary_buffer.len = auxiliary_buffer_size;
         t_cose_sign1_sign_set_auxiliary_buffer(&sign1_ctx, auxiliary_buffer);
     }
@@ -699,17 +699,22 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
     }
 
 
-    /* ==== Again for COSE_Sign ==== */
+    /* ========= Again for COSE_Sign ========= */
 
+    /* ---- First calculate the size ----- */
     t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN);
 
     if (cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
         t_cose_signature_sign_eddsa_init(&signer_eddsa);
-        t_cose_signature_sign_eddsa_set_signing_key(&signer_eddsa, key_pair, NULL_Q_USEFUL_BUF_C);
+        t_cose_signature_sign_eddsa_set_signing_key(&signer_eddsa,
+                                                    key_pair,
+                                                    NULL_Q_USEFUL_BUF_C);
         signer = (struct t_cose_signature_sign *)&signer_eddsa;
     } else {
         t_cose_signature_sign_main_init(&signer_main, cose_algorithm_id);
-        t_cose_signature_sign_main_set_signing_key(&signer_main, key_pair, NULL_Q_USEFUL_BUF_C);
+        t_cose_signature_sign_main_set_signing_key(&signer_main,
+                                                   key_pair,
+                                                   NULL_Q_USEFUL_BUF_C);
         signer = (struct t_cose_signature_sign *)&signer_main;
     }
     t_cose_sign_add_signer(&sign_ctx, signer);
@@ -720,39 +725,47 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
                               payload,
                               nil_buf,
                              &calc_size);
+    if(result) {
+        return_value = 9000 + (int32_t)result;
+        goto Done;
+    }
 
-    /*
-     * Get the expected auxiliary buffer size. For anything but EDDSA, this should be zero.
-     */
-    if (cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
+
+    /* ----- aux buf size for EdDSA ---- */
+    if(cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
         auxiliary_buffer_size = t_cose_signature_sign_eddsa_auxiliary_buffer_size(&signer_eddsa);
         /* TBS is a bit smaller, given it doesn't include the signature */
         expected_min = payload.len + kid.len;
         if(auxiliary_buffer_size < expected_min ||
            auxiliary_buffer_size > expected_min + 30 ||
            auxiliary_buffer_size > SIZE_TEST_AUX_SIZE) {
-            return_value = -2;
+            return_value = -10;
             goto Done;
         }
-        /* Narrow size to exactly what is required to be sure calculation is right. */
+        /* Narrow size to exactly what is required to fully check calc. */
         auxiliary_buffer.len = auxiliary_buffer_size;
-        t_cose_signature_sign_eddsa_set_auxiliary_buffer(&signer_eddsa, auxiliary_buffer);
+        t_cose_signature_sign_eddsa_set_auxiliary_buffer(&signer_eddsa,
+                                                         auxiliary_buffer);
     } else if (auxiliary_buffer_size != 0) {
-        return_value = -3;
+        /* For anything but EDDSA, aux buf size should be zero.*/
+        return_value = -11;
         goto Done;
     }
 
+    /* ---- Make a real COSE_Sign and compare the size ---- */
     result = t_cose_sign_sign(&sign_ctx,
                               NULL_Q_USEFUL_BUF_C,
                               payload,
                               signed_cose_buffer,
                              &actual_signed_cose);
     if(result) {
-        return -434;
+        return_value = 9500 + (int32_t)result;
+        goto Done;
     }
 
     if(actual_signed_cose.len != calc_size.len) {
-        return -66;
+        return_value = -12;
+        goto Done;
     }
 
     return_value = 0;
@@ -769,12 +782,14 @@ Done:
  */
 int32_t sign_verify_get_size_test()
 {
-    int32_t return_value;
+    int32_t      return_value;
     const struct test_case* tc;
+
+    /* Just looping over all the algs here */
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
             return_value = signing_size_test(tc->cose_algorithm_id,
-                                     NULL_Q_USEFUL_BUF_C);
+                                             NULL_Q_USEFUL_BUF_C);
             if (return_value) {
                 return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
             }
