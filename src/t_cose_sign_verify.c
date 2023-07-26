@@ -282,18 +282,15 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
 
         t_cose_params_append(decode_parameters, sig_params);
 
-        if(me->option_flags & (T_COSE_OPT_VERIFY_ALL_SIGNATURES | T_COSE_OPT_DECODE_ONLY)) {
+        if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
+            /* T_COSE_ERR_DECLINE never stops processing so all header
+             * params are decoded, all aux buffers sizes calculated */
+            continue;
+        }
+
+        if(me->option_flags & T_COSE_OPT_VERIFY_ALL_SIGNATURES ) {
             if(return_value == T_COSE_ERR_DECLINE) {
-                /* When verifying all, there can be no declines.
-                 * Also only decoding (not verifying) there can be
-                 * no declines because every signature must be
-                 * decoded so its parameters can be returned.
-                 * TODO: is this really true? It might be OK to
-                 * only decode some as long as the caller knows
-                 * that some weren't decoded. How to indicate this
-                 * if it happens? An error code? A special
-                 * indicator parameter in the returned list?
-                 */
+                /* When verifying all, there can be no declines */
                 break;
             } else {
                 /* success. Continue on to check that the rest succeed. */
@@ -301,10 +298,10 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
         } else {
             /* Not verifying all. Looking for one success */
             if(return_value == T_COSE_SUCCESS) {
-                /* Just one success is enough to complete.*/
+                /* Just one success is enough to complete */
                 break;
             } else {
-                /* decline. Continue to try other COSE_Signatures. */
+                /* Decline. Continue to try other COSE_Signatures */
             }
         }
     }
