@@ -328,7 +328,8 @@ enum t_cose_err_t {
 
     /** Signature verification or data authentication failed. For
      * example, the cryptographic operations completed successfully
-     * but hash wasn't as expected. */
+     * but hash wasn't as expected.
+     * TODO: separate these? Seems important to provide info about where this failure occured (key wrap, AEAD, ECDSA, MAC...*/
     T_COSE_ERR_SIG_VERIFY = 13,
     T_COSE_ERR_DATA_AUTH_FAILED = 13,
 

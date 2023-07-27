@@ -75,9 +75,9 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 {
     enum t_cose_err_t       return_value;
     struct t_cose_key       ephemeral_key;
-    MakeUsefulBufOnStack(   info_struct_buf, T_COSE_ENC_COSE_KDF_CONTEXT);
+    MakeUsefulBufOnStack(   kdf_context_buf, T_COSE_ENC_COSE_KDF_CONTEXT_SIZE);
     struct q_useful_buf_c   protected_hdr;
-    struct q_useful_buf_c   info_struct;
+    struct q_useful_buf_c   kdf_context;
     struct t_cose_parameter params[6];
     struct t_cose_parameter *params2;
     struct t_cose_parameter *params_tail;
@@ -156,15 +156,21 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         params_tail->next = &params[2];
         params_tail = params_tail->next;
     }
-    if(!q_useful_buf_c_is_null(me->party_u_identity)) {
-        params[3] = t_cose_param_make_unprot_bstr(me->party_u_identity, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
-        params_tail->next = &params[3];
-        params_tail = params_tail->next;
-    }
-    if(!q_useful_buf_c_is_null(me->party_v_identity)) {
-        params[4] = t_cose_param_make_unprot_bstr(me->party_v_identity, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
-        params_tail->next = &params[4];
-        params_tail = params_tail->next;
+
+    /* Party U and Party V headers */
+    if(!me->do_not_send) {
+        if(!q_useful_buf_c_is_null(me->party_u_ident)) {
+            params[3] = t_cose_param_make_unprot_bstr(me->party_u_ident,
+                                                      T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
+            params_tail->next = &params[3];
+            params_tail = params_tail->next;
+        }
+        if(!q_useful_buf_c_is_null(me->party_v_ident)) {
+            params[4] = t_cose_param_make_unprot_bstr(me->party_v_ident,
+                                                      T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
+            params_tail->next = &params[4];
+            params_tail = params_tail->next;
+        }
     }
     /* Surprised there's no header for 'other' data item. */
 
@@ -180,17 +186,17 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
 
     /* --- Make Info structure ---- */
-    // TODO: allow info_struct_buf to be
-    // supplied externally
+    if(!q_useful_buf_is_null(me->kdf_context_buf)) {
+        kdf_context_buf = me->kdf_context_buf;
+    }
     return_value = create_kdf_context_info(kek_alg,
-                                         me->party_u_identity,
-                                         me->party_v_identity,
-                                         protected_hdr,
-                                         me->supp_pub_other,
-                                         me->supp_priv_info,
-                                         info_struct_buf,
-                                        &info_struct);
-
+                                           me->party_u_ident,
+                                           me->party_v_ident,
+                                           protected_hdr,
+                                           me->supp_pub_other,
+                                           me->supp_priv_info,
+                                           kdf_context_buf,
+                                          &kdf_context);
     if (return_value != T_COSE_SUCCESS) {
         return return_value;
     }
@@ -213,7 +219,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                         hash_alg,     /* in: hash alg for HKDF */
                         NULL_Q_USEFUL_BUF_C, /* in: salt */
                         derived_key,  /* in: input key material (ikm) */
-                        info_struct,  /* in: encoded info struct */
+                        kdf_context,  /* in: encoded info struct */
                         kek_buf);     /* in: buffer, out: kek */
     if(return_value) {
         return T_COSE_ERR_HKDF_FAIL;

@@ -117,19 +117,18 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     struct q_useful_buf_c  info_struct;
     struct q_useful_buf_c  kek;
     struct t_cose_key      kek_handle;
-    struct q_useful_buf_c  party_u;
-    struct q_useful_buf_c  party_v;
+    struct q_useful_buf_c  party_u_ident;
+    struct q_useful_buf_c  party_v_ident;
     struct q_useful_buf_c  derived_key;
     struct q_useful_buf_c  protected_params;
     enum t_cose_err_t      cose_result;
     int32_t                kdf_hash_alg;
-    const struct t_cose_parameter *salt_param;
     const struct t_cose_parameter *ephem_param;
     struct q_useful_buf_c  salt;
     struct t_cose_key      ephemeral_key;
     MakeUsefulBufOnStack(  kek_buffer,
                              T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH));
-    MakeUsefulBufOnStack(  info_struct_buf, T_COSE_DEC_COSE_KDF_CONTEXT);
+    MakeUsefulBufOnStack(  kdf_context_buf, T_COSE_DEC_COSE_KDF_CONTEXT_SIZE);
     struct t_cose_alg_and_bits  keywrap_alg;
     // TODO: size this correctly
     MakeUsefulBufOnStack(  derived_secret_buf,
@@ -222,18 +221,28 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
      }
 
     /* --- Make Info structure ---- */
-    party_u = t_cose_param_find_bstr(*params,
-                                     T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
-    party_v = t_cose_param_find_bstr(*params,
-                                     T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
-    // TODO: allow info_struct_buf to be supplied externally
+    if(!q_useful_buf_c_is_null(me->party_u_ident)) {
+        party_u_ident = me->party_u_ident;
+    } else {
+        party_u_ident = t_cose_param_find_bstr(*params,
+                                          T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
+    }
+    if(!q_useful_buf_c_is_null(me->party_v_ident)) {
+        party_v_ident = me->party_v_ident;
+    } else {
+        party_v_ident = t_cose_param_find_bstr(*params,
+                                          T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
+    }
+    if(!q_useful_buf_is_null(me->kdf_context_buf)) {
+        kdf_context_buf = me->kdf_context_buf;
+    }
     cose_result = create_kdf_context_info(keywrap_alg,
-                                          party_u,
-                                          party_v,
+                                          party_u_ident,
+                                          party_v_ident,
                                           protected_params,
                                           me->supp_pub_other,
                                           me->supp_priv_info,
-                                          info_struct_buf,
+                                          kdf_context_buf,
                                          &info_struct);
     if (cose_result != T_COSE_SUCCESS) {
         return cose_result;
@@ -241,15 +250,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
 
 
     /* --- Run the HKDF --- */
-    salt_param = t_cose_param_find(*params, T_COSE_HEADER_ALG_PARAM_SALT);
-    if(salt_param != NULL) {
-        if(salt_param->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
-            goto Done;
-        }
-        salt = salt_param->value.string;
-    } else {
-        salt = NULL_Q_USEFUL_BUF_C;
-    }
+    salt = t_cose_param_find_bstr(*params, T_COSE_HEADER_ALG_PARAM_SALT);
     kek_buffer.len = keywrap_alg.bits_in_key/8;
     cose_result = t_cose_crypto_hkdf(kdf_hash_alg,
                                      salt,         /* in: salt */
