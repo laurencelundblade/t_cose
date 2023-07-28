@@ -78,6 +78,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     MakeUsefulBufOnStack(   kdf_context_buf, T_COSE_ENC_COSE_KDF_CONTEXT_SIZE);
     struct q_useful_buf_c   protected_hdr;
     struct q_useful_buf_c   kdf_context;
+    struct q_useful_buf_c   salt;
+    Q_USEFUL_BUF_MAKE_STACK_UB(salt_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
     struct t_cose_parameter params[6];
     struct t_cose_parameter *params2;
     struct t_cose_parameter *params_tail;
@@ -148,44 +150,58 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     params[1].in_protected                   = false;
     params[1].label                          = T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY;
     params_tail->next = &params[1];
-    params_tail = params_tail->next;
+    params_tail       = params_tail->next;
 
     /* Optional kid param */
     if(!q_useful_buf_c_is_null(me->kid)) {
-        params[2] = t_cose_param_make_kid(me->kid);
+        params[2]         = t_cose_param_make_kid(me->kid);
         params_tail->next = &params[2];
-        params_tail = params_tail->next;
+        params_tail       = params_tail->next;
     }
 
     /* Party U and Party V headers */
-    if(!me->do_not_send) {
+    if(!me->do_not_send_party) {
         if(!q_useful_buf_c_is_null(me->party_u_ident)) {
-            params[3] = t_cose_param_make_unprot_bstr(me->party_u_ident,
+            params[3]         = t_cose_param_make_unprot_bstr(me->party_u_ident,
                                                       T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
             params_tail->next = &params[3];
-            params_tail = params_tail->next;
+            params_tail       = params_tail->next;
         }
         if(!q_useful_buf_c_is_null(me->party_v_ident)) {
-            params[4] = t_cose_param_make_unprot_bstr(me->party_v_ident,
+            params[4]         = t_cose_param_make_unprot_bstr(me->party_v_ident,
                                                       T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
             params_tail->next = &params[4];
-            params_tail = params_tail->next;
+            params_tail       = params_tail->next;
         }
     }
-    /* Surprised there's no header for 'other' data item. */
 
-    /* TODO: add the salt param */
+    /* Surprised there's no header for KDF Context info 'other' data item. */
+
+    /* Salt */
+    if(me->use_salt) {
+        if(!q_useful_buf_c_is_null(me->salt_bytes)) {
+            salt = me->salt_bytes;
+        } else {
+            t_cose_crypto_get_random(salt_buf, kek_alg.bits_in_key / 8, &salt);
+        }
+        params[5]         = t_cose_param_make_unprot_bstr(salt, T_COSE_HEADER_ALG_PARAM_SALT);
+        params_tail->next = &params[5];
+        params_tail       = params_tail->next;
+    } else {
+        salt = NULL_Q_USEFUL_BUF_C;
+    }
 
     /* Custom params from caller */
     params2 = params;
     t_cose_params_append(&params2, me->added_params);
 
+    /* List complete, do the actual encode */
     return_value = t_cose_headers_encode(cbor_encoder,
                                          params2,
                                          &protected_hdr);
 
 
-    /* --- Make Info structure ---- */
+    /* --- Make KDF Context ---- */
     if(!q_useful_buf_is_null(me->kdf_context_buf)) {
         kdf_context_buf = me->kdf_context_buf;
     }
@@ -217,7 +233,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     kek_buf.len = kek_alg.bits_in_key / 8;
     return_value = t_cose_crypto_hkdf(
                         hash_alg,     /* in: hash alg for HKDF */
-                        NULL_Q_USEFUL_BUF_C, /* in: salt */
+                        salt, /* in: salt */
                         derived_key,  /* in: input key material (ikm) */
                         kdf_context,  /* in: encoded info struct */
                         kek_buf);     /* in: buffer, out: kek */
@@ -228,7 +244,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     kek.len = kek_buf.len;
 
     /* Free ephemeral key (which is not a symmetric key!) */
-    /* TBD: Rename the function to t_cose_crypto_free_key() */
+    /* TODO: Rename the function to t_cose_crypto_free_key() */
     t_cose_crypto_free_symmetric_key(ephemeral_key);
 
 

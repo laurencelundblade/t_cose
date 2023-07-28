@@ -260,8 +260,13 @@ enum t_cose_key_usage_flags {
  */
 #define T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS (1 + 1 + 5 + 9)
 
-/* Six: an alg id, a kid, an iv, a content type, one custom, crit list */
-#define T_COSE_NUM_VERIFY_DECODE_HEADERS 6
+/* Six: an alg id, a kid, an iv, a content type, one custom, crit list
+ * or: 2 alg IDs, an IV, a kid, a supp_pub_info, one custom. If
+ * this is not enough use t_cose_encrypt_add_param_storage() or
+ * t_cose_sign_add_param_storage(). This is for the total of
+ * all headers in the main body and in recipient and signers.
+ */
+#define T_COSE_NUM_DECODE_HEADERS 6
 
 
 /**

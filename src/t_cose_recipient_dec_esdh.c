@@ -173,6 +173,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
 
     alg = t_cose_param_find_alg_id(*params, true);
 
+    // TODO: indention of all case statements. Which is it?
     switch(alg) {
     case T_COSE_ALGORITHM_ECDH_ES_A128KW:
         kdf_hash_alg            = T_COSE_ALGORITHM_SHA_256;
@@ -199,9 +200,6 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
 
 
     /* --- Run ECDH --- */
-    /* Inputs: pub key, ephemeral key
-     * Outputs: derived key */
-
     /* The ephemeral public key comes from the headers. It was
      * processed by the decode_ephemeral_key() callback. */
     ephem_param = t_cose_param_find(*params,
@@ -220,7 +218,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
          goto Done;
      }
 
-    /* --- Make Info structure ---- */
+    /* --- Make KDF Context ---- */
     if(!q_useful_buf_c_is_null(me->party_u_ident)) {
         party_u_ident = me->party_u_ident;
     } else {
@@ -264,7 +262,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     kek.len = kek_buffer.len;
 
 
-    /* --- Perform key unrwap --- */
+    /* --- Perform key unwrap --- */
     cose_result = t_cose_crypto_make_symmetric_key_handle(keywrap_alg.cose_alg_id,
                                                           kek,
                                                           &kek_handle);
@@ -278,6 +276,8 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                         cek_encrypted,           /* in: encrypted CEK */
                         cek_buffer,              /* in: buffer for CEK */
                         cek);                    /* out: the CEK*/
+
+    // TODO: free kek handle
 
 Done:
     return cose_result;
