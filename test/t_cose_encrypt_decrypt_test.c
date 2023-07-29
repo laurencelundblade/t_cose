@@ -637,7 +637,7 @@ int32_t kdf_context_test(void)
         /* Mbed TLS 2.28 doesn't support key wrap. */
         /* TODO: check for other required algorithms here */
         // TODO: check for ECDH or ECDH suite
-        return INT32_MAX;
+        return INT32_MIN;
     }
 
     enc_in.party_u_ident    = Q_USEFUL_BUF_FROM_SZ_LITERAL("Party U Sample");
