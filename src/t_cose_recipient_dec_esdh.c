@@ -149,8 +149,18 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                            params,       /* out: list of decoded params */
                           &protected_params /* out: encoded prot params */
                            );
+    /* The ephemeral public key comes from the headers. It was
+     * processed by the decode_ephemeral_key() callback. */
+    ephem_param = t_cose_param_find(*params,
+                                    T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY);
+    if(ephem_param == NULL) {
+        cose_result = T_COSE_ERR_FAIL; // TODO: error code
+        goto done;
+    }
+    ephemeral_key = ephem_param->value.special_decode.value.key;
+
     if(cose_result != T_COSE_SUCCESS) {
-        goto Done;
+        goto done_free_ec;
     }
 
     /* Recipient array contains AES Key Wrap algorithm.
@@ -167,9 +177,9 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     QCBORDecode_ExitArray(cbor_decoder);
     result = QCBORDecode_GetError(cbor_decoder);
     if (result != QCBOR_SUCCESS) {
-        return T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING;
+        cose_result = T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING;
+        goto done_free_ec;
     }
-
 
     alg = t_cose_param_find_alg_id(*params, true);
 
@@ -194,28 +204,20 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
         break;
 
     default:
-        return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+        cose_result = T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+        goto done_free_ec;
     }
     (void)ce_alg; /* Not used because key wrap is not an AEAD */
 
 
     /* --- Run ECDH --- */
-    /* The ephemeral public key comes from the headers. It was
-     * processed by the decode_ephemeral_key() callback. */
-    ephem_param = t_cose_param_find(*params,
-                                    T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY);
-    if(ephem_param == NULL) {
-        return T_COSE_ERR_FAIL; // TODO: error code
-    }
-    ephemeral_key = ephem_param->value.special_decode.value.key;
-
     cose_result = t_cose_crypto_ecdh(me->private_key,    /* in: secret key */
                                      ephemeral_key,      /* in: public key */
                                      derived_secret_buf, /* in: output buf */
                                      &derived_key        /* out: derived key*/
                                      );
     if(cose_result != T_COSE_SUCCESS) {
-         goto Done;
+         goto done_free_ec;
      }
 
     /* --- Make KDF Context ---- */
@@ -243,7 +245,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                                           kdf_context_buf,
                                          &info_struct);
     if (cose_result != T_COSE_SUCCESS) {
-        return cose_result;
+        goto done_free_ec;
     }
 
 
@@ -256,7 +258,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                                      info_struct,  /* in: info */
                                      kek_buffer);  /* in/out: buffer and kek */
     if(cose_result != T_COSE_SUCCESS) {
-        goto Done;
+        goto done_free_ec;
     }
     kek.ptr = kek_buffer.ptr;
     kek.len = kek_buffer.len;
@@ -267,7 +269,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                                                           kek,
                                                           &kek_handle);
     if(cose_result != T_COSE_SUCCESS) {
-        goto Done;
+        goto done_free_ec;
     }
 
     cose_result = t_cose_crypto_kw_unwrap(
@@ -277,8 +279,10 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                         cek_buffer,              /* in: buffer for CEK */
                         cek);                    /* out: the CEK*/
 
-    // TODO: free kek handle
+    t_cose_crypto_free_symmetric_key(kek_handle);
 
-Done:
+done_free_ec:
+    t_cose_crypto_free_ec_key(ephemeral_key);
+done:
     return cose_result;
 }

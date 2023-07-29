@@ -120,7 +120,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
             kek_alg.bits_in_key = 256;
             break;
         default:
-            return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+            return_value =  T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+            goto done;
     }
     (void)ce_alg; /* Not used here because key wrap is not an AEAD */
 
@@ -133,7 +134,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     return_value = t_cose_crypto_generate_ec_key(me->cose_ec_curve_id,
                                                 &ephemeral_key);
     if (return_value != T_COSE_SUCCESS) {
-        return return_value;
+        goto done;
     }
 
 
@@ -199,6 +200,9 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     return_value = t_cose_headers_encode(cbor_encoder,
                                          params2,
                                          &protected_hdr);
+    if(return_value) {
+        goto done_free_ec;
+    }
 
 
     /* --- Make KDF Context ---- */
@@ -214,7 +218,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                            kdf_context_buf,
                                           &kdf_context);
     if (return_value != T_COSE_SUCCESS) {
-        return return_value;
+        goto done_free_ec;
     }
 
 
@@ -225,7 +229,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                     derived_key_buf,       /* in: buffer for derived key */
                    &derived_key);          /* out: derived key */
     if(return_value) {
-        return T_COSE_ERR_KEY_AGREEMENT_FAIL;
+        return_value =  T_COSE_ERR_KEY_AGREEMENT_FAIL;
+        goto done_free_ec;
     }
 
 
@@ -237,15 +242,13 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                         derived_key,  /* in: input key material (ikm) */
                         kdf_context,  /* in: encoded info struct */
                         kek_buf);     /* in: buffer, out: kek */
+
     if(return_value) {
-        return T_COSE_ERR_HKDF_FAIL;
+        return_value =  T_COSE_ERR_HKDF_FAIL;
+        goto done_free_ec;
     }
     kek.ptr = kek_buf.ptr;
     kek.len = kek_buf.len;
-
-    /* Free ephemeral key (which is not a symmetric key!) */
-    /* TODO: Rename the function to t_cose_crypto_free_key() */
-    t_cose_crypto_free_symmetric_key(ephemeral_key);
 
 
     /* ---- Key wrap --- */
@@ -253,7 +256,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                                            kek,
                                                           &kek_handle);
     if (return_value != T_COSE_SUCCESS) {
-        return return_value;
+        goto done_free_ec;
     }
 
     /* Do the keywrap directly into the output buffer */
@@ -265,15 +268,22 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                         encrypted_cek_destination, /* in: buffer to write to */
                        &encrypted_cek_result); /* out: encrypted cek */
     if (return_value != T_COSE_SUCCESS) {
-        return return_value;
+        goto done_free_both;
     }
-
     QCBOREncode_CloseBytes(cbor_encoder, encrypted_cek_result.len);
-    t_cose_crypto_free_symmetric_key(kek_handle);
 
 
     /* ---- Close recipient array -----*/
     QCBOREncode_CloseArray(cbor_encoder);
 
-    return T_COSE_SUCCESS;
+    return_value = T_COSE_SUCCESS;
+
+done_free_both:
+    t_cose_crypto_free_symmetric_key(kek_handle);
+
+done_free_ec:
+    t_cose_crypto_free_ec_key(ephemeral_key);
+
+done:
+    return return_value;
 }

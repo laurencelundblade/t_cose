@@ -631,7 +631,7 @@ int32_t kdf_context_test(void)
     enum t_cose_err_t             test_result;
     int32_t                       alg;
 
-    alg = T_COSE_ELLIPTIC_CURVE_P_256;
+    alg = T_COSE_ELLIPTIC_CURVE_P_256; // TODO: run this test for other algs
     if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW) ||
        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128GCM)) {
         /* Mbed TLS 2.28 doesn't support key wrap. */
@@ -655,14 +655,11 @@ int32_t kdf_context_test(void)
     dec_in.supp_priv_info   = Q_USEFUL_BUF_FROM_SZ_LITERAL("Supplemental Private Info Sample");
     dec_in.kdf_context_size = 400;
 
-#if 0
-    //for(int i = 0; i < 100; i++) {
     /* Set all KDF context items and see success */
     test_result = kdf_instance_test(alg, &enc_in, &dec_in);
     if(test_result != T_COSE_SUCCESS) {
         return 1000 + (int32_t)test_result;
     }
-   // }
 
     dec_in.party_u_ident    = Q_USEFUL_BUF_FROM_SZ_LITERAL("FAIL Party U Sample");
     /* Set all KDF context items with PartyU wrong and see failure */
@@ -714,11 +711,10 @@ int32_t kdf_context_test(void)
 
     /* Neither sent or set so fail */
     enc_in.do_not_send      = true;
-    test_result = kdf_instance_test(&enc_in, &dec_in);
+    test_result = kdf_instance_test(alg, &enc_in, &dec_in);
     if(test_result != T_COSE_ERR_DATA_AUTH_FAILED) {
         return 8000 + (int32_t)test_result;
     }
-#endif
 
     enc_in.party_u_ident    = NULL_Q_USEFUL_BUF_C;
     enc_in.party_v_ident    = NULL_Q_USEFUL_BUF_C;

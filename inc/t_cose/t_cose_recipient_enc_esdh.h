@@ -23,6 +23,15 @@ extern "C" {
 #endif
 
 
+/**
+ * \file t_cose_recipient_enc_esdh.h
+ *
+ * \brief ECDH Recipient Encrypt for COSE_Encrypt Messages.
+ */
+
+
+
+
 /** The default size of the COSE_KDF_Context. See
  * t_cose_recipient_enc_esdh_kdf_buf() and
  * \ref T_COSE_ERR_KDF_BUFFER_TOO_SMALL. */
@@ -97,7 +106,7 @@ t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *context,
  * \param[in] supp_priv_info  Supplemental private info other or
  *                            \c NULL_Q_USEFUL_BUF_C
  *
- * It is not so easy to figure out how to use the mandatory COSE KDF
+ * It is not so easy to figure out how to use the required COSE KDF
  * context in RFC 9053, section 5, so this starts out with an opinion
  * and recommendation.  If you are just getting started playing with
  * COSE encryption, set everything to NULL (all of PartyU/V, all supp
@@ -107,7 +116,7 @@ t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *context,
  * headers in the context structure can't be NULL, but they are filled
  * in automatically by t_cose).
  *
- * If you are moving beyond getting started to define new use case for
+ * If you are moving beyond getting started to define a new use case for
  * COSE, set \c supp_pub_other to a fixed string naming your use
  * case. For example, "Xxxx Firmware Encryption". This is not the name
  * of the application implementing the use case, but the broad name of
@@ -128,7 +137,7 @@ t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *context,
  *
  * This recommendation of minimum use of the KDF context is made based
  * on discussion with long-time experts in COSE, CMS, LAMPS and
- * other. An important justification is because the ephemeral key is
+ * other. An important justification is that the ephemeral key is
  * always generated anew from a high-quality random number generator
  * for each encrypted message.
  *
@@ -154,52 +163,57 @@ t_cose_recipient_enc_esdh_supp_info(struct t_cose_recipient_enc_esdh *context,
 /**
  * \brief Set PartyU and PartyV identity for KDF context info struct.
  *
- * \param[in] context   ESDH encryption context.
+ * \param[in] context        ESDH encryption context.
  * \param[in] party_u_ident  String for PartyU or NULL_Q_USEFUL_BUF_C.
  * \param[in] party_v_ident  String for PartyV or NULL_Q_USEFUL_BUF_C.
- * \param[in] do_not_send  True indicates these should be left out of
- * the COSE header parameters, that they should not be sent to the recipient.
+ * \param[in] do_not_send    True indicates these should be left out of the
+ *                           COSE header parameters, that they should not be
+ *                           sent to the recipient.
  *
- * Speaking with opinion, you probably don't need to set this. If you don't set this
- * and don't do anything on the receiving side, COSE will work. It is expected
- * that most use cases will not set these. The point
- * of these are to bind the content encryption key to sender and receiver context.
- * These are in COSE because they are in NIST SP800-56A and JOSE. They are justifed
- * by academic papers on attacks on key agreement protocols found in
- * Appendix B of NIST SP800-56A. Probably these attacks don't apply
- * because you probably are using a good RNG and because the ephemeral
- * key is generated anew for every encryption. Good RNGs are much more
- * common now (2023) than when these papers were written.
+ * Like the documentation for t_cose_recipient_enc_esdh_supp_info()
+ * this gives and opinion and recommendation -- PartyU and PartyV
+ * should be left unset and unused. Don't call this method.
+ *
+ * The point of these is to bind the content encryption key to the
+ * sender and receiver context.  These are in COSE because they are in
+ * NIST SP800-56A and JOSE. They are justified by academic papers on
+ * attacks on key agreement protocols found in Appendix B of NIST
+ * SP800-56A. Probably these attacks don't apply because you probably
+ * are using a good RNG and because the ephemeral key is generated
+ * anew for every encryption. Good RNGs are much more common now
+ * (2023) than when these papers were authored.
  *
  * These data items are described in RFC 9053 section 5.2. This API
- * doesn't allow setting Party*.nonce or Party*.other. It always sets them
- * to NULL. Speaking with opinion, 'nonce' and 'other' seem very unnecessary
- * and complex. Hopefully no implementation ever uses them. You can do
- * everything you need to do with the 'PartyInfo*,idenity' data items in the KDF context.
+ * only allows setting Party*.identity. It doesn't allow setting
+ * Party*.nonce or Party*.other. It always sets them to NULL. Speaking
+ * with opinion, 'nonce' and 'other' seem very unnecessary and
+ * complex. Hopefully, no implementation ever uses them. Everything
+ * needed can be done with the 'PartyInfo*.idenity' data items.
  *
- * See t_cose_recipient_enc_esdh_supp_info() where it is recommended to
- * set one of the KDF context inputs and additionally t_cose_recipient_enc_esdh_salt().
+ * See t_cose_recipient_enc_esdh_supp_info() where it is recommended
+ * to set one of the KDF context inputs and additionally
+ * t_cose_recipient_enc_esdh_salt().
  *
- * The opinions here were formed from discussions with long-time workers
- * on COSE, CMS, LAMPS, reading of NIST SP800-56A and trying to formulate
- * attacks that these data items defend against. No one really had any
- * good attacks in a world where RNGs are good and the ephemeral key
- * is generated anew for each encryption.
+ * The opinions here were formed from discussions with long-time
+ * workers on COSE, CMS, LAMPS, reading of NIST SP800-56A and trying
+ * to formulate attacks that these data items defend against.
  *
  * Now on to non-opinion mechanics of this API.
  *
- * If these data items are not set, then PartyInfo*.identity will be NULL when
- * the KDF Context Information Structure is created. Otherwise they will
- * be the values set here. If they are set to \c NULL_Q_USEFUL_C here, they will also
- * be NULL in the input to the KDF. PartyInfo*.nonce and
- * PartyInfo*.other are always NULL in this implementation. It is not possible to
- * set them.
+ * If these data items are not set, then PartyInfo*.identity will be
+ * NULL when the KDF Context Information Structure is
+ * created. Otherwise, they will be the values set here. If they are
+ * set to \c NULL_Q_USEFUL_C here, they will also be NULL in the input
+ * to the KDF. PartyInfo*.nonce and PartyInfo*.other are always NULL
+ * in this implementation. It is not possible to set them.
  *
- * If these are set to non-NULL values, they will be sent in unprotected headers,
- * unless do_not_send is \c true.
+ * If these are set to non-NULL values, they will be sent in
+ * unprotected headers, unless \c do_not_send is \c true.
  *
- * If these are set to long strings, then t_cose_recipient_enc_esdh_kdf_buf() may have
- * to be called to supply a buffer larger than \ref T_COSE_ENC_COSE_KDF_CONTEXT_SIZE for the internal KDF Context construction.
+ * If these are set to long strings, then
+ * t_cose_recipient_enc_esdh_kdf_buf() may have to be called to supply
+ * a buffer larger than \ref T_COSE_ENC_COSE_KDF_CONTEXT_SIZE for the
+ * internal KDF Context construction.
  */
 static inline void
 t_cose_recipient_enc_esdh_party_info(struct t_cose_recipient_enc_esdh *context,
