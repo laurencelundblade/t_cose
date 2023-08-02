@@ -40,6 +40,8 @@
 
 
 /*
+ *
+ * 
  * Each EC NIST curve key is in two formats here, RFC 5915 DER format and a
  * raw private key format. This is needed because OpenSSL primarily supports
  * the DER formats and MbedTLS the raw private key.  The underly bit
@@ -122,8 +124,11 @@ extern const unsigned char ec_P_521_priv_key_raw[66];
 
 
 /* These keys are the ones used in the COSE Work Group GitHub Examples Repository */
-extern const unsigned char cose_ex_P_256_priv_key_raw[32];
-extern const unsigned char cose_ex_P_256_key_pair_der[121];
+// KID: meriadoc.brandybuck@buckland.example
+extern const unsigned char cose_ex_P_256_pair_der[121];
+extern const unsigned char cose_ex_P_256_priv_secg[32];
+extern const unsigned char cose_ex_P_256_pub_der[91];
+extern const unsigned char cose_ex_P_256_pub_secg[65];
 
 
 
