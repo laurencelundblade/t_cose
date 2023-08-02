@@ -146,15 +146,15 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
 
     switch(cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_raw);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_sec1);
         break;
 
     case T_COSE_ALGORITHM_ES384:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_sec1);
         break;
 
     case T_COSE_ALGORITHM_ES512:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_sec1);
         break;
 
     case T_COSE_ALGORITHM_PS256:
@@ -210,24 +210,24 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
     case T_COSE_ELLIPTIC_CURVE_P_256:
          type_private   = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          type_public    = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
-         priv_key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_priv_secg);
-         pub_key_bytes  = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_pub_secg);
+         priv_key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_priv_sec1);
+         pub_key_bytes  = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_pub_sec1);
          key_bitlen     = 256;
          break;
 
     case T_COSE_ELLIPTIC_CURVE_P_521:
          type_private   = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          type_public    = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
-         priv_key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_521_priv_secg);
-         pub_key_bytes  = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_521_pub_secg);
+         priv_key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_521_priv_sec1);
+         pub_key_bytes  = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_521_pub_sec1);
          key_bitlen     = 521;
          break;
     default:
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
     }
 
-    /* Import the private key from the SECG representation. It appears
-     * to be the only format supported by psa_import_key(). ASN.1/DER/PEM
+    /* Import the private key from the SEC1 representation. It is
+     * the only format supported by psa_import_key(). ASN.1/DER/PEM
      * formats are not supported.
      */
     attributes = psa_key_attributes_init();
@@ -242,8 +242,8 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
 
 
 
-    /* Import the public key from the SECG representation. It appears
-     * to be the only format supported by psa_import_key(). ASN.1/DER/PME
+    /* Import the public key from the SEC1 representation. It is
+     * the only format supported by psa_import_key(). ASN.1/DER/PEM
      * formats are not supported.
      */
     attributes = psa_key_attributes_init();

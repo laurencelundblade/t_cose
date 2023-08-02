@@ -163,6 +163,9 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
     EVP_PKEY             *pkey;
     enum t_cose_err_t     return_value;
 
+    /* The input key bytes are in ASN.1/DER format (RFC 5915 and RFC
+     * 5480) since that is what d2i_PrivateKey() and d2i_PUBKEY()
+     * accept.*/
     switch(cose_ec_curve_id) {
         case T_COSE_ELLIPTIC_CURVE_P_256:
             pub_der_ptr  = cose_ex_P_256_pub_der;
@@ -170,15 +173,7 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
             priv_der_ptr = cose_ex_P_256_pair_der;
             priv_der_len = sizeof(cose_ex_P_256_pair_der);
             break;
-/*
- TODO: fill in other keys here
-        case T_COSE_ELLIPTIC_CURVE_P_384:
-            pub_der_ptr  = cose_ex_P_384_pub_der;
-            pub_der_len  = sizeof(cose_ex_P_384_pub_der);
-            priv_der_ptr = cose_ex_P_384_pair_der;
-            priv_der_len = sizeof(cose_ex_P_384_pair_der);
-            break;
-*/
+
         case T_COSE_ELLIPTIC_CURVE_P_521:
             pub_der_ptr  = cose_ex_P_521_pub_der;
             pub_der_len  = sizeof(cose_ex_P_521_pub_der);
@@ -190,6 +185,10 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
             return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
+    /* d2i_PrivateKey documentation isn't very clear. What is known
+     * from experimentation is that it does not support SEC1 raw keys
+     * and that it does support RFC 5915 ASN.1/DER keys.
+     */
     pkey = d2i_PrivateKey(EVP_PKEY_EC,  /* in: type */
                           NULL,         /* unused: defined as EVP_PKEY **a */
                          &priv_der_ptr, /* in: pointer to DER byes; out: unused */
@@ -202,9 +201,13 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
     private_key->key.ptr = pkey;
 
 
-    /* The openssl documentation says something about providing an
+    /* d2i_PrivateKey documentation isn't very clear. What is known
+     * from experimentation is that it does not support SEC1 raw keys
+     * and that it does support RFC 5480 ASN.1/DER keys.
+     */
+    /* The openssl documentation says something about providing a
      * PKEY initialized with an EC Key of the right curve/group, but
-     * that doesn't seem to be necessary. Probably because the DER
+     * that doesn't seem to be necessary. Probably because the RFC 5480
      * input provided here includes the curve identifier so it is
      * parsed out and set.
      */
