@@ -110,6 +110,28 @@
  * here because the test uses always need a private key, but some
  * applications and uses of t_cose might use them.
  */
+
+/*
+ * How I converted the keys in KeySet.txt to what is here.
+ *
+ * xxd -r -p << EOD | xxd -i
+ * The hex text from KeySet.txt for private key is pasted
+ * in. For the private key, just the "d" value. For
+ * the public key the "x" and then "y" value. Then
+ * the C code is edited to add a 0x04 to the start
+ * of the x and y.
+ *
+ *
+
+
+
+ */
+
+
+// Use this command line to write to a .der file
+// grep -v '/\*.*\*/' << EOF | xxd -r -p
+
+
 extern const unsigned char ec_P_256_key_pair_der[121];
 extern const unsigned char ec_P_256_priv_key_raw[32];
 extern const unsigned char ec_P_256_pub_key_der[91];
@@ -125,11 +147,17 @@ extern const unsigned char ec_P_521_priv_key_raw[66];
 
 /* These keys are the ones used in the COSE Work Group GitHub Examples Repository */
 // KID: meriadoc.brandybuck@buckland.example
-extern const unsigned char cose_ex_P_256_pair_der[121];
 extern const unsigned char cose_ex_P_256_priv_secg[32];
-extern const unsigned char cose_ex_P_256_pub_der[91];
 extern const unsigned char cose_ex_P_256_pub_secg[65];
+extern const unsigned char cose_ex_P_256_pair_der[121];
+extern const unsigned char cose_ex_P_256_pub_der[91];
 
+
+// KID: bilbo.baggins@hobbiton.example
+extern const unsigned char cose_ex_P_521_priv_secg[66];
+extern const unsigned char cose_ex_P_521_pub_secg[133];
+extern const unsigned char cose_ex_P_521_pair_der[223];
+extern const unsigned char cose_ex_P_521_pub_der[158];
 
 
 /*

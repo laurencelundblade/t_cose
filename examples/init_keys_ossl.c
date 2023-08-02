@@ -178,15 +178,13 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
             priv_der_ptr = cose_ex_P_384_pair_der;
             priv_der_len = sizeof(cose_ex_P_384_pair_der);
             break;
-
-            break;
+*/
         case T_COSE_ELLIPTIC_CURVE_P_521:
-             pub_der_ptr  = cose_ex_P_521_pub_der;
+            pub_der_ptr  = cose_ex_P_521_pub_der;
             pub_der_len  = sizeof(cose_ex_P_521_pub_der);
             priv_der_ptr = cose_ex_P_521_pair_der;
             priv_der_len = sizeof(cose_ex_P_521_pair_der);
             break;
-            break;*/
 
         default:
             return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
