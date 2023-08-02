@@ -416,6 +416,11 @@ esdh_enc_dec_test(void)
 {
     int32_t result;
 
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+        /* Mbed TLS 2.28 doesn't support key wrap. */
+        return INT32_MIN;
+    }
+
     result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256);
     if(result) {
         return result;
