@@ -241,7 +241,6 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
                             (mbedtls_svc_key_id_t *)(&private_key->key.handle));
 
 
-
     /* Import the public key from the SEC1 representation. It is
      * the only format supported by psa_import_key(). ASN.1/DER/PEM
      * formats are not supported.
@@ -271,6 +270,7 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
 
 
     if (status != PSA_SUCCESS) {
+        psa_destroy_key((psa_key_handle_t)private_key->key.handle);
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
