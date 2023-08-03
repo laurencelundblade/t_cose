@@ -66,7 +66,8 @@ struct t_cose_recipient_enc_esdh {
 
 
 /**
- * @brief Initialize the creator COSE_Recipient for ESDH content key distribution.
+ * @brief Initialize the creator COSE_Recipient for ESDH content key 
+ *        distribution.
 
  * @param[in]  cose_algorithm_id    The content key distribution algorithm ID.
  * @param[in]  cose_ec_curve_id  The curve ID.
@@ -121,7 +122,7 @@ t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *context,
  * case. For example, "Xxxx Firmware Encryption". This is not the name
  * of the application implementing the use case, but the broad name of
  * the COSE use case. All applications for the use case must hard code
- * the same string. Everything else can by NULL.
+ * the same string. Everything else can by \c NULL.
  *
  * Note that the receiver of a COSE message must have the same KDF
  * context set up. If not, the intermediate derived keys will not be
@@ -144,15 +145,16 @@ t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *context,
  * Now on to the mechanics of this API.
  *
  * This sets the "SuppPubInfo.other" field of PartyInfo as described
- * in RFC 9053.  This is optional and will be NULL if not set. If this
- * is set, it will be sent to the recipient in a header parameter.
- * Don't call this or pass \c NULL_USEFUL_BUF_C to not set this.
+ * in RFC 9053.  This is optional and will be \c NULL if not set. If
+ * this is set, it will be sent to the recipient in a header
+ * parameter.  Don't call this or pass \c NULL_USEFUL_BUF_C to not set
+ * this.
  *
- * This can also set "SuppPrivInfo" from PartyInfo. This is
+ * This can also set the "SuppPrivInfo" field in PartyInfo. This is
  * optional. It is never sent in a header parameter since it is
- * private info. Somehow the recipient must also have and set this
- * during decryption. Don't call this or pass \c NULL_USEFUL_BUF_C to
- * not set SuppPrivInfo.
+ * private information. Somehow the recipient must also have and set
+ * this during decryption. Don't call this or pass \c
+ * NULL_USEFUL_BUF_C to not set SuppPrivInfo.
  */
 static inline void
 t_cose_recipient_enc_esdh_supp_info(struct t_cose_recipient_enc_esdh *context,
@@ -171,24 +173,25 @@ t_cose_recipient_enc_esdh_supp_info(struct t_cose_recipient_enc_esdh *context,
  *                           sent to the recipient.
  *
  * Like the documentation for t_cose_recipient_enc_esdh_supp_info()
- * this gives and opinion and recommendation -- PartyU and PartyV
+ * this gives and opinion and recommendation: PartyU and PartyV
  * should be left unset and unused. Don't call this method.
  *
- * The point of these is to bind the content encryption key to the
- * sender and receiver context.  These are in COSE because they are in
- * NIST SP800-56A and JOSE. They are justified by academic papers on
- * attacks on key agreement protocols found in Appendix B of NIST
- * SP800-56A. Probably these attacks don't apply because you probably
- * are using a good RNG and because the ephemeral key is generated
- * anew for every encryption. Good RNGs are much more common now
- * (2023) than when these papers were authored.
+ * The point of PartyU and PartyV is to bind the content encryption
+ * key to the sender and receiver context.  These are in COSE because
+ * they are in NIST SP800-56A and JOSE. They are justified by academic
+ * papers on attacks on key agreement protocols found in Appendix B of
+ * NIST SP800-56A. Probably these attacks don't apply because you
+ * probably are using a good RNG and because the ephemeral key is
+ * generated anew for every encryption. Good RNGs are much more common
+ * now (2023) than when these papers were authored.
  *
  * These data items are described in RFC 9053 section 5.2. This API
  * only allows setting Party*.identity. It doesn't allow setting
- * Party*.nonce or Party*.other. It always sets them to NULL. Speaking
- * with opinion, 'nonce' and 'other' seem very unnecessary and
- * complex. Hopefully, no implementation ever uses them. Everything
- * needed can be done with the 'PartyInfo*.idenity' data items.
+ * Party*.nonce or Party*.other. It always sets them to \c
+ * NULL. Speaking with opinion, 'nonce' and 'other' seem very
+ * unnecessary and complex. Hopefully, no implementation ever uses
+ * them. Everything needed can be done with the 'PartyInfo*.idenity'
+ * data items.
  *
  * See t_cose_recipient_enc_esdh_supp_info() where it is recommended
  * to set one of the KDF context inputs and additionally
@@ -201,11 +204,11 @@ t_cose_recipient_enc_esdh_supp_info(struct t_cose_recipient_enc_esdh *context,
  * Now on to non-opinion mechanics of this API.
  *
  * If these data items are not set, then PartyInfo*.identity will be
- * NULL when the KDF Context Information Structure is
+ * \c NULL when the KDF Context Information Structure is
  * created. Otherwise, they will be the values set here. If they are
- * set to \c NULL_Q_USEFUL_C here, they will also be NULL in the input
- * to the KDF. PartyInfo*.nonce and PartyInfo*.other are always NULL
- * in this implementation. It is not possible to set them.
+ * set to \c NULL_Q_USEFUL_C here, they will also be \c NULL in the
+ * input to the KDF. PartyInfo*.nonce and PartyInfo*.other are always
+ * \ cNULL in this implementation. It is not possible to set them.
  *
  * If these are set to non-NULL values, they will be sent in
  * unprotected headers, unless \c do_not_send is \c true.

@@ -80,19 +80,22 @@ t_cose_recipient_dec_esdh_set_key(struct t_cose_recipient_dec_esdh *context,
 /**
  * \brief Set supplimentary data items in the KDF context info struct.
  *
- * \param[in] context   ESDH Decryptor context.
- * \param[in] supp_pub_other  Supplemental public info other or NULL_Q_USEFUL_BUF_C.
- * \param[in] supp_priv_info  Supplemental private info other or NULL_Q_USEFUL_BUF_C.
+ * \param[in] context         ESDH Decryptor context.
+ * \param[in] supp_pub_other  Supplemental public info other or
+ *                            \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] supp_priv_info  Supplemental private info other or
+ *                            \c NULL_Q_USEFUL_BUF_C.
  *
  * It is required that this be called to supply \c supp_pub_other if
- * the Supplementary other was set for when the encypted message
- * was created. If not message decryption will fail with the \ref T_COSE_ERR_DATA_AUTH_FAILED error..
- * Often this is a fixed string that is the same for every message for a
- * a use case. See more detailed discussion in t_cose_recipient_enc_esdh_supp_info().
+ * this was set when the encypted message was created. If not, message
+ * decryption will fail with the \ref T_COSE_ERR_DATA_AUTH_FAILED
+ * error.  Often this is a fixed string that is the same for every
+ * message for a a use case. See more detailed discussion in
+ * t_cose_recipient_enc_esdh_supp_info().
  *
- * \c supp_priv_info is very rarely used. It functions the same
- * as \c supp_pub_other. If it is used in constructing the message
- * being decrypted, this must be set or \ref T_COSE_ERR_DATA_AUTH_FAILED
+ * \c supp_priv_info is very rarely used. It functions the same as \c
+ * supp_pub_other. If it is used in constructing the message being
+ * decrypted, this must be set or \ref T_COSE_ERR_DATA_AUTH_FAILED
  * will occur
  */
 static inline void
@@ -104,24 +107,31 @@ t_cose_recipient_dec_esdh_supp_info(struct t_cose_recipient_dec_esdh *context,
 /**
  * \brief Set PartyU and PartyV for KDF context info struct.
  *
- * \param[in] context   ESDH Decryptor context.
- * \param[in] party_u_ident  String for PartyU or NULL_Q_USEFUL_BUF_C.
- * \param[in] party_v_ident  String for PartyV or NULL_Q_USEFUL_BUF_C.
+ * \param[in] context        ESDH Decryptor context.
+ * \param[in] party_u_ident  String for PartyU or
+ *                           \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] party_v_ident  String for PartyV or
+ *                           \c NULL_Q_USEFUL_BUF_C.
  *
- * In most use of COSE these parts of the KDF context are not used, and
- * when they are used, they arrive in header parameters so it is very
- * rare that this function is needed. If this is set, they override the
- * values set in the headers.
+ * In most use of COSE, these parts of the KDF context are not used,
+ * and when they are used, they arrive in header parameters so it is
+ * very rare that this function is needed. If this is set, they
+ * override the values set in the headers.
  *
- * Note that what is set here must match what was set for the encrypted
- * message to successfully decrypt. If not the \ref T_COSE_ERR_DATA_AUTH_FAILED: error will occur.
- * That said, it is still very unusual to have to call this.
+ * Note that Party U and Party V must be what was used when the
+ * message was encrypted. If not, \ref T_COSE_ERR_DATA_AUTH_FAILED
+ * will occur.  Often they arrive in headers, so even if they are in
+ * use, it is unusual to call this.
  *
- * Note that this setting these to NULL_Q_USEFUL_BUF_C will result
- * in the values from the headers being used. If the headers are absent
- * then the value used will be NULL.
+ * Note that this setting these to \c NULL_Q_USEFUL_BUF_C will result in
+ * the values from the headers being used. If the headers are absent
+ * then the value used will be \c NULL.
  *
- * Also see detailed documentation for t_cose_recipient_enc_esdh_party_info().
+ * The values of these are in \c returned_parameters from
+ * t_cose_encrypt_dec().
+ *
+ * Also see detailed documentation for
+ * t_cose_recipient_enc_esdh_party_info().
  */
 static inline void
 t_cose_recipient_dec_esdh_party_info(struct t_cose_recipient_dec_esdh *context,
@@ -132,21 +142,25 @@ t_cose_recipient_dec_esdh_party_info(struct t_cose_recipient_dec_esdh *context,
 /**
  * \brief Configure a larger buffer for the COSE_KDF_Context.
  *
- * \param[in] context   ESDH Decryptor context.
+ * \param[in] context     ESDH Decryptor context.
  * \param[in] kdf_buffer  The buffer used to serialize the COSE_KDF_Context.
  *
- * For most use the internal buffer for the COSE_KDF_Context is usually
- * large enough. The internal buffer size is  \ref T_COSE_DEC_COSE_KDF_CONTEXT_SIZE.
+ * For most use the internal buffer for the COSE_KDF_Context is
+ * usually large enough. The internal buffer size is \ref
+ * T_COSE_DEC_COSE_KDF_CONTEXT_SIZE.
  *
- * \ref T_COSE_ERR_KDF_BUFFER_TOO_SMALL will be returned from t_cose_encrypt_enc()
- * or t_cose_encrypt_enc_detached() if the buffer is too small.
+ * \ref T_COSE_ERR_KDF_BUFFER_TOO_SMALL will be returned from
+ * t_cose_encrypt_enc() or t_cose_encrypt_enc_detached() if the buffer
+ * is too small.
  *
- * The COSE_KDF_Context described RFC 9053 section 5.3 must fit  in
- * this buffer. With no additional context items provided it is about 20 bytes
- * including the protected headers for the algorithm ID. If additional protected
- * headers are added with xxx, PartyU or PartyV is added with t_cose_recipient_enc_esdh_party_info()
- * or suppplemental info is added with t_cose_recipient_enc_esdh_supp_info(),
- * it may be necessary to call this with a larger buffer.
+ * The COSE_KDF_Context described RFC 9053 section 5.3 must fit in
+ * this buffer. With no additional context items provided it is about
+ * 20 bytes including the protected headers for the algorithm ID. If
+ * additional protected headers are added with xxx, PartyU or PartyV
+ * is added with t_cose_recipient_enc_esdh_party_info() or
+ * suppplemental info is added with
+ * t_cose_recipient_enc_esdh_supp_info(), it may be necessary to call
+ * this with a larger buffer.
  */
 static void
 t_cose_recipient_dec_esdh_kdf_buf(struct t_cose_recipient_dec_esdh *context,
