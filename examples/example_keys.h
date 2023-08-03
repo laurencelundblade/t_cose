@@ -146,7 +146,10 @@
  */
 
 /*
- * How I converted the keys in KeySet.txt to what is here.
+ * How I converted the keys in KeySet.txt to what is here. The
+ * keys in KeySet.txt are CBOR diagnostic notation of a COSE_Key.
+ * They kinda look like JWKs, but they are not. I haven't found
+ * any tools to process them yet. This is a bit rough...
  *
  * First I made the SEC1 bytes for private key and the public key.
  *
@@ -160,7 +163,7 @@
  * pair in DER format using the openssl command line.
  *    openssl ec ...
  *
- * That was imported into C with
+ * That was imported into a C array with
  *    xxd -i -c 8
  *
  * Then the C code was edited to splice in the COSE example private
