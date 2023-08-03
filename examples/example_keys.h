@@ -19,21 +19,18 @@
  * files. Everything for test compiles into one executable.
  *
  * The actual import of the keys into data structures used by crypto
- * libraries is highly dependent on the library.  In many cases, but
- * not all, the key bytes are not dependent on the library because
- * there are standards for for serialized keys. The method to import
- * the keys is however highly dependent on the library as well as the
- * data structure that holds the keys. t_cose abstracts the data
- * structure as a struct t_cose_key.  The varying import functions are
- * in init_keys_xxxx.[ch].
+ * libraries is dependent on the library. The most widely used formats
+ * are ASN.1/DER so that is mostly what is used here.  See
+ * init_keys_xxx.[ch]. These are pretty good examples for what you
+ * might do in your implementation.
  *
- * Note how ridiculously piece meal the formats for DER-
- * encoded keys are. Perhaps a dozen RFCs :-(. Implementations
- * seem to be hit-or-miss in what they support.
+ * Eventually, t_cose will have better support for COSE_Key, but even
+ * then most keys will still be in ASN.1/DER format.
  *
- * Also, this doesn't get into any password protected key formats.
- *
- * Some day this will all be CBOR-format COSE_Keys... :^)
+ * Note how ridiculously piece meal the formats for DER- encoded keys
+ * are. Perhaps a dozen RFCs :-(. Implementations seem to be
+ * hit-or-miss in what they support.  Maybe some day much more of this
+ * will be CBOR-format COSE_Keys... :^)
  */
 
 
@@ -146,35 +143,41 @@
  */
 
 /*
- * How I converted the keys in KeySet.txt to what is here. The
- * keys in KeySet.txt are CBOR diagnostic notation of a COSE_Key.
- * They kinda look like JWKs, but they are not. I haven't found
- * any tools to process them yet. This is a bit rough...
+ * This describes how I converted the keys in KeySet.txt to what is
+ * here. The keys in KeySet.txt are CBOR diagnostic notation of a
+ * COSE_Key.  They kinda look like JWKs, but they are not. I haven't
+ * found any tools to process them yet.
  *
- * First I made the SEC1 bytes for private key and the public key.
+ * First I made the SEC1 bytes for private key and the public key:
  *
  *    xxd -r -p << EOD | xxd -i
- * The hex text from KeySet.txt for private key is pasted in. For the
- * private key, just the "d" value. For the public key the "x" and
- * then "y" value. Then the C code is edited to add a 0x04 to the
- * start of the x and y.
+ *
+ * The hex text from KeySet.txt is fed into the above command stdin.
+ * The hex text C array initialization output by this is pasted in to
+ * example_keys.c. For the private key, just the "d" value. For the
+ * public key the "x" and then "y" value. Then the C code is edited to
+ * add a 0x04 to the start of the x and y.
  *
  * Next... (there has to be a better way), I generated a random key
- * pair in DER format using the openssl command line.
- *    openssl ec ...
+ * pairs in DER format using the openssl command line for the curves:
  *
- * That was imported into a C array with
- *    xxd -i -c 8
+ *    openssl ecparam -name secp521r1 -genkey -noout -out 521.der -outform der
  *
- * Then the C code was edited to splice in the COSE example private
- * key and the the COSE example public key. You can see the comments
- * in the code for the ASN.1/DER to figure where to splice.
+ * That was imported into a C array initialization with:
+ *
+ *    xxd -i -c 8 521.der
+ *
+ * Then the C array initialization was edited to splice in the COSE
+ * example private key and the the COSE example public key. You can
+ * see the comments in the code for the ASN.1/DER to figure where to
+ * splice.
  *
  * Finally the edited variables were turned into DER files and checked
- * in to have them handy for future use. See grep command in //
- * comment below. 
- *
+ * in to github to have them handy for future use. See grep command in
+ * // comment below that takes the C array initialization and turns it
+ * into a binary DER file.
  */
+
 //grep -v '/\*.*\*/' << EOF | xxd -r -p
 
 
