@@ -108,29 +108,44 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
  * Some verifiers like t_cose_signature_verify_main handle multiple
  * cryptographic algorithms.
  *
- * For COSE_SIgn messages, t_cose_sign_verify() loops over
- * all the COSE_Signatures. By default the verification is a success
+ * For COSE_Sign messages, t_cose_sign_verify() loops over
+ * all the COSE_Signatures. By default, the verification is a success
  * if one can be verified and there are no decoding errors. The
  * option \ref T_COSE_OPT_VERIFY_ALL_SIGNATURES can be set
  * to require that all the signatures verify for the overall COSE_Sign
  * to be a success.
  *
- * For COSE_Sign1 messages t_cose_sign_verify() calls
- * each verifier as described next.
- *
- * Each verifier added here is called on each COSE_Signature
- * until one succeeds. An individual verifier may decline to
+ * In verifying each COSE_Signature in a COSE_Sign or
+ * the single signature in a COSE_Sign1, each verifier is
+ * called in a loop until one succeeds. . An individual verifier may decline to
  * attempt verification if it doesn't handle the particular
  * algorithm, the kid doesn't match or for other reasons it
  * may have after examining the header parameters in the
  * COSE_Signature. If it declines, the next verifier will be
  * invoked. If an individual verifier fails because of a CBOR
- * decoding issue or if it attempts the actual signature
- * cryptographic operation and that fails, processing of the
- * whole COSE_Sign will fail.
+ * decoding issue processing of the
+ * whole signed message will fail.
  *
  * The header parameters for all the COSE_Signatures are
  * returned in a linked list by t_cose_sign_verify().
+ *
+ * To decode headers and compute buffer sizes, t_cose_sign_verify
+ * can be called with T_COSE_OPT_DECODE_ONLY set. This
+ * will run most of the verification except the final signature
+ * verification and the kid check. Typically it is run with
+ * all the verifiers configured, but without any cryptographic keys. It
+ * will return all the decoded parameters for the entire
+ * signed message. Some verifiers may do additional
+ * work. For example, t_cose_signature_sign_eddsa
+ * computes the size of an auxiliary buffer. Others
+ * may decode headers that are not integers or strings.
+ *
+ * T_COSE_OPT_DECODE_ONLY mode always succeeds
+ * in decoding the integer and string header parameters for
+ * all COSE_Signatures regardless of what verifiers are configured
+ * or whether T_COSE_OPT_VERIFY_ALL_SIGNATURES is set or not.
+ * It can even be used with no verifiers configured.
+
  */
 static void
 t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,

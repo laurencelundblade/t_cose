@@ -59,6 +59,7 @@ struct t_cose_signature_verify_eddsa {
 };
 
 
+// TODO: get rid of option_flags?
 void
 t_cose_signature_verify_eddsa_init(struct t_cose_signature_verify_eddsa *me,
                                    uint32_t                option_flags);

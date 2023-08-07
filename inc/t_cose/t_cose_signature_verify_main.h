@@ -120,8 +120,16 @@ t_cose_signature_verify_main_set_special_param_decoder(struct t_cose_signature_v
                                                        t_cose_param_special_decode_cb      *decode_cb,
                                                        void                                *decode_ctx)
 {
-    me->special_param_decode_cb  = decode_cb;
-    me->special_param_decode_ctx = decode_ctx;
+    struct t_cose_signature_verify *me_x;
+
+    me_x = (struct t_cose_signature_verify *)me;
+
+    me_x->hd = decode_cb;
+    me_x->hd_ctx = decode_ctx;
+
+
+    //me->special_param_decode_cb  = decode_cb;
+    //me->special_param_decode_ctx = decode_ctx;
 }
 
 
