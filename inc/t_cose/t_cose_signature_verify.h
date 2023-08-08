@@ -46,9 +46,8 @@ struct t_cose_signature_verify;
  *                            found.
  * \param[in] signature       The signature.
  *
- * This is very different from t_cose_signature_verify_cb()
- * because there is no header decoding to be done. Instead the headers
- * are decoded outside of this and passed in.
+ * This runs the crypto to actually verify a signature. The decoded headers are
+ * passed in \c parameter_list.
  */
 typedef enum t_cose_err_t
 t_cose_signature_verify1_cb(struct t_cose_signature_verify *me,
@@ -59,16 +58,20 @@ t_cose_signature_verify1_cb(struct t_cose_signature_verify *me,
 
 
 /**
- * Data structure that must be the first part of every context of every concrete
- * implementation of t_cose_signature_verify. Callback functions must not
- * be NULL, but can be stubs that return an error when COSE_SIgn1 or COSE_Sign
- * are not supported.
+ * Data structure that must be the first part of every context of
+ * every concrete implementation of t_cose_signature_verify. \c
+ * verify_cb must not be \c NULL. Header parameter decoding for
+ * integer and string parameters is done automatically. \c
+ * special_param_decode_cb should be non-NULL if there are non-integer
+ * or non-string parameters to decode.  \c special_param_decode_ctx is
+ * only passed to \c special_param_decode_cb so it may or may not by
+ * NULL as needed.
  */
 struct t_cose_signature_verify {
     struct t_cose_rs_obj             rs;
     t_cose_signature_verify1_cb     *verify_cb;
-    t_cose_param_special_decode_cb  *hd;
-    void                            *hd_ctx;
+    t_cose_param_special_decode_cb  *special_param_decode_cb;
+    void                            *special_param_decode_ctx;
 };
 
 

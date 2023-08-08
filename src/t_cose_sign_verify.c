@@ -227,8 +227,8 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
         return_value = decode_cose_signature(cbor_decoder,
                                              header_location,
                                              me->p_storage,
-                                             verifier ? verifier->hd : NULL,
-                                             verifier ? verifier->hd_ctx : NULL,
+                                             verifier ? verifier->special_param_decode_cb : NULL,
+                                             verifier ? verifier->special_param_decode_ctx : NULL,
                                             &sign_inputs->sign_protected,
                                             &tmp_sig_param_list,
                                             &signature);
@@ -302,7 +302,6 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
         QCBORDecode_RestoreCursor(cbor_decoder, &saved_cursor);
     }
 
-Done:
     t_cose_params_append(param_list, best_sig_param_list);
 
     return return_value;
