@@ -1,11 +1,19 @@
-THIS IS THE DEV BRANCH FOR t_cose 2.0. It is an alpha quality release. The major 
+This is the DEV BRANCH for t_cose 2.0. It is an ALPHA quality release. The major 
 features are in place. Test and documentation are not complete.  There may be 
 minor changes.
+
+COMPATIBILITY NOTE: t_cose 2.0 supports the same sign and verify APIs that t_cose 1.x 
+does, but it is recommended that t_cose 2.0 users move to the new APIs for better efficiency
+and code size. Specifically, users should move from t_cose_sign1_xxxx to t_cose_sign_xxx.
+The t_cose_sign_xxx APIs in 2.0 support both COSE_Sign and COSE_Sign1.  A select
+few users that are very concerned about code size and that do not need any t_cose 2.x
+features may choose to stay with t_cose 1.x as overall it a smaller implementation
+of COSE_Sign1.
 
 ![t_cose](https://github.com/laurencelundblade/t_cose/blob/master/t-cose-logo.png?raw=true)
 
 
-*t_cose* 2.x implements the following parts [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052)
+*t_cose* 2.x implements the following parts of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052)
 and [COSE, RFC 9053](https://tools.ietf.org/html/rfc9053):
 * COSE_Sign1 (single signer) with ECDSA, EdDSA and RSA algorithmns
 * COSE_Sign (multiple signatures) with ECDSA, EdDSA and RSA 
@@ -38,7 +46,7 @@ implementations that have to run in small fixed memory.
 
 ## Code Status
 
-As of July 2023, the major t_cose 2.0 features are in and mostly 
+As of July 2023, the major t_cose 2.0 features are in and 
 functioning. There are many details to fix, interop testing and general
 testing to do, documentation to complete and correct.
 
@@ -347,15 +355,15 @@ just have different names.
 * Doesn't handle COSE string algorithm IDs. Only COSE integer
   algorithm IDs are handled.  Thus far no string algorithm IDs have
   been assigned by IANA.
-* No way to add custom headers when creating signed messages or
-  process them during verification.
 * Does not handle CBOR indefinite length strings (indefinite length
   maps and arrays are handled).
 * Counter signatures are not supported.
 
 ## Credit
 
-* Paul Liétar for RSA PSS (PS256..PS512) and EdDSA
+* Dávid Vincze for work on COSE_Mac.
+* Mate Toth-Pal for restartable signing.
+* Paul Liétar for RSA PSS (PS256..PS512) and EdDSA.
 * Maik Riechert for cmake, CI and other.
 * Ken Takayama for the bulk of the detached content implementation.
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
