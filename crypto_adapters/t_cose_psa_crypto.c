@@ -301,6 +301,7 @@ t_cose_crypto_sign_restart(bool                   started,
 
     if(!crypto_context) {
         return_value = T_COSE_ERR_FAIL;
+        goto Done;
     }
     psa_crypto_context = (struct t_cose_psa_crypto_context *)crypto_context;
 
@@ -1572,4 +1573,11 @@ t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
     // TODO: errors when buffer is too small
 
     return T_COSE_SUCCESS;
+}
+
+
+void
+t_cose_crypto_free_ec_key(struct t_cose_key key_handle)
+{
+    psa_destroy_key((psa_key_id_t)key_handle.key.handle);
 }

@@ -63,7 +63,7 @@ struct t_cose_sign_verify_ctx {
     uint32_t                          option_flags;
     uint64_t                          unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
     struct t_cose_parameter_storage   params;
-    struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
+    struct t_cose_parameter           __params[T_COSE_NUM_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
     t_cose_param_special_decode_cb   *special_param_decode_cb;
     void                             *special_param_decode_ctx;
@@ -168,7 +168,7 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
  * t_cose_sign_verify() and similar.
  *
  * By default, if this is not called there is internal storage for
- * \ref T_COSE_NUM_VERIFY_DECODE_HEADERS headers. If this is not
+ * \ref T_COSE_NUM_DECODE_HEADERS headers. If this is not
  * enough call this function to use external storage instead of the
  * internal. This replaces the internal storage. It does not add to
  * it.

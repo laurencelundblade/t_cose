@@ -57,6 +57,8 @@ static test_entry s_tests[] = {
 
     TEST_ENTRY(esdh_enc_dec_test),
     TEST_ENTRY(decrypt_known_good),
+    TEST_ENTRY(kdf_context_test),
+
 #endif /* T_COSE_USE_B_CON_SHA256 */
 
     TEST_ENTRY(sign1_structure_decode_test),
@@ -91,6 +93,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(compute_validate_mac_basic_test),
     TEST_ENTRY(compute_validate_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_mac_test),
+    TEST_ENTRY(compute_validate_known_good_test),
     TEST_ENTRY(compute_validate_detached_content_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_detached_content_mac_test),
 
