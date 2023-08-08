@@ -1,7 +1,7 @@
 /*
- *  t_cose_mini_sign1_sign_test.c
+ * t_cose_mini_sign1_sign_test.c
  *
- * Copyright 2022, Laurence Lundblade
+ * Copyright 2022-2023, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,7 +14,7 @@
 #include "t_cose/t_cose_mini_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
 
-static const uint8_t payload[] = {
+static const uint8_t sample_payload[] = {
     0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03,
     0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03,
     0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03,
@@ -66,32 +66,23 @@ static const uint8_t payload[] = {
 };
 
 
-int32_t mini_sign1_sign_test(void) {
-
-    enum t_cose_err_t               err;
-    MakeUsefulBufOnStack(           out_buffer, sizeof(payload) + T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES512);
-    struct q_useful_buf_c           cose_sign1;
-    struct t_cose_key               key_pair;
+int32_t
+mini_sign1_verify_one_payload(struct q_useful_buf_c payload,
+                              struct t_cose_key     key_pair,
+                              struct q_useful_buf   out_buffer)
+{
     struct t_cose_sign1_verify_ctx  verify_ctx;
     struct q_useful_buf_c           verified_payload;
+    enum t_cose_err_t               err;
+    struct q_useful_buf_c           cose_sign1;
 
-    // TODO: tests for different algorithms
-    // How to do this with compiled-in algorithm?
-
-    err = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
-    if(err) {
-        return 10;
-    }
-
-    /* The main happy-path test */
-    err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
+    err = t_cose_mini_sign1_sign(payload,
                                  key_pair,
                                  out_buffer,
                                 &cose_sign1);
     if(err) {
         return 20;
     }
-
 
     t_cose_sign1_verify_init(&verify_ctx, 0);
 
@@ -102,22 +93,109 @@ int32_t mini_sign1_sign_test(void) {
         return 30;
     }
 
-    if(q_useful_buf_compare(verified_payload, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload))) {
+    if(q_useful_buf_compare(verified_payload, payload)) {
         return 50;
     }
 
+    return 0;
+}
+
+
+
+/* Compile the library and this test case with each of these to
+ * test the compile-time selection of the algorithm. Run the test
+ * each time. */
+#if !defined(T_COSE_MINI_SIGN_SELECT_ES256) && \
+    !defined(T_COSE_MINI_SIGN_SELECT_ES384) && \
+    !defined(T_COSE_MINI_SIGN_SELECT_ES512)
+#define T_COSE_MINI_SIGN_SELECT_ES256
+#endif
+
+
+#if defined(T_COSE_MINI_SIGN_SELECT_ES256)
+
+    #define MINI_SIGN_ALG   T_COSE_ALGORITHM_ES256
+    #define SIZE_OVERHEAD   T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES256
+
+#elif defined(T_COSE_MINI_SIGN_SELECT_ES384)
+
+    #define MINI_SIGN_ALG   T_COSE_ALGORITHM_ES384
+    #define SIZE_OVERHEAD   T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES384
+
+#elif defined(T_COSE_MINI_SIGN_SELECT_ES512)
+
+    #define MINI_SIGN_ALG   T_COSE_ALGORITHM_ES512
+    #define SIZE_OVERHEAD   T_COSE_MINI_SIGN_SIZE_OVERHEAD_ES512
+
+#endif
+
+
+int32_t mini_sign1_sign_test(void) {
+
+    enum t_cose_err_t               err;
+    MakeUsefulBufOnStack(           out_buffer, sizeof(sample_payload) + SIZE_OVERHEAD);
+    struct q_useful_buf_c           cose_sign1;
+    struct t_cose_key               key_pair;
+    struct t_cose_key               null_key_pair;
+    int32_t                         test_result;
+    struct q_useful_buf_c           payload;
+
+
+    // TODO: tests for different algorithms
+    // How to do this with compiled-in algorithm?
+
+    err = make_key_pair(MINI_SIGN_ALG, &key_pair);
+    if(err) {
+        return 10;
+    }
+
+    /* The main happy-path test for serveral payload sizes */
+    payload = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(sample_payload);
+    test_result = mini_sign1_verify_one_payload(payload,
+                                                key_pair,
+                                                out_buffer);
+    if(test_result) {
+        return test_result;
+    }
+
+    payload.len = 254;
+    test_result = mini_sign1_verify_one_payload(payload,
+                                                key_pair,
+                                                out_buffer);
+    if(test_result) {
+        return test_result;
+    }
+
+    payload.len = 2;
+    test_result = mini_sign1_verify_one_payload(payload,
+                                                key_pair,
+                                                out_buffer);
+    if(test_result) {
+        return test_result;
+    }
+
+    /* With a bad key pair */
+    memset(&null_key_pair, 0, sizeof(struct t_cose_key));
+    err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(sample_payload),
+                                  null_key_pair,
+                                  out_buffer,
+                                 &cose_sign1);
+     if(err != T_COSE_ERR_SIG_FAIL && err != T_COSE_ERR_INCORRECT_KEY_FOR_LIB) {
+         return 120;
+     }
+
     /* Test with a buffer that is too small */
     out_buffer.len -= 30;
-    err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
+    err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(sample_payload),
                                  key_pair,
                                  out_buffer,
                                 &cose_sign1);
-    //if(err != T_COSE_ERR_TOO_SMALL) {
-    //    return 100;
-    //}
+    if(err != T_COSE_ERR_TOO_SMALL) {
+        return 100;
+    }
 
     /* Payload bigger than UINT16_MAX */
-    struct q_useful_buf_c long_payload = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload);
+    struct q_useful_buf_c long_payload = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(sample_payload);
     long_payload.len = UINT16_MAX + 1;
 
     err = t_cose_mini_sign1_sign(long_payload,
@@ -128,17 +206,7 @@ int32_t mini_sign1_sign_test(void) {
         return 200;
     }
 
-    /* Wrong key type */
-    // TODO: psa signing doesn't check crypto lib. Is that OK?
-    key_pair.crypto_lib = (enum t_cose_crypto_lib_t) 42;
-    err = t_cose_mini_sign1_sign(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(payload),
-                                 key_pair,
-                                 out_buffer,
-                                &cose_sign1);
-    if(err != T_COSE_ERR_INCORRECT_KEY_FOR_LIB) {
-        return 200;
-    }
+    free_key_pair(key_pair);
 
     return 0;
 }
-

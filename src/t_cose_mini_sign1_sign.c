@@ -1,7 +1,7 @@
 /*
  *  t_cose_mini_sign1_sign.c
  *
- * Copyright 2022, Laurence Lundblade
+ * Copyright 2022-2023, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,15 +12,28 @@
 #include "t_cose/t_cose_common.h"
 #include "t_cose_crypto.h"
 
-#include "qcbor/UsefulBuf.h"
 
 /*
+ * This depends on several t_cose header files for definitions
+ * of COSE constants, error codes and such. It indirectly
+ * depends on one QCBOR header file for useful_buf.
+ *
+ * This depends on a crypto library for the hash and
+ * public key cryptography. Access to the crypto library
+ * goes through t_cose_crypto and thus requires the
+ * C source file for the crypto adaptor for the particular
+ * crypto library.
+ *
  * This could be modified to support other header parameters like the
- * kid and the object code would still be bigger, but still very
+ * kid and the object code would be bigger, but still very
  * small.
  *
- * Or on the other hand, this could be modified to support only a
- * fixed-size payload to make the object code even smaller.
+ * There's lots that could be done to make this smaller
+ * if more is known about the use context. For example,
+ * if the payload is fixed size the CBOR head encoder
+ * can be removed. The crypto interface is also
+ * a candidate for optimization. Maybe you call your
+ * crypto library direct.
  */
 
 
@@ -60,7 +73,7 @@
 
 #define MINI_SIGN_HASH           COSE_ALGORITHM_SHA_512
 #define MINI_SIGN_HASH_LEN       T_COSE_CRYPTO_SHA512_SIZE
-#define MINI_SIGN_ALG            T_COSE_ALGORITHM_ES521
+#define MINI_SIGN_ALG            T_COSE_ALGORITHM_ES512
 #define MINI_SIGN_ALG_ID_BYTES   0x38, 0x23 /* The literal byte that appears in the CBOR encoding */
 #define MINI_SIGN_SIG_LEN        T_COSE_EC_P512_SIG_SIZE
 
@@ -82,7 +95,7 @@
 /*
  * This is hard-coded bytes for the start of the CBOR for the following
  * CBOR that are the to-be-signed bytes. Hard coding like this saves
- * writing code to create it.
+ * writing code to create it and linking in a CBOR encoder.
  *
  * Sig_structure = [
  *    context : "Signature" / "Signature1" / "CounterSignature",
@@ -94,8 +107,8 @@
  */
 static const uint8_t start_sig_struct[] = {
     0x84,
-    0x6A,'S', 'i', 'g', 'n', 'a', 't', 'u', 'r', 'e', '1',
-    PROT_HEADERS, // bstr wrapped protected header wtih algorithm ID
+    0x6A, 'S', 'i', 'g', 'n', 'a', 't', 'u', 'r', 'e', '1',
+    PROT_HEADERS, /* bstr wrapped protected header wtih algorithm ID */
     0x40, /* Empty bstr for aad */
 };
 
@@ -104,12 +117,13 @@ static const uint8_t start_sig_struct[] = {
  */
 static const uint8_t start_cose_sign1[] = {
     0x84,
-    PROT_HEADERS, // bstr wrapped protected header wtih algorithm ID
+    PROT_HEADERS, /* bstr wrapped protected header wtih algorithm ID */
     0xa0, /* no unprotected headers, put some here if you want */
 };
 
-/* The Hard coded bytes for the CBOR head for the signature. It is less
- * code to hard code than to encode using encode_bstr_head() */
+/* The hard coded bytes for the CBOR head for the signature. It is less
+ * code to hard code than to encode using encode_bstr_head(). Sig
+ * is always between 24 and 255 bytes so 0x58. */
 static const uint8_t cose_sign1_sig_start[] = {
     0x58, MINI_SIGN_SIG_LEN
 };
@@ -187,8 +201,8 @@ t_cose_mini_sign1_sign(const struct q_useful_buf_c payload,
     payload_head = encode_bstr_head(payload.len, payload_head_buffer);
 
     if(payload_head.ptr == NULL) {
-        /* The payload is too large (the only reason encode_bstr_head()
-         * errors out).
+        /* The payload is too large, the only reason
+         * encode_bstr_head() errors out.
          */
         return T_COSE_ERR_TOO_LONG;
     }
@@ -197,6 +211,8 @@ t_cose_mini_sign1_sign(const struct q_useful_buf_c payload,
     /* --- hash the Sig_structure --- */
     /* Don't actually have to create the Sig_structure fully in
      * memory. Just have to compute the hash of it. */
+    /* If you are really confident in your crypto library hash , you
+     * could remove these error checks and save more object code. */
     err = t_cose_crypto_hash_start(&hash_ctx, MINI_SIGN_HASH);
     if(err != T_COSE_SUCCESS) {
         goto Done;
@@ -212,9 +228,9 @@ t_cose_mini_sign1_sign(const struct q_useful_buf_c payload,
     }
 
     /* ---- Size check ---- */
-    /* Calculate the length of the output buffer required. It is
-     * just the payload plus a constant. This one check covers
-     * all the memcpy() calls below.
+    /* Calculate the length of the output buffer required. It is just
+     * the payload plus a constant. This one check covers all the
+     * memcpy() calls and signing operation below.
      */
     const size_t required_len = sizeof(start_cose_sign1) +
                                 MAX_CBOR_HEAD +
@@ -242,14 +258,14 @@ t_cose_mini_sign1_sign(const struct q_useful_buf_c payload,
     copy_ptr += sizeof(cose_sign1_sig_start);
 
     const size_t u_len = (size_t)(copy_ptr - (uint8_t *)output_buffer.ptr);
-
-
-    /* This won't go negative because of the check against required_len above
-     * so the cast is safe.
+    /* This subtraction won't go negative because of the check against
+       required_len above
      */
+
+    /* Set up for t_cose_crypto_sign to write signature directly
+     * into output buffer. */
     signature_buffer.len = output_buffer.len - u_len;
     signature_buffer.ptr = copy_ptr;
-
 
     err = t_cose_crypto_sign(MINI_SIGN_ALG,
                              signing_key,
@@ -266,11 +282,11 @@ t_cose_mini_sign1_sign(const struct q_useful_buf_c payload,
      * UsefulBuf that took a few hours of debugging to find.  Or maybe
      * I'm not as sharp as I used to be...
      *
-     * Or said another way, this code doesn't have the same security /
-     * buffer level that QCBOR has. It hasn't gone through the same
-     * security review and static analysis and such yet either. In
-     * theory it is safe, but I'd advise you review and analyze
-     * before security-critical use.
+     * Or said another way, this code doesn't have the same buffer
+     * security level that QCBOR has. It hasn't gone through the same
+     * security review and static analysis and such yet either. I am
+     * pretty confident it is safe, but I'd advise you review and
+     * analyze before security-critical use.
      */
 
 Done:
