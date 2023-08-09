@@ -107,11 +107,11 @@ if (BUILD_TESTS)
         test/run_tests.c
         test/t_cose_make_test_messages.c
         test/t_cose_test.c
-        test/t_cose_mini_sign1_sign_test.c
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")
         list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c)
+        list(APPEND TEST_SRC_COMMON test/t_cose_mini_sign1_sign_test.c)
     endif()
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
