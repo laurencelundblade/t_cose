@@ -699,6 +699,7 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
     }
 
 
+#ifndef T_COSE_DISABLE_COSE_SIGN
     /* ========= Again for COSE_Sign ========= */
 
     /* ---- First calculate the size ----- */
@@ -767,6 +768,7 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
         return_value = -12;
         goto Done;
     }
+#endif
 
     return_value = 0;
 
