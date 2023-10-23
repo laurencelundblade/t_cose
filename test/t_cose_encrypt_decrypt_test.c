@@ -426,6 +426,16 @@ Done2:
 int32_t decrypt_known_good_aeskw_non_aead_test(void)
 {
     int32_t return_value;
+
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+        /* This is necessary because MbedTLS 2.28 doesn't have
+         * nist KW enabled by default. The PSA crypto layer deals with
+         * this dynamically. The below tests will correctly link
+         * on 2.28, but will fail to run so this exception is needed.
+         */
+        return INT32_MIN; /* Means no testing was actually done */
+    }
+
     return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_aes_kw_aes_ctr));
     if(return_value != 0) {
         return return_value + 10000;
