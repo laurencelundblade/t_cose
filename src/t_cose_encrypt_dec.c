@@ -301,41 +301,54 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     // TODO: stop here for decode-only mode */
 
 
-    /* --- Make the Enc_structure ---- */
-    /* The Enc_structure from RFC 9052 section 5.3 that is AAD input
-     * to the AEAD to integrity-protect COSE headers and
-     * parameters. */
-    if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
-        /* Caller gave us a (bigger) buffer for Enc_structure */
-        enc_struct_buffer = me->extern_enc_struct_buffer;
-    }
-    msg_type_string = (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 ?
-                          "Encrypt0" :
-                          "Encrypt");
-    return_value =
-        create_enc_structure(
-            msg_type_string,   /* in: message type context string */
-            protected_params,  /* in: body protected parameters */
-            aad,               /* in: AAD from caller to integrity protect */
-            enc_struct_buffer, /* in: buffer for encoded Enc_structure */
-            &enc_structure     /* out: CBOR encoded Enc_structure */
-        );
-    if (return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
     /* --- The body/content decryption --- */
-    // TODO: handle AE algorithms
-    return_value =
-        t_cose_crypto_aead_decrypt(
-            ce_alg.cose_alg_id,    /* in: cose alg id to decrypt payload */
-            cek_key,               /* in: content encryption key */
-            nonce_cbor,            /* in: iv / nonce for decrypt */
-            enc_structure,         /* in: the AAD for the AEAD */
-            cipher_text,           /* in: bytes to decrypt */
-            plaintext_buffer,      /* in: buffer to output plaintext into */
-            plaintext              /* out: the decrypted payload */
-        );
+    if(t_cose_alg_is_non_aead(ce_alg.cose_alg_id)) {
+        return_value =
+            t_cose_crypto_non_aead_decrypt(
+                ce_alg.cose_alg_id,    /* in: cose alg id to decrypt payload */
+                cek_key,               /* in: content encryption key */
+                nonce_cbor,            /* in: iv / nonce for decrypt */
+                cipher_text,           /* in: bytes to decrypt */
+                plaintext_buffer,      /* in: buffer to output plaintext into */
+                plaintext              /* out: the decrypted payload */
+            );
+    }
+    else {
+        /* --- Make the Enc_structure ---- */
+        /* The Enc_structure from RFC 9052 section 5.3 that is AAD input
+        * to the AEAD to integrity-protect COSE headers and
+        * parameters. */
+        if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
+            /* Caller gave us a (bigger) buffer for Enc_structure */
+            enc_struct_buffer = me->extern_enc_struct_buffer;
+        }
+        msg_type_string = (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 ?
+                            "Encrypt0" :
+                            "Encrypt");
+        return_value =
+            create_enc_structure(
+                msg_type_string,   /* in: message type context string */
+                protected_params,  /* in: body protected parameters */
+                aad,               /* in: AAD from caller to integrity protect */
+                enc_struct_buffer, /* in: buffer for encoded Enc_structure */
+                &enc_structure     /* out: CBOR encoded Enc_structure */
+            );
+        if (return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+
+        // TODO: handle AE algorithms
+        return_value =
+            t_cose_crypto_aead_decrypt(
+                ce_alg.cose_alg_id,    /* in: cose alg id to decrypt payload */
+                cek_key,               /* in: content encryption key */
+                nonce_cbor,            /* in: iv / nonce for decrypt */
+                enc_structure,         /* in: the AAD for the AEAD */
+                cipher_text,           /* in: bytes to decrypt */
+                plaintext_buffer,      /* in: buffer to output plaintext into */
+                plaintext              /* out: the decrypted payload */
+            );
+    }
     if (message_type != T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
         t_cose_crypto_free_symmetric_key(cek_key);
     }

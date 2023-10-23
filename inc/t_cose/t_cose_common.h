@@ -636,7 +636,10 @@ enum t_cose_err_t {
      * to be larger because there are too many protected
      * headers, party u/v identities were added or
      * supp info was added. TODO: see xxxx*/
-    T_COSE_ERR_KDF_CONTEXT_SIZE = 88
+    T_COSE_ERR_KDF_CONTEXT_SIZE = 88,
+
+    /** While decryption, the padding for AES-CBC is invalid. */
+    T_COSE_ERR_BAD_PADDING = 89,
 };
 
 
@@ -845,6 +848,7 @@ struct t_cose_sign_inputs {
 struct t_cose_alg_and_bits {
     int32_t   cose_alg_id;
     uint32_t  bits_in_key;
+    uint32_t  bits_iv;
 };
 
 
