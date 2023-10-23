@@ -14,7 +14,8 @@
 #include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose/t_cose_recipient_dec_esdh.h"
 #include "t_cose/t_cose_recipient_enc_esdh.h"
-
+#include "t_cose/t_cose_recipient_dec_keywrap.h"
+#include "t_cose/t_cose_recipient_enc_keywrap.h"
 
 
 #define PAYLOAD  "This is the payload"
@@ -141,12 +142,18 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     switch(cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
+        case T_COSE_ALGORITHM_A128CTR:
+        case T_COSE_ALGORITHM_A128CBC:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("128-bit key xxxx");
             break;
         case T_COSE_ALGORITHM_A192GCM:
+        case T_COSE_ALGORITHM_A192CTR:
+        case T_COSE_ALGORITHM_A192CBC:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("192-bit key xxxxyyyyyyyy");
             break;
         case T_COSE_ALGORITHM_A256GCM:
+        case T_COSE_ALGORITHM_A256CTR:
+        case T_COSE_ALGORITHM_A256CBC:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("256-bit key xxxxyyyyyyyyzzzzzzzz");
             break;
         case T_COSE_ALGORITHM_AES128CCM_16_128:
@@ -289,23 +296,148 @@ int32_t base_encrypt_decrypt_test(void)
     int32_t rv;
     rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128GCM);
     if(rv) {
-        return rv;
+        return 10000 + rv;
     }
 
     rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192GCM);
     if(rv) {
-        return rv;
+        return 20000 + rv;
     }
 
     rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256GCM);
     if(rv) {
-        return rv;
+        return 30000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CTR);
+    if(rv) {
+        return 40000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CTR);
+    if(rv) {
+        return 50000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CTR);
+    if(rv) {
+        return 60000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CBC);
+    if(rv) {
+        return 70000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CBC);
+    if(rv) {
+        return 80000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CBC);
+    if(rv) {
+        return 90000 + rv;
     }
 
     return 0;
 
 }
 
+
+#ifndef T_COSE_DISABLE_KEYWRAP
+
+static const uint8_t cose_encrypt_aes_kw_aes_ctr[] = {
+    0xD8, 0x60, 0x84, 0x45, 0xA1, 0x01, 0x39, 0xFF,
+    0xFD, 0xA1, 0x05, 0x50, 0x77, 0xD3, 0x52, 0x42,
+    0xA1, 0x91, 0xE9, 0xF9, 0xFD, 0x26, 0x10, 0x4A,
+    0xB3, 0x08, 0x56, 0x4E, 0x53, 0x79, 0x3A, 0x61,
+    0x6A, 0x56, 0x17, 0x48, 0x2B, 0xE7, 0x6F, 0x17,
+    0x07, 0x78, 0x58, 0xB1, 0x48, 0x24, 0x15, 0x91,
+    0x81, 0x83, 0x40, 0xA1, 0x01, 0x22, 0x58, 0x18,
+    0x31, 0x6A, 0xDA, 0x13, 0x00, 0x3F, 0xE7, 0xC6,
+    0x1A, 0xD4, 0xEA, 0x50, 0x35, 0x00, 0xB2, 0x85,
+    0xCA, 0xCA, 0xDE, 0x51, 0x07, 0xA8, 0xE2, 0x80,
+};
+
+static const uint8_t cose_encrypt_aes_kw_aes_cbc[] = {
+    0xD8, 0x60, 0x84, 0x45, 0xA1, 0x01, 0x39, 0xFF,
+    0xFA, 0xA1, 0x05, 0x50, 0x82, 0x62, 0xA8, 0xD7,
+    0x20, 0x40, 0xA5, 0xE0, 0x9A, 0x31, 0x45, 0x86,
+    0x39, 0x5D, 0x57, 0x50, 0x58, 0x20, 0xB6, 0x0E,
+    0xC3, 0xC9, 0xA1, 0x66, 0xD8, 0xEE, 0xFD, 0xAE,
+    0xA5, 0x98, 0xFA, 0xB1, 0xCE, 0xBB, 0x7F, 0x0D,
+    0x5D, 0xDF, 0x22, 0x37, 0xF1, 0x3A, 0x03, 0xA9,
+    0x13, 0x64, 0x59, 0x49, 0x83, 0xFE, 0x81, 0x83,
+    0x40, 0xA1, 0x01, 0x22, 0x58, 0x18, 0xD2, 0x1A,
+    0x60, 0xF7, 0xF6, 0x7B, 0xA8, 0x66, 0xF1, 0x5B,
+    0xE2, 0x7C, 0x98, 0x38, 0x81, 0xAA, 0x47, 0xDF,
+    0x15, 0xAE, 0x69, 0x25, 0xA0, 0xD1,
+};
+
+int32_t decrypt_key_wrap(struct q_useful_buf_c cose_encrypt_buffer)
+{
+    enum t_cose_err_t                   result;
+    int32_t                             return_value = 0;
+    struct t_cose_recipient_dec_keywrap kw_unwrap_recipient;
+    struct t_cose_encrypt_dec_ctx       decrypt_context;
+    struct t_cose_key                   kek;
+    struct q_useful_buf_c               kek_bytes;
+    Q_USEFUL_BUF_MAKE_STACK_UB(         decrypted_buffer, 1024);
+    struct q_useful_buf_c               decrypted_payload;
+    struct t_cose_parameter            *params;
+
+    kek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("128-bit key xxxx");
+    result = t_cose_key_init_symmetric(T_COSE_ALGORITHM_A128KW,
+                                       kek_bytes,
+                                       &kek);
+    if(result != T_COSE_SUCCESS) {
+        return_value = 1000 + (int32_t)result;
+        goto Done2;
+    }
+
+    t_cose_encrypt_dec_init(&decrypt_context, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+    t_cose_recipient_dec_keywrap_init(&kw_unwrap_recipient);
+    t_cose_recipient_dec_keywrap_set_kek(&kw_unwrap_recipient, kek, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_dec_add_recipient(&decrypt_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
+
+    result = t_cose_encrypt_dec(&decrypt_context,
+                                cose_encrypt_buffer,
+                                NULL_Q_USEFUL_BUF_C,
+                                decrypted_buffer,
+                                &decrypted_payload,
+                                &params);
+
+    if(result != T_COSE_SUCCESS) {
+        return_value = 2000 + (int32_t)result;
+        goto Done1;
+    }
+
+    if(q_useful_buf_compare(decrypted_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD))) {
+        return_value = 3000;
+        goto Done1;
+    }
+
+Done1:
+    t_cose_key_free_symmetric(kek);
+Done2:
+    return return_value;
+}
+
+int32_t decrypt_known_good_aeskw_non_aead_test(void)
+{
+    int32_t return_value;
+    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_aes_kw_aes_ctr));
+    if(return_value != 0) {
+        return return_value + 10000;
+    }
+    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_aes_kw_aes_cbc));
+    if(return_value != 0) {
+        return return_value + 20000;
+    }
+    return 0;
+}
+
+#endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
 
