@@ -147,18 +147,19 @@ encode_crit_parameter(QCBOREncodeContext            *cbor_encoder,
 
 
 /**
- * \brief Decode the parameter containing the labels of parameters considered
- *        critical.
+ * \brief Decode parameter containing the labels of params considered critical.
  *
- * \param[in,out]  cbor_decoder          Decode context to read critical
- *                                         parameter list from.
- * \param[out]     crit_labels         List of labels of critical
- *                                         parameters.
+ * \param[in,out]  cbor_decoder  Decode context to read crit params from.
+ * \param[out]     crit_labels   Returned list of labels of crit parameters.
  *
- * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  Undecodable CBOR.
- * \retval T_COSE_ERR_TOO_MANY_PARAMETERS   More critical labels than this
- *                                          implementation can handle.
- * \retval T_COSE_ERR_PARAMETER_CBOR        Unexpected CBOR data type.
+ * \retval T_COSE_ERR_CRIT_PARAMETER  Some error decoding "crit" parameter.
+ * \retval T_COSE_SUCCESS             Decoded successfully.
+ *
+ * This decodes the "crit" parameter. It assumes the CBOR decoder is
+ * positioned with the "crit" parameter as the next CBOR items.
+ *
+ * The CBOR decoder error state must be checked even if this returns
+ * \ref T_COSE_SUCCESS.
  */
 static enum t_cose_err_t
 decode_crit_param(QCBORDecodeContext       *cbor_decoder,
@@ -282,23 +283,32 @@ t_cose_params_check(const struct t_cose_parameter *parameters)
 /**
  * \brief  Decode a bucket of parameters.
  *
- * \param[in] cbor_decoder        CBOR decode context to pull from.
- * \param[in] location            Location in CBOR message of the bucket of
- *                                parameters being decoded.
- * \param[in] is_protected        \c true if bucket is protected.
- * \param[in] special_decode_cb   Function called for parameters that are not
- *                                strings or integers.
- * \param[in] special_decode_ctx  Context for the \c specials callback function.
- * \param [in] param_storage      Pool of nodes from which to allocate.
- * \param[in,out] returned_params Linked list of parameters to which
- *                                the decoded params will be added.
+ * \param[in] cbor_decoder         CBOR decode context to pull from.
+ * \param[in] location             Location in CBOR message of the bucket of
+ *                                 parameters being decoded.
+ * \param[in] is_protected         \c true if bucket is protected.
+ * \param[in] special_decode_cb    Function called for parameters that are not
+ *                                 strings or integers.
+ * \param[in] special_decode_ctx   Context for \c special_decode_cb.
+ * \param [in] param_storage       Pool of nodes from which to allocate.
+ * \param[in,out] returned_params  Linked list of parameters to which
+ *                                 the decoded params will be added.
+ *
+ * \retval T_COSE_SUCCESS                      OK.
+ * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED     CBOR can't be decoded at all.
+ * \retval T_COSE_ERR_CBOR_DECODE              Decoded, but not expected type
+ *                                             or such.
+ * \retval T_COSE_ERR_PARAMETER_CBOR           Decoded, but not right type or
+ *                                             such for param being decoded.
+ * \retval T_COSE_ERR_PARAMETER_NOT_PROTECTED  Param should be protected.
+ * \retval T_COSE_ERR_TOO_MANY_PARAMETERS      Not enough space in param_storage.
  *
  * This decodes a CBOR map of parameters (a "bucket") into a linked
  * list. The nodes are allocated out of \c param_storage.
  *
- * The decoded parameters are added to the list in \c
- * *decoded_parameters.  \c *decoded_parameters may be \c NULL if there is
- * no linked list to add do.
+ * The decoded parameters are added to the list in \c decoded_parameters.
+ * \c decoded_parameters may be \c NULL if there is no previous linked list
+ * to add do.
  *
  * If \c is_protected is set then every parameter decode is marked
  * as protected and vice versa.
@@ -309,6 +319,9 @@ t_cose_params_check(const struct t_cose_parameter *parameters)
  *
  * String and integer parameters are fully decoded without help. For
  * others, the \c special_decode_cb is called.
+ *
+ * Other errors that originate from \c special_decode_cb may be returned,
+ * but they will usually be one of the errors listed above.
  */
 static enum t_cose_err_t
 t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,

@@ -51,18 +51,19 @@ extern "C" {
  * this file.
  *
  * When decoding a COSE message (verification, decryption, ...) the
- * full set of header parameters decoded are returned as linked list of
+ * full set of header parameters decoded are returned as a linked list of
  * struct t_cose_parameter. In many cases the caller will not need to
  * examine what is returned.
  *
  * If the caller wishes to examine them, they can iterate over the
  * linked list searching by label. The data type, protected-ness and
- * criticality of the parameters in the returned list is not
- * checked. It is up to the caller examining these to check.  Some
- * functions for examining headers in the array are provided. See
+ * criticality of the parameters in the returned linked list is not
+ * checked. It is up to the caller examining these to check.
+ *
+ * Functions for locating and checking specific headers in the
+ * returned linked list are in are provided. See
  * t_cose_find_parameter(), t_cose_find_parameter_kid(), etc… These do
- * fully check the protected-ness, criticality and type of the
- * parameter.
+ * fully check the protected-ness, criticality and type.
  *
  * Some COSE messages, COSE_Sign1, COSE_Mac0 and COSE_Encrypt0 have
  * just one set of headers, those for the main body.  Other
@@ -144,7 +145,7 @@ t_cose_param_special_encode_cb(const struct t_cose_parameter  *parameter,
 
 
 /**
- * \brief Type of callback to decode a special parameter.
+ * \brief Function Protoype of callback to decode a special parameter.
  *
  * \param[in] cb_context     Context for callback.
  * \param[in] cbor_decoder   QCBOR decoder to pull from.
@@ -159,12 +160,12 @@ t_cose_param_special_encode_cb(const struct t_cose_parameter  *parameter,
  * This is called back from t_cose_decode_headers() when a parameter
  * that is not an integer or string is encountered.
  *
- * On input, the label, protected, critical and value_type are set
+ * On input, the label, protectedness, criticality and value_type are set
  * based on peeking at the first data item in the header. The value is
  * not set and none of the items in the parameter have been consumed.
  *
  * A callback can decided not to process the parameter by checking the
- * parameter label and such passed in. If it ia not to be process
+ * parameter label and such passed in. If it is not to be processed,
  * return \ref T_COSE_ERR_DECLINE.  The parameter will be ignored. If
  * a critical parameter is declined, this will be noticed and the COSE
  * message processing will error out with \ref
@@ -176,12 +177,12 @@ t_cose_param_special_encode_cb(const struct t_cose_parameter  *parameter,
  * Any of the the members of \c parameter.value may be used,
  * particularly \c parameter.value.special_decode.
  *
- * For an unsuccesful decode return an appropriate error like
+ * For an unsuccesful decode, return an appropriate error like
  * T_COSE_ERR_NOT_WELL_FORMED. It will halt processing
- * of the message flow and be returned to the top level call.
+ * of the message and be returned to the top level call.
  *
  * Unlike t_cose_special_param_encode_cb() only one of these may be set.
- * Implementation of this switche on the label to know which parameter
+ * Implementation of this switch on the label to know which parameter
  * to output.
  */
 typedef enum t_cose_err_t
@@ -440,12 +441,22 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * \param[out] protected_parameters  Pointer and length of encoded protected
  *                                   parameters.
  *
+ * \retval T_COSE_SUCCESS                      OK.
+ * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED     CBOR can't be decoded at all.
+ * \retval T_COSE_ERR_CBOR_DECODE              Decoded, but not expected type
+ *                                             or such.
+ * \retval T_COSE_ERR_PARAMETER_CBOR           Decoded, but not right type or
+ *                                             such for param being decoded.
+ * \retval T_COSE_ERR_PARAMETER_NOT_PROTECTED  Param should be protected.
+ * \retval T_COSE_ERR_TOO_MANY_PARAMETERS      Not enough space in param_storage.
+ * \retval T_COSE_ERR_DUPLICATE_PARAMETER      Duplicate param.
+ *
  * For most COSE message decoding (e.g. verification of a COSE_SIgn1),
  * this is not needed. This is mainly used internally or by
  * implemention of a new \c t_cose_signature_verify or \c
  * t_cose_recipient_decrypt object.
  *
- * Use this to decode "Headers" that occurs throughout COSE. The QCBOR
+ * Use this to decode "Headers" that occurs throughout COSE. The CBOR
  * decoder should be positioned so the protected header bucket is the
  * next item to be decoded. This then consumes the CBOR for the two
  * header parameter buckets leaving the decoder positioned for what
@@ -476,6 +487,9 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * COSE_Signer, not the the total of all COSE_Signers. This is a hard
  * limit that can only be increased by changing the size and re
  * building the t_cose library.
+ *
+ * Other errors that originate from \c special_decode_cb may be returned,
+ * but they will usually be one of the errors listed above.
  */
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
