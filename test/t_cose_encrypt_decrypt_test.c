@@ -16,6 +16,7 @@
 #include "t_cose/t_cose_recipient_enc_esdh.h"
 #include "t_cose/t_cose_recipient_dec_keywrap.h"
 #include "t_cose/t_cose_recipient_enc_keywrap.h"
+#include "t_cose_util.h"
 
 
 #define PAYLOAD  "This is the payload"
@@ -200,6 +201,10 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(AAD),
                                      cose_message_buf,
                                     &encrypted_cose_message);
+    if(t_cose_alg_is_non_aead(cose_algorithm_id) && t_cose_err == T_COSE_ERR_AAD_WITH_NON_AEAD) {
+        return_value = 0;
+        goto Done;
+    }
     if(t_cose_err) {
         return_value = 2000 + (int32_t)t_cose_err;
         goto Done;
