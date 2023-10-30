@@ -51,6 +51,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     struct q_useful_buf          encrypt_buffer;
     struct q_useful_buf_c        encrypt_output;
     bool                         is_cose_encrypt0;
+    bool                         is_none_aead_ciphr;
     struct t_cose_recipient_enc *recipient;
 
 
@@ -70,9 +71,17 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
             return T_COSE_ERR_BAD_OPT;
     }
 
-
     /* ---- Algorithm ID, IV and parameter list ---- */
     /* Determine algorithm parameters */
+    is_none_aead_ciphr = t_cose_alg_is_non_aead(me->payload_cose_algorithm_id);
+    if(is_none_aead_ciphr && !q_useful_buf_c_is_null_or_empty(external_aad)) {
+        /* Section 6 of RFC9459 says,
+        * COSE libraries that support either AES-CTR or AES-CBC and
+        * accept Additional Authenticated Data (AAD) as input MUST return an error
+        */
+        return T_COSE_ERR_AAD_WITH_NON_AEAD;
+    }
+
     ce_alg.cose_alg_id = me->payload_cose_algorithm_id;
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
     ce_alg.bits_iv = bits_iv_alg(ce_alg.cose_alg_id);
@@ -134,9 +143,9 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     /* At this point cek_handle has the encryption key for the AEAD */
 
 
-    /* ---- Run AEAD to encrypt the payload, detached or not */
+    /* ---- Encrypt the payload, detached or not */
     if(q_useful_buf_is_null(buffer_for_detached)) {
-        /* Set up so AEAD writes directly to the output buffer to save lots
+        /* Set up so encryption writes directly to the output buffer to save lots
          * of memory since no intermediate buffer is needed!
          */
         QCBOREncode_OpenBytes(&cbor_encoder, &encrypt_buffer);
@@ -145,7 +154,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         encrypt_buffer = buffer_for_detached;
     }
 
-    if(t_cose_alg_is_non_aead(ce_alg.cose_alg_id)) {
+    if(is_none_aead_ciphr) {
         return_value =
             t_cose_crypto_non_aead_encrypt(ce_alg.cose_alg_id, /* in: non AEAD alg ID */
                                     cek_handle,     /* in: content encryption key handle */
@@ -153,8 +162,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                                     payload,        /* in: payload to encrypt */
                                     encrypt_buffer, /* in: buffer to write to */
                                     &encrypt_output  /* out: ciphertext */);
-    }
-    else {
+    } else {
         /* ---- Make the Enc_structure ---- */
         /* Per RFC 9052 section 5.3 the structure that is authenticated
         * along with the payload by the AEAD.

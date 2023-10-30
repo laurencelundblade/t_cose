@@ -640,6 +640,9 @@ enum t_cose_err_t {
 
     /** While decryption, the padding for AES-CBC is invalid. */
     T_COSE_ERR_BAD_PADDING = 89,
+
+    /** External AAD is passed as an argument for non AEAD cipher. */
+    T_COSE_ERR_AAD_WITH_NON_AEAD = 90,
 };
 
 
