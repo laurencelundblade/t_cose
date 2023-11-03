@@ -9,7 +9,6 @@
  * See BSD-3-Clause license in README.md
  */
 
-
 #ifndef __T_COSE_COMMON_H__
 #define __T_COSE_COMMON_H__
 
@@ -490,6 +489,7 @@ enum t_cose_err_t {
      */
     T_COSE_ERR_MAC0_FORMAT = 48,
 
+    // TODO: duplicate uses of next three error codes.
     /** The requested content key distribution algorithm is not supported.  */
     T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG = 46,
 
@@ -636,7 +636,11 @@ enum t_cose_err_t {
      * to be larger because there are too many protected
      * headers, party u/v identities were added or
      * supp info was added. TODO: see xxxx*/
-    T_COSE_ERR_KDF_CONTEXT_SIZE = 88
+    T_COSE_ERR_KDF_CONTEXT_SIZE = 88,
+
+    /** COSE_Encrypt has the wrong stuff in it */
+    T_COSE_ERR_ENCRYPT_FORMAT = 89,
+
 };
 
 
