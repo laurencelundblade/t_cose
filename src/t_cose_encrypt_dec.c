@@ -125,7 +125,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 enum t_cose_err_t
 t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
                             const struct q_useful_buf_c    message,
-                            const struct q_useful_buf_c    aad,
+                            const struct q_useful_buf_c    ext_sup_data,
                             const struct q_useful_buf_c    detached_ciphertext,
                             struct q_useful_buf            plaintext_buffer,
                             struct q_useful_buf_c         *plaintext,
@@ -180,6 +180,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         t_cose_headers_decode(
            &cbor_decoder,     /* in: cbor decoder context */
             header_location,  /* in: location of headers in message */
+            false,            /* in: no_protected headers */
             NULL,             /* TODO: in: header decode callback function */
             NULL,             /* TODO: in: header decode callback context */
             me->p_storage,    /* in: pool of nodes for linked list */
@@ -191,7 +192,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
     nonce_cbor = t_cose_param_find_iv(body_params_list);
-    ce_alg.cose_alg_id = t_cose_param_find_alg_id(body_params_list, true);
+    ce_alg.cose_alg_id = t_cose_param_find_alg_id_prot(body_params_list);
     all_params_list = body_params_list;
 
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
@@ -335,7 +336,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         create_enc_structure(
             msg_type_string,   /* in: message type context string */
             protected_params,  /* in: body protected parameters */
-            aad,               /* in: AAD from caller to integrity protect */
+            ext_sup_data,      /* in: externally supplied data to protect */
             enc_struct_buffer, /* in: buffer for encoded Enc_structure */
             &enc_structure     /* out: CBOR encoded Enc_structure */
         );
