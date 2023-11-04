@@ -463,7 +463,7 @@ int32_t decrypt_known_good_aeskw_non_aead_test(void)
 
 
 static int32_t
-esdh_enc_dec(int32_t curve)
+esdh_enc_dec(int32_t curve, int32_t payload_cose_algorithm_id)
 {
     enum t_cose_err_t                result;
     struct t_cose_key                privatekey;
@@ -502,7 +502,7 @@ esdh_enc_dec(int32_t curve)
      */
     t_cose_encrypt_enc_init(&enc_ctx,
                              T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
-                             T_COSE_ALGORITHM_A128GCM);
+                             payload_cose_algorithm_id);
 
     /* Create the recipient object telling it the algorithm and the public key
      * for the COSE_Recipient it's going to make.
@@ -570,11 +570,32 @@ esdh_enc_dec_test(void)
         return INT32_MIN;
     }
 
-    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256);
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256, T_COSE_ALGORITHM_A128GCM);
     if(result) {
         return result;
     }
-    return esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521);
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256, T_COSE_ALGORITHM_A128CTR);
+    if(result) {
+        return result;
+    }
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256, T_COSE_ALGORITHM_A128CBC);
+    if(result) {
+        return result;
+    }
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521, T_COSE_ALGORITHM_A256GCM);
+    if(result) {
+        return result;
+    }
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521, T_COSE_ALGORITHM_A256CTR);
+    if(result) {
+        return result;
+    }
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521, T_COSE_ALGORITHM_A256CBC);
+    if(result) {
+        return result;
+    }
+
+    return 0;
 }
 
 
