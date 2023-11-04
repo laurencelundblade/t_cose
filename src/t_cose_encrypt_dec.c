@@ -180,6 +180,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         t_cose_headers_decode(
            &cbor_decoder,     /* in: cbor decoder context */
             header_location,  /* in: location of headers in message */
+            false,            /* in: no_protected headers */
             NULL,             /* TODO: in: header decode callback function */
             NULL,             /* TODO: in: header decode callback context */
             me->p_storage,    /* in: pool of nodes for linked list */

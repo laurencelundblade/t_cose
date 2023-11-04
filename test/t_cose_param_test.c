@@ -925,6 +925,7 @@ param_test(void)
 
             t_cose_result = t_cose_headers_decode(&decode_context,
                                                    (struct t_cose_header_location){0,0},
+                                                   false,
                                                    param_decoder,
                                                    NULL,
                                                   &param_storage,
@@ -1047,6 +1048,7 @@ param_test(void)
 
         t_cose_result = t_cose_headers_decode(&decode_context,
                                               (struct t_cose_header_location){0,0},
+                                              false,
                                               param_decoder, NULL,
                                              &param_storage,
                                              &decoded_parameter,
@@ -1151,6 +1153,7 @@ common_params_test(void)
 
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
+                                          false,
                                           NULL,
                                           NULL,
                                           &param_storage,
@@ -1232,6 +1235,7 @@ common_params_test(void)
 
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
+                                          false,
                                           NULL,
                                           NULL,
                                           &param_storage,

@@ -431,6 +431,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  *
  * \param[in] cbor_decoder           QCBOR decoder to decode from.
  * \param[in] location               Location in message of the parameters.
+ * \param[in] no_protected    Protected headers must be empty.
  * \param[in] special_decode_cb      Callback for non-integer and
  *                                   non-string parameters.
  * \param[in] special_decode_ctx     Context for the above callback
@@ -462,6 +463,11 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * non-integer and non-string header parameters. It typically switches
  * on the parameter label.
  *
+ * If \c no_protected is \c true, then the protected headers
+ * must be an empty byte string. This is used when the cryptographic
+ * algorithm used can't protect headers, for example non-AEAD
+ * ciphers for COSE encryption.
+ *
  * The crit parameter will be decoded and any parameter label
  * listed in it will be marked as crit in the list returned. It is up
  * to the caller to check the list for crit parameters and error
@@ -480,6 +486,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       const struct t_cose_header_location location,
+                      bool                                no_protected,
                       t_cose_param_special_decode_cb     *special_decode_cb,
                       void                               *special_decode_ctx,
                       struct t_cose_parameter_storage    *parameter_storage,

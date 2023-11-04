@@ -487,13 +487,14 @@ param_dup_detect(const struct t_cose_parameter *params_list)
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       const struct t_cose_header_location location,
+                      const bool                          no_protected,
                       t_cose_param_special_decode_cb     *special_decode_cb,
                       void                               *special_decode_ctx,
                       struct t_cose_parameter_storage    *param_storage,
                       struct t_cose_parameter           **decoded_params,
                       struct q_useful_buf_c              *protected_parameters)
 {
-     /* Approximate stack usage
+    /* Approximate stack usage
      *                                             64-bit      32-bit
      *   local vars                                    24          12
      *   largest call, t_cose_params_decode           416         352
@@ -503,27 +504,36 @@ t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
     QCBORError                cbor_error;
     enum t_cose_err_t         return_value;
     struct t_cose_parameter  *newly_decode_params;
+    struct q_useful_buf_c     empty_protected;
 
     newly_decode_params = NULL;
 
     /* --- The protected parameters --- */
-    QCBORDecode_EnterBstrWrapped(cbor_decoder,
-                                 QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                 protected_parameters);
-
-    if(protected_parameters->len) {
-        return_value = t_cose_params_decode(cbor_decoder,
-                                            location,
-                                            true,
-                                            special_decode_cb,
-                                            special_decode_ctx,
-                                            param_storage,
-                                           &newly_decode_params);
-        if(return_value != T_COSE_SUCCESS) {
+    if(no_protected) {
+        QCBORDecode_GetByteString(cbor_decoder, &empty_protected);
+        if(empty_protected.len != 0) {
+            return_value = T_COSE_ERR_PROTECTED_NOT_ALLOWED;
             goto Done;
         }
+    } else {
+        QCBORDecode_EnterBstrWrapped(cbor_decoder,
+                                     QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                     protected_parameters);
+
+        if(protected_parameters->len) {
+            return_value = t_cose_params_decode(cbor_decoder,
+                                                location,
+                                                true,
+                                                special_decode_cb,
+                                                special_decode_ctx,
+                                                param_storage,
+                                               &newly_decode_params);
+            if(return_value != T_COSE_SUCCESS) {
+                goto Done;
+            }
+        }
+        QCBORDecode_ExitBstrWrapped(cbor_decoder);
     }
-    QCBORDecode_ExitBstrWrapped(cbor_decoder);
 
     /* ---  The unprotected parameters --- */
     return_value = t_cose_params_decode(cbor_decoder,
