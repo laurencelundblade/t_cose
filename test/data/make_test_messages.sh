@@ -1,6 +1,13 @@
 #!/bin/bash
 
-rm -rf test_messages.[ch]
+rm -f test_messages.[ch]
+
+
+cat << EOM > test_messages.c
+/* This file is created by make_test_messages.sh from CBOR diag files */
+EOM
+
+cp test_messages.c test_messages.h
 
 for i in *.diag;
 do

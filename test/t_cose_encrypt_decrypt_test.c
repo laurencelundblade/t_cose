@@ -549,6 +549,36 @@ int32_t run_decrypt_test(const struct decrypt_test *test)
 }
 
 
+/*
+
+ Unknown symmetric cipher alg
+ Unknown recipient alg
+ Unknown critical header
+ Wrong CBOR tag number
+ Header that is not valid CBOR
+ Top-level CBOR wrong -- a map, not an array
+ Ciphertext is not the right type -- a text string
+ Recipients area is a map, not an array
+ Extra stuff at end of array of 4
+ AEAD integrity check fails
+ IV header header is wrong type -- text string
+ Symmetric Algorithm ID is the wrong type -- a byte string
+ Recipient is the wrong type -- a map, not an array
+ The encrypted CEK is the wrong type -- text string, not byte string
+ Extra stuff at end of recipient array
+ Recipient header is not decodable CBOR
+ Ephemeral key is an array, not a map
+ Ephemeral key type is unknown
+ Ephemeral curve is unknown
+ Ephemeral key type is a byte string
+ Ephemeral x coordinate is an integer, not a byte string
+ Ephemeral y coordinate is an integer not a byte string
+ */
+
+
+/* Decided to use a function to initialize rather than attempt
+ * static initialization. It's only a test.
+ */
 static int32_t
 init_decrypt_test_list(struct decrypt_test tests[], size_t size)
 {
