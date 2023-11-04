@@ -27,7 +27,7 @@
 enum t_cose_err_t
 t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                             struct q_useful_buf_c      payload,
-                            struct q_useful_buf_c      external_aad,
+                            struct q_useful_buf_c      ext_sup_data,
                             struct q_useful_buf        buffer_for_detached,
                             struct q_useful_buf        buffer_for_message,
                             struct q_useful_buf_c     *encrypted_detached,
@@ -75,7 +75,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     /* ---- Algorithm ID, IV and parameter list ---- */
     /* Determine algorithm parameters */
     is_none_aead_ciphr = t_cose_alg_is_non_aead(me->payload_cose_algorithm_id);
-    if(is_none_aead_ciphr && !q_useful_buf_c_is_null_or_empty(external_aad)) {
+    if(is_none_aead_ciphr && !q_useful_buf_c_is_null_or_empty(ext_sup_data)) {
         /* Section 6 of RFC9459 says,
         * COSE libraries that support either AES-CTR or AES-CBC and
         * accept Additional Authenticated Data (AAD) as input MUST return an error
@@ -164,11 +164,11 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     if(is_none_aead_ciphr) {
         return_value =
             t_cose_crypto_non_aead_encrypt(ce_alg.cose_alg_id, /* in: non AEAD alg ID */
-                                    cek_handle,     /* in: content encryption key handle */
-                                    nonce,          /* in: nonce / IV */
-                                    payload,        /* in: payload to encrypt */
-                                    encrypt_buffer, /* in: buffer to write to */
-                                    &encrypt_output  /* out: ciphertext */);
+                                           cek_handle,     /* in: content encryption key handle */
+                                           nonce,          /* in: nonce / IV */
+                                           payload,        /* in: payload to encrypt */
+                                           encrypt_buffer, /* in: buffer to write to */
+                                          &encrypt_output  /* out: ciphertext */);
     } else {
         /* ---- Make the Enc_structure ---- */
         /* Per RFC 9052 section 5.3 the structure that is authenticated
@@ -187,9 +187,9 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         enc_struct_string = is_cose_encrypt0 ? "Encrypt0" : "Encrypt";
         return_value =
             create_enc_structure(enc_struct_string, /* in: message context string */
-                                body_prot_headers, /* in: CBOR encoded prot hdrs */
-                                external_aad,      /* in: external AAD */
-                                enc_struct_buffer, /* in: output buffer */
+                                 body_prot_headers, /* in: CBOR encoded prot hdrs */
+                                 ext_sup_data,      /* in: external AAD */
+                                 enc_struct_buffer, /* in: output buffer */
                                 &enc_structure);    /* out: encoded Enc_structure */
         if(return_value != T_COSE_SUCCESS) {
             goto Done;
@@ -197,12 +197,12 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
         return_value =
             t_cose_crypto_aead_encrypt(ce_alg.cose_alg_id, /* in: AEAD alg ID */
-                                    cek_handle,     /* in: content encryption key handle */
-                                    nonce,          /* in: nonce / IV */
-                                    enc_structure,  /* in: AAD to authenticate */
-                                    payload,        /* in: payload to encrypt */
-                                    encrypt_buffer, /* in: buffer to write to */
-                                    &encrypt_output  /* out: ciphertext */);
+                                       cek_handle,     /* in: content encryption key handle */
+                                       nonce,          /* in: nonce / IV */
+                                       enc_structure,  /* in: AAD to authenticate */
+                                       payload,        /* in: payload to encrypt */
+                                       encrypt_buffer, /* in: buffer to write to */
+                                      &encrypt_output  /* out: ciphertext */);
     }
 
     if (return_value != T_COSE_SUCCESS) {

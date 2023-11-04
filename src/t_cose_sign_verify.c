@@ -142,6 +142,7 @@ decode_cose_signature(QCBORDecodeContext                 *cbor_decoder,
 
     return_value = t_cose_headers_decode(cbor_decoder,
                                          loc,
+                                         false,
                                          special_decode_cb,
                                          special_decode_ctx,
                                          param_storage,
@@ -455,7 +456,7 @@ call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                            const struct q_useful_buf_c     message,
-                           const struct q_useful_buf_c     aad,
+                           const struct q_useful_buf_c     ext_sup_data,
                            const bool                      is_detached,
                            struct q_useful_buf_c          *payload,
                            struct t_cose_parameter       **returned_params)
@@ -482,6 +483,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     decoded_params          = NULL;
     return_value = t_cose_headers_decode(&cbor_decoder,
                                           header_location,
+                                         false,
                                           me->special_param_decode_cb,
                                           me->special_param_decode_ctx,
                                           me->p_storage,
@@ -519,7 +521,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* --- The signature or COSE_Signature(s) --- */
     sign_inputs.body_protected = protected_params;
     sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
-    sign_inputs.aad            = aad;
+    sign_inputs.ext_sup_data   = ext_sup_data;
     sign_inputs.payload        = *payload;
     if(message_type_tag_number == T_COSE_OPT_MESSAGE_TYPE_SIGN1) {
         /* --- The signature bytes for a COSE_Sign1, not COSE_Signatures */
