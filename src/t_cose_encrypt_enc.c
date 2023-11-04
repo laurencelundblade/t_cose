@@ -39,6 +39,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     unsigned                     message_type;
     struct q_useful_buf_c        nonce;
     struct t_cose_parameter      params[2]; /* 1 for Alg ID plus 1 for IV */
+    struct t_cose_parameter     *p_param;
     struct q_useful_buf_c        body_prot_headers;
     struct q_useful_buf_c        enc_structure;
     struct t_cose_alg_and_bits   ce_alg;
@@ -100,6 +101,12 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     params[1].next = me->added_body_parameters;
     /* At this point all the header parameters to be encoded are in a
      * linked list the head of which is params[0]. */
+    if(is_none_aead_ciphr) {
+        /* Move all params to unprotected to make protected header be a zero-byte string */
+        for(p_param = &params[0]; p_param != NULL; p_param = p_param->next) {
+            p_param->in_protected = false;
+        }
+    }
 
 
     /* ---- Get started with the CBOR encoding ---- */
