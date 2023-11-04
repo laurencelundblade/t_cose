@@ -193,6 +193,16 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
 
     nonce_cbor = t_cose_param_find_iv(body_params_list);
     ce_alg.cose_alg_id = t_cose_param_find_alg_id_prot(body_params_list);
+    if(ce_alg.cose_alg_id == T_COSE_ALGORITHM_NONE) {
+        /* Might be non AEAD and located in unprotected header. */
+        ce_alg.cose_alg_id = t_cose_param_find_alg_id_unprot(body_params_list);
+        if(ce_alg.cose_alg_id == T_COSE_ALGORITHM_NONE) {
+            return T_COSE_ERR_NO_ALG_ID;
+        }
+        if(!t_cose_alg_is_non_aead(ce_alg.cose_alg_id)) {
+            /* TOCO: Should we accept AEAD algorithm ID in unprotected header? */
+        }
+    }
     all_params_list = body_params_list;
 
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
