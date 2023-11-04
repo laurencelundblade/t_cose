@@ -431,7 +431,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  *
  * \param[in] cbor_decoder           QCBOR decoder to decode from.
  * \param[in] location               Location in message of the parameters.
- * \param[in] no_protected    Protected headers must be empty.
+ * \param[in] no_protected           Protected headers must be empty.
  * \param[in] special_decode_cb      Callback for non-integer and
  *                                   non-string parameters.
  * \param[in] special_decode_ctx     Context for the above callback
@@ -463,10 +463,10 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * non-integer and non-string header parameters. It typically switches
  * on the parameter label.
  *
- * If \c no_protected is \c true, then the protected headers
- * must be an empty byte string. This is used when the cryptographic
- * algorithm used can't protect headers, for example non-AEAD
- * ciphers for COSE encryption.
+ * If \c no_protected is \c true, then the protected headers must be
+ * an empty byte string. This is used when the cryptographic algorithm
+ * used can't protect headers, for example non-AEAD ciphers for COSE
+ * encryption.
  *
  * The crit parameter will be decoded and any parameter label
  * listed in it will be marked as crit in the list returned. It is up
@@ -654,10 +654,10 @@ t_cose_param_find_bstr(const struct t_cose_parameter *parameter_list, int64_t la
 
 
 /**
- * \brief Find the algorithm ID parameter in a linked list
+ * \brief Find the algorithm ID parameter in a linked list.
  *
  * \param[in] parameter_list  The parameter list to search.
- * \param[in] prot  Place to return whether ID is protected or not.
+ * \param[in] prot            Place to return whether ID is protected or not.
  *
  * \return The algorithm ID or \ref T_COSE_ALGORITHM_NONE.
  *
@@ -670,7 +670,7 @@ t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool *pr
 
 
 /**
- * \brief Find the protected algorithm ID parameter in a linked list
+ * \brief Find the protected algorithm ID parameter in a linked list.
  *
  * \param[in] parameter_list  The parameter list to search.
  *
@@ -685,7 +685,7 @@ t_cose_param_find_alg_id_prot(const struct t_cose_parameter *parameter_list);
 
 
 /**
- * \brief Find the unprotected algorithm ID parameter in a linked list
+ * \brief Find the unprotected algorithm ID parameter in a linked list.
  *
  * \param[in] parameter_list  The parameter list to search.
  *
