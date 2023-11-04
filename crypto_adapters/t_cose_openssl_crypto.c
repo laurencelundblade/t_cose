@@ -1605,7 +1605,6 @@ t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
     size_t            expected_iv_length;
     int               buffer_bytes_used;
     int               bytes_output;
-    int               dummy_length;
     size_t            expected_output_length;
     size_t            padding_length;
     enum t_cose_err_t return_value;
