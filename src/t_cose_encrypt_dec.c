@@ -192,7 +192,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
     nonce_cbor = t_cose_param_find_iv(body_params_list);
-    ce_alg.cose_alg_id = t_cose_param_find_alg_id(body_params_list, true);
+    ce_alg.cose_alg_id = t_cose_param_find_alg_id_prot(body_params_list);
     all_params_list = body_params_list;
 
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);

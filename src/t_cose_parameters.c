@@ -732,7 +732,7 @@ t_cose_param_find(const struct t_cose_parameter *parameter_list, int64_t label)
  * Public function. See t_cose_parameters.h
  */
 int32_t
-t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool prot)
+t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool *prot)
 {
     const struct t_cose_parameter *p_found;
 
@@ -744,9 +744,7 @@ t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool pro
         return T_COSE_ALGORITHM_NONE;
     }
 
-    if(prot != p_found->in_protected) { /* effective exclusive OR */
-        return T_COSE_ALGORITHM_NONE;
-    }
+    *prot = p_found->in_protected;
 
     return (int32_t)p_found->value.int64;
 }

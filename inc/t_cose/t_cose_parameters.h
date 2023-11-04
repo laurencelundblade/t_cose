@@ -564,6 +564,11 @@ t_cose_params_append(struct t_cose_parameter **existing,
 static struct t_cose_parameter
 t_cose_param_make_alg_id(int32_t alg_id);
 
+/* For the rare case of a non-AEAD algorithm */
+static struct t_cose_parameter
+t_cose_param_make_unprot_alg_id(int32_t alg_id);
+
+
 /**
  * Make a struct t_cose_parameter for an unsigned integer content typ.
  *
@@ -652,16 +657,49 @@ t_cose_param_find_bstr(const struct t_cose_parameter *parameter_list, int64_t la
  * \brief Find the algorithm ID parameter in a linked list
  *
  * \param[in] parameter_list  The parameter list to search.
- * \param[in] prot  If \c true, parameter must be protected and vice versa.
+ * \param[in] prot  Place to return whether ID is protected or not.
  *
  * \return The algorithm ID or \ref T_COSE_ALGORITHM_NONE.
  *
  * This returns \ref T_COSE_ALGORITHM_NONE on all errors including
  * errors such as the parameter not being present, the parameter being
- * of the wrong type and the parameter not being protected.
+ * of the wrong type.
  */
 int32_t
-t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool prot);
+t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool *prot);
+
+
+/**
+ * \brief Find the protected algorithm ID parameter in a linked list
+ *
+ * \param[in] parameter_list  The parameter list to search.
+ *
+ * \return The algorithm ID or \ref T_COSE_ALGORITHM_NONE.
+ *
+ * This returns \ref T_COSE_ALGORITHM_NONE on all errors including
+ * errors such as the parameter not being present, the parameter being
+ * of the wrong type or the parameter not being protected.
+ */
+static int32_t
+t_cose_param_find_alg_id_prot(const struct t_cose_parameter *parameter_list);
+
+
+/**
+ * \brief Find the unprotected algorithm ID parameter in a linked list
+ *
+ * \param[in] parameter_list  The parameter list to search.
+ *
+ * \return The algorithm ID or \ref T_COSE_ALGORITHM_NONE.
+ *
+ * This is for the unusual case were the algorithm ID must NOT be a
+ * protected parameter, such as for non-AEAD algorithms.
+ *
+ * This returns \ref T_COSE_ALGORITHM_NONE on all errors including
+ * errors such as the parameter not being present, the parameter being
+ * of the wrong type or the parameter being protected.
+ */
+static int32_t
+t_cose_param_find_alg_id_unprot(const struct t_cose_parameter *parameter_list);
 
 
 /**
@@ -856,6 +894,15 @@ t_cose_param_make_alg_id(int32_t alg_id)
 }
 
 static inline struct t_cose_parameter
+t_cose_param_make_unprot_alg_id(int32_t alg_id) {
+    struct t_cose_parameter parameter;
+
+    parameter = t_cose_param_make_alg_id(alg_id);
+    parameter.in_protected = false;
+    return parameter;
+}
+
+static inline struct t_cose_parameter
 t_cose_param_make_unprot_bstr(struct q_useful_buf_c string, int32_t label)
 {
     struct t_cose_parameter parameter;
@@ -957,6 +1004,32 @@ t_cose_param_make_partial_iv(struct q_useful_buf_c iv)
     return parameter;
 }
 
+static inline int32_t
+t_cose_param_find_alg_id_prot(const struct t_cose_parameter *parameter_list)
+{
+    int32_t alg_id;
+    bool    prot;
+    alg_id = t_cose_param_find_alg_id(parameter_list, &prot);
+    if(prot != true) {
+        return T_COSE_ALGORITHM_NONE;
+    }
+
+    return alg_id;
+}
+
+
+static inline int32_t
+t_cose_param_find_alg_id_unprot(const struct t_cose_parameter *parameter_list)
+{
+    int32_t alg_id;
+    bool    prot;
+    alg_id = t_cose_param_find_alg_id(parameter_list, &prot);
+    if(prot != true) {
+        return T_COSE_ALGORITHM_NONE;
+    }
+
+    return alg_id;
+}
 
 
 static inline void

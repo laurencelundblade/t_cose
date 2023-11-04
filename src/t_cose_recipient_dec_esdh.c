@@ -182,7 +182,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
         goto done_free_ec;
     }
 
-    alg = t_cose_param_find_alg_id(*params, true);
+    alg = t_cose_param_find_alg_id_prot(*params);
 
     // TODO: indention of all case statements. Which is it?
     switch(alg) {
