@@ -1,5 +1,5 @@
 96([
-  h'', / NOTE: The 'protected' header MUST be a zero-length byte string. /
+  h'' / NOTE: The 'protected' header MUST be a zero-length byte string. /,
   {1: -65534 / A128CTR /, 5: h'77D35242A191E9F9FD26104AB308564E'},
   h'793A616A5617482BE76F17077858B148241591',
   [
