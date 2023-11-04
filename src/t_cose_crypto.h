@@ -1099,7 +1099,7 @@ t_cose_crypto_aead_decrypt(int32_t                cose_algorithm_id,
  * HW and such. See t_cose_crypto_make_symmetric_key_handle().
  *
  * This does not need to support a size calculation mode as is
- * required of t_cose_crypto_aead_encrypt().
+ * required of t_cose_crypto_non_aead_encrypt().
  *
  * One of the following errors should be returned. Other errors should
  * not be returned.
