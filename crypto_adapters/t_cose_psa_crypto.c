@@ -1402,7 +1402,7 @@ t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
     }
 
     /* Encrypt the ciphertext */
-    status = psa_cipher_encrypt_setup(&operation, key.key.handle, psa_algorithm_id);
+    status = psa_cipher_encrypt_setup(&operation, (psa_key_handle_t)key.key.handle, psa_algorithm_id);
     if(status != PSA_SUCCESS) {
         goto Done;
     }
@@ -1420,7 +1420,7 @@ t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
         goto Done;
     }
     status = psa_cipher_finish(&operation,
-                               ciphertext_buffer.ptr + ciphertext->len,
+                               (uint8_t *)ciphertext_buffer.ptr + ciphertext->len,
                                ciphertext_buffer.len - ciphertext->len,
                                &dummy_length);
     if(status != PSA_SUCCESS) {
@@ -1523,7 +1523,7 @@ t_cose_crypto_non_aead_decrypt(const int32_t          cose_algorithm_id,
     }
 
     /* Decrypt the ciphertext */
-    status = psa_cipher_decrypt_setup(&operation, key.key.handle, psa_algorithm_id);
+    status = psa_cipher_decrypt_setup(&operation, (psa_key_handle_t)key.key.handle, psa_algorithm_id);
     if(status != PSA_SUCCESS) {
         goto Done;
     }
@@ -1541,7 +1541,7 @@ t_cose_crypto_non_aead_decrypt(const int32_t          cose_algorithm_id,
         goto Done;
     }
     status = psa_cipher_finish(&operation,
-                               plaintext_buffer.ptr + plaintext->len,
+                               (uint8_t *)plaintext_buffer.ptr + plaintext->len,
                                plaintext_buffer.len - plaintext->len,
                                &dummy_length);
     if(status != PSA_SUCCESS) {
