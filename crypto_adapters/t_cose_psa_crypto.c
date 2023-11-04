@@ -1401,11 +1401,6 @@ t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
         return T_COSE_SUCCESS;
     }
 
-    status = psa_crypto_init();
-    if(status != PSA_SUCCESS) {
-        goto Done;
-    }
-
     /* Encrypt the ciphertext */
     status = psa_cipher_encrypt_setup(&operation, key.key.handle, psa_algorithm_id);
     if(status != PSA_SUCCESS) {
@@ -1525,11 +1520,6 @@ t_cose_crypto_non_aead_decrypt(const int32_t          cose_algorithm_id,
             break;
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
-    }
-
-    status = psa_crypto_init();
-    if(status != PSA_SUCCESS) {
-        goto Done;
     }
 
     /* Decrypt the ciphertext */
