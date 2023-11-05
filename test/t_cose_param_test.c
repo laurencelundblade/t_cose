@@ -876,7 +876,7 @@ param_test(void)
 
     /* Test is driven by data in param_tests and param_combo_tests.
      * This is all a bit more complicated than expected, but it is
-     * a data driven tests. */
+     * a data driven test. */
 
     /* The single parameter tests */
     for(int i = 0; ; i++) {
@@ -895,7 +895,7 @@ param_test(void)
             QCBOREncode_Init(&qcbor_encoder, encode_buffer);
             t_cose_result = t_cose_headers_encode(&qcbor_encoder,
                                                   &(param_test->unencoded),
-                                                  NULL);
+                                                  &encoded_prot_params);
 
             if(t_cose_result != param_test->encode_result) {
                 return i * 1000 + 1;
@@ -932,7 +932,6 @@ param_test(void)
 
             t_cose_result = t_cose_headers_decode(&decode_context,
                                                    (struct t_cose_header_location){0,0},
-                                                   false,
                                                    param_decoder,
                                                    NULL,
                                                   &param_storage,
@@ -1027,7 +1026,7 @@ param_test(void)
 
     /* Empty parameters section test */
     QCBOREncode_Init(&qcbor_encoder, encode_buffer);
-    t_cose_result = t_cose_headers_encode(&qcbor_encoder, NULL, NULL);
+    t_cose_result = t_cose_headers_encode(&qcbor_encoder, NULL, &encoded_prot_params);
 
     if(t_cose_result != param_test->encode_result) {
         return -900;
@@ -1044,6 +1043,9 @@ param_test(void)
                 return -900;
             }
         }
+        if(encoded_prot_params.len != 0) {
+            return -901;
+        }
 
         T_COSE_PARAM_STORAGE_INIT(param_storage, param_array);
 
@@ -1053,7 +1055,6 @@ param_test(void)
 
         t_cose_result = t_cose_headers_decode(&decode_context,
                                               (struct t_cose_header_location){0,0},
-                                              false,
                                               param_decoder, NULL,
                                              &param_storage,
                                              &decoded_parameter,
@@ -1072,26 +1073,30 @@ param_test(void)
     QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unprot_non_aead_alg), 0);
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
-                                          true,
                                           param_decoder, NULL,
                                          &param_storage,
                                          &decoded_parameter,
                                          &encoded_prot_params);
     if(t_cose_result != T_COSE_SUCCESS) {
-        return 0;
+        return 800;
+    }
+    if(encoded_prot_params.len) {
+        return 801;
     }
 
     /* Protected headers must be empty and they are NOT */
     QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(common_params_encoded_cbor), 0);
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
-                                          true,
                                           param_decoder, NULL,
                                          &param_storage,
                                          &decoded_parameter,
                                          &encoded_prot_params);
-    if(t_cose_result != T_COSE_ERR_PROTECTED_NOT_ALLOWED) {
+    if(t_cose_result != T_COSE_SUCCESS) {
         return -90000;
+    }
+    if(encoded_prot_params.len == 0) {
+        return -90001;
     }
 
     return 0;
@@ -1193,7 +1198,6 @@ common_params_test(void)
 
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
-                                          false,
                                           NULL,
                                           NULL,
                                           &param_storage,
@@ -1275,7 +1279,6 @@ common_params_test(void)
 
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
-                                          false,
                                           NULL,
                                           NULL,
                                           &param_storage,
