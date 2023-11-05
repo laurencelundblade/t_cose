@@ -55,7 +55,7 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
     if (return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    if(protected_params_not.len) {
+    if(!t_cose_params_empty(protected_params_not)) {
         /* Section 8.5.2 of RFC 9052 requires the protected header bucket
          * be an empty byte string. */
         return_value = T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED;

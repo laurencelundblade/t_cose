@@ -1043,7 +1043,7 @@ param_test(void)
                 return -900;
             }
         }
-        if(encoded_prot_params.len != 0) {
+        if(!t_cose_params_empty_bstr(encoded_prot_params)) {
             return -901;
         }
 
@@ -1080,8 +1080,8 @@ param_test(void)
     if(t_cose_result != T_COSE_SUCCESS) {
         return 800;
     }
-    if(encoded_prot_params.len) {
-        return 801;
+    if(!t_cose_params_empty(encoded_prot_params)) {
+        return -901;
     }
 
     /* Protected headers must be empty and they are NOT */
@@ -1095,8 +1095,8 @@ param_test(void)
     if(t_cose_result != T_COSE_SUCCESS) {
         return -90000;
     }
-    if(encoded_prot_params.len == 0) {
-        return -90001;
+    if(t_cose_params_empty(encoded_prot_params)) {
+        return -901;
     }
 
     return 0;
