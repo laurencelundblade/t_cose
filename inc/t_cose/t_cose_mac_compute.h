@@ -163,6 +163,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *context,
  */
 enum t_cose_err_t
 t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *context,
+                      struct q_useful_buf_c            ext_sup_data,
                       struct q_useful_buf_c            payload,
                       QCBOREncodeContext              *cbor_encode_ctx);
 
