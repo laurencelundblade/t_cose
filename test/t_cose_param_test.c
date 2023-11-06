@@ -440,7 +440,7 @@ static const uint8_t crit_alg_id_encoded_cbor[] = {
 
 static const uint8_t empty_preferred_encoded_cbor[] = {0x40, 0xA0};
 
-static const uint8_t empty_alt_encoded_cbor[] = {0x40, 0xA0};
+static const uint8_t empty_alt_encoded_cbor[] = {0x41, 0xA0, 0xA0};
 
 #if FIXES_FOR_INDEF_LEN
 static const uint8_t empty_preferred_indef[] = {0x5f, 0xff, 0xbf, 0xff};
@@ -1039,7 +1039,7 @@ param_test(void)
         }
 
         if(qcbor_result == QCBOR_SUCCESS) {
-            if(q_useful_buf_compare(encoded_params, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(empty_alt_encoded_cbor))) {
+            if(q_useful_buf_compare(encoded_params, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(empty_preferred_encoded_cbor))) {
                 return -900;
             }
         }
@@ -1083,6 +1083,28 @@ param_test(void)
     if(!t_cose_params_empty(encoded_prot_params)) {
         return -901;
     }
+    if(!t_cose_params_empty_bstr(encoded_prot_params)) {
+        return -902;
+    }
+
+    /* Empty protected headers in alt form */
+    QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(empty_alt_encoded_cbor), 0);
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                            (struct t_cose_header_location){0,0},
+                                            param_decoder, NULL,
+                                           &param_storage,
+                                           &decoded_parameter,
+                                           &encoded_prot_params);
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return 800;
+    }
+    if(!t_cose_params_empty(encoded_prot_params)) {
+        return -901;
+    }
+    if(t_cose_params_empty_bstr(encoded_prot_params)) {
+        return -902;
+    }
+
 
     /* Protected headers must be empty and they are NOT */
     QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(common_params_encoded_cbor), 0);

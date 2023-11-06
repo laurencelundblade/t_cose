@@ -851,13 +851,18 @@ t_cose_params_empty_bstr(struct q_useful_buf_c encoded_params)
 static inline bool
 t_cose_params_empty(struct q_useful_buf_c encoded_params)
 {
+    int           compare_result;
+    const uint8_t empty_map[] = {0xa0};
+
     if(t_cose_params_empty_bstr(encoded_params)) {
         return true;
     }
 
+    compare_result = q_useful_buf_compare(encoded_params,
+                                          Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(empty_map));
+
     /* Check for a CBOR-encoded empty array */
-    return q_useful_buf_compare(encoded_params,
-                                Q_USEFUL_BUF_FROM_SZ_LITERAL("0xa0")) == 0;
+    return compare_result == 0 ? true : false;
 }
 
 
