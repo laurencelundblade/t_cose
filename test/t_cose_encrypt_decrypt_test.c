@@ -692,19 +692,19 @@ int32_t run_decrypt_test(const struct decrypt_test *test)
 
 /*
 
- Unknown symmetric cipher alg
+ DONE unknown_symmetric_alg.diag: Unknown symmetric cipher alg
  Unknown recipient alg
- Unknown critical header
- Wrong CBOR tag number
+ DONE cose_encrypt_crit.diag  Unknown critical header
+ DONE wrong_tag.diag  Wrong CBOR tag number
  Header that is not valid CBOR
- Top-level CBOR wrong -- a map, not an array
- Ciphertext is not the right type -- a text string
- Recipients area is a map, not an array
+ DONE cose_encrypt_wrong_array.diag  Top-level CBOR wrong -- a map, not an array
+ DONE tstr_ciphertext.diag:  Ciphertext is not the right type -- a text string
+ DONE cose_encrypt_wrong_rcpt_array  Recipients area is a map, not an array
  Extra stuff at end of array of 4
- AEAD integrity check fails
+ DONE aead_in_error.diag: AEAD integrity check fails
  IV header header is wrong type -- text string
  Symmetric Algorithm ID is the wrong type -- a byte string
- Recipient is the wrong type -- a map, not an array
+ DONE cose_encrypt_junk_recipient.diag:  Recipient is the wrong type -- a map, not an array
  The encrypted CEK is the wrong type -- text string, not byte string
  Extra stuff at end of recipient array
  Recipient header is not decodable CBOR
@@ -759,12 +759,64 @@ init_decrypt_test_list(struct decrypt_test tests[], int tests_count)
     tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
     NEXT_TEST;
 
-
     tests[test_num].sz_description   = "a recipient is a text string, not an array";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_junk_recipient);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
     tests[test_num].expected_return_value = T_COSE_ERR_RECIPIENT_FORMAT;
     NEXT_TEST;
+
+    tests[test_num].sz_description   = "wrong tag number";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(wrong_tag);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "no tag number";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(no_tag);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    NEXT_TEST;
+/*
+    tests[test_num].sz_description   = "unknown recipient tag";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unknown_rcpt_alg);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    NEXT_TEST;
+*/
+/*
+    tests[test_num].sz_description   = "extra stuff in COSE_Encrypt array of 4";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_wrong_extra);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    NEXT_TEST;
+*/
+
+    tests[test_num].sz_description   = "array of 4 is map of 2";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_wrong_array);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "recipient array is a map";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_wrong_rcpt_array);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "unknown crit header in cose_encrypt";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_crit);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "Protected headers are a text string";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_bad_hdrs);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_PARAMETER_CBOR;
+    NEXT_TEST;
+
+
+
 
     tests[test_num].sz_description = NULL;
 
@@ -775,7 +827,7 @@ init_decrypt_test_list(struct decrypt_test tests[], int tests_count)
 int32_t decrypt_known_bad(void)
 {
     int32_t              result;
-    struct decrypt_test  test_list[10];
+    struct decrypt_test  test_list[20];
     int32_t              i;
 
     result = init_decrypt_test_list(test_list, sizeof(test_list)/sizeof(struct decrypt_test));
@@ -784,11 +836,14 @@ int32_t decrypt_known_bad(void)
     }
 
     for(i = 0; test_list[i].sz_description != NULL; i++) {
-        if(i == 5) { /* For setting break point for a particular test */
+        const struct decrypt_test *t = &test_list[i];
+        const char *test_to_break_on = "Protected headers are a text stri";
+        if(!strncmp(t->sz_description, test_to_break_on, strlen(test_to_break_on))){
+            /* For setting break point for a particular test */
             result = 99;
         }
 
-        result = run_decrypt_test(&test_list[i]);
+        result = run_decrypt_test(t);
         if(result) {
             return i * 10000 + (int32_t)result;
         }

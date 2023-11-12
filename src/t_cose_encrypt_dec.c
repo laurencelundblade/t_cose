@@ -153,10 +153,14 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     bool                           alg_id_prot;
 
 
-    /* --- Get started decoding array of four and tags --- */
+    /* --- Get started decoding array of 4 and tags --- */
     QCBORDecode_Init(&cbor_decoder, message, QCBOR_DECODE_MODE_NORMAL);
 
     QCBORDecode_EnterArray(&cbor_decoder, &array_item);
+    cbor_error = QCBORDecode_GetError(&cbor_decoder);
+    if(cbor_error != QCBOR_SUCCESS) {
+        goto Done;
+    }
 
     const uint64_t signing_tag_nums[] = {CBOR_TAG_COSE_ENCRYPT, CBOR_TAG_COSE_ENCRYPT0, CBOR_TAG_INVALID64};
     return_value = t_cose_tags_and_type(signing_tag_nums,
@@ -240,7 +244,6 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         QCBORDecode_EnterArray(&cbor_decoder, NULL);
         cbor_error = QCBORDecode_GetError(&cbor_decoder);
         if(cbor_error != QCBOR_SUCCESS) {
-            return_value = qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_ENCRYPT_FORMAT);
             goto Done;
         }
 
@@ -309,13 +312,11 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         return T_COSE_ERR_FAIL;
     }
 
-    /* --- Close of CBOR decode --- */
+    /* --- Close of CBOR decode of the array of 4 --- */
+    /* This tolerates extra items. Someday we'll have a better ExitArray() */
     QCBORDecode_ExitArray(&cbor_decoder);
-
     cbor_error = QCBORDecode_Finish(&cbor_decoder);
     if(cbor_error != QCBOR_SUCCESS) {
-        // TODO: there is probably more to be done here...
-        return_value = T_COSE_ERR_CBOR_DECODE;
         goto Done;
     }
     if(returned_parameters != NULL) {
@@ -351,7 +352,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
     else {
         /* --- Make the Enc_structure ---- */
-        /* The Enc_structure from RFC 9052 section 5.3 that is AAD input
+        /* The Enc_structure from RFC 9052 section 5.3 that is input as AAD
         * to the AEAD to integrity-protect COSE headers and
         * parameters. */
         if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
@@ -373,7 +374,6 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
             goto Done;
         }
 
-        // TODO: handle AE algorithms
         return_value =
             t_cose_crypto_aead_decrypt(
                 ce_alg.cose_alg_id,    /* in: cose alg id to decrypt payload */
@@ -389,10 +389,9 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         t_cose_crypto_free_symmetric_key(cek_key);
     }
 
-   if (message_type != T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
-       t_cose_crypto_free_symmetric_key(cek_key);
-   }
-
 Done:
+    if(cbor_error != QCBOR_SUCCESS) {
+         return_value = qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_ENCRYPT_FORMAT);
+     }
     return return_value;
 }
