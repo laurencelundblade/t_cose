@@ -681,6 +681,9 @@ int32_t run_decrypt_test(const struct decrypt_test *test)
                                 &decrypted_payload,
                                 &params);
 
+    free_fixed_test_ec_encryption_key(pubkey);
+    free_fixed_test_ec_encryption_key(privatekey);
+
     if(result != test->expected_return_value) {
         return (int32_t)result + 2000;
     }
@@ -693,17 +696,17 @@ int32_t run_decrypt_test(const struct decrypt_test *test)
 /*
 
  DONE unknown_symmetric_alg.diag: Unknown symmetric cipher alg
- Unknown recipient alg
+ DONE unknown_rcpt_alg.diag  Unknown recipient alg
  DONE cose_encrypt_crit.diag  Unknown critical header
  DONE wrong_tag.diag  Wrong CBOR tag number
  Header that is not valid CBOR
  DONE cose_encrypt_wrong_array.diag  Top-level CBOR wrong -- a map, not an array
  DONE tstr_ciphertext.diag:  Ciphertext is not the right type -- a text string
  DONE cose_encrypt_wrong_rcpt_array  Recipients area is a map, not an array
- Extra stuff at end of array of 4
+ HALF-DONE cose_encrypt_wrong_extra  Extra stuff at end of array of 4
  DONE aead_in_error.diag: AEAD integrity check fails
- IV header header is wrong type -- text string
- Symmetric Algorithm ID is the wrong type -- a byte string
+ DONE cose_encrypt_bad_iv.diag  IV header header is wrong type -- text string
+ DONE cose_encrypt_bad_alg.diag Symmetric Algorithm ID is the wrong type -- a byte string
  DONE cose_encrypt_junk_recipient.diag:  Recipient is the wrong type -- a map, not an array
  The encrypted CEK is the wrong type -- text string, not byte string
  Extra stuff at end of recipient array
@@ -776,13 +779,13 @@ init_decrypt_test_list(struct decrypt_test tests[], int tests_count)
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
     tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
     NEXT_TEST;
-/*
-    tests[test_num].sz_description   = "unknown recipient tag";
+
+    tests[test_num].sz_description   = "unknown recipient alg";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unknown_rcpt_alg);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
-    tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    tests[test_num].expected_return_value = T_COSE_ERR_DECLINE;
     NEXT_TEST;
-*/
+
 /*
     tests[test_num].sz_description   = "extra stuff in COSE_Encrypt array of 4";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_wrong_extra);
@@ -815,8 +818,17 @@ init_decrypt_test_list(struct decrypt_test tests[], int tests_count)
     tests[test_num].expected_return_value = T_COSE_ERR_PARAMETER_CBOR;
     NEXT_TEST;
 
+    tests[test_num].sz_description   = "IV is a boolean not bstr";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_bad_iv);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_BAD_IV;
+    NEXT_TEST;
 
-
+    tests[test_num].sz_description   = "algorthm ID is wrong type";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_bad_alg);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_NO_ALG_ID;
+    NEXT_TEST;
 
     tests[test_num].sz_description = NULL;
 
@@ -837,7 +849,7 @@ int32_t decrypt_known_bad(void)
 
     for(i = 0; test_list[i].sz_description != NULL; i++) {
         const struct decrypt_test *t = &test_list[i];
-        const char *test_to_break_on = "Protected headers are a text stri";
+        const char *test_to_break_on = "unknown recipient alg";
         if(!strncmp(t->sz_description, test_to_break_on, strlen(test_to_break_on))){
             /* For setting break point for a particular test */
             result = 99;
@@ -857,7 +869,7 @@ int32_t decrypt_known_bad(void)
 struct kdf_context_test_input {
     struct q_useful_buf_c  party_u_ident;
     struct q_useful_buf_c  party_v_ident;
-    bool do_not_send;
+    bool                   do_not_send;
     struct q_useful_buf_c  supp_pub_other;
     struct q_useful_buf_c  supp_priv_info;
     size_t                 kdf_context_size;

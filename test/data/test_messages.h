@@ -1,6 +1,8 @@
 /* This file is created by make_test_messages.sh from CBOR diag files */
 extern const unsigned char aead_in_error[225];
+extern const unsigned char cose_encrypt_bad_alg[225];
 extern const unsigned char cose_encrypt_bad_hdrs[235];
+extern const unsigned char cose_encrypt_bad_iv[213];
 extern const unsigned char cose_encrypt_crit[234];
 extern const unsigned char cose_encrypt_junk_recipient[251];
 extern const unsigned char cose_encrypt_p256_wrap_128[225];
