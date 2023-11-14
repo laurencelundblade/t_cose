@@ -1,3 +1,4 @@
+/ Protected headers are wrong type, a tstr instead of a bstr /
 96(
   [
     "bad prot hdrs",

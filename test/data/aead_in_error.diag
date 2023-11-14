@@ -1,3 +1,4 @@
+/ AEAD integrity check will fail /
 96(
   [
     h'A10103',

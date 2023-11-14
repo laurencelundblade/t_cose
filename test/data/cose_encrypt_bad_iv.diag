@@ -1,3 +1,4 @@
+/ IV is is a boolean, not a bstr /
 96(
   [
     h'A10103',

@@ -1,3 +1,4 @@
+/ Multiple recipient COSE_Encrypt with extra items at end of array of 4 /
 96(
   [
     h'A10103',

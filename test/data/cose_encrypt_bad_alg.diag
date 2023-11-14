@@ -1,3 +1,4 @@
+/ Alg ID in recipient is the wrong CBOR type /
 96(
   [
     h'A10140',

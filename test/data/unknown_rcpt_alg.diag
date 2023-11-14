@@ -1,3 +1,4 @@
+/ COSE_Encrypt with COSE_Recipient with unknown algorithm ID /
 96(
   [
     h'A10103',
