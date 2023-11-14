@@ -289,7 +289,7 @@
 		E79383162AFC00FB00C2DF49 /* test_messages.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test_messages.c; path = data/test_messages.c; sourceTree = "<group>"; };
 		E79383172AFC00FB00C2DF49 /* test_messages.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = test_messages.h; path = data/test_messages.h; sourceTree = "<group>"; };
 		E793832D2B02A80B00C2DF49 /* aead_in_error.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = aead_in_error.diag; path = data/aead_in_error.diag; sourceTree = "<group>"; };
-		E793832E2B02A80B00C2DF49 /* cose_encrypt_p256_wrap_aescbc.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_p256_wrap_aescbc.diag; path = data/cose_encrypt_p256_wrap_aescbc.diag; sourceTree = "<group>"; };
+		E793832E2B02A80B00C2DF49 /* cose_encrypt_a128cbc_a128kw.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_a128cbc_a128kw.diag; path = data/cose_encrypt_a128cbc_a128kw.diag; sourceTree = "<group>"; };
 		E793832F2B02A80B00C2DF49 /* cose_encrypt_bad_iv.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_bad_iv.diag; path = data/cose_encrypt_bad_iv.diag; sourceTree = "<group>"; };
 		E79383302B02A80B00C2DF49 /* tstr_ciphertext.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = tstr_ciphertext.diag; path = data/tstr_ciphertext.diag; sourceTree = "<group>"; };
 		E79383312B02A80B00C2DF49 /* cose_encrypt_wrong_rcpt_array.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_wrong_rcpt_array.diag; path = data/cose_encrypt_wrong_rcpt_array.diag; sourceTree = "<group>"; };
@@ -298,7 +298,7 @@
 		E79383342B02A80C00C2DF49 /* unknown_symmetric_alg.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = unknown_symmetric_alg.diag; path = data/unknown_symmetric_alg.diag; sourceTree = "<group>"; };
 		E79383352B02A80C00C2DF49 /* cose_encrypt_p256_wrap_128.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_p256_wrap_128.diag; path = data/cose_encrypt_p256_wrap_128.diag; sourceTree = "<group>"; };
 		E79383362B02A80C00C2DF49 /* hmac_error_header.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hmac_error_header.diag; path = data/hmac_error_header.diag; sourceTree = "<group>"; };
-		E79383372B02A80C00C2DF49 /* cose_encrypt_p256_wrap_aesctr.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_p256_wrap_aesctr.diag; path = data/cose_encrypt_p256_wrap_aesctr.diag; sourceTree = "<group>"; };
+		E79383372B02A80C00C2DF49 /* cose_encrypt_a128ctr_a128kw.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_a128ctr_a128kw.diag; path = data/cose_encrypt_a128ctr_a128kw.diag; sourceTree = "<group>"; };
 		E79383382B02A80C00C2DF49 /* cose_recipients_map_instead_of_array.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_recipients_map_instead_of_array.diag; path = data/cose_recipients_map_instead_of_array.diag; sourceTree = "<group>"; };
 		E79383392B02A80D00C2DF49 /* cose_encrypt_wrong_array.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_wrong_array.diag; path = data/cose_encrypt_wrong_array.diag; sourceTree = "<group>"; };
 		E793833A2B02A80D00C2DF49 /* cose_encrypt_bad_alg.diag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cose_encrypt_bad_alg.diag; path = data/cose_encrypt_bad_alg.diag; sourceTree = "<group>"; };
@@ -584,8 +584,8 @@
 				E79383332B02A80C00C2DF49 /* cose_encrypt_crit.diag */,
 				E793833E2B02A80D00C2DF49 /* cose_encrypt_junk_recipient.diag */,
 				E79383352B02A80C00C2DF49 /* cose_encrypt_p256_wrap_128.diag */,
-				E793832E2B02A80B00C2DF49 /* cose_encrypt_p256_wrap_aescbc.diag */,
-				E79383372B02A80C00C2DF49 /* cose_encrypt_p256_wrap_aesctr.diag */,
+				E793832E2B02A80B00C2DF49 /* cose_encrypt_a128cbc_a128kw.diag */,
+				E79383372B02A80C00C2DF49 /* cose_encrypt_a128ctr_a128kw.diag */,
 				E79383392B02A80D00C2DF49 /* cose_encrypt_wrong_array.diag */,
 				E79383322B02A80B00C2DF49 /* cose_encrypt_wrong_extra.diag */,
 				E79383312B02A80B00C2DF49 /* cose_encrypt_wrong_rcpt_array.diag */,

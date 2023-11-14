@@ -415,11 +415,11 @@ int32_t decrypt_known_good_aeskw_non_aead_test(void)
         return INT32_MIN; /* Means no testing was actually done */
     }
 
-    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_p256_wrap_aesctr));
+    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_a128ctr_a128kw));
     if(return_value != 0) {
         return return_value + 10000;
     }
-    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_p256_wrap_aescbc));
+    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_a128cbc_a128kw));
     if(return_value != 0) {
         return return_value + 20000;
     }
@@ -800,10 +800,10 @@ init_decrypt_test_list(struct decrypt_test tests[], int tests_count)
     tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
     NEXT_TEST;
 
-    tests[test_num].sz_description   = "recipient array is a map";
+    tests[test_num].sz_description   = "one recipient array is a map";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_wrong_rcpt_array);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
-    tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
+    tests[test_num].expected_return_value = T_COSE_ERR_RECIPIENT_FORMAT;
     NEXT_TEST;
 
     tests[test_num].sz_description   = "unknown crit header in cose_encrypt";
@@ -849,7 +849,7 @@ int32_t decrypt_known_bad(void)
 
     for(i = 0; test_list[i].sz_description != NULL; i++) {
         const struct decrypt_test *t = &test_list[i];
-        const char *test_to_break_on = "unknown recipient alg";
+        const char *test_to_break_on = "one recipient array is a map";
         if(!strncmp(t->sz_description, test_to_break_on, strlen(test_to_break_on))){
             /* For setting break point for a particular test */
             result = 99;
