@@ -276,8 +276,17 @@ bits_iv_alg(int32_t cose_algorithm_id)
 
 
 
+/**
+  * \brief HMAC an encoded bstr without actually encoding it in memory.
+  *
+  * @param hmac_ctx  HMAC context.
+  * @param bstr      Bytes of the bstr.
+  *
+  * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
+  * HMAC'd into the output.
+  */
 static void
-hash_bstr(struct t_cose_crypto_hash *ctx,
+hmac_bstr(struct t_cose_crypto_hmac *hmac_ctx,
           struct q_useful_buf_c      bstr)
 {
     Q_USEFUL_BUF_MAKE_STACK_UB (buffer_for_encoded_head, QCBOR_HEAD_BUFFER_SIZE);
@@ -289,36 +298,21 @@ hash_bstr(struct t_cose_crypto_hash *ctx,
                                           bstr.len);
 
     /* An encoded bstr is the CBOR head with its length followed by the bytes */
-    t_cose_crypto_hash_update(ctx, encoded_head);
-    t_cose_crypto_hash_update(ctx, bstr);
+    t_cose_crypto_hmac_update(hmac_ctx, encoded_head);
+    t_cose_crypto_hmac_update(hmac_ctx, bstr);
 }
 
-
-static void
-hmac_bstr(struct t_cose_crypto_hmac *ctx,
-          struct q_useful_buf_c      bstr)
-{
-    Q_USEFUL_BUF_MAKE_STACK_UB (buffer_for_encoded_head, QCBOR_HEAD_BUFFER_SIZE);
-    struct q_useful_buf_c       encoded_head;
-
-    encoded_head = QCBOREncode_EncodeHead(buffer_for_encoded_head,
-                                          CBOR_MAJOR_TYPE_BYTE_STRING,
-                                          0,
-                                          bstr.len);
-
-    /* An encoded bstr is the CBOR head with its length followed by the bytes */
-    t_cose_crypto_hmac_update(ctx, encoded_head);
-    t_cose_crypto_hmac_update(ctx, bstr);
-}
-
-/* We tried combing the above two functions into one. It accepted
- * a function pointer for the hash/hmac function. The object code with
- * this was slightly smaller with GCC and substantially larger with
+/* Tried combing the above with hash_bstr. It accepted a function
+ * pointer for the hash/hmac function. The object code with this was
+ * slightly smaller with GCC and substantially larger with
  * clang/llvm. It was cool, but using the two functions for simplicity
  * and substantially smaller clang/llvm code size.
  */
 
 
+/*
+ * Public function. See t_cose_util.h
+ */
 enum t_cose_err_t
 create_tbm(const int32_t                     cose_algorithm_id,
             struct t_cose_key                mac_key,
@@ -401,6 +395,40 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
     }
 }
 
+
+/**
+  * \brief Hash an encoded bstr without actually encoding it in memory.
+  *
+  * @param hash_ctx  Hash context to hash it into.
+  * @param bstr      Bytes of the bstr.
+  *
+  * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
+  * hashed into the output.
+  */
+ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
+                       struct q_useful_buf_c      bstr)
+ {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   buffer_for_encoded                             9           9
+     *   useful_buf                                    16           8
+     *   hash function (a guess! variable!)        16-512      16-512
+     *   TOTAL                                     41-537      23-529
+     */
+
+    /* make a struct q_useful_buf on the stack of size QCBOR_HEAD_BUFFER_SIZE */
+    Q_USEFUL_BUF_MAKE_STACK_UB (buffer_for_encoded_head, QCBOR_HEAD_BUFFER_SIZE);
+    struct q_useful_buf_c       encoded_head;
+
+    encoded_head = QCBOREncode_EncodeHead(buffer_for_encoded_head,
+                                          CBOR_MAJOR_TYPE_BYTE_STRING,
+                                          0,
+                                          bstr.len);
+
+    /* An encoded bstr is the CBOR head with its length followed by the bytes */
+    t_cose_crypto_hash_update(hash_ctx, encoded_head);
+    t_cose_crypto_hash_update(hash_ctx, bstr);
+}
 
 
 /*
