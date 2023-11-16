@@ -40,6 +40,9 @@ struct t_cose_mac_validate_ctx {
     uint64_t                         unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
     struct t_cose_parameter          __params[T_COSE_NUM_DECODE_HEADERS];
     struct t_cose_parameter_storage  parameter_storage;
+    struct t_cose_parameter_storage *p_storage;
+    t_cose_param_special_decode_cb  *special_param_decode_cb;
+    void                            *special_param_decode_ctx;
 };
 
 
@@ -70,13 +73,59 @@ t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
                             struct t_cose_key               validate_key);
 
 /**
+ * \brief Add storage for header parameter decoding.
+ *
+ * \param[in] context     Signed message verification context.
+ * \param[in] storage     The parameter storage to add.
+ *
+ * This is optionally called to increase the number of storage nodes
+ * for COSE_Mac message with
+ * \ref T_COSE_NUM_VERIFY_DECODE_HEADERS header parameters.  Decoded
+ * parameters are returned in a linked list of struct
+ * t_cose_parameter.  The storage for the nodes in the list is not
+ * dynamically allocated as there is no dynamic storage allocation
+ * used here.
+ *
+ * It is assumed that the
+ * number of parameters is small and/or can be anticipated.
+ * There must be room to decode all the header parameters that
+ * are in the body and in all in the COSE_Signatures. If not
+ * \ref T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
+ * t_cose_sign_verify() and similar.
+ *
+ * By default, if this is not called there is internal storage for
+ * \ref T_COSE_NUM_DECODE_HEADERS headers. If this is not
+ * enough call this function to use external storage instead of the
+ * internal. This replaces the internal storage. It does not add to
+ * it.
+ *
+ * t_cose_parameter_storage allows for the storage to be partially
+ * used when it is passed in and whatever is not used by this
+ * decode can be used elsewhere. It internall keeps track of how
+ * many nodes were used.
+ */
+static void
+t_cose_mac_add_param_storage(struct t_cose_mac_validate_ctx  *context,
+                             struct t_cose_parameter_storage *storage);
+
+
+/*
+ * If custom headers that are not strings or integers needed to be
+ * decoded and processed, then use this to set a call back handler.
+ * Typically this is not needed.
+ */
+static void
+t_cose_mac_set_special_param_decoder(struct t_cose_mac_validate_ctx *context,
+                                     t_cose_param_special_decode_cb *decode_cb,
+                                     void                           *decode_ctx);
+
+/**
  * \brief Validate a \c COSE_Mac0 message.
  *
- * \param[in] context   The context of COSE_Mac0 validation.
- * \param[in] cose_mac  Pointer and length of CBOR encoded \c COSE_Mac0
- *                      that is to be validated.
- * \param[in] aad       The Additional Authenticated Data or
- *                      \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] context         The context of COSE_Mac0 validation.
+ * \param[in] cose_mac        Pointer and length of CBOR encoded \c COSE_Mac0
+ *                            that is to be validated.
+ * \param[in] ext_sup_data    Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload        Pointer and length of the still
  *                            CBOR encoded payload.
  * \param[out] return_params  Place to return decoded parameters.
@@ -109,7 +158,7 @@ t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
 static enum t_cose_err_t
 t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
                     struct q_useful_buf_c           cose_mac,
-                    struct q_useful_buf_c           aad,
+                    struct q_useful_buf_c           ext_sup_data,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameter       **return_params);
 
@@ -120,7 +169,7 @@ t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
 static enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *context,
                              struct q_useful_buf_c           cose_mac,
-                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameter       **return_params);
 
@@ -160,7 +209,7 @@ t_cose_mac_validate_nth_tag(const struct t_cose_mac_validate_ctx *context,
  * \param[in] context   The context of COSE_Mac0 validation.
  * \param[in] cose_mac  Pointer and length of CBOR encoded \c COSE_Mac0
  *                      that is to be validated.
- * \param[in] aad       The Additional Authenticated Data or
+ * \param[in] ext_sup_data       The Additional Authenticated Data or
  *                      \c NULL_Q_USEFUL_BUF_C.
  * \param[in] payload_is_detached  If \c true, indicates the \c payload
  *                                 is detached.
@@ -178,7 +227,7 @@ t_cose_mac_validate_nth_tag(const struct t_cose_mac_validate_ctx *context,
 enum t_cose_err_t
 t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                             struct q_useful_buf_c           cose_mac,
-                            struct q_useful_buf_c           aad,
+                            struct q_useful_buf_c           ext_sup_data,
                             bool                            payload_is_detached,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params);
@@ -191,6 +240,7 @@ t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *me,
     memset(me, 0, sizeof(*me));
     me->option_flags = option_flags;
     T_COSE_PARAM_STORAGE_INIT(me->parameter_storage, me->__params);
+    me->p_storage          = &(me->parameter_storage);
 }
 
 
@@ -201,17 +251,33 @@ t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *me,
     me->validation_key = validate_key;
 }
 
+static inline void
+t_cose_mac_add_param_storage(struct t_cose_mac_validate_ctx  *me,
+                             struct t_cose_parameter_storage *storage)
+{
+    me->p_storage = storage;
+}
+
+static inline void
+t_cose_mac_set_special_param_decoder(struct t_cose_mac_validate_ctx *me,
+                                     t_cose_param_special_decode_cb *decode_cb,
+                                     void                           *decode_ctx)
+{
+    me->special_param_decode_cb  = decode_cb;
+    me->special_param_decode_ctx = decode_ctx;
+}
+
 
 static inline enum t_cose_err_t
 t_cose_mac_validate(struct t_cose_mac_validate_ctx *me,
                     struct q_useful_buf_c           cose_mac,
-                    struct q_useful_buf_c           aad,
+                    struct q_useful_buf_c           ext_sup_data,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameter       **return_params)
 {
     return t_cose_mac_validate_private(me,
                                        cose_mac,
-                                       aad,
+                                       ext_sup_data,
                                        false,
                                        payload,
                                        return_params);
@@ -221,13 +287,13 @@ t_cose_mac_validate(struct t_cose_mac_validate_ctx *me,
 static inline enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *me,
                              struct q_useful_buf_c           cose_mac,
-                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameter       **return_params)
 {
     return t_cose_mac_validate_private(me,
                                        cose_mac,
-                                       aad,
+                                       ext_sup_data,
                                        true,
                                       &detached_payload,
                                        return_params);

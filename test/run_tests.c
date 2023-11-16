@@ -47,6 +47,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(aead_test),
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
+    TEST_ENTRY(decrypt_known_good_aeskw_non_aead_test),
 #endif
     TEST_ENTRY(hkdf_test),
 
@@ -57,6 +58,9 @@ static test_entry s_tests[] = {
 
     TEST_ENTRY(esdh_enc_dec_test),
     TEST_ENTRY(decrypt_known_good),
+
+    TEST_ENTRY(decrypt_known_bad),
+
     TEST_ENTRY(kdf_context_test),
 
 #endif /* T_COSE_USE_B_CON_SHA256 */

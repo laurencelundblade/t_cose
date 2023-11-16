@@ -14,6 +14,10 @@
 #include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose/t_cose_recipient_dec_esdh.h"
 #include "t_cose/t_cose_recipient_enc_esdh.h"
+#include "t_cose/t_cose_recipient_dec_keywrap.h"
+#include "t_cose/t_cose_recipient_enc_keywrap.h"
+#include "t_cose_util.h"
+#include "data/test_messages.h"
 
 
 
@@ -44,15 +48,13 @@ locations_equal(struct t_cose_header_location l1,
 
 
 static int32_t
-check_headers(const struct t_cose_parameter *headers)
+check_headers(const struct t_cose_parameter *headers, bool is_non_aead)
 {
     const struct t_cose_header_location body_location = {0,0};
     bool got_alg = false;
     bool got_ct = false;
     bool got_xxx = false;
     bool got_iv = false;
-
-
 
     /* Make sure that all the expected headers occur,
      * that they occur only once and that no unexpected
@@ -61,7 +63,7 @@ check_headers(const struct t_cose_parameter *headers)
     while(headers != NULL) {
         switch(headers->label) {
             case T_COSE_HEADER_PARAM_ALG:
-                if(headers->in_protected == false  ||
+                if((headers->in_protected != !is_non_aead)  ||
                    !locations_equal(headers->location, body_location) ||
                    headers->value_type != T_COSE_PARAMETER_TYPE_INT64 ||
                    got_alg == true) {
@@ -128,6 +130,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
     struct q_useful_buf_c          encrypted_cose_message;
     struct q_useful_buf_c          decrypted_payload;
     struct q_useful_buf_c          encrypted_detached;
+    struct q_useful_buf_c          ext_sup_data;
     Q_USEFUL_BUF_MAKE_STACK_UB(    cose_message_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(    detached_encrypted_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(    decrypted_payload_buf, 1024);
@@ -141,12 +144,18 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     switch(cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
+        case T_COSE_ALGORITHM_A128CTR:
+        case T_COSE_ALGORITHM_A128CBC:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("128-bit key xxxx");
             break;
         case T_COSE_ALGORITHM_A192GCM:
+        case T_COSE_ALGORITHM_A192CTR:
+        case T_COSE_ALGORITHM_A192CBC:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("192-bit key xxxxyyyyyyyy");
             break;
         case T_COSE_ALGORITHM_A256GCM:
+        case T_COSE_ALGORITHM_A256CTR:
+        case T_COSE_ALGORITHM_A256CBC:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("256-bit key xxxxyyyyyyyyzzzzzzzz");
             break;
         case T_COSE_ALGORITHM_AES128CCM_16_128:
@@ -188,11 +197,15 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     t_cose_encrypt_set_enc_struct_buffer(&enc_context, enc_struct_buf);
 
+    ext_sup_data = t_cose_alg_is_non_aead(cose_algorithm_id) ? NULL_Q_USEFUL_BUF_C :
+                                                               Q_USEFUL_BUF_FROM_SZ_LITERAL(AAD);
+
     t_cose_err = t_cose_encrypt_enc(&enc_context,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD),
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL(AAD),
+                                     ext_sup_data,
                                      cose_message_buf,
                                     &encrypted_cose_message);
+
     if(t_cose_err) {
         return_value = 2000 + (int32_t)t_cose_err;
         goto Done;
@@ -219,7 +232,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     t_cose_err = t_cose_encrypt_dec(&dec_ctx,
                                      encrypted_cose_message,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL(AAD),
+                                     ext_sup_data,
                                      decrypted_payload_buf,
                                     &decrypted_payload,
                                     &decoded_parameters);
@@ -228,7 +241,8 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         goto Done;
     }
 
-    return_value = check_headers(decoded_parameters);
+    return_value = check_headers(decoded_parameters,
+                                 t_cose_alg_is_non_aead(cose_algorithm_id));
     if(return_value) {
         goto Done;
     }
@@ -289,23 +303,130 @@ int32_t base_encrypt_decrypt_test(void)
     int32_t rv;
     rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128GCM);
     if(rv) {
-        return rv;
+        return 10000 + rv;
     }
 
     rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192GCM);
     if(rv) {
-        return rv;
+        return 20000 + rv;
     }
 
     rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256GCM);
     if(rv) {
-        return rv;
+        return 30000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CTR);
+    if(rv) {
+        return 40000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CTR);
+    if(rv) {
+        return 50000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CTR);
+    if(rv) {
+        return 60000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CBC);
+    if(rv) {
+        return 70000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CBC);
+    if(rv) {
+        return 80000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CBC);
+    if(rv) {
+        return 90000 + rv;
     }
 
     return 0;
 
 }
 
+
+#ifndef T_COSE_DISABLE_KEYWRAP
+
+int32_t decrypt_key_wrap(struct q_useful_buf_c cose_encrypt_buffer)
+{
+    enum t_cose_err_t                   result;
+    int32_t                             return_value = 0;
+    struct t_cose_recipient_dec_keywrap kw_unwrap_recipient;
+    struct t_cose_encrypt_dec_ctx       decrypt_context;
+    struct t_cose_key                   kek;
+    struct q_useful_buf_c               kek_bytes;
+    Q_USEFUL_BUF_MAKE_STACK_UB(         decrypted_buffer, 1024);
+    struct q_useful_buf_c               decrypted_payload;
+    struct t_cose_parameter            *params;
+
+    kek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("128-bit key xxxx");
+    result = t_cose_key_init_symmetric(T_COSE_ALGORITHM_A128KW,
+                                       kek_bytes,
+                                       &kek);
+    if(result != T_COSE_SUCCESS) {
+        return_value = 1000 + (int32_t)result;
+        goto Done2;
+    }
+
+    t_cose_encrypt_dec_init(&decrypt_context, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+    t_cose_recipient_dec_keywrap_init(&kw_unwrap_recipient);
+    t_cose_recipient_dec_keywrap_set_kek(&kw_unwrap_recipient, kek, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_dec_add_recipient(&decrypt_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
+
+    result = t_cose_encrypt_dec(&decrypt_context,
+                                cose_encrypt_buffer,
+                                NULL_Q_USEFUL_BUF_C,
+                                decrypted_buffer,
+                                &decrypted_payload,
+                                &params);
+
+    if(result != T_COSE_SUCCESS) {
+        return_value = 2000 + (int32_t)result;
+        goto Done1;
+    }
+
+    if(q_useful_buf_compare(decrypted_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD))) {
+        return_value = 3000;
+        goto Done1;
+    }
+
+Done1:
+    t_cose_key_free_symmetric(kek);
+Done2:
+    return return_value;
+}
+
+int32_t decrypt_known_good_aeskw_non_aead_test(void)
+{
+    int32_t return_value;
+
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+        /* This is necessary because MbedTLS 2.28 doesn't have
+         * nist KW enabled by default. The PSA crypto layer deals with
+         * this dynamically. The below tests will correctly link
+         * on 2.28, but will fail to run so this exception is needed.
+         */
+        return INT32_MIN; /* Means no testing was actually done */
+    }
+
+    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_a128ctr_a128kw));
+    if(return_value != 0) {
+        return return_value + 10000;
+    }
+    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_a128cbc_a128kw));
+    if(return_value != 0) {
+        return return_value + 20000;
+    }
+    return 0;
+}
+
+#endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
 
@@ -316,7 +437,7 @@ int32_t base_encrypt_decrypt_test(void)
 
 
 static int32_t
-esdh_enc_dec(int32_t curve)
+esdh_enc_dec(int32_t curve, int32_t payload_cose_algorithm_id)
 {
     enum t_cose_err_t                result;
     struct t_cose_key                privatekey;
@@ -355,7 +476,7 @@ esdh_enc_dec(int32_t curve)
      */
     t_cose_encrypt_enc_init(&enc_ctx,
                              T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
-                             T_COSE_ALGORITHM_A128GCM);
+                             payload_cose_algorithm_id);
 
     /* Create the recipient object telling it the algorithm and the public key
      * for the COSE_Recipient it's going to make.
@@ -423,47 +544,33 @@ esdh_enc_dec_test(void)
         return INT32_MIN;
     }
 
-    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256);
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256, T_COSE_ALGORITHM_A128GCM);
     if(result) {
         return result;
     }
-    return esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521);
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256, T_COSE_ALGORITHM_A128CTR);
+    if(result) {
+        return result;
+    }
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256, T_COSE_ALGORITHM_A128CBC);
+    if(result) {
+        return result;
+    }
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521, T_COSE_ALGORITHM_A256GCM);
+    if(result) {
+        return result;
+    }
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521, T_COSE_ALGORITHM_A256CTR);
+    if(result) {
+        return result;
+    }
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521, T_COSE_ALGORITHM_A256CBC);
+    if(result) {
+        return result;
+    }
+
+    return 0;
 }
-
-
-
-/* This comes from the COSE WG Examples repository */
-
-static const uint8_t p256_wrap_128_02[] = {
-    0xD8, 0x60, 0x84, 0x43, 0xA1, 0x01, 0x03, 0xA1,
-    0x05, 0x4C, 0x02, 0xD1, 0xF7, 0xE6, 0xF2, 0x6C,
-    0x43, 0xD4, 0x86, 0x8D, 0x87, 0xCE, 0x58, 0x24,
-    0x25, 0x6B, 0x74, 0x8D, 0xEB, 0x64, 0x71, 0x31,
-    0xC1, 0x2A, 0x10, 0xAC, 0x26, 0x1D, 0xA0, 0x62,
-    0x8E, 0x42, 0x04, 0x92, 0xA3, 0x6F, 0x3D, 0xED,
-    0x86, 0x42, 0xB4, 0xB6, 0xFA, 0x1E, 0xB1, 0x5D,
-    0xCE, 0xC8, 0x0A, 0x0F, 0x81, 0x83, 0x44, 0xA1,
-    0x01, 0x38, 0x1C, 0xA2, 0x20, 0xA4, 0x01, 0x02,
-    0x20, 0x01, 0x21, 0x58, 0x20, 0xE1, 0x2C, 0x93,
-    0x8B, 0x18, 0x22, 0x58, 0xC9, 0xD4, 0x47, 0xD4,
-    0x18, 0x21, 0x71, 0x52, 0x61, 0xAE, 0x99, 0xAD,
-    0x77, 0xD2, 0x41, 0x94, 0x3F, 0x4A, 0x12, 0xFF,
-    0x20, 0xDD, 0x3C, 0xE4, 0x00, 0x22, 0x58, 0x20,
-    0x48, 0xB0, 0x58, 0x89, 0x03, 0x36, 0x57, 0x33,
-    0xB9, 0x8D, 0x38, 0x8C, 0x61, 0x36, 0xC0, 0x4B,
-    0x7F, 0xFD, 0x1A, 0x77, 0x0C, 0xD2, 0x61, 0x11,
-    0x89, 0xEE, 0x84, 0xE9, 0x94, 0x1A, 0x7E, 0x26,
-    0x04, 0x58, 0x24, 0x6D, 0x65, 0x72, 0x69, 0x61,
-    0x64, 0x6F, 0x63, 0x2E, 0x62, 0x72, 0x61, 0x6E,
-    0x64, 0x79, 0x62, 0x75, 0x63, 0x6B, 0x40, 0x62,
-    0x75, 0x63, 0x6B, 0x6C, 0x61, 0x6E, 0x64, 0x2E,
-    0x65, 0x78, 0x61, 0x6D, 0x70, 0x6C, 0x65, 0x58,
-    0x28, 0x50, 0x8F, 0xAD, 0x30, 0xA1, 0xA9, 0x5D,
-    0x13, 0x80, 0xB5, 0x16, 0x7D, 0x03, 0x27, 0x99,
-    0xC7, 0x24, 0x77, 0xAB, 0x60, 0x25, 0x8A, 0xBF,
-    0xB7, 0x1C, 0x7A, 0xB6, 0x03, 0xA4, 0x89, 0x0E,
-    0xF4, 0x4F, 0x13, 0x63, 0xED, 0x9F, 0x56, 0x9E,
-    0x85};
 
 
 int32_t decrypt_known_good(void)
@@ -503,7 +610,7 @@ int32_t decrypt_known_good(void)
                                      (struct t_cose_recipient_dec *)&dec_recipient);
 
     result = t_cose_encrypt_dec(&dec_ctx,
-                                UsefulBuf_FROM_BYTE_ARRAY_LITERAL(p256_wrap_128_02), /* in: message to decrypt */
+                                UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_p256_wrap_128), /* in: message to decrypt */
                                 NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
                                 decrypted_buffer,
                                 &decrypted_payload,
@@ -512,8 +619,247 @@ int32_t decrypt_known_good(void)
     if(result != T_COSE_SUCCESS) {
         return (int32_t)result + 2000;
     }
+
+
     free_fixed_test_ec_encryption_key(pubkey);
     free_fixed_test_ec_encryption_key(privatekey);
+
+    return 0;
+}
+
+
+
+
+struct decrypt_test {
+    const char           *sz_description;
+    struct q_useful_buf_c message;
+    enum t_cose_err_t     expected_return_value;
+    int32_t              cose_ec_curve_id; /* For key */
+    struct q_useful_buf_c expected_payload;
+};
+
+
+int32_t run_decrypt_test(const struct decrypt_test *test)
+{
+    enum t_cose_err_t                result;
+    struct t_cose_encrypt_dec_ctx    dec_ctx;
+    struct t_cose_recipient_dec_esdh dec_recipient;
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    decrypted_buffer, 400);
+    struct q_useful_buf_c            decrypted_payload;
+    struct t_cose_parameter         *params;
+    struct t_cose_key                privatekey;
+    struct t_cose_key                pubkey;
+
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+        /* Mbed TLS 2.28 doesn't support key wrap. */
+        /* TODO: check for other required algorithms here */
+        return INT32_MIN;
+    }
+
+    result = init_fixed_test_ec_encryption_key(test->cose_ec_curve_id,
+                                              &pubkey,      /* out: public key to be used for encryption */
+                                              &privatekey); /* out: corresponding private key for decryption */
+    if(result != T_COSE_SUCCESS) {
+        return (int32_t)result + 1000;
+    }
+
+    t_cose_encrypt_dec_init(&dec_ctx, 0);
+
+    t_cose_recipient_dec_esdh_init(&dec_recipient);
+
+    t_cose_recipient_dec_esdh_set_key(&dec_recipient,
+                                      privatekey, /* in: private key handle */
+                                      NULL_Q_USEFUL_BUF_C); /* in: kid */
+
+    t_cose_encrypt_dec_add_recipient(&dec_ctx,
+                                     (struct t_cose_recipient_dec *)&dec_recipient);
+
+    result = t_cose_encrypt_dec(&dec_ctx,
+                                test->message, /* in: message to decrypt */
+                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                decrypted_buffer,
+                                &decrypted_payload,
+                                &params);
+
+    free_fixed_test_ec_encryption_key(pubkey);
+    free_fixed_test_ec_encryption_key(privatekey);
+
+    if(result != test->expected_return_value) {
+        return (int32_t)result + 2000;
+    }
+
+    return 0;
+
+}
+
+
+/*
+
+ DONE unknown_symmetric_alg.diag: Unknown symmetric cipher alg
+ DONE unknown_rcpt_alg.diag  Unknown recipient alg
+ DONE cose_encrypt_crit.diag  Unknown critical header
+ DONE wrong_tag.diag  Wrong CBOR tag number
+ Header that is not valid CBOR
+ DONE cose_encrypt_wrong_array.diag  Top-level CBOR wrong -- a map, not an array
+ DONE tstr_ciphertext.diag:  Ciphertext is not the right type -- a text string
+ DONE cose_encrypt_wrong_rcpt_array  Recipients area is a map, not an array
+ HALF-DONE cose_encrypt_wrong_extra  Extra stuff at end of array of 4
+ DONE aead_in_error.diag: AEAD integrity check fails
+ DONE cose_encrypt_bad_iv.diag  IV header header is wrong type -- text string
+ DONE cose_encrypt_bad_alg.diag Symmetric Algorithm ID is the wrong type -- a byte string
+ DONE cose_encrypt_junk_recipient.diag:  Recipient is the wrong type -- a map, not an array
+ The encrypted CEK is the wrong type -- text string, not byte string
+ Extra stuff at end of recipient array
+ Recipient header is not decodable CBOR
+ Ephemeral key is an array, not a map
+ Ephemeral key type is unknown
+ Ephemeral curve is unknown
+ Ephemeral key type is a byte string
+ Ephemeral x coordinate is an integer, not a byte string
+ Ephemeral y coordinate is an integer not a byte string
+ */
+
+
+/* Decided to use a function to initialize rather than attempt
+ * static initialization. It's only a test.
+ */
+static int32_t
+init_decrypt_test_list(struct decrypt_test tests[], int tests_count)
+{
+    int test_num;
+
+#define NEXT_TEST if(++test_num >= tests_count) return -1
+
+    test_num = 0;
+
+    tests[test_num].sz_description   = "body symmetric alg id is not one that is a symmertic alg";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unknown_symmetric_alg);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "cipher text is a tstr, not an bstr";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(tstr_ciphertext);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "the aead ciphertext is modified so aead validation fails";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(aead_in_error);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_DATA_AUTH_FAILED;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "the body unprot header params is an array, not a map";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unprot_headers_wrong_type);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_PARAMETER_CBOR;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "the array of recipients is a map, not an array";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_recipients_map_instead_of_array);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "a recipient is a text string, not an array";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_junk_recipient);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_RECIPIENT_FORMAT;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "wrong tag number";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(wrong_tag);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "no tag number";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(no_tag);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "unknown recipient alg";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unknown_rcpt_alg);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_DECLINE;
+    NEXT_TEST;
+
+/*
+    tests[test_num].sz_description   = "extra stuff in COSE_Encrypt array of 4";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_wrong_extra);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    NEXT_TEST;
+*/
+
+    tests[test_num].sz_description   = "array of 4 is map of 2";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_wrong_array);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "one recipient array is a map";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_wrong_rcpt_array);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_RECIPIENT_FORMAT;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "unknown crit header in cose_encrypt";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_crit);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "Protected headers are a text string";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_bad_hdrs);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_PARAMETER_CBOR;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "IV is a boolean not bstr";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_bad_iv);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_BAD_IV;
+    NEXT_TEST;
+
+    tests[test_num].sz_description   = "algorthm ID is wrong type";
+    tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_bad_alg);
+    tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+    tests[test_num].expected_return_value = T_COSE_ERR_NO_ALG_ID;
+    NEXT_TEST;
+
+    tests[test_num].sz_description = NULL;
+
+    return 0;
+}
+
+
+int32_t decrypt_known_bad(void)
+{
+    int32_t              result;
+    struct decrypt_test  test_list[20];
+    int32_t              i;
+
+    result = init_decrypt_test_list(test_list, sizeof(test_list)/sizeof(struct decrypt_test));
+    if(result) {
+        return result;
+    }
+
+    for(i = 0; test_list[i].sz_description != NULL; i++) {
+        const struct decrypt_test *t = &test_list[i];
+        const char *test_to_break_on = "one recipient array is a map";
+        if(!strncmp(t->sz_description, test_to_break_on, strlen(test_to_break_on))){
+            /* For setting break point for a particular test */
+            result = 99;
+        }
+
+        result = run_decrypt_test(t);
+        if(result) {
+            return i * 10000 + (int32_t)result;
+        }
+    }
 
     return 0;
 }
@@ -523,7 +869,7 @@ int32_t decrypt_known_good(void)
 struct kdf_context_test_input {
     struct q_useful_buf_c  party_u_ident;
     struct q_useful_buf_c  party_v_ident;
-    bool do_not_send;
+    bool                   do_not_send;
     struct q_useful_buf_c  supp_pub_other;
     struct q_useful_buf_c  supp_priv_info;
     size_t                 kdf_context_size;

@@ -352,7 +352,7 @@ static const uint8_t crit_custom_float_param_encoded_cbor[] = {
     0xEB, 0x85, 0x1F, 0x02, 0x81, 0x18, 0x2C, 0xA0};
 
 static const uint8_t unprot_bstr_param_encoded_cbor[] = {
-    0x41, 0xA0, 0xA1, 0x18, 0x21, 0x43, 0x01, 0x02, 0x03};
+    0x40, 0xA1, 0x18, 0x21, 0x43, 0x01, 0x02, 0x03};
 
 static const uint8_t b1[] = {0x01, 0x02, 0x03};
 
@@ -386,22 +386,22 @@ static const uint8_t alg_id_param_encoded_cbor[] = {
     0x43, 0xA1, 0x01, 0x26, 0xA0};
 
 static const uint8_t uint_ct_encoded_cbor[] = {
-    0x41, 0xA0, 0xA1, 0x03, 0x18, 0x2A};
+    0x40, 0xA1, 0x03, 0x18, 0x2A};
 
 static const uint8_t tstr_ct_param_encoded_cbor[] = {
-    0x41, 0xA0, 0xA1, 0x03, 0x6A, 0x74, 0x65, 0x78, 0x74, 0x2F,
+    0x40, 0xA1, 0x03, 0x6A, 0x74, 0x65, 0x78, 0x74, 0x2F,
     0x70, 0x6C, 0x61, 0x69, 0x6E};
 
 static const uint8_t kid_param_encoded_cbor[] = {
-    0x41, 0xA0, 0xA1, 0x04, 0x4D, 0x74, 0x68, 0x69, 0x73, 0x2D,
+    0x40, 0xA1, 0x04, 0x4D, 0x74, 0x68, 0x69, 0x73, 0x2D,
     0x69, 0x73, 0x2D, 0x61, 0x2D, 0x6B, 0x69, 0x64};
 
 static const uint8_t iv_param_encoded_cbor[] = {
-    0x41, 0xA0, 0xA1, 0x05, 0x48, 0x69, 0x76, 0x69, 0x76, 0x69,
+    0x40, 0xA1, 0x05, 0x48, 0x69, 0x76, 0x69, 0x76, 0x69,
     0x76, 0x69, 0x76};
 
 static const uint8_t partial_iv_encoded_cbor[] = {
-    0x41, 0xA0, 0xA1, 0x06, 0x43, 0x70, 0x69, 0x76};
+    0x40, 0xA1, 0x06, 0x43, 0x70, 0x69, 0x76};
 
 static const uint8_t not_well_formed_crit_encoded_cbor[] = {
     0x47, 0xA2, 0x18, 0x2c, 0x00, 0x02, 0x81, 0xff, 0xA0};
@@ -432,7 +432,7 @@ static const uint8_t too_many_tstr_in_crit_encoded_cbor[] = {
 
 /*  */
 static const uint8_t iv_and_partial_iv_encoded_cbor[] = {
-    0x41, 0xA0, 0xA2, 0x05, 0x48, 0x69, 0x76, 0x69, 0x76, 0x69,
+    0x40, 0xA2, 0x05, 0x48, 0x69, 0x76, 0x69, 0x76, 0x69,
     0x76, 0x69, 0x76, 0x06, 0x41, 0xDD};
 
 static const uint8_t crit_alg_id_encoded_cbor[] = {
@@ -447,6 +447,13 @@ static const uint8_t empty_preferred_indef[] = {0x5f, 0xff, 0xbf, 0xff};
 
 static const uint8_t empty_alt_indef[] = {0x5f, 0xbf, 0xff, 0xff, 0xbf, 0xff};
 #endif
+
+static const uint8_t unprot_non_aead_alg[] = {
+    0x40,
+    0xA2,
+    0x18, 0x2C, 0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F,
+    0x01, 0x39, 0xFF, 0xFD
+};
 
 
 /* Alternative to UsefulBuf_FROM_BYTE_ARRAY_LITERAL() &
@@ -869,7 +876,7 @@ param_test(void)
 
     /* Test is driven by data in param_tests and param_combo_tests.
      * This is all a bit more complicated than expected, but it is
-     * a data driven tests. */
+     * a data driven test. */
 
     /* The single parameter tests */
     for(int i = 0; ; i++) {
@@ -888,7 +895,7 @@ param_test(void)
             QCBOREncode_Init(&qcbor_encoder, encode_buffer);
             t_cose_result = t_cose_headers_encode(&qcbor_encoder,
                                                   &(param_test->unencoded),
-                                                  NULL);
+                                                  &encoded_prot_params);
 
             if(t_cose_result != param_test->encode_result) {
                 return i * 1000 + 1;
@@ -1019,9 +1026,7 @@ param_test(void)
 
     /* Empty parameters section test */
     QCBOREncode_Init(&qcbor_encoder, encode_buffer);
-    t_cose_result = t_cose_headers_encode(&qcbor_encoder,
-                                          NULL,
-                                          NULL);
+    t_cose_result = t_cose_headers_encode(&qcbor_encoder, NULL, &encoded_prot_params);
 
     if(t_cose_result != param_test->encode_result) {
         return -900;
@@ -1034,9 +1039,12 @@ param_test(void)
         }
 
         if(qcbor_result == QCBOR_SUCCESS) {
-            if(q_useful_buf_compare(encoded_params, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(empty_alt_encoded_cbor))) {
+            if(q_useful_buf_compare(encoded_params, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(empty_preferred_encoded_cbor))) {
                 return -900;
             }
+        }
+        if(!t_cose_params_empty_bstr(encoded_prot_params)) {
+            return -901;
         }
 
         T_COSE_PARAM_STORAGE_INIT(param_storage, param_array);
@@ -1059,6 +1067,58 @@ param_test(void)
         if(decoded_parameter != NULL) {
             return -900;
         }
+    }
+
+    /* Protected headers must be empty and they are */
+    QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unprot_non_aead_alg), 0);
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                          (struct t_cose_header_location){0,0},
+                                          param_decoder, NULL,
+                                         &param_storage,
+                                         &decoded_parameter,
+                                         &encoded_prot_params);
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return 800;
+    }
+    if(!t_cose_params_empty(encoded_prot_params)) {
+        return -901;
+    }
+    if(!t_cose_params_empty_bstr(encoded_prot_params)) {
+        return -902;
+    }
+
+    /* Empty protected headers in alt form */
+    QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(empty_alt_encoded_cbor), 0);
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                            (struct t_cose_header_location){0,0},
+                                            param_decoder, NULL,
+                                           &param_storage,
+                                           &decoded_parameter,
+                                           &encoded_prot_params);
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return 800;
+    }
+    if(!t_cose_params_empty(encoded_prot_params)) {
+        return -901;
+    }
+    if(t_cose_params_empty_bstr(encoded_prot_params)) {
+        return -902;
+    }
+
+
+    /* Protected headers must be empty and they are NOT */
+    QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(common_params_encoded_cbor), 0);
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                          (struct t_cose_header_location){0,0},
+                                          param_decoder, NULL,
+                                         &param_storage,
+                                         &decoded_parameter,
+                                         &encoded_prot_params);
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return -90000;
+    }
+    if(t_cose_params_empty(encoded_prot_params)) {
+        return -901;
     }
 
     return 0;
@@ -1114,6 +1174,15 @@ common_params_test(void)
         return -1;
     }
 
+    /* One-off test for unprotected alg ID */
+    param_array[0] = t_cose_param_make_unprot_alg_id(T_COSE_ALGORITHM_ES256); // TODO: change this to AES-CTR
+    if(param_array[0].in_protected == true) {
+        return -101;
+    }
+    if(param_array[0].value.int64 != T_COSE_ALGORITHM_ES256) {
+        return -102;
+    }
+
     qcbor_result = QCBOREncode_Finish(&qcbor_encoder, &encoded_params);
     if(qcbor_result != QCBOR_SUCCESS) {
         return -2;
@@ -1124,7 +1193,7 @@ common_params_test(void)
     }
 
     /* --- Decode what was encoded ---*/
-    if(t_cose_param_find_alg_id(NULL, true) != T_COSE_ALGORITHM_NONE) {
+    if(t_cose_param_find_alg_id_prot(NULL) != T_COSE_ALGORITHM_NONE) {
         return -4;
     }
 
@@ -1166,7 +1235,7 @@ common_params_test(void)
     }
 
     /* Check that they decoded correctly */
-    if(t_cose_param_find_alg_id(dec, true) != T_COSE_ALGORITHM_ES256) {
+    if(t_cose_param_find_alg_id_prot(dec) != T_COSE_ALGORITHM_ES256) {
         return -11;
     }
 

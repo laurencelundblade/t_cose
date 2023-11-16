@@ -419,6 +419,8 @@ struct t_cose_parameter_storage {
  * A pointer and length of the protected header byte string is
  * returned so that it can be covered by what ever protection
  * mechanism is in used (e.g., hashing or AEAD encryption).
+ * If there are no protected header parameters an empty string
+ * will always be returned in \c protected_parameters.
  */
 enum t_cose_err_t
 t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
@@ -462,6 +464,11 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * non-integer and non-string header parameters. It typically switches
  * on the parameter label.
  *
+ * If \c no_protected is \c true, then the protected headers must be
+ * an empty byte string. This is used when the cryptographic algorithm
+ * used can't protect headers, for example non-AEAD ciphers for COSE
+ * encryption.
+ *
  * The crit parameter will be decoded and any parameter label
  * listed in it will be marked as crit in the list returned. It is up
  * to the caller to check the list for crit parameters and error
@@ -485,6 +492,21 @@ t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       struct t_cose_parameter_storage    *parameter_storage,
                       struct t_cose_parameter           **decoded_params,
                       struct q_useful_buf_c              *protected_parameters);
+
+
+
+/* Returns true if the CBOR encoded parameters are empty either because
+ * they are an empty string or a wrapped empty map. This is primarily
+ * used on protected headers. */
+static bool
+t_cose_params_empty(struct q_useful_buf_c encoded_params);
+
+
+/* Returns true of the CBOR-encoded parameters are an empty bstr. This is
+ * primarily used on protected headers in a few context where they
+ * must be empty only by being an empty bstr. */
+static bool
+t_cose_params_empty_bstr(struct q_useful_buf_c encoded_params);
 
 
 /**
@@ -556,6 +578,11 @@ t_cose_params_append(struct t_cose_parameter **existing,
  */
 static struct t_cose_parameter
 t_cose_param_make_alg_id(int32_t alg_id);
+
+/* For the rare case of a non-AEAD algorithm */
+static struct t_cose_parameter
+t_cose_param_make_unprot_alg_id(int32_t alg_id);
+
 
 /**
  * Make a struct t_cose_parameter for an unsigned integer content typ.
@@ -642,19 +669,52 @@ t_cose_param_find_bstr(const struct t_cose_parameter *parameter_list, int64_t la
 
 
 /**
- * \brief Find the algorithm ID parameter in a linked list
+ * \brief Find the algorithm ID parameter in a linked list.
  *
  * \param[in] parameter_list  The parameter list to search.
- * \param[in] prot  If \c true, parameter must be protected and vice versa.
+ * \param[in] prot            Place to return whether ID is protected or not.
  *
  * \return The algorithm ID or \ref T_COSE_ALGORITHM_NONE.
  *
  * This returns \ref T_COSE_ALGORITHM_NONE on all errors including
  * errors such as the parameter not being present, the parameter being
- * of the wrong type and the parameter not being protected.
+ * of the wrong type.
  */
 int32_t
-t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool prot);
+t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool *prot);
+
+
+/**
+ * \brief Find the protected algorithm ID parameter in a linked list.
+ *
+ * \param[in] parameter_list  The parameter list to search.
+ *
+ * \return The algorithm ID or \ref T_COSE_ALGORITHM_NONE.
+ *
+ * This returns \ref T_COSE_ALGORITHM_NONE on all errors including
+ * errors such as the parameter not being present, the parameter being
+ * of the wrong type or the parameter not being protected.
+ */
+static int32_t
+t_cose_param_find_alg_id_prot(const struct t_cose_parameter *parameter_list);
+
+
+/**
+ * \brief Find the unprotected algorithm ID parameter in a linked list.
+ *
+ * \param[in] parameter_list  The parameter list to search.
+ *
+ * \return The algorithm ID or \ref T_COSE_ALGORITHM_NONE.
+ *
+ * This is for the unusual case were the algorithm ID must NOT be a
+ * protected parameter, such as for non-AEAD algorithms.
+ *
+ * This returns \ref T_COSE_ALGORITHM_NONE on all errors including
+ * errors such as the parameter not being present, the parameter being
+ * of the wrong type or the parameter being protected.
+ */
+static int32_t
+t_cose_param_find_alg_id_unprot(const struct t_cose_parameter *parameter_list);
 
 
 /**
@@ -782,6 +842,30 @@ t_cose_params_common(const struct t_cose_parameter *decoded_params,
  */
 
 
+static inline bool
+t_cose_params_empty_bstr(struct q_useful_buf_c encoded_params)
+{
+    return encoded_params.len == 0;
+}
+
+static inline bool
+t_cose_params_empty(struct q_useful_buf_c encoded_params)
+{
+    int           compare_result;
+    const uint8_t empty_map[] = {0xa0};
+
+    if(t_cose_params_empty_bstr(encoded_params)) {
+        return true;
+    }
+
+    compare_result = q_useful_buf_compare(encoded_params,
+                                          Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(empty_map));
+
+    /* Check for a CBOR-encoded empty array */
+    return compare_result == 0 ? true : false;
+}
+
+
 static inline struct t_cose_parameter
 t_cose_param_make_alg_id(int32_t alg_id)
 {
@@ -845,6 +929,15 @@ t_cose_param_make_alg_id(int32_t alg_id)
     parameter.value.int64      = alg_id;
     parameter.next             = NULL;
 
+    return parameter;
+}
+
+static inline struct t_cose_parameter
+t_cose_param_make_unprot_alg_id(int32_t alg_id) {
+    struct t_cose_parameter parameter;
+
+    parameter = t_cose_param_make_alg_id(alg_id);
+    parameter.in_protected = false;
     return parameter;
 }
 
@@ -950,11 +1043,37 @@ t_cose_param_make_partial_iv(struct q_useful_buf_c iv)
     return parameter;
 }
 
+static inline int32_t
+t_cose_param_find_alg_id_prot(const struct t_cose_parameter *parameter_list)
+{
+    int32_t alg_id;
+    bool    prot;
+    alg_id = t_cose_param_find_alg_id(parameter_list, &prot);
+    if(prot != true) {
+        return T_COSE_ALGORITHM_NONE;
+    }
+
+    return alg_id;
+}
+
+
+static inline int32_t
+t_cose_param_find_alg_id_unprot(const struct t_cose_parameter *parameter_list)
+{
+    int32_t alg_id;
+    bool    prot;
+    alg_id = t_cose_param_find_alg_id(parameter_list, &prot);
+    if(prot == true) {
+        return T_COSE_ALGORITHM_NONE;
+    }
+
+    return alg_id;
+}
 
 
 static inline void
 t_cose_params_append(struct t_cose_parameter **existing,
-                             struct t_cose_parameter *to_be_appended)
+                     struct t_cose_parameter *to_be_appended)
 {
     /* Improvement: will overall code size be smaller if this is not inline? */
     struct t_cose_parameter *ex;

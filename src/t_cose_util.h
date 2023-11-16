@@ -140,6 +140,17 @@ uint32_t
 bits_in_crypto_alg(int32_t cose_algorithm_id);
 
 
+/**
+ * \brief Returns the IV length (in bits) of a given encryption algo.
+ *
+ * @param cose_algorithm_id  Crypto algorithm.
+ *
+ * Returns the IV length (in bits) or UINT_MAX in case of an
+ * unknown algorithm id.
+ */
+uint32_t
+bits_iv_alg(int32_t cose_algorithm_id);
+
 
 /**
  * \brief Create the ToBeMaced (TBM) structure bytes for COSE.
@@ -300,7 +311,7 @@ struct q_useful_buf_c get_short_circuit_kid(void);
 
 
 /**
- * \brief Map QCBOR decode error to COSE errors.
+ * \brief Map QCBOR decode error to t_cose errors.
  *
  * \param[in] qcbor_error   The QCBOR error to map.
  *
@@ -356,6 +367,15 @@ t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list);
 int16_t
 t_cose_int16_map(const int16_t map[][2], int16_t query);
 
+/**
+ * \brief Judge whether the algorithm id describes non AEAD cipher.
+ *
+ * \param[in] cose_algorithm_id     The COSE algorithm id.
+ *
+ * \returns true of false.
+ */
+bool
+t_cose_alg_is_non_aead(int32_t cose_algorithm_id);
 
 #ifdef __cplusplus
 }

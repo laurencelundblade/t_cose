@@ -36,7 +36,6 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
     struct q_useful_buf_c                protected_params;
     int32_t                              cose_algorithm_id;
     QCBORError                           cbor_error;
-    struct q_useful_buf_c                encoded_empty_map;
 
     /* Morph to the object we actually are */
     me = (struct t_cose_recipient_dec_keywrap *)me_x;
@@ -59,16 +58,10 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
     if(err != T_COSE_SUCCESS) {
         goto Done;
     }
-
-    encoded_empty_map = Q_USEFUL_BUF_FROM_SZ_LITERAL("\xa0");
-    if(!(q_useful_buf_c_is_empty(protected_params) ||
-         !q_useful_buf_compare(protected_params, encoded_empty_map))) {
-        /* There's can't be any protected headers here because keywrap
-         * can't protected them (need an AEAD). While completely empty
-         * headers are preferred an empty map is allowed. */
-        // TODO: the right error here
-        return T_COSE_ERR_FAIL;
+    if(!t_cose_params_empty(protected_params)) {
+        return T_COSE_ERR_PROTECTED_NOT_ALLOWED;
     }
+
     /* ---- Third item -- ciphertext ---- */
     QCBORDecode_GetByteString(cbor_decoder, &ciphertext);
 
@@ -80,7 +73,7 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
                                                   T_COSE_ERR_RECIPIENT_FORMAT);
     }
 
-    cose_algorithm_id = t_cose_param_find_alg_id(*params, false);
+    cose_algorithm_id = t_cose_param_find_alg_id_unprot(*params);
 
     // TODO: should probably check the kid here
 

@@ -27,7 +27,7 @@
 enum t_cose_err_t
 t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                             struct q_useful_buf_c      payload,
-                            struct q_useful_buf_c      external_aad,
+                            struct q_useful_buf_c      ext_sup_data,
                             struct q_useful_buf        buffer_for_detached,
                             struct q_useful_buf        buffer_for_message,
                             struct q_useful_buf_c     *encrypted_detached,
@@ -51,6 +51,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     struct q_useful_buf          encrypt_buffer;
     struct q_useful_buf_c        encrypt_output;
     bool                         is_cose_encrypt0;
+    bool                         is_non_aead_cipher;
     struct t_cose_recipient_enc *recipient;
 
 
@@ -70,19 +71,30 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
             return T_COSE_ERR_BAD_OPT;
     }
 
-
     /* ---- Algorithm ID, IV and parameter list ---- */
     /* Determine algorithm parameters */
+    is_non_aead_cipher = t_cose_alg_is_non_aead(me->payload_cose_algorithm_id);
+    if(is_non_aead_cipher && !q_useful_buf_c_is_null_or_empty(ext_sup_data)) {
+        /* Section 6 of RFC9459 says,
+        * COSE libraries that support either AES-CTR or AES-CBC and
+        * accept Additional Authenticated Data (AAD) as input MUST return an error
+        */
+        return T_COSE_ERR_AAD_WITH_NON_AEAD;
+    }
+
     ce_alg.cose_alg_id = me->payload_cose_algorithm_id;
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
+    ce_alg.bits_iv = bits_iv_alg(ce_alg.cose_alg_id);
     if(ce_alg.bits_in_key == UINT32_MAX) {
         return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
-    params[0] = t_cose_param_make_alg_id(ce_alg.cose_alg_id);
+    params[0] = is_non_aead_cipher ? t_cose_param_make_unprot_alg_id(ce_alg.cose_alg_id):
+                                     t_cose_param_make_alg_id(ce_alg.cose_alg_id);
+
 
     /* Generate random nonce (aka iv) */
     return_value = t_cose_crypto_get_random(nonce_buffer,
-                                            ce_alg.bits_in_key / 8,
+                                            ce_alg.bits_iv / 8,
                                             &nonce);
     params[1] = t_cose_param_make_iv(nonce);
 
@@ -108,33 +120,6 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         goto Done;
     }
 
-
-    /* ---- Make the Enc_structure ---- */
-    /* Per RFC 9052 section 5.3 the structure that is authenticated
-     * along with the payload by the AEAD.
-     *
-     *  Enc_structure = [
-     *    context : "Encrypt",
-     *    protected : empty_or_serialized_map,
-     *    external_aad : bstr
-     *  ]
-     */
-    if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
-        /* Caller gave us a (bigger) buffer for Enc_structure */
-        enc_struct_buffer = me->extern_enc_struct_buffer;
-    }
-    enc_struct_string = is_cose_encrypt0 ? "Encrypt0" : "Encrypt";
-    return_value =
-        create_enc_structure(enc_struct_string, /* in: message context string */
-                             body_prot_headers, /* in: CBOR encoded prot hdrs */
-                             external_aad,      /* in: external AAD */
-                             enc_struct_buffer, /* in: output buffer */
-                            &enc_structure);    /* out: encoded Enc_structure */
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-
     /* ---- Figure out the CEK ---- */
     if(is_cose_encrypt0) {
         /* For COSE_Encrypt0, the caller must have set the cek explicitly. */
@@ -154,15 +139,15 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                                     cek_bytes,          /* in: key bytes */
                                    &cek_handle);        /* out: key handle */
     }
-    if (return_value != T_COSE_SUCCESS) {
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
     /* At this point cek_handle has the encryption key for the AEAD */
 
 
-    /* ---- Run AEAD to encrypt the payload, detached or not */
+    /* ---- Encrypt the payload, detached or not */
     if(q_useful_buf_is_null(buffer_for_detached)) {
-        /* Set up so AEAD writes directly to the output buffer to save lots
+        /* Set up so encryption writes directly to the output buffer to save lots
          * of memory since no intermediate buffer is needed!
          */
         QCBOREncode_OpenBytes(&cbor_encoder, &encrypt_buffer);
@@ -171,14 +156,49 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         encrypt_buffer = buffer_for_detached;
     }
 
-    return_value =
-        t_cose_crypto_aead_encrypt(ce_alg.cose_alg_id, /* in: AEAD alg ID */
-                                   cek_handle,     /* in: content encryption key handle */
-                                   nonce,          /* in: nonce / IV */
-                                   enc_structure,  /* in: AAD to authenticate */
-                                   payload,        /* in: payload to encrypt */
-                                   encrypt_buffer, /* in: buffer to write to */
-                                  &encrypt_output  /* out: ciphertext */);
+    if(is_non_aead_cipher) {
+        return_value =
+            t_cose_crypto_non_aead_encrypt(ce_alg.cose_alg_id, /* in: non AEAD alg ID */
+                                           cek_handle,     /* in: content encryption key handle */
+                                           nonce,          /* in: nonce / IV */
+                                           payload,        /* in: payload to encrypt */
+                                           encrypt_buffer, /* in: buffer to write to */
+                                          &encrypt_output  /* out: ciphertext */);
+    } else {
+        /* ---- Make the Enc_structure ---- */
+        /* Per RFC 9052 section 5.3 this is the structure that is authenticated
+         * along with the payload by the AEAD.
+         *
+         *  Enc_structure = [
+         *    context : "Encrypt",
+         *    protected : empty_or_serialized_map,
+         *    external_aad : bstr
+         *  ]
+         */
+        if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
+            /* Caller gave us a (bigger) buffer for Enc_structure */
+            enc_struct_buffer = me->extern_enc_struct_buffer;
+        }
+        enc_struct_string = is_cose_encrypt0 ? "Encrypt0" : "Encrypt";
+        return_value =
+            create_enc_structure(enc_struct_string, /* in: message context string */
+                                 body_prot_headers, /* in: CBOR encoded prot hdrs */
+                                 ext_sup_data,      /* in: external AAD */
+                                 enc_struct_buffer, /* in: output buffer */
+                                &enc_structure);    /* out: encoded Enc_structure */
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+
+        return_value =
+            t_cose_crypto_aead_encrypt(ce_alg.cose_alg_id, /* in: AEAD alg ID */
+                                       cek_handle,     /* in: content encryption key handle */
+                                       nonce,          /* in: nonce / IV */
+                                       enc_structure,  /* in: AAD to authenticate */
+                                       payload,        /* in: payload to encrypt */
+                                       encrypt_buffer, /* in: buffer to write to */
+                                      &encrypt_output  /* out: ciphertext */);
+    }
 
     if (return_value != T_COSE_SUCCESS) {
         goto Done;

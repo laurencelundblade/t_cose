@@ -408,7 +408,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                     } else if(return_value != T_COSE_ERR_DECLINE) {
                         goto Done;
                     } else {
-                        /* Not decoded or consumed continue loop
+                        /* Not decoded or consumed. Continue loop
                          * normally and ignore.  A t_cose_parameter
                          * will go into the list for it so crit check
                          * for it can occur. */
@@ -493,7 +493,7 @@ t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       struct t_cose_parameter           **decoded_params,
                       struct q_useful_buf_c              *protected_parameters)
 {
-     /* Approximate stack usage
+    /* Approximate stack usage
      *                                             64-bit      32-bit
      *   local vars                                    24          12
      *   largest call, t_cose_params_decode           416         352
@@ -677,6 +677,8 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
      */
 
     enum t_cose_err_t return_value;
+    bool              protected_present;
+    const struct t_cose_parameter *p_param;
 
     // TODO: allow disabling this check to save object code
     if(param_dup_detect(parameters)) {
@@ -685,14 +687,25 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
     }
 
     /* --- Protected Headers --- */
-    QCBOREncode_BstrWrap(cbor_encoder);
-    return_value = t_cose_params_encode(cbor_encoder,
+    protected_present = false;
+    for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
+        if(p_param->in_protected) {
+            protected_present = true;
+        }
+    }
+    if(!protected_present) {
+        QCBOREncode_AddBytes(cbor_encoder, NULL_Q_USEFUL_BUF_C);
+        *protected_parameters = NULL_Q_USEFUL_BUF_C;
+    } else {
+        QCBOREncode_BstrWrap(cbor_encoder);
+        return_value = t_cose_params_encode(cbor_encoder,
                                             parameters,
                                             true);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+        QCBOREncode_CloseBstrWrap2(cbor_encoder, false, protected_parameters);
     }
-    QCBOREncode_CloseBstrWrap2(cbor_encoder, false, protected_parameters);
 
 
     /* --- Unprotected Parameters --- */
@@ -722,7 +735,7 @@ t_cose_param_find(const struct t_cose_parameter *parameter_list, int64_t label)
  * Public function. See t_cose_parameters.h
  */
 int32_t
-t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool prot)
+t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool *prot)
 {
     const struct t_cose_parameter *p_found;
 
@@ -734,9 +747,7 @@ t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool pro
         return T_COSE_ALGORITHM_NONE;
     }
 
-    if(prot != p_found->in_protected) { /* effective exclusive OR */
-        return T_COSE_ALGORITHM_NONE;
-    }
+    *prot = p_found->in_protected;
 
     return (int32_t)p_found->value.int64;
 }

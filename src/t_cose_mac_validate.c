@@ -29,7 +29,7 @@
 enum t_cose_err_t
 t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             struct q_useful_buf_c           cose_mac,
-                            struct q_useful_buf_c           aad,
+                            struct q_useful_buf_c           ext_sup_data,
                             bool                            payload_is_detached,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params)
@@ -45,7 +45,6 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     QCBORItem                     item;
     uint64_t                      message_type;
     Q_USEFUL_BUF_MAKE_STACK_UB(   mac_tag_buf, T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
-    int32_t                       cose_alg_id;
 
     decoded_params = NULL;
 
@@ -76,18 +75,18 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     /* --- The parameters --- */
     const struct t_cose_header_location l = {0,0};
     decoded_params = NULL;
-    t_cose_headers_decode(&decode_context,
+    return_value = t_cose_headers_decode(&decode_context,
                           l,
-                          NULL,
-                          NULL,
-                          &me->parameter_storage,
+                          me->special_param_decode_cb,
+                          me->special_param_decode_ctx,
+                          me->p_storage,
                           &decoded_params,
                           &protected_parameters);
-    cose_alg_id = t_cose_param_find_alg_id(decoded_params, true);
-    if(cose_alg_id == T_COSE_ALGORITHM_NONE) {
-        return T_COSE_ERR_NO_ALG_ID;
-    }
 
+
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     /* --- The payload --- */
     if (payload_is_detached) {
@@ -132,17 +131,18 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     }
 
     /* -- Compute the ToBeMaced and compare -- */
-    mac_input.aad            = aad;
+    mac_input.ext_sup_data   = ext_sup_data;
     mac_input.payload        = *payload;
     mac_input.body_protected = protected_parameters;
     mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* No sign-protected for MAC */
 
-    return_value = create_tbm(cose_alg_id,
+    return_value = create_tbm(t_cose_param_find_alg_id_prot(decoded_params),
                                me->validation_key,
                                true,
                                &mac_input,
                                mac_tag_buf,
                                &computed_mac_tag);
+
     if(return_value) {
         goto Done;
     }
