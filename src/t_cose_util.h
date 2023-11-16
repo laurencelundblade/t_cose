@@ -19,6 +19,8 @@
 #include "qcbor/qcbor_decode.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_key.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,17 +97,6 @@ t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
  * ]
  */
 
-/**
- * This is the size of the first part of the CBOR encoded ToBeMaced
- * bytes. It is around 30 bytes.
- */
-#define T_COSE_SIZE_OF_TBM \
-    1 + /* For opening the array */ \
-    sizeof(COSE_MAC_CONTEXT_STRING_MAC0) + /* "MAC0" */ \
-    2 + /* Overhead for encoding string */ \
-    T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS + /* entire protected headers */ \
-    1 + /* Empty bstr for absent external_aad */ \
-    9 /* The max CBOR length encoding for start of payload */
 
 
 /**
@@ -169,10 +160,13 @@ bits_in_crypto_alg(int32_t cose_algorithm_id);
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  */
-enum t_cose_err_t create_tbm(const struct t_cose_sign_inputs *mac_inputs,
-                             struct q_useful_buf              tbm_first_part_buf,
-                             struct q_useful_buf_c           *tbm_first_part);
-
+enum t_cose_err_t
+create_tbm(const int32_t                    cose_algorithm_id,
+            struct t_cose_key                mac_key,
+            bool                             is_mac0,
+            const struct t_cose_sign_inputs *mac_inputs,
+            const struct q_useful_buf        tag_buf,
+            struct q_useful_buf_c           *mac_tag);
 
 /**
  * Serialize the to-be-signed (TBS) bytes for COSE.

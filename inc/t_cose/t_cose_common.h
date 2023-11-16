@@ -9,7 +9,6 @@
  * See BSD-3-Clause license in README.md
  */
 
-
 #ifndef __T_COSE_COMMON_H__
 #define __T_COSE_COMMON_H__
 
@@ -250,20 +249,6 @@ enum t_cose_key_usage_flags {
     T_COSE_KEY_USAGE_FLAG_ENCRYPT = 2
 };
 
-
-
-/* Private value. Intentionally not documented for Doxygen.
- * This is the size allocated for the encoded protected headers.  It
- * needs to be big enough for make_protected_header() to succeed. It
- * currently sized for one header with an algorithm ID up to 32 bits
- * long -- one byte for the wrapping map, one byte for the label, 5
- * bytes for the ID. If this is made accidentially too small, QCBOR will
- * only return an error, and not overrun any buffers.
- *
- * 9 extra bytes are added, rounding it up to 16 total, in case some
- * other protected header is to be added.
- */
-#define T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS (1 + 1 + 5 + 9)
 
 /* Six: an alg id, a kid, an iv, a content type, one custom, crit list
  * or: 2 alg IDs, an IV, a kid, a supp_pub_info, one custom. If

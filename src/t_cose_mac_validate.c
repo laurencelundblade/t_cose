@@ -37,24 +37,21 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
-
     enum t_cose_err_t             return_value;
-    struct q_useful_buf_c         tag = NULL_Q_USEFUL_BUF_C;
-    struct q_useful_buf_c         tbm_first_part;
-    /* Buffer for the ToBeMaced */
-    Q_USEFUL_BUF_MAKE_STACK_UB(   tbm_first_part_buf,
-                                  T_COSE_SIZE_OF_TBM);
-    struct t_cose_crypto_hmac     hmac_ctx;
+    struct q_useful_buf_c         expected_mac_tag;
+    struct q_useful_buf_c         computed_mac_tag;
     struct t_cose_parameter      *decoded_params;
     struct t_cose_sign_inputs     mac_input;
     QCBORItem                     item;
     uint64_t                      message_type;
+    Q_USEFUL_BUF_MAKE_STACK_UB(   mac_tag_buf, T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
+    int32_t                       cose_alg_id;
 
     decoded_params = NULL;
 
     QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
 
-    /* --- The array of 4 and type determination and tags --- */
+    /* --- The array of 4, type determination and tags --- */
     QCBORDecode_EnterArray(&decode_context, &item);
     return_value = qcbor_decode_error_to_t_cose_error(
                                         QCBORDecode_GetError(&decode_context),
@@ -63,7 +60,8 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
         goto Done;
     }
 
-    const uint64_t mac_tag_nums[] = {T_COSE_OPT_MESSAGE_TYPE_MAC0, CBOR_TAG_INVALID64};
+    const uint64_t mac_tag_nums[] = {T_COSE_OPT_MESSAGE_TYPE_MAC0,
+                                     CBOR_TAG_INVALID64};
     return_value = t_cose_tags_and_type(mac_tag_nums,
                                         me->option_flags,
                                         &item,
@@ -75,7 +73,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     }
 
 
-    /* --- The protected parameters --- */
+    /* --- The parameters --- */
     const struct t_cose_header_location l = {0,0};
     decoded_params = NULL;
     t_cose_headers_decode(&decode_context,
@@ -85,6 +83,11 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                           &me->parameter_storage,
                           &decoded_params,
                           &protected_parameters);
+    cose_alg_id = t_cose_param_find_alg_id(decoded_params, true);
+    if(cose_alg_id == T_COSE_ALGORITHM_NONE) {
+        return T_COSE_ERR_NO_ALG_ID;
+    }
+
 
     /* --- The payload --- */
     if (payload_is_detached) {
@@ -95,12 +98,12 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     }
 
     /* --- The HMAC tag --- */
-    QCBORDecode_GetByteString(&decode_context, &tag);
+    QCBORDecode_GetByteString(&decode_context, &expected_mac_tag);
 
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);
 
-    /* This check make sure the array only had the expected four
+    /* This check makes sure the array only had the expected four
      * items. It works for definite and indefinte length arrays. Also
      * makes sure there were no extra bytes. Also that the payload
      * and authentication tag were decoded correctly. */
@@ -128,48 +131,27 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
         goto Done;
     }
 
-    /* -- Compute the ToBeMaced -- */
-    mac_input.aad = aad;
-    mac_input.payload = *payload;
+    /* -- Compute the ToBeMaced and compare -- */
+    mac_input.aad            = aad;
+    mac_input.payload        = *payload;
     mac_input.body_protected = protected_parameters;
-    mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
-    return_value = create_tbm(&mac_input,
-                              tbm_first_part_buf,
-                              &tbm_first_part);
+    mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* No sign-protected for MAC */
+
+    return_value = create_tbm(cose_alg_id,
+                               me->validation_key,
+                               true,
+                               &mac_input,
+                               mac_tag_buf,
+                               &computed_mac_tag);
     if(return_value) {
         goto Done;
     }
 
-    /*
-     * Start the HMAC validation.
-     * Calculate the tag of the first part of ToBeMaced and the wrapped
-     * payload, to save a bigger buffer containing the entire ToBeMaced.
-     */
-    return_value = t_cose_crypto_hmac_validate_setup(&hmac_ctx,
-                                  t_cose_param_find_alg_id(decoded_params, true),
-                                  me->validation_key);
-
-    if(return_value) {
+    if(q_useful_buf_compare(computed_mac_tag, expected_mac_tag)) {
+        return_value = T_COSE_ERR_HMAC_VERIFY;
         goto Done;
     }
 
-    /* Compute the tag of the first part. */
-    return_value = t_cose_crypto_hmac_update(&hmac_ctx,
-                                         q_useful_buf_head(tbm_first_part,
-                                                           tbm_first_part.len));
-    if(return_value) {
-        goto Done;
-    }
-
-    return_value = t_cose_crypto_hmac_update(&hmac_ctx, *payload);
-    if(return_value) {
-        goto Done;
-    }
-
-    return_value = t_cose_crypto_hmac_validate_finish(&hmac_ctx, tag);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
 
     /* --- Check for critical parameters --- */
     if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {

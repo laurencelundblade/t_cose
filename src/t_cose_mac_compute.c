@@ -91,11 +91,6 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
     /* Buffer for the actual tag */
     Q_USEFUL_BUF_MAKE_STACK_UB(  tag_buf,
                                  T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
-    struct q_useful_buf_c        tbm_first_part;
-    /* Buffer for the ToBeMaced */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  tbm_first_part_buf,
-                                 T_COSE_SIZE_OF_TBM);
-    struct t_cose_crypto_hmac    hmac_ctx;
     struct t_cose_sign_inputs    mac_input;
 
     /*
@@ -131,43 +126,13 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
     mac_input.payload = payload;
     mac_input.body_protected = me->protected_parameters;
     mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
-    return_value = create_tbm(&mac_input,
-                              tbm_first_part_buf,
-                              &tbm_first_part);
-    if(return_value) {
-        goto Done;
-    }
 
-    /*
-     * Start the HMAC.
-     * Calculate the tag of the first part of ToBeMaced and the wrapped
-     * payload, to save a bigger buffer containing the entire ToBeMaced.
-     */
-    return_value = t_cose_crypto_hmac_compute_setup(&hmac_ctx,
-                                                    me->mac_key,
-                                                    me->cose_algorithm_id);
-    if(return_value) {
-        goto Done;
-    }
-
-    /* Compute the tag of the first part. */
-    return_value = t_cose_crypto_hmac_update(&hmac_ctx,
-                                             q_useful_buf_head(tbm_first_part,
-                                                           tbm_first_part.len));
-    if(return_value) {
-        goto Done;
-    }
-
-    /*
-     * It is assumed that the context payload has been wrapped in a byte
-     * string in CBOR format.
-     */
-    return_value = t_cose_crypto_hmac_update(&hmac_ctx, payload);
-    if(return_value) {
-        goto Done;
-    }
-
-    return_value = t_cose_crypto_hmac_compute_finish(&hmac_ctx, tag_buf, &tag);
+    return_value = create_tbm(me->cose_algorithm_id,
+                              me->mac_key,
+                              true, /* in: is_mac0   */
+                             &mac_input,
+                              tag_buf,
+                             &tag);
     if(return_value) {
         goto Done;
     }
