@@ -630,6 +630,15 @@ done:
 }
 
 
+/* The PSA API for MAC validation is not used because it results
+ * in larger code size overall and because OSSL doesn't have that
+ * API. There is no issue with a crypto service API that isolates
+ * the MAC key in an HSM or such by making this choice. It is still
+ * possible to to do. The MAC tag is a public value so it doesn't
+ * need to in the HSM.
+ */
+
+
 enum t_cose_err_t
 t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
                          void                 *crypto_context,

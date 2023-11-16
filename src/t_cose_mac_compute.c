@@ -87,10 +87,8 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
 {
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
-    /* Pointer and length of the completed tag */
-    struct q_useful_buf_c        tag;
-    /* Buffer for the actual tag */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  tag_buf,
+    struct q_useful_buf_c        computed_mac_tag;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  mac_tag_buf,
                                  T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
     struct t_cose_sign_inputs    mac_input;
 
@@ -111,9 +109,8 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
 
     if(QCBOREncode_IsBufferNULL(cbor_encode_ctx)) {
         /* Just calculating sizes. All that is needed is the tag size. */
-        tag.ptr = NULL;
-        tag.len = t_cose_tag_size(me->cose_algorithm_id);
-
+        computed_mac_tag.ptr = NULL;
+        computed_mac_tag.len = t_cose_tag_size(me->cose_algorithm_id);
         return_value = T_COSE_SUCCESS;
         goto CloseArray;
     }
@@ -128,19 +125,19 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
     mac_input.body_protected = me->protected_parameters;
     mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
 
-    return_value = create_tbm(me->cose_algorithm_id,
-                              me->mac_key,
-                              true, /* in: is_mac0   */
-                             &mac_input,
-                              tag_buf,
-                             &tag);
+    return_value = create_tbm(me->cose_algorithm_id, /* in: algorithm ID*/
+                              me->mac_key, /* in: key */
+                              true,        /* in: is_mac0 (MAC vs MAC0) */
+                             &mac_input,   /* in: struct of all TBM inputs */
+                              mac_tag_buf, /* in: buffer to output to */
+                             &computed_mac_tag); /* out: the computed MAC tag */
     if(return_value) {
         goto Done;
     }
 
 CloseArray:
     /* Add tag to CBOR and close out the array */
-    QCBOREncode_AddBytes(cbor_encode_ctx, tag);
+    QCBOREncode_AddBytes(cbor_encode_ctx, computed_mac_tag);
     QCBOREncode_CloseArray(cbor_encode_ctx);
 
     /* CBOR encoding errors are tracked in the CBOR encoding context

@@ -137,12 +137,11 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* No sign-protected for MAC */
 
     return_value = create_tbm(t_cose_param_find_alg_id_prot(decoded_params),
-                               me->validation_key,
-                               true,
-                               &mac_input,
-                               mac_tag_buf,
-                               &computed_mac_tag);
-
+                              me->validation_key,/* in: the key */
+                              true,              /* in: is_mac0 (MAC vs MAC0) */
+                             &mac_input,         /* in: struct of all TBM inputs */
+                              mac_tag_buf,       /* in: buffer to output to */
+                             &computed_mac_tag); /* out: the computed MAC tag */
     if(return_value) {
         goto Done;
     }
