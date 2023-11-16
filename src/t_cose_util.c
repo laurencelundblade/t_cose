@@ -277,14 +277,14 @@ bits_iv_alg(int32_t cose_algorithm_id)
 
 
 /**
-  * \brief HMAC an encoded bstr without actually encoding it in memory.
-  *
-  * @param hmac_ctx  HMAC context.
-  * @param bstr      Bytes of the bstr.
-  *
-  * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
-  * HMAC'd into the output.
-  */
+ * \brief HMAC an encoded bstr without actually encoding it in memory.
+ *
+ * @param hmac_ctx  HMAC context.
+ * @param bstr      Bytes of the bstr.
+ *
+ * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
+ * HMAC'd into the output.
+ */
 static void
 hmac_bstr(struct t_cose_crypto_hmac *hmac_ctx,
           struct q_useful_buf_c      bstr)
@@ -314,7 +314,7 @@ hmac_bstr(struct t_cose_crypto_hmac *hmac_ctx,
  * Public function. See t_cose_util.h
  */
 enum t_cose_err_t
-create_tbm(const int32_t                    cose_algorithm_id,
+create_tbm(const int32_t                    cose_alg_id,
            struct t_cose_key                mac_key,
            bool                             is_mac0,
            const struct t_cose_sign_inputs *mac_inputs,
@@ -327,7 +327,7 @@ create_tbm(const int32_t                    cose_algorithm_id,
 
     return_value = t_cose_crypto_hmac_setup(&hmac_ctx,
                                              mac_key,
-                                             cose_algorithm_id);
+                                             cose_alg_id);
     if(return_value) {
         return return_value;
     }
