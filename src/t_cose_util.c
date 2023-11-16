@@ -314,29 +314,25 @@ hmac_bstr(struct t_cose_crypto_hmac *hmac_ctx,
  * Public function. See t_cose_util.h
  */
 enum t_cose_err_t
-create_tbm(const int32_t                     cose_algorithm_id,
-            struct t_cose_key                mac_key,
-            bool                             is_mac0,
-            const struct t_cose_sign_inputs *mac_inputs,
-            const struct q_useful_buf        tag_buf,
-            struct q_useful_buf_c           *mac_tag)
+create_tbm(const int32_t                    cose_algorithm_id,
+           struct t_cose_key                mac_key,
+           bool                             is_mac0,
+           const struct t_cose_sign_inputs *mac_inputs,
+           const struct q_useful_buf        tag_buf,
+           struct q_useful_buf_c           *mac_tag)
 {
-    enum t_cose_err_t            return_value;
-    struct t_cose_crypto_hmac    hmac_ctx;
-    struct q_useful_buf_c       first_part;
+    enum t_cose_err_t          return_value;
+    struct t_cose_crypto_hmac  hmac_ctx;
+    struct q_useful_buf_c      first_part;
 
-
-    /*
-     * Start the HMAC.
-     * Calculate the tag of the first part of ToBeMaced and the wrapped
-     * payload, to save a bigger buffer containing the entire ToBeMaced.
-     */
     return_value = t_cose_crypto_hmac_setup(&hmac_ctx,
                                              mac_key,
                                              cose_algorithm_id);
     if(return_value) {
         return return_value;
     }
+
+    /* Same approach as hash_bstr(). See comments in hash_bstr() */
 
     if(is_mac0) {
         /* 0x84 is array of 4, 0x64 is length of a 4 text string in CBOR */
@@ -397,17 +393,17 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
 
 
 /**
-  * \brief Hash an encoded bstr without actually encoding it in memory.
-  *
-  * @param hash_ctx  Hash context to hash it into.
-  * @param bstr      Bytes of the bstr.
-  *
-  * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
-  * hashed into the output.
-  */
- static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
-                       struct q_useful_buf_c      bstr)
- {
+ * \brief Hash an encoded bstr without actually encoding it in memory.
+ *
+ * @param hash_ctx  Hash context to hash it into.
+ * @param bstr      Bytes of the bstr.
+ *
+ * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
+ * hashed into the output.
+ */
+static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
+                      struct q_useful_buf_c      bstr)
+{
     /* Aproximate stack usage
      *                                             64-bit      32-bit
      *   buffer_for_encoded                             9           9
