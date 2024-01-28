@@ -17,6 +17,11 @@
 #include "encryption_examples.h"
 
 
+#ifndef T_COSE_DISABLE_HPKE
+#include "encryption_examples.h"
+#endif /* T_COSE_DISABLE_HPKE */
+
+
 typedef int32_t (test_fun_t)(void);
 
 #define TEST_ENTRY(test_name)  {#test_name, test_name, true}
@@ -42,6 +47,11 @@ static test_entry s_tests[] = {
 
     TEST_ENTRY(esdh_example),
     TEST_ENTRY(esdh_example_detached),
+
+#ifndef T_COSE_DISABLE_HPKE
+    TEST_ENTRY(hpke_example),
+    TEST_ENTRY(hpke_example_detached),
+#endif /* T_COSE_DISABLE_HPKE */
 };
 
 

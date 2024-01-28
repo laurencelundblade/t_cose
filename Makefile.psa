@@ -26,29 +26,28 @@
 # This is for direct reference to QCBOR that is not installed in
 # /usr/local or some system location. The path may need to be adjusted
 # for your location of QCBOR.
-#QCBOR_DIR=../../QCBOR/master
-#QCBOR_INC=-I $(QCBOR_DIR)/inc
-#QCBOR_LIB=$(QCBOR_DIR)/libqcbor.a
+QCBOR_INC=-I ../QCBOR/inc
+QCBOR_LIB=../QCBOR/build/libqcbor.a -lm
 
 # This is for reference to QCBOR that is installed in /usr/local or in
 # some system location. This will typically use dynamic linking if
 # there is a libqcbor.so
-QCBOR_INC=-I /usr/local/include
-QCBOR_LIB=-lqcbor
-
+#QCBOR_INC=-I /usr/local/include
+#QCBOR_LIB=-lqcbor
 
 # ---- crypto configuration -----
 
 # These two are for direct reference to Mbed TLS crypto that is not
 # installed in /usr/local or some system location. The path names may
 # need to be adjusted for your location of Mbed TLS
-#CRYPTO_INC=-I ../../mbedtls/include/
+CRYPTO_INC=-I ../mbedtls/include/
 #CRYPTO_LIB=../../mbedtls/library/libmbedcrypto.a
+CRYPTO_LIB=../mbedtls/build/library/libmbedcrypto.a
 
 # These two are for reference to Mbed TLS that has been installed in
 # /usr/local or in some system location.
-CRYPTO_LIB=-l mbedcrypto
-CRYPTO_INC=-I /usr/local/include
+#CRYPTO_LIB=-l mbedcrypto
+#CRYPTO_INC=-I /usr/local/include
 
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_PSA_CRYPTO
 CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o
@@ -59,7 +58,7 @@ CRYPTO_EXAMPLE_OBJ=examples/init_keys_psa.o
 # ---- other configuration ----
 # Use as needed. It has been used to disable features that aren't ready
 # or that aren't passing tests
-OTHER_OPTS=
+OTHER_OPTS=-O0 -g
 
 
 # ---- compiler configuration -----
@@ -83,7 +82,7 @@ CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 # ---- The build targets ----
 .PHONY: all install install_headers install_so uninstall clean warn
 
-all: libt_cose.a t_cose_test t_cose_examples
+all: libt_cose.a t_cose_test t_cose_examples hpke_test
 
 # run "make warn" as a handy way to compile with the warning flags
 # used in the QCBOR release process. See C_OPTS above.
@@ -124,6 +123,10 @@ t_cose_examples: $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 
+hpke_test: $(HPKE_TEST_OBJ) $(CRYPTO_EXAMPLE_OBJ) libt_cose.a
+	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
+
+
 # ---- Installation ----
 ifeq ($(PREFIX),)
     PREFIX := /usr/local
@@ -153,6 +156,6 @@ uninstall: libt_cose.a $(PUBLIC_INTERFACE)
 
 clean:
 	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) $(CRYPTO_TEST_OBJ) $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) \
-        t_cose_examples libt_cose.so \
+        t_cose_examples hpke_test libt_cose.so \
         main.o t_cose_test libt_cose.a libt_cose.so
 

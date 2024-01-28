@@ -249,6 +249,15 @@ enum t_cose_key_usage_flags {
     T_COSE_KEY_USAGE_FLAG_ENCRYPT = 2
 };
 
+// TODO: this probably doesn't belong in common.h because it is HPKE-specific
+/*!
+ * \brief HPKE ciphersuite
+ */
+struct t_cose_crypto_hpke_suite_t {
+    uint16_t    kem_id;  // Key Encryption Method id
+    uint16_t    kdf_id;  // Key Derivation Function id
+    uint16_t    aead_id; // Authenticated Encryption with Associated Data id
+};
 
 /* Six: an alg id, a kid, an iv, a content type, one custom, crit list
  * or: 2 alg IDs, an IV, a kid, a supp_pub_info, one custom. If

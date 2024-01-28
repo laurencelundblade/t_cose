@@ -136,14 +136,14 @@
  */
 
 /**
- * \def T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO
+ * \def T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY
  *
  * \brief CBOR label of header algorithm parameter containing
- *        the HPKE_sender_info structure.
+ *        the HPKE encapsulated key.
  *
  * This implementation only supports a subset of the available algorithms.
  */
-#define T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO -4
+#define T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY -4
 
 
 /**
@@ -718,6 +718,17 @@
 #define T_COSE_HPKE_AEAD_ID_AES_GCM_256     0x0002 ///< AES-GCM-256
 #define T_COSE_HPKE_AEAD_ID_CHACHA_POLY1305 0x0003 ///< Chacha20-Poly1305
 
+
+/* ------- Constants from draft-ietf-cose-hpke ---------
+ */
+
+/* Cipher suite for COSE-HPKE in Base Mode that uses the
+ *      DHKEM(P-256, HKDF-SHA256) KEM, the HKDF-SHA256 KDF and the AES-
+ *     128-GCM AEAD.
+ * 
+ * KEM = 0x10 | KDF = 0x1 | AEAD = 0x1
+ */
+#define T_COSE_HPKE_Base_P256_SHA256_AES128GCM  35
 
 
 /* ------- Constants from RFC 8152 ---------

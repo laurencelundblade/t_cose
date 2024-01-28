@@ -650,6 +650,16 @@ static struct t_cose_parameter
 t_cose_param_make_partial_iv(struct q_useful_buf_c iv);
 
 
+/**
+ * Make a struct t_cose_parameter for an encapsulated key.
+ *
+ * \param[in] enc    Encapsulated key
+ *
+ * \return An initialized struct t_cose_parameter.
+ *
+ */
+static inline struct t_cose_parameter
+t_cose_param_make_encapsulated_key(struct q_useful_buf_c enc);
 
 
 /**
@@ -764,6 +774,22 @@ t_cose_param_find_content_type_uint(const struct t_cose_parameter *parameter_lis
  */
 struct q_useful_buf_c
 t_cose_param_find_kid(const struct t_cose_parameter *parameter_list);
+
+
+/**
+ * \brief Find the encapsulated key (enc) parameter in a linked list.
+ *
+ * \param[in] parameter_list  The parameter list to search.
+ *
+ * \return The content type or \ref NULL_Q_USEFUL_BUF_C.
+ *
+ * This returns \ref NULL_Q_USEFUL_BUF_C on all errors including
+ * errors such as the parameter not being present, or the parameter not
+ * being a byte string. It doesn't matter if the parameter is
+ * protected or not.
+ */
+struct q_useful_buf_c
+t_cose_param_find_enc(const struct t_cose_parameter *parameter_list);
 
 
 /**
@@ -1025,6 +1051,24 @@ t_cose_param_make_iv(struct q_useful_buf_c iv)
 
     return parameter;
 }
+
+static inline struct t_cose_parameter
+t_cose_param_make_encapsulated_key(struct q_useful_buf_c enc)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value.string     = enc;
+    parameter.next             = NULL;
+
+    return parameter;
+}
+
 
 static inline struct t_cose_parameter
 t_cose_param_make_partial_iv(struct q_useful_buf_c iv)
