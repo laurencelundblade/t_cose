@@ -133,6 +133,16 @@ struct t_cose_encrypt_dec_ctx {
  * explicitly set the CEK, but it rarely needed as the CEK is
  * generated automatocally from the random number generator when
  * it is not set.
+ *
+ * By default, the t_cose_encrypt_dec() decrypts COSE encrypted message
+ * only with AEAD content encryption algorithms, and returns
+ * \ref T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG with non AEAD ones.
+ * If \c option_flags includes \ref T_COSE_OPT_ENABLE_NON_AEAD the function
+ * will also decrypt with non-AEAD ciphers.
+ * WARNING: Do not use this flag without considerations, because non-AEAD
+ * content encryption algorithms does NOT validate neither authentication
+ * nor integrity, it is library caller's responsibility to check them.
+ * See security considerations of RFC 9459.
  */
 static void
 t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *context,

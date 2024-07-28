@@ -188,6 +188,18 @@ struct t_cose_encrypt_enc {
  * t_cose_recipient_enc being used. You can even have serveral with
  * different algorithms (but there can only be one payload encryption
  * algorithm).
+ *
+ * By default, the t_cose_encrypt_enc() encrypts a message
+ * only with AEAD content encryption algorithms, and returns
+ * \ref T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG with non AEAD ones.
+ * If \c option_flags includes \ref T_COSE_OPT_ENABLE_NON_AEAD the function
+ * will also encrypt with non-AEAD ciphers.
+ * WARNING: Do not use this flag without considerations, because non-AEAD
+ * content encryption algorithms does NOT provide neither authentication
+ * nor integrity, it is library caller's responsibility to deliver the
+ * COSE message in conjunction with an authentication and integrity
+ * mechanism, such as a digital signature.
+ * See security considerations of RFC 9459.
  */
 void
 t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,

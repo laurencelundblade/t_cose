@@ -791,6 +791,19 @@ enum t_cose_err_t {
  */
 #define T_COSE_OPT_REQUIRE_KID 0x00001000
 
+/**
+ * WARNING: DO NOT use this option flag without understanding the
+ * security consideration of RFC 9459.
+ * By default, the error \ref T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG
+ * is returned if non AEAD content encryption algorithms, such as
+ * AES-CTR and AES-CBC, are used.
+ * The sender and recipient can use them only with this option flag.
+ * The sender MUST use AES-CTR in conjunction with an authentication
+ * and integrity mechanism, such as a digital signature.
+ * The recipient MUST validate data authenticity and integrity.
+ */
+#define T_COSE_OPT_ENABLE_NON_AEAD 0x00002000
+
 
 /**
  * \brief  Check whether an algorithm is supported.
