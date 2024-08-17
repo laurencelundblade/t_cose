@@ -228,6 +228,10 @@ void
 t_cose_key_free_symmetric(struct t_cose_key key);
 
 
+enum t_cose_err_t
+t_cose_key_decode(struct q_useful_buf_c cbor_encoded,
+                  struct t_cose_key     *key);
+
 #ifdef __cplusplus
 }
 #endif

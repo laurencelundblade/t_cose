@@ -201,6 +201,8 @@ extern const unsigned char cose_ex_P_256_priv_sec1[32];
 extern const unsigned char cose_ex_P_256_pub_sec1[65];
 extern const unsigned char cose_ex_P_256_pair_der[121];
 extern const unsigned char cose_ex_P_256_pub_der[91];
+extern const unsigned char cose_ex_P_256_pair_cbor[149];
+
 
 // KID: bilbo.baggins@hobbiton.example
 extern const unsigned char cose_ex_P_521_priv_sec1[66];
