@@ -80,7 +80,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         * awaring that the COSE message MUST be in conjunction with an
         * authentication and integrity mechanism, such as a digital signature.
         */
-        return T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
+        return T_COSE_ERR_NON_AEAD_DISABLED;
     }
     if(is_non_aead_cipher && !q_useful_buf_c_is_null_or_empty(ext_sup_data)) {
         /* Section 6 of RFC9459 says,

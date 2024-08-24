@@ -216,7 +216,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     if(t_cose_alg_is_non_aead(ce_alg.cose_alg_id)) {
         /* Make sure that the library caller (recipient) explicitly enables non AEAD ciphers*/
         if(!(me->option_flags & T_COSE_OPT_ENABLE_NON_AEAD)) {
-            return T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
+            return T_COSE_ERR_NON_AEAD_DISABLED;
         }
         /* Make sure there are no protected headers for non-aead algorithms */
         if(!t_cose_params_empty(protected_params)) {
