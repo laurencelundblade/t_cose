@@ -640,6 +640,10 @@ enum t_cose_err_t {
     /** An initialization vector (IV) is empty, wrong type or such. */
     T_COSE_ERR_BAD_IV = 92,
 
+    /** Disabled non AEAD content encryption algorithms are used.
+     * They are disabled by default for security reasons.
+     * See \ref T_COSE_OPT_ENABLE_NON_AEAD if you are sure to use them. */
+    T_COSE_ERR_NON_AEAD_DISABLED = 93,
 };
 
 
@@ -793,14 +797,14 @@ enum t_cose_err_t {
 
 /**
  * WARNING: DO NOT use this option flag without understanding the
- * security consideration of RFC 9459.
- * By default, the error \ref T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG
- * is returned if non AEAD content encryption algorithms, such as
- * AES-CTR and AES-CBC, are used.
- * The sender and recipient can use them only with this option flag.
- * The sender MUST use AES-CTR in conjunction with an authentication
- * and integrity mechanism, such as a digital signature.
- * The recipient MUST validate data authenticity and integrity.
+ * security consideration of RFC 9459 and AEAD to CBC Downgrade
+ * Attacks proposed in https://eprint.iacr.org/2024/1110.pdf .
+ * By default, non AEAD content encryption algorithms are disabled
+ * for security reasons, so that the encryption and decryption functions
+ * return error \ref T_COSE_ERR_NON_AEAD_DISABLED when they are used.
+ *
+ * TODO: Warn COSE_Encrypt lacking authentication and integrity in one place,
+ * and refer it from here.
  */
 #define T_COSE_OPT_ENABLE_NON_AEAD 0x00002000
 
