@@ -802,6 +802,8 @@ enum t_cose_err_t {
  * By default, non AEAD content encryption algorithms are disabled
  * for security reasons, so that the encryption and decryption functions
  * return error \ref T_COSE_ERR_NON_AEAD_DISABLED when they are used.
+ * They are enabled only this option flag is set on
+ * \ref t_cose_encrypt_enc_init and \ref t_cose_encrypt_dec_init .
  *
  * TODO: Warn COSE_Encrypt lacking authentication and integrity in one place,
  * and refer it from here.
