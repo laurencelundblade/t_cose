@@ -215,7 +215,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id, bool enable_non_aead_encrypt
                                      cose_message_buf,
                                     &encrypted_cose_message);
 
-    if(t_cose_err == T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG && is_non_aead && !enable_non_aead_encryption) {
+    if(t_cose_err == T_COSE_ERR_NON_AEAD_DISABLED && is_non_aead && !enable_non_aead_encryption) {
         /* t_cose could prevent unintended use of non AEAD ciphers */
         return_value = 0;
         goto Done;
@@ -253,7 +253,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id, bool enable_non_aead_encrypt
                                      decrypted_payload_buf,
                                     &decrypted_payload,
                                     &decoded_parameters);
-    if(t_cose_err == T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG && is_non_aead && !enable_non_aead_decryption) {
+    if(t_cose_err == T_COSE_ERR_NON_AEAD_DISABLED && is_non_aead && !enable_non_aead_decryption) {
         /* t_cose could prevent unintended use of non AEAD ciphers */
         return_value = 0;
         goto Done;
