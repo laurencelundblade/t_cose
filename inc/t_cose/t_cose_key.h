@@ -232,6 +232,21 @@ enum t_cose_err_t
 t_cose_key_decode(struct q_useful_buf_c cbor_encoded,
                   struct t_cose_key     *key);
 
+/**
+ * \brief Encode a t_cose_key as a CBOR serialised COSE_Key object
+ *
+ * \param[in]  key           The key to encode as COSE_Key.
+ * \param[in]  key_buf       A buffer to hold the COSE_Key.
+ * \param[out] cbor_encoded  Place to return pointer and length of
+ *                           COSE_Key.
+ *
+ * The t_cose_key must be imported to the crypto library before this call.
+ */
+enum t_cose_err_t
+t_cose_key_encode(struct t_cose_key      key,
+                  struct q_useful_buf    key_buf,
+                  struct q_useful_buf_c *cbor_encoded);
+
 #ifdef __cplusplus
 }
 #endif
