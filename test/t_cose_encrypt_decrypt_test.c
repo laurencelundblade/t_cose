@@ -19,7 +19,16 @@
 #include "t_cose_util.h"
 #include "data/test_messages.h"
 
+#ifndef T_COSE_DISABLE_HPKE
+#include "t_cose/t_cose_recipient_enc_hpke.h"
+#include "t_cose/t_cose_recipient_dec_hpke.h"
+#include "init_keys.h"
 
+#define PAYLOAD  "This is the payload"
+#define TEST_SENDER_IDENTITY "sender"
+#define TEST_RECIPIENT_IDENTITY "recipient"
+
+#endif
 
 #define PAYLOAD  "This is the payload"
 #define TEST_KID "fixed_test_key_id"
@@ -296,7 +305,101 @@ Done2:
 }
 
 
+#ifndef T_COSE_DISABLE_HPKE
+int32_t
+hpke_encrypt_enc_dec(int32_t               cose_algorithm_id,
+                     int32_t               hpke_alg,
+                    struct q_useful_buf_c  kid,
+                    struct t_cose_key      skR,
+                    struct t_cose_key      pkR,
+                    struct q_useful_buf_c  payload,
+                    struct q_useful_buf_c  aad)
+{
+    struct t_cose_encrypt_enc        enc_ctx;
+    enum t_cose_err_t                result;
+    int32_t                          return_value=0;
+    struct t_cose_recipient_enc_hpke recipient;
+    struct q_useful_buf_c            cose_encrypted_message;
+    struct q_useful_buf_c            decrypted_plain_text;
 
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 200);
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    decrypted_plaintext_buffer, 100);
+    struct t_cose_recipient_dec_hpke dec_recipient;
+    struct t_cose_encrypt_dec_ctx    dec_ctx;
+
+    /* Initialize the encryption context telling it we want
+     * a COSE_Encrypt (not a COSE_Encrypt0) because we're doing HPKE with a
+     * COSE_Recpipient. Also tell it the AEAD algorithm for the
+     * body of the message.
+     */
+    t_cose_encrypt_enc_init(&enc_ctx,
+                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
+                            cose_algorithm_id);
+
+
+    /* Create the recipient object telling it the algorithm and the public key
+     * for the COSE_Recipient it's going to make. Then give that object
+     * to the main encryption context. (Only one recipient is set here, but
+     * there could be more)
+     */
+    t_cose_recipient_enc_hpke_init(&recipient, hpke_alg);
+
+    t_cose_recipient_enc_hpke_set_key(&recipient,
+                                       pkR,
+                                       kid);
+    t_cose_encrypt_add_recipient(&enc_ctx,
+                                 (struct t_cose_recipient_enc *)&recipient);
+
+
+    /* Now do the actual encryption */
+    result = t_cose_encrypt_enc(&enc_ctx, /* in: encryption context */
+                                 payload, /* in: payload to encrypt */
+                                 aad,
+                                 cose_encrypt_message_buffer, /* in: buffer for COSE_Encrypt */
+                                 &cose_encrypted_message); /* out: COSE_Encrypt */
+
+    if (result != T_COSE_SUCCESS) {
+        return_value = 2000 + (int32_t)result;
+        goto Done;
+    }
+
+
+    /* Set up the decryption context, telling it what type of
+     * message to expect if there's no tag (that part isn't quite implemented right yet anyway).
+     */
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+
+
+    /* Set up the recipient object with the key material. We happen to know
+     * what the algorithm and key are in advance so we don't have to
+     * decode the parameters first to figure that out (not that this part is
+     * working yet). */
+    t_cose_recipient_dec_hpke_init(&dec_recipient);
+    t_cose_recipient_dec_hpke_set_skr(&dec_recipient,
+                                      skR,
+                                      kid);
+    t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&dec_recipient);
+
+    result = t_cose_encrypt_dec(&dec_ctx,
+                                cose_encrypted_message, /* in: the COSE_Encrypt message */
+                                aad,
+                                decrypted_plaintext_buffer,
+                                &decrypted_plain_text,
+                                NULL);
+
+    if (result != T_COSE_SUCCESS) {
+        return_value = 3000 + (int32_t)result;
+        goto Done;
+    }
+
+    if(q_useful_buf_compare(decrypted_plain_text, payload)) {
+        return_value = 1;
+        goto Done;
+    }
+Done:
+    return (int32_t)return_value;
+}
+#endif /* T_COSE_DISABLE_HPKE */
 
 int32_t base_encrypt_decrypt_test(void)
 {
@@ -429,7 +532,6 @@ int32_t decrypt_known_good_aeskw_non_aead_test(void)
 #endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
-
 #include "init_keys.h"
 
 #ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
@@ -534,6 +636,7 @@ Done:
 }
 
 
+
 int32_t
 esdh_enc_dec_test(void)
 {
@@ -571,7 +674,6 @@ esdh_enc_dec_test(void)
 
     return 0;
 }
-
 
 int32_t decrypt_known_good(void)
 {
@@ -627,6 +729,163 @@ int32_t decrypt_known_good(void)
     return 0;
 }
 
+
+
+
+#ifndef T_COSE_DISABLE_HPKE
+
+#include "t_cose/t_cose_recipient_enc_hpke.h"
+#include "t_cose/t_cose_recipient_dec_hpke.h"
+
+int32_t hpke_encrypt(struct t_cose_key                pkR,
+                     struct q_useful_buf_c            payload,
+                     struct q_useful_buf_c            *cose_encrypted_message,
+                     struct q_useful_buf              *cose_encrypt_message_buffer,
+                     int32_t                          alg)
+{
+    struct t_cose_encrypt_enc        enc_ctx;
+    enum t_cose_err_t                result;
+    struct t_cose_recipient_enc_hpke recipient;
+
+    /* Initialize the encryption context telling it we want
+     * a COSE_Encrypt (not a COSE_Encrypt0) because we're doing HPKE with a
+     * COSE_Recpipient. Also tell it the AEAD algorithm for the
+     * body of the message.
+     */
+    t_cose_encrypt_enc_init(&enc_ctx,
+                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
+                            T_COSE_ALGORITHM_A128GCM);
+
+    /* Create the recipient object telling it the algorithm and the public key
+     * for the COSE_Recipient it's going to make. Then give that object
+     * to the main encryption context. (Only one recipient is set here, but
+     * there could be more)
+     */
+    t_cose_recipient_enc_hpke_init(&recipient,
+                                    alg);
+
+    t_cose_recipient_enc_hpke_set_key(&recipient,
+                                       pkR,
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
+
+    t_cose_encrypt_add_recipient(&enc_ctx,
+                                 (struct t_cose_recipient_enc *)&recipient);
+
+    /* Now do the actual encryption */
+    result = t_cose_encrypt_enc(&enc_ctx, /* in: encryption context */
+                                 payload, /* in: payload to encrypt */
+                                 NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                *cose_encrypt_message_buffer, /* in: buffer for COSE_Encrypt */
+                                 cose_encrypted_message); /* out: COSE_Encrypt */
+
+    if(result != T_COSE_SUCCESS) {
+        return (int32_t)result + 2000;
+    }
+
+    return 0;
+}
+
+int32_t hpke_decrypt(struct q_useful_buf_c            cose_encrypted_message,
+                     struct q_useful_buf_c           *plaintext_message,
+                     struct q_useful_buf             *plaintext_buffer,
+                     struct t_cose_key                skR)
+{
+    struct t_cose_recipient_dec_hpke dec_recipient;
+    struct t_cose_encrypt_dec_ctx    dec_ctx;
+    enum t_cose_err_t                result;
+
+    /* Set up the decryption context, telling it what type of
+     * message to expect if there's no tag (that part isn't quite implemented right yet anyway).
+     */
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+
+
+    /* Set up the recipient object with the key material. We happen to know
+     * what the algorithm and key are in advance so we don't have to
+     * decode the parameters first to figure that out (not that this part is
+     * working yet). */
+    t_cose_recipient_dec_hpke_init(&dec_recipient);
+    t_cose_recipient_dec_hpke_set_skr(&dec_recipient,
+                                      skR,
+                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
+
+    t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&dec_recipient);
+
+    result = t_cose_encrypt_dec(&dec_ctx,
+                                cose_encrypted_message, /* in: the COSE_Encrypt message */
+                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                               *plaintext_buffer,
+                                plaintext_message,
+                                NULL);
+
+    if(result != T_COSE_SUCCESS) {
+        return (int32_t)result + 2000;
+    }
+
+    return 0;
+}
+
+
+int32_t
+hpke_enc_dec_test(void)
+{
+    int32_t ret;
+    /* Create a key pair.  This is a fixed test key pair. The creation
+     * of this key pair is crypto-library dependent because t_cose_key
+     * is crypto-library dependent. See t_cose_key.h and the examples
+     * to understand key-pair creation better. */
+    enum t_cose_err_t result;
+    struct t_cose_key skR;
+    struct t_cose_key pkR;
+    int alg = T_COSE_HPKE_Base_P256_SHA256_AES128GCM;
+
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 200);
+    struct q_useful_buf_c            cose_encrypted_message;
+    size_t n;
+    struct q_useful_buf_c            plaintext_message;
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    plaintext_buffer, 100);
+
+
+    /* Load public / private recipient key */
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                               &pkR, /* out: public key to be used for encryption */
+                                               &skR); /* out: corresponding private key for decryption */
+    if(result != T_COSE_SUCCESS) {
+       return -7; /* return some error value */
+    }
+
+
+    ret = hpke_encrypt(pkR,
+                        Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD), 
+                        &cose_encrypted_message,
+                        &cose_encrypt_message_buffer,
+                        alg);
+        
+    if (ret != 0) {
+        return (int32_t)result + 1000;
+    }
+
+    ret =  hpke_decrypt(cose_encrypted_message,
+                        &plaintext_message,
+                        &plaintext_buffer,
+                        skR);
+
+    if (ret != 0) {
+        return (int32_t)result + 2000;
+    }
+
+
+    if(q_useful_buf_compare(plaintext_message, Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD))) {
+        return 3000;
+    }
+
+    free_fixed_test_ec_encryption_key(skR);
+    free_fixed_test_ec_encryption_key(pkR);
+
+    return 0;
+}
+
+#endif /* T_COSE_DISABLE_HPKE */
 
 
 

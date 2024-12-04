@@ -33,8 +33,11 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_encrypt_dec.o \
         src/t_cose_recipient_dec_keywrap.o \
         src/t_cose_recipient_enc_keywrap.o \
+        src/t_cose_recipient_dec_hpke.o \
+        src/t_cose_recipient_enc_hpke.o \
         src/t_cose_recipient_dec_esdh.o \
         src/t_cose_recipient_enc_esdh.o \
+        src/hpke.o \
         src/t_cose_qcbor_gap.o
 
 
@@ -58,6 +61,10 @@ EXAMPLE_OBJ=examples/examples_main.o \
             examples/example_keys.o \
             examples/print_buf.o
 
+# ---- Object files for hpke_test ----
+HPKE_TEST_OBJ=examples/hpke_test.o \
+            examples/example_keys.o \
+            examples/print_buf.o
 
 # ---- public headers -----
 PUBLIC_INTERFACE=inc/t_cose/q_useful_buf.h \
@@ -70,8 +77,10 @@ PUBLIC_INTERFACE=inc/t_cose/q_useful_buf.h \
                  inc/t_cose/t_cose_parameters.h \
                  inc/t_cose/t_cose_recipient_dec.h \
                  inc/t_cose/t_cose_recipient_dec_keywrap.h \
+                 inc/t_cose/t_cose_recipient_dec_hpke.h \
                  inc/t_cose/t_cose_recipient_enc.h \
                  inc/t_cose/t_cose_recipient_enc_keywrap.h \
+                 inc/t_cose/t_cose_recipient_enc_hpke.h \
                  inc/t_cose/t_cose_recipient_dec_esdh.h \
                  inc/t_cose/t_cose_recipient_enc.h \
                  inc/t_cose/t_cose_recipient_enc_keywrap.h \
@@ -193,7 +202,7 @@ src/t_cose_recipient_enc_keywrap.o: src/t_cose_recipient_enc_keywrap.c
 src/t_cose_recipient_dec_keywrap.o: src/t_cose_recipient_dec_keywrap.c
 
 
-src/t_cose_recpient_enc_esdh.o: src/t_cose_recipient_enc_esdh.c \
+src/t_cose_recipient_enc_esdh.o: src/t_cose_recipient_enc_esdh.c \
                                 inc/t_cose/t_cose_standard_constants.h \
                                 inc/t_cose/t_cose_key.h \
                                 inc/t_cose/t_cose_encrypt_enc.h \
@@ -203,10 +212,37 @@ src/t_cose_recpient_enc_esdh.o: src/t_cose_recipient_enc_esdh.c \
                                 inc/t_cose/t_cose_recipient_enc_keywrap.h \
                                 inc/t_cose/q_useful_buf.h \
                                 src/t_cose_crypto.h \
-                                src/t_cose_util.h \
+                                src/t_cose_util.h
 
-src/t_cose_recpient_dec_esdh.o: src/t_cose_recipient_dec_esdh.c \
+src/t_cose_recipient_dec_esdh.o: src/t_cose_recipient_dec_esdh.c \
                                 inc/t_cose/t_cose_recipient_dec_esdh.h \
+                                inc/t_cose/t_cose_parameters.h \
+                                inc/t_cose/q_useful_buf.h \
+                                inc/t_cose/t_cose_common.h \
+                                inc/t_cose/t_cose_standard_constants.h \
+                                inc/t_cose/t_cose_recipient_dec.h \
+                                inc/t_cose/t_cose_key.h \
+                                inc/t_cose/t_cose_encrypt_enc.h \
+                                inc/t_cose/t_cose_recipient_enc.h \
+                                src/t_cose_crypto.h \
+                                src/t_cose_util.h
+
+src/t_cose_recipient_enc_hpke.o: src/t_cose_recipient_enc_hpke.c \
+                                src/hpke.h \
+                                inc/t_cose/t_cose_standard_constants.h \
+                                inc/t_cose/t_cose_key.h \
+                                inc/t_cose/t_cose_encrypt_enc.h \
+                                inc/t_cose/t_cose_recipient_enc.h \
+                                inc/t_cose/t_cose_common.h \
+                                inc/t_cose/t_cose_parameters.h \
+                                inc/t_cose/t_cose_recipient_enc_keywrap.h \
+                                inc/t_cose/q_useful_buf.h \
+                                src/t_cose_crypto.h \
+                                src/t_cose_util.h
+
+src/t_cose_recipient_dec_hpke.o: src/t_cose_recipient_dec_hpke.c \
+                                src/hpke.h \
+                                inc/t_cose/t_cose_recipient_dec_hpke.h \
                                 inc/t_cose/t_cose_parameters.h \
                                 inc/t_cose/q_useful_buf.h \
                                 inc/t_cose/t_cose_common.h \
@@ -256,6 +292,12 @@ examples/encryption_examples.o:	examples/encryption_examples.h \
 				$(PUBLIC_INTERFACE) \
 				examples/init_keys.h \
 				examples/print_buf.h
+
+
+examples/hpke_test.o:	examples/hpke_test.c \
+			$(PUBLIC_INTERFACE) \
+			examples/init_keys.h \
+			examples/print_buf.h
 
 examples/signing_examples.o:	examples/signing_examples.h \
 				examples/signing_examples.c \
