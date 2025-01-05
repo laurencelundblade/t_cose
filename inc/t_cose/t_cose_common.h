@@ -66,7 +66,7 @@ extern "C" {
  */
 #define T_COSE_VERSION_MAJOR 1
 #define T_COSE_VERSION_MINOR 1
-#define T_COSE_VERSION_PATCH 2
+#define T_COSE_VERSION_PATCH 3
 
 
 /**
