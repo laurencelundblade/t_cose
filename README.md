@@ -30,7 +30,7 @@ useful for embedded implementations that have to run in small fixed memory.
 
 ## Documentation
 
-[API documentation is here](https://laurencelundblade.github.io/t_cose/)
+[API documentation is here](https://www.securitytheory.com/t_cose-docs)
 
 
 ## Code Status
@@ -69,6 +69,9 @@ crypto library set up.
 If QCBOR is installed in /usr/local, then the makefiles should find
 it. If not then QCBOR may need to be downloaded. The makefiles can be
 modified to reference it other than in /usr/local.
+
+This works with both QCBOR v1 and v2. When running with v2 it
+uses the QCBOR v1 compatibility mode for tag decoding.
 
 ### Supported Cryptographic Libraries
 
