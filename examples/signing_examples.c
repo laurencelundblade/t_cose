@@ -243,7 +243,7 @@ int32_t one_step_sign_example(void)
      * to put them.
      */
     return_value =
-        t_cose_sign_verify(/* In: The context set up with signing key */
+        t_cose_sign_verify_msg(/* In: The context set up with signing key */
                            &verify_ctx,
 
                            /* In: The signed and coded COSE message to verify */
@@ -257,7 +257,9 @@ int32_t one_step_sign_example(void)
 
                            /* Out: linked list of header parameters.
                             * Not requested in this case. */
-                           NULL);
+                           NULL,
+
+                               NULL);
 
     printf("Verification complete: %d (%s)\n",
            return_value, return_value ? "fail" : "success");
@@ -463,7 +465,7 @@ int32_t one_step_multi_sign_detached_example(void)
      * to put them.
      */
     return_value =
-        t_cose_sign_verify_detached(/* In: The verification context. */
+        t_cose_sign_verify_detached_msg(/* In: The verification context. */
                                     &verify_ctx,
 
                                     /* In: The signed and encoded COSE
@@ -479,7 +481,9 @@ int32_t one_step_multi_sign_detached_example(void)
                                     /* Out: linked list of header
                                      * parameters.  Not requested in
                                      * this case. */
-                                    NULL);
+                                    NULL,
+
+                                        NULL);
 
     printf("Verification complete: %d (%s)\n",
            return_value, return_value ? "fail" : "success");
@@ -721,7 +725,7 @@ int32_t two_step_sign_example(void)
      * to put them.
      */
     return_value =
-        t_cose_sign_verify(/* In: The context set up with signing key */
+        t_cose_sign_verify_msg(/* In: The context set up with signing key */
                            &verify_ctx,
 
                            /* In: The signed and coded COSE message to verify */
@@ -735,7 +739,9 @@ int32_t two_step_sign_example(void)
 
                            /* Out: linked list of header parameters.
                             * Not requested in this case. */
-                           NULL);
+                           NULL,
+
+                               NULL);
 
     printf("Verification complete: %d (%s)\n",
            return_value, return_value ? "fail" : "success");

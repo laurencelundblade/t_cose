@@ -210,6 +210,120 @@ t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
     return T_COSE_SUCCESS;
 }
 
+#include <limits.h>
+
+#if QCBOR_VERSION_MAJOR >= 2
+
+/*
+ * Public function. See t_cose_util.h
+ */
+// last_tag always points to a tag_number in tag_numbers.
+// If the value of tag_numbers[*last_tag_index] != INVALID, then
+// there is a last tag number; that is tag_numbers isn't empty
+QCBORError
+t_cose_consume_tags(QCBORDecodeContext *cbor_decoder,
+                    uint64_t            tag_numbers[QCBOR_MAX_TAGS_PER_ITEM],
+                    int                *last_tag_index)
+{
+    QCBORError  cbor_error;
+    uint64_t    message_type_tag_number;
+
+    cbor_error = QCBOR_SUCCESS;
+    message_type_tag_number = 0;
+    *last_tag_index = QCBOR_MAX_TAGS_PER_ITEM-1;
+
+    for(int tag_index = 0; tag_index < QCBOR_MAX_TAGS_PER_ITEM; tag_index++) {
+        if(cbor_error == QCBOR_SUCCESS && message_type_tag_number != CBOR_TAG_INVALID64) {
+            cbor_error = QCBORDecode_GetNextTagNumber(cbor_decoder, &message_type_tag_number);
+        }
+
+        tag_numbers[tag_index] = message_type_tag_number;
+        if(message_type_tag_number != CBOR_TAG_INVALID64) {
+            *last_tag_index = tag_index;
+        }
+    }
+
+    return cbor_error;
+}
+
+enum t_cose_err_t
+process_msg_tag_numbers(QCBORDecodeContext  *cbor_decoder,
+                        uint32_t            *option_flags,
+                        uint64_t             returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+{
+    QCBORError  cbor_error;
+    uint64_t    unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
+    int         tag_num_index;
+
+    cbor_error = t_cose_consume_tags(cbor_decoder, unprocessed_tag_nums, &tag_num_index);
+    if(cbor_error != QCBOR_SUCCESS) {
+        // TODO: make T_COSE_ERR_MAC_FORMAT a parameter
+        return qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_MESSAGE_FORMAT);
+    }
+
+    if((*option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) == T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
+        /* The message type was not given. Expect it is in a tag number. */
+        if(unprocessed_tag_nums[tag_num_index] != CBOR_TAG_INVALID64 &&
+           unprocessed_tag_nums[tag_num_index] < T_COSE_OPT_MESSAGE_TYPE_MASK) {
+            *option_flags |= unprocessed_tag_nums[tag_num_index];
+            unprocessed_tag_nums[tag_num_index] = CBOR_TAG_INVALID64;
+        }
+    }
+
+    if(returned_tag_numbers != NULL) {
+        memcpy(returned_tag_numbers, unprocessed_tag_nums, T_COSE_MAX_TAGS_TO_RETURN * sizeof(uint64_t));
+    } else {
+        if(unprocessed_tag_nums[0] != CBOR_TAG_INVALID64) {
+            return T_COSE_ERR_UNPROCESSED_TAG_NUMBERS;
+        }
+    }
+
+    return T_COSE_SUCCESS;
+}
+#endif /* QCBOR_VERSION_MAJOR >= 2 */
+
+
+#if QCBOR_VERSION_MAJOR == 1
+/* Do v2 style tag processing with QCBOR v1 */
+enum t_cose_err_t
+t_cose_process_tag_numbers_qcbor1(QCBORDecodeContext  *cbor_decoder,
+                                  const QCBORItem     *item,
+                                  uint64_t            *message_type,
+                                  uint64_t             return_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+{
+    uint64_t  tag_numbers[T_COSE_MAX_TAGS_TO_RETURN];
+
+    for(uint32_t i = 0; i < T_COSE_MAX_TAGS_TO_RETURN; i++) {
+        tag_numbers[i] = QCBORDecode_GetNthTag(cbor_decoder, item, i);
+    }
+
+    if(*message_type == T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
+        *message_type = tag_numbers[0];
+
+        /* There should be one and only one tag number */
+        if(tag_numbers[1] != CBOR_TAG_INVALID64) {
+            return 99; // TODO: error code
+        }
+        if(tag_numbers[2] != CBOR_TAG_INVALID64) {
+            return 99; // TODO: error code
+        }
+        if(tag_numbers[3] != CBOR_TAG_INVALID64) {
+            return 99; // TODO: error code
+        }
+    } else {
+        /* There's not supposed to be any tag numbers */
+        if(tag_numbers[0] != CBOR_TAG_INVALID64) {
+            return 99; // TODO: error code
+        }
+    }
+
+    if(return_tag_numbers != NULL) {
+        memcpy(return_tag_numbers, tag_numbers, sizeof(tag_numbers));
+    }
+
+    return T_COSE_SUCCESS;
+}
+#endif /* QCBOR_VERSION_MAJOR == 1 */
 
 
 /**

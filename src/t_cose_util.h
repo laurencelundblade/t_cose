@@ -75,6 +75,32 @@ t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
                      uint64_t           *cose_tag_num);
 
 
+#if QCBOR_VERSION_MAJOR >= 2
+
+// TODO: document this
+QCBORError
+t_cose_consume_tags(QCBORDecodeContext *cbor_decoder,
+                    uint64_t            tag_numbers[QCBOR_MAX_TAGS_PER_ITEM],
+                    int                *last_tag_index);
+
+
+enum t_cose_err_t
+process_msg_tag_numbers(QCBORDecodeContext  *cbor_decoder,
+                        uint32_t            *option_flags,
+                        uint64_t             returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
+#endif /* QCBOR_VERSION_MAJOR >= 2 */
+
+
+#if QCBOR_VERSION_MAJOR == 1
+
+/* Do v2 style tag processing with QCBOR v1 */
+enum t_cose_err_t
+t_cose_process_tag_numbers_qcbor1(QCBORDecodeContext  *cbor_decoder,
+                                  const QCBORItem     *item,
+                                  uint64_t            *message_type,
+                                  uint64_t             tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+#endif /* QCBOR_VERSION_MAJOR == 1 */
 
 /**
  * This value represents an invalid or in-error algorithm ID.  The

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -28,13 +28,13 @@
  */
 enum t_cose_err_t
 t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
-                            struct q_useful_buf_c           cose_mac,
+                            QCBORDecodeContext             *cbor_decoder,
                             struct q_useful_buf_c           ext_sup_data,
                             bool                            payload_is_detached,
                             struct q_useful_buf_c          *payload,
-                            struct t_cose_parameter       **return_params)
+                            struct t_cose_parameter       **return_params,
+                            uint64_t                       returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
-    QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
     enum t_cose_err_t             return_value;
@@ -42,46 +42,54 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     struct q_useful_buf_c         computed_mac_tag;
     struct t_cose_parameter      *decoded_params;
     struct t_cose_sign_inputs     mac_input;
-    QCBORItem                     item;
-    uint64_t                      message_type;
+    QCBORItem                     array_item;
+    uint64_t                      message_type_tag_number;
     Q_USEFUL_BUF_MAKE_STACK_UB(   mac_tag_buf, T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
 
     decoded_params = NULL;
 
-    QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
+    /* --- Tag number processing, COSE_Sign or COSE_Sign1? --- */
+    message_type_tag_number = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
+
+#if QCBOR_VERSION_MAJOR >= 2
+    if(message_type_tag_number == T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
+        /* Caller didn't tell us what it is, get a tag number */
+        QCBORDecode_VGetNextTagNumber(decode_context, &message_type_tag_number);
+    }
+#endif /* QCBOR_VERSION_MAJOR >= 2 */
+
 
     /* --- The array of 4, type determination and tags --- */
-    QCBORDecode_EnterArray(&decode_context, &item);
+    QCBORDecode_EnterArray(cbor_decoder, &array_item);
     return_value = qcbor_decode_error_to_t_cose_error(
-                                        QCBORDecode_GetError(&decode_context),
+                                        QCBORDecode_GetError(cbor_decoder),
                                         T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    const uint64_t mac_tag_nums[] = {T_COSE_OPT_MESSAGE_TYPE_MAC0,
-                                     CBOR_TAG_INVALID64};
-    return_value = t_cose_tags_and_type(mac_tag_nums,
-                                        me->option_flags,
-                                        &item,
-                                        &decode_context,
-                                        me->unprocessed_tag_nums,
-                                        &message_type);
+#if QCBOR_VERSION_MAJOR == 1
+    return_value = t_cose_process_tag_numbers_qcbor1(cbor_decoder, &array_item, &message_type_tag_number, returned_tag_numbers);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
+#endif /* QCBOR_VERSION_MAJOR == 1 */
 
+    if(message_type_tag_number != T_COSE_OPT_MESSAGE_TYPE_MAC0 ) {
+        return T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+    }
+    
 
     /* --- The parameters --- */
     const struct t_cose_header_location l = {0,0};
     decoded_params = NULL;
-    return_value = t_cose_headers_decode(&decode_context,
-                          l,
-                          me->special_param_decode_cb,
-                          me->special_param_decode_ctx,
-                          me->p_storage,
-                          &decoded_params,
-                          &protected_parameters);
+    return_value = t_cose_headers_decode(cbor_decoder,
+                                         l,
+                                         me->special_param_decode_cb,
+                                         me->special_param_decode_ctx,
+                                         me->p_storage,
+                                        &decoded_params,
+                                        &protected_parameters);
 
 
     if(return_value != T_COSE_SUCCESS) {
@@ -91,22 +99,22 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     /* --- The payload --- */
     if (payload_is_detached) {
         /* detached payload: the payload should be set by caller */
-        QCBORDecode_GetNull(&decode_context);
+        QCBORDecode_GetNull(cbor_decoder);
     } else {
-        QCBORDecode_GetByteString(&decode_context, payload);
+        QCBORDecode_GetByteString(cbor_decoder, payload);
     }
 
     /* --- The HMAC tag --- */
-    QCBORDecode_GetByteString(&decode_context, &expected_mac_tag);
+    QCBORDecode_GetByteString(cbor_decoder, &expected_mac_tag);
 
     /* --- Finish up the CBOR decode --- */
-    QCBORDecode_ExitArray(&decode_context);
+    QCBORDecode_ExitArray(cbor_decoder);
 
     /* This check makes sure the array only had the expected four
      * items. It works for definite and indefinte length arrays. Also
      * makes sure there were no extra bytes. Also that the payload
      * and authentication tag were decoded correctly. */
-    qcbor_error = QCBORDecode_Finish(&decode_context);
+    qcbor_error = QCBORDecode_Finish(cbor_decoder);
     return_value = qcbor_decode_error_to_t_cose_error(qcbor_error,
                                                       T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
@@ -163,4 +171,45 @@ Done:
     }
 
     return return_value;
+}
+
+
+/*
+ * Semi-private function. See t_cose_mac_validate.h
+ */
+enum t_cose_err_t
+t_cose_mac_validate_msg_private(struct t_cose_mac_validate_ctx *me,
+                                struct q_useful_buf_c           cose_mac,
+                                struct q_useful_buf_c           ext_sup_data,
+                                bool                            payload_is_detached,
+                                struct q_useful_buf_c          *payload,
+                                struct t_cose_parameter       **return_params,
+                                uint64_t                        returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+{
+    QCBORDecodeContext  cbor_decoder;
+    enum t_cose_err_t   error;
+    uint32_t            saved_option_flags;
+
+    QCBORDecode_Init(&cbor_decoder, cose_mac, QCBOR_DECODE_MODE_NORMAL);
+
+    saved_option_flags = me->option_flags;
+    
+#if QCBOR_VERSION_MAJOR >= 2
+    error = process_msg_tag_numbers(&cbor_decoder, &me->option_flags, returned_tag_numbers);
+    if(error != T_COSE_SUCCESS) {
+        return error;
+    }
+#endif
+
+    error = t_cose_mac_validate_private(me,
+                                       &cbor_decoder,
+                                        ext_sup_data,
+                                        payload_is_detached,
+                                        payload,
+                                        return_params,
+                                        returned_tag_numbers);
+
+    me->option_flags = saved_option_flags;
+
+    return error;
 }

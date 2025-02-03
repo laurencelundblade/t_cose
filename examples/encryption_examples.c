@@ -2,7 +2,7 @@
  * encryption_examples.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
- * Copyright 2023, Laurence Lundblade
+ * Copyright 2025, Laurence Lundblade
  *
  * Created by Laurence Lundblade on 2/6/23 from previous files.
  *
@@ -111,13 +111,13 @@ encrypt0_example(void)
 
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
-    err = t_cose_encrypt_dec_detached(&dec_ctx,
+    err = t_cose_encrypt_dec_detached_msg(&dec_ctx,
                                       encrypted_cose_message,
                                       NULL_Q_USEFUL_BUF_C,
                                       encrypted_payload,
                                       decrypted_payload_buf,
                                      &decrypted_cose_message,
-                                      NULL);
+                                      NULL, NULL);
 
     if (err != T_COSE_SUCCESS) {
         printf("\nDecryption failed %d!\n", err);
@@ -235,13 +235,13 @@ key_wrap_example(void)
 
     t_cose_encrypt_dec_add_recipient(&dec_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
 
-    err = t_cose_encrypt_dec_detached(&dec_context,
+    err = t_cose_encrypt_dec_detached_msg(&dec_context,
                               encrypted_cose_message, /* ciphertext */
                                       NULL_Q_USEFUL_BUF_C,
                               encrypted_payload,
                               decrypted_payload_buf,
                              &decrypted_payload,
-                                      NULL);
+                                      NULL, NULL);
     if(err) {
         goto Done;
     }
@@ -349,12 +349,13 @@ esdh_example(void)
     t_cose_encrypt_dec_add_recipient(&dec_ctx,
                                      (struct t_cose_recipient_dec *)&dec_recipient);
 
-    result = t_cose_encrypt_dec(&dec_ctx,
+    result = t_cose_encrypt_dec_msg(&dec_ctx,
                                 cose_encrypted_message,
                                 NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
                                 decrypted_buffer,
                                 &decrypted_payload,
-                                &params);
+                                &params,
+                                    NULL);
     if(result != T_COSE_SUCCESS) {
         goto Done;
     }
