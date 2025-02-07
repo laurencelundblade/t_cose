@@ -450,8 +450,15 @@ call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
 
 
 
-/*
- * A semi-private function. See t_cose_sign_verify.h
+/**
+ * @param[in] me   Signature verification context
+ * @param[in] cbor_decoder   Decoder context to read the cose message from
+ * @param[in] ext_supdata     Externally supplied data or NULL
+ * @param[in] is_detached     If true, the payload is detached
+ * @param[in,out] payload   If detached, this is an in parameter, if not an out parameter
+ * @param[out] returned_params  Place to return decoded parameters.
+ * @param[out] tag_numbers  Maybe NULL. Is only non NULL when being used for t_cose_v1 compatibility mode. Is only filled in if linking against QCBOR v1.
+ *                                                         Order is v1 order, inner-most first.
  */
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
@@ -487,7 +494,9 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* t_cose_headers_decode processes errors from this to save object code */
 
 #if QCBOR_VERSION_MAJOR == 1
-    return_value = t_cose_process_tag_numbers_qcbor1(cbor_decoder,
+    return_value = t_cose_process_tag_numbers_qcbor1(me->option_flags,
+                                                     me->v1_compatible,
+                                                     cbor_decoder,
                                                      &array_item,
                                                      &message_type_tag_number,
                                                      tag_numbers);
@@ -616,7 +625,6 @@ t_cose_sign_verify_msg_private(struct t_cose_sign_verify_ctx  *me,
     QCBORDecodeContext  cbor_decoder;
     enum t_cose_err_t   error;
     uint32_t            save_option_flags;
-    uint64_t            tag_numbers[T_COSE_MAX_TAGS_TO_RETURN];
 
     QCBORDecode_Init(&cbor_decoder, cose_message, QCBOR_DECODE_MODE_NORMAL);
 
@@ -635,9 +643,7 @@ t_cose_sign_verify_msg_private(struct t_cose_sign_verify_ctx  *me,
                                         is_detached,
                                         payload,
                                         returned_params,
-                                        tag_numbers);
-
-    // TODO: fix this up for QCBOR v1
+                                        NULL);
 
     me->option_flags = save_option_flags;
 

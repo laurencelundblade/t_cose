@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.h
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2025, Laurence Lundblade
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -36,45 +36,6 @@ extern "C" {
 
 
 
-/*
- * \brief Process CBOR tag numbers and figure out message type.
- *
- * \param[in] relevant_cose_tag_nums  List of tag numbers relevant for
- *                                    message type being processed, ending
- *                                    with \ref CBOR_TAG_INVALID64
- * \param[in] option_flags            Flags passed to xxxx_init() that
- *                                    say how to process tag nums, plus
- *                                    optional default message type.
- * \param[in] item                    The QCBORItem of the array that
- *                                    opens the message so the tag
- *                                    numbers on it can be processed.
- * \param[in] cbor_decoder            Needed to process the tag numbers
- *                                    on item.
- * \param[out] unprocessed_tag_nums   Any additional tag numbers that were
- *                                    not used to determine the message
- *                                    type.
- * \param[out] cost_tag_num           The end result message type.
- *
- * Either this will error out or \c cose_tag_num will identify the
- * message type and be one of those listed in \c relevant_cose_tag_nums.
- * This also puts any additional tag numbers that are not the
- * one returned in \c cose_tag_num in \c unprocessed_tag_nums. This
- * genric processor can be used for all the CBOR message types with
- * tag numbers (e.g., COSE_Sign1, COSE_Encrypt,...)
- *
- * \c option_flags are a critical input. It may contain the
- * tag number of the expected type and option flags that say
- * how the tag numbers are to be interpreted and error conditions.
- */
-enum t_cose_err_t
-t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
-                     uint32_t            option_flags,
-                     const QCBORItem    *item,
-                     QCBORDecodeContext *cbor_decoder,
-                     uint64_t            unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN],
-                     uint64_t           *cose_tag_num);
-
-
 #if QCBOR_VERSION_MAJOR >= 2
 
 // TODO: document this
@@ -96,7 +57,9 @@ process_msg_tag_numbers(QCBORDecodeContext  *cbor_decoder,
 
 /* Do v2 style tag processing with QCBOR v1 */
 enum t_cose_err_t
-t_cose_process_tag_numbers_qcbor1(QCBORDecodeContext  *cbor_decoder,
+t_cose_process_tag_numbers_qcbor1(uint32_t             option_flags,
+                                  bool                 v1_semantics,
+                                  QCBORDecodeContext  *cbor_decoder,
                                   const QCBORItem     *item,
                                   uint64_t            *message_type,
                                   uint64_t             tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);

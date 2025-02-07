@@ -180,7 +180,12 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
 #if QCBOR_VERSION_MAJOR == 1
-    return_value = t_cose_process_tag_numbers_qcbor1(cbor_decoder, &array_item, &message_type, tag_numbers);
+    return_value = t_cose_process_tag_numbers_qcbor1(0,
+                                                     false, /* Always t_cose v2 semantics, there was no decrypt in t_cose v1 */
+                                                     cbor_decoder,
+                                                     &array_item,
+                                                     &message_type,
+                                                     tag_numbers);
     if(return_value != T_COSE_SUCCESS) {
         return return_value;
     }
@@ -343,7 +348,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         }
 
     } else {
-       /* This never happens because of checks in t_cose_tags_and_type() */
+       /* This never happens because of type determination above */
     }
 
     /* --- Close of CBOR decode of the array of 4 --- */
@@ -475,7 +480,7 @@ t_cose_encrypt_dec_msg(struct t_cose_encrypt_dec_ctx  *me,
     if(error) {
         return error;
     }
-#endif
+#endif /* QCBOR_VERSION_MAJOR >= 2 */
 
     error = t_cose_encrypt_dec(me,
                               &cbor_decoder,

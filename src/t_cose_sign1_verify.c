@@ -75,10 +75,7 @@ t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
     QCBORDecodeContext       cbor_decoder;
     uint64_t                 tag_numbers[T_COSE_MAX_TAGS_TO_RETURN];
 
-
     struct t_cose_sign_verify_ctx *me2 = &(me->me2);
-
-// TODO: fix this up for QCBOR v1... could be messy...
 
     QCBORDecode_Init(&cbor_decoder, cose_message, QCBOR_DECODE_MODE_NORMAL);
 
@@ -86,19 +83,19 @@ t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
     QCBORError               cbor_error;
     int                      tag_num_index;
 
-    /* This needs to process the tags the way t_cose v1 does
-     * using either the QCBOR v1 or v2 libraries. */
+    /* This implements t_cose v1 tag semantics with QCBOR v2 */
 
     /* Get all the tag numbers that preceed the COSE_Sign1 */
-    cbor_error = t_cose_consume_tags(&cbor_decoder, me->tag_numbers, &tag_num_index);
+    cbor_error = t_cose_consume_tags(&cbor_decoder, tag_numbers, &tag_num_index);
     if(cbor_error != QCBOR_SUCCESS) {
         return qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_SIGN1_FORMAT);
     }
 
     /* See if it is tagged as a COSE_Sign1 */
     bool is_tagged_cose_sign1 = false;
-    if(me->tag_numbers[tag_num_index] == CBOR_TAG_COSE_SIGN1) {
-        me->tag_numbers[tag_num_index] = CBOR_TAG_INVALID64;
+    if(tag_numbers[tag_num_index] == CBOR_TAG_COSE_SIGN1) {
+        tag_numbers[tag_num_index] = CBOR_TAG_INVALID64;
+        tag_num_index--;
         is_tagged_cose_sign1 = true;
     }
 
@@ -118,9 +115,22 @@ t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
             return T_COSE_ERR_INCORRECTLY_TAGGED;
         }
     }
-#endif
+
+    /* Now reverse the order of the tag numbers from v2 to v1 */
+    for(int iii = 0; iii < T_COSE_MAX_TAGS_TO_RETURN; iii++) {
+        if(tag_num_index >= 0) {
+            me->tag_numbers[iii] = tag_numbers[tag_num_index];
+            tag_num_index--;
+        } else {
+            me->tag_numbers[iii] = CBOR_TAG_INVALID64;
+        }
+    }
+
+#endif /* QCBOR_VERSION_MAJOR >= 2 */
+    
     /* Possible tag error conditions processed and all OK. It's a COSE_Sign1 */
     me2->option_flags |= CBOR_TAG_COSE_SIGN1;
+    me2->v1_compatible = true;
 
     return_value = t_cose_sign_verify_private(me2,
                                              &cbor_decoder,
@@ -134,6 +144,10 @@ t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 
+#if QCBOR_VERSION_MAJOR == 1
+    memcpy(me->tag_numbers, tag_numbers, sizeof(tag_numbers));
+#endif /* QCBOR_VERSION_MAJOR == 1 */
+
     if(parameters != NULL) {
         return_value = t_cose_params_common(decoded_params, parameters);
     }
@@ -142,16 +156,3 @@ Done:
     return return_value;
 }
 
-enum t_cose_err_t
-t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
-                    struct q_useful_buf_c           cose_message,
-                    struct q_useful_buf_c          *payload,
-                    struct t_cose_parameters       *parameters)
-{
-    return t_cose_sign1_private_verify_main(me,
-                                            cose_message,
-                                            NULLUsefulBufC,
-                                            false,
-                                            payload,
-                                            parameters);
-}

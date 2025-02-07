@@ -81,7 +81,7 @@ struct t_cose_sign1_verify_ctx {
 
     uint32_t                             option_flags;
 
-    uint64_t                             tag_numbers[T_COSE_MAX_TAGS_TO_RETURN];
+    uint64_t                             tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]; /* v1 order, inner-most first */
 };
 
 
@@ -250,7 +250,7 @@ t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *contex
  * payload is an indefinite-length byte string, this error will be
  * returned.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                     struct q_useful_buf_c           sign1,
                     struct q_useful_buf_c          *payload,
@@ -362,6 +362,22 @@ t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
                                  struct t_cose_parameters       *parameters);
 
 
+
+static inline enum t_cose_err_t
+t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
+                    struct q_useful_buf_c           cose_message,
+                    struct q_useful_buf_c          *payload,
+                    struct t_cose_parameters       *parameters)
+{
+    return t_cose_sign1_private_verify_main(me,
+                                            cose_message,
+                                            NULLUsefulBufC,
+                                            false,
+                                            payload,
+                                            parameters);
+}
+
+
 static inline enum t_cose_err_t
 t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                         struct q_useful_buf_c           cose_message,
@@ -369,7 +385,12 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                         struct q_useful_buf_c          *payload,
                         struct t_cose_parameters       *parameters)
 {
-     return t_cose_sign1_private_verify_main(me, cose_message, ext_sup_data, false, payload, parameters);
+     return t_cose_sign1_private_verify_main(me,
+                                             cose_message,
+                                             ext_sup_data,
+                                             false,
+                                             payload,
+                                             parameters);
 }
 
 
@@ -380,7 +401,12 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameters       *parameters)
 {
-    return t_cose_sign1_private_verify_main(me, cose_message, ext_sup_data, true, &detached_payload, parameters);
+    return t_cose_sign1_private_verify_main(me,
+                                            cose_message,
+                                            ext_sup_data,
+                                            true,
+                                           &detached_payload,
+                                            parameters);
 }
 
 
@@ -405,20 +431,10 @@ static inline uint64_t
 t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *me,
                          const size_t                          tag_index)
 {
-    // TODO: make this not inline ??
-
-    size_t tag_num_count;
-
-    for(tag_num_count = 0; tag_num_count < T_COSE_MAX_TAGS_TO_RETURN; tag_num_count++) {
-        if(me->tag_numbers[tag_num_count] == CBOR_TAG_INVALID64) {
-            break;
-        }
-    }
-    if(tag_index >= tag_num_count) {
+    if(tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
         return CBOR_TAG_INVALID64;
     }
-
-    return me->tag_numbers[(tag_num_count - 1) - tag_index];
+    return me->tag_numbers[tag_index];
 }
 
 

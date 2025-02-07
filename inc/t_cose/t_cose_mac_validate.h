@@ -123,7 +123,7 @@ t_cose_mac_set_special_param_decoder(struct t_cose_mac_validate_ctx *context,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This is the base method forMAC validation It links the least object code. See t_cose_mac_validate_message() for
+ * This is the base method forMAC validation. It links the least object code. See t_cose_mac_validate_message() for
  * a method that takes the message from a buffer and does
  * more tag number processing.
  *
@@ -199,17 +199,18 @@ t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *context,
  *                            CBOR encoded payload.
  * \param[out] return_params  Place to return decoded parameters.
  *                            May be \c NULL.
+ * \param[out] tag_numbers Place to return preceding tag numbers or NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * This is a wrapper around t_cose_mac_validate().
  *
- * This creates an instance of the CBOR decoder and initializes it with
+ * Internally, this creates an instance of the CBOR decoder and initializes it with
  * the COSE message.
  *
  * This does the following tag number processing.
  *
- * All tag numbers preceding the message are consumed. The same as t_cose_mac_validate()
+ * All tag numbers preceding the message are consumed. The same as t_cose_mac_validate(),
  * the initialization options T_COSE_OPT_MESSAGE_TYPE_MAC0 and XXXX
  * are used. Any tag numbers not used in determing the message type
  * based on the initialization options are returned in \c tag_numbers
@@ -244,27 +245,6 @@ t_cose_mac_validate_detached_msg(struct t_cose_mac_validate_ctx *context,
  * ------------------------------------------------------------------------ */
 
 
-/**
- * \brief Semi-private function to validate a COSE_Mac0 message.
- *
- * \param[in] context   The context of COSE_Mac0 validation.
- * \param[in] cose_mac  Pointer and length of CBOR encoded \c COSE_Mac0
- *                      that is to be validated.
- * \param[in] ext_sup_data       The Additional Authenticated Data or
- *                      \c NULL_Q_USEFUL_BUF_C.
- * \param[in] payload_is_detached  If \c true, indicates the \c payload
- *                                 is detached.
- * \param[out] payload             Pointer and length of the still CBOR
- *                                 encoded payload.
- * \param[out] return_params       Place to return decoded parameters.
- *                                 May be \c NULL.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * It is a semi-private function internal to the implementation which means its
- * interface isn't guaranteed so it should not be called directly. Call
- * t_cose_mac_validate() or t_cose_mac_validate_detached() instead of this.
- */
 enum t_cose_err_t
 t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             QCBORDecodeContext             *decode_context,

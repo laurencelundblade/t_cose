@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.c
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2025, Laurence Lundblade
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -113,103 +113,6 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 
 
 
-static bool
-is_valid_tag_for_message(uint64_t tag_num, const uint64_t *relevant_cose_tag_nums)
-{
-    const uint64_t *l;
-
-    for(l = relevant_cose_tag_nums; *l != CBOR_TAG_INVALID64; l++) {
-        if(tag_num == *l) {
-            return true;
-        }
-    }
-    return false;
-}
-
-
-/*
- * Public function. See t_cose_util.h
- */
-enum t_cose_err_t
-t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
-                     uint32_t            option_flags,
-                     const QCBORItem    *item,
-                     QCBORDecodeContext *cbor_decoder,
-                     uint64_t            unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN],
-                     uint64_t           *cose_tag_num)
-{
-    uint64_t options_tag_num;
-    uint64_t tag_on_item;
-    bool     tag_on_item_relevant;
-    unsigned item_tag_index;
-    unsigned returned_tag_index;
-
-    options_tag_num = option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
-    tag_on_item = QCBORDecode_GetNthTag(cbor_decoder, item, 0);
-    tag_on_item_relevant = is_valid_tag_for_message(tag_on_item,
-                                                    relevant_cose_tag_nums );
-
-
-    if((option_flags & T_COSE_OPT_TAG_REQUIRED) && !tag_on_item_relevant) {
-        /* It is required that the tag number on the COSE message say which type
-         * of COSE signed message it is.
-         */
-        return T_COSE_ERR_INCORRECTLY_TAGGED;
-    }
-
-    if((option_flags & T_COSE_OPT_TAG_PROHIBITED) && tag_on_item_relevant) {
-        /* It is required that there be no tag number on the COSE message
-         * indicating the COSE signed message type. Note that there could
-         * be other tag numbers present.
-         */
-        return T_COSE_ERR_INCORRECTLY_TAGGED;
-    }
-
-
-    if(options_tag_num != T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
-        /* Override or explicit message type in options. */
-        if(!is_valid_tag_for_message(options_tag_num, relevant_cose_tag_nums)) {
-            return T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE;
-        }
-        *cose_tag_num = options_tag_num;
-    } else {
-        /* Reliance on tag number on COSE message */
-        if(!tag_on_item_relevant) {
-            return T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
-        }
-        *cose_tag_num = tag_on_item;
-    }
-
-
-    /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */
-#if CBOR_TAG_INVALID64 != 0xffffffffffffffff
-#error Initializing unprocessed_tag_nums array
-#endif
-
-    memset(unprocessed_tag_nums, 0xff, sizeof(uint64_t[T_COSE_MAX_TAGS_TO_RETURN]));
-    item_tag_index = 0;
-    returned_tag_index = 0;
-    if(tag_on_item_relevant) {
-        item_tag_index++;
-    }
-
-    while(1) {
-        tag_on_item = QCBORDecode_GetNthTag(cbor_decoder, item, item_tag_index);
-
-        item_tag_index++;
-        if(tag_on_item == CBOR_TAG_INVALID64) {
-            break;
-        }
-        if(returned_tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
-            return T_COSE_ERR_TOO_MANY_TAGS;
-        }
-        unprocessed_tag_nums[returned_tag_index] = tag_on_item;
-        returned_tag_index++;
-    }
-
-    return T_COSE_SUCCESS;
-}
-
 #include <limits.h>
 
 #if QCBOR_VERSION_MAJOR >= 2
@@ -220,6 +123,7 @@ t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
 // last_tag always points to a tag_number in tag_numbers.
 // If the value of tag_numbers[*last_tag_index] != INVALID, then
 // there is a last tag number; that is tag_numbers isn't empty
+/* This is used only when linked with QCBOR v2 */
 QCBORError
 t_cose_consume_tags(QCBORDecodeContext *cbor_decoder,
                     uint64_t            tag_numbers[QCBOR_MAX_TAGS_PER_ITEM],
@@ -263,8 +167,13 @@ process_msg_tag_numbers(QCBORDecodeContext  *cbor_decoder,
 
     if((*option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) == T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
         /* The message type was not given. Expect it is in a tag number. */
-        if(unprocessed_tag_nums[tag_num_index] != CBOR_TAG_INVALID64 &&
-           unprocessed_tag_nums[tag_num_index] < T_COSE_OPT_MESSAGE_TYPE_MASK) {
+        if(unprocessed_tag_nums[tag_num_index] != CBOR_TAG_INVALID64) {
+            if(unprocessed_tag_nums[tag_num_index] > T_COSE_OPT_MESSAGE_TYPE_MASK)  {
+                /* The tag num is to large to stuff put into the option_flags
+                 * and also can't be a valid COSE tag because they are all
+                 * < T_COSE_OPT_MESSAGE_TYPE_MASK */
+                return T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE;
+            }
             *option_flags |= unprocessed_tag_nums[tag_num_index];
             unprocessed_tag_nums[tag_num_index] = CBOR_TAG_INVALID64;
         }
@@ -284,46 +193,165 @@ process_msg_tag_numbers(QCBORDecodeContext  *cbor_decoder,
 
 
 #if QCBOR_VERSION_MAJOR == 1
-/* Do v2 style tag processing with QCBOR v1 */
-enum t_cose_err_t
-t_cose_process_tag_numbers_qcbor1(QCBORDecodeContext  *cbor_decoder,
-                                  const QCBORItem     *item,
-                                  uint64_t            *message_type,
-                                  uint64_t             return_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+
+/* t_cose v1 style tag number handling when linked with QCBOR v1
+ * This code is cloned from t_cose v1
+ */
+static enum t_cose_err_t
+t_cose_process_tag_numbers_qcbor1_t_cose1(uint32_t             option_flags,
+                                          QCBORDecodeContext  *cbor_decoder,
+                                          const QCBORItem     *item,
+                                          uint64_t            *message_type,
+                                          uint64_t             return_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
-    uint64_t  tag_numbers[T_COSE_MAX_TAGS_TO_RETURN];
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    20          16
+     *   TOTAL                                         20          16
+     */
+    uint64_t uTag;
+    uint32_t item_tag_index = 0;
+    int returned_tag_index;
 
-    for(uint32_t i = 0; i < T_COSE_MAX_TAGS_TO_RETURN; i++) {
-        tag_numbers[i] = QCBORDecode_GetNthTag(cbor_decoder, item, i);
-    }
-
-    if(*message_type == T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
-        *message_type = tag_numbers[0];
-
-        /* There should be one and only one tag number */
-        if(tag_numbers[1] != CBOR_TAG_INVALID64) {
-            return 99; // TODO: error code
-        }
-        if(tag_numbers[2] != CBOR_TAG_INVALID64) {
-            return 99; // TODO: error code
-        }
-        if(tag_numbers[3] != CBOR_TAG_INVALID64) {
-            return 99; // TODO: error code
-        }
-    } else {
-        /* There's not supposed to be any tag numbers */
-        if(tag_numbers[0] != CBOR_TAG_INVALID64) {
-            return 99; // TODO: error code
+    /* The 0th tag is the only one that might identify the type of the
+     * CBOR we are trying to decode so it is handled special.
+     */
+    uTag = QCBORDecode_GetNthTagOfLast(cbor_decoder, item_tag_index);
+    item_tag_index++;
+    if(option_flags & T_COSE_OPT_TAG_REQUIRED) {
+        /* The protocol that is using COSE says the input CBOR must
+         * be a COSE tag.
+         */
+        if(uTag != CBOR_TAG_COSE_SIGN1) {
+            return T_COSE_ERR_INCORRECTLY_TAGGED;
         }
     }
+    if(option_flags & T_COSE_OPT_TAG_PROHIBITED) {
+        /* The protocol that is using COSE says the input CBOR must
+         * not be a COSE tag.
+         */
+        if(uTag == CBOR_TAG_COSE_SIGN1) {
+            return T_COSE_ERR_INCORRECTLY_TAGGED;
+        }
+    }
+    /* If the protocol using COSE doesn't say one way or another about the
+     * tag, then either is OK.
+     */
 
-    if(return_tag_numbers != NULL) {
-        memcpy(return_tag_numbers, tag_numbers, sizeof(tag_numbers));
+
+    /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */
+#if CBOR_TAG_INVALID64 != 0xffffffffffffffff
+#error Initializing return tags array
+#endif
+    memset(return_tag_numbers, 0xff, sizeof(uint64_t[T_COSE_MAX_TAGS_TO_RETURN]));
+
+    returned_tag_index = 0;
+
+    if(uTag != CBOR_TAG_COSE_SIGN1) {
+        /* Never return the tag that this code is about to process. Note
+         * that you can sign a COSE_SIGN1 recursively. This only takes out
+         * the one tag layer that is processed here.
+         */
+        return_tag_numbers[returned_tag_index] = uTag;
+        returned_tag_index++;
+    }
+
+    while(1) {
+        uTag = QCBORDecode_GetNthTagOfLast(cbor_decoder, item_tag_index);
+        item_tag_index++;
+        if(uTag == CBOR_TAG_INVALID64) {
+            break;
+        }
+        if(returned_tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
+            return T_COSE_ERR_TOO_MANY_TAGS;
+        }
+        return_tag_numbers[returned_tag_index] = uTag;
+        returned_tag_index++;
     }
 
     return T_COSE_SUCCESS;
 }
+
+
+/*
+ * Do v2 style tag processing with QCBOR v1
+ *
+ * @param[out] return_tag_numbers   Place to return tag numbers or NULL. Tag number order is as encoded, outermost first (always).
+ * There's two cases:
+ * 1) only looking for one tag number to identify the COSE message type
+ * 2) as above, but also return all the tag numbers that weren't used
+ */
+
+static enum t_cose_err_t
+t_cose_process_tag_numbers_qcbor1_t_cose2(QCBORDecodeContext  *cbor_decoder,
+                                          const QCBORItem     *item,
+                                          uint64_t            *message_type,
+                                          uint64_t             return_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+{
+    uint64_t  tag_numbers[T_COSE_MAX_TAGS_TO_RETURN];
+    uint32_t  start_index;
+    uint32_t  index;
+
+    /* Get all the tag numbers */
+    for(index = 0; index < T_COSE_MAX_TAGS_TO_RETURN; index++) {
+        tag_numbers[index] = QCBORDecode_GetNthTag(cbor_decoder, item, index);
+    }
+
+    /* If message type is not specified, return the first tag number as the message type */
+    start_index = 0;
+    if(*message_type == T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
+        *message_type = tag_numbers[0];
+        start_index = 1;
+    }
+
+    /* The two cases */
+    if(return_tag_numbers == NULL) {
+        /* Tag numbers are not returned, so there better not be any */
+        if(tag_numbers[start_index] != CBOR_TAG_INVALID64) {
+            /* There are tag numbers and there aren't supposed to be any */
+            return T_COSE_ERR_UNPROCESSED_TAG_NUMBERS;
+        }
+    } else {
+        /* Return the tag numbers */
+        return_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN-1] = CBOR_TAG_INVALID64;
+        memcpy(return_tag_numbers,
+              &tag_numbers[start_index],
+              (T_COSE_MAX_TAGS_TO_RETURN - start_index) * sizeof(uint64_t));
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+/* Process tag numbers when linked against QCBOR v1.
+ *
+ * @param[in] v1_semantics  If true, tag processing is per t_cose v1, if false it is per t_cose v2.
+ *
+ * @param[out] return_tag_numbers  Place to return tag numbers or NULL. Order is as encoded, outermost first.  Or does it depend on v1_semantics?
+ */
+enum t_cose_err_t
+t_cose_process_tag_numbers_qcbor1(uint32_t             option_flags,
+                                  bool                 v1_semantics,
+                                  QCBORDecodeContext  *cbor_decoder,
+                                  const QCBORItem     *item,
+                                  uint64_t            *message_type,
+                                  uint64_t             return_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+{
+    if(v1_semantics) {
+        return t_cose_process_tag_numbers_qcbor1_t_cose1(option_flags,
+                                                         cbor_decoder,
+                                                         item,
+                                                         message_type,
+                                                         return_tag_numbers);
+    } else {
+        return t_cose_process_tag_numbers_qcbor1_t_cose2(cbor_decoder,
+                                                         item,
+                                                         message_type,
+                                                         return_tag_numbers);
+    }
+}
 #endif /* QCBOR_VERSION_MAJOR == 1 */
+
 
 
 /**

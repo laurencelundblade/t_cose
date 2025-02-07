@@ -1,7 +1,7 @@
 /*
  * t_cose_sign_verify.h
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2025, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  * Created by Laurence Lundblade on 7/17/22.
@@ -53,7 +53,6 @@ extern "C" {
 
 
 
-
 /**
  * Context for signature verification.
  */
@@ -61,6 +60,7 @@ struct t_cose_sign_verify_ctx {
     /* Private data structure */
     struct t_cose_signature_verify   *verifiers;
     uint32_t                          option_flags;
+    bool                              v1_compatible;
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
