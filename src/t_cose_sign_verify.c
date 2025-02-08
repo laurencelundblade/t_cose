@@ -98,8 +98,8 @@ squeeze_nodes(struct t_cose_parameter *new_ones,
 /**
  * \brief "Main" verifier of t_cose_signature_verify_cb.
  *
- * \param[in] cbor_decoder     The decoder instance from where the
- *                             COSE_Signature is decoded.
+ * \param[in] cbor_decoder    Source of the input COSE_signature to decode.
+
  * \param[in] loc              The location of the sig inside the COSE_Sign.
  * \param[in] param_storage    The place to put the decoded params.
 
@@ -131,8 +131,8 @@ decode_cose_signature(QCBORDecodeContext                 *cbor_decoder,
                       struct q_useful_buf_c              *signature)
 
 {
-    QCBORError               qcbor_error;
-    static enum t_cose_err_t return_value;
+    QCBORError         qcbor_error;
+    enum t_cose_err_t  return_value;
 
     QCBORDecode_EnterArray(cbor_decoder, NULL);
     qcbor_error = QCBORDecode_GetError(cbor_decoder);
@@ -451,14 +451,22 @@ call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
 
 
 /**
- * @param[in] me   Signature verification context
- * @param[in] cbor_decoder   Decoder context to read the cose message from
- * @param[in] ext_supdata     Externally supplied data or NULL
- * @param[in] is_detached     If true, the payload is detached
- * @param[in,out] payload   If detached, this is an in parameter, if not an out parameter
- * @param[out] returned_params  Place to return decoded parameters.
- * @param[out] tag_numbers  Maybe NULL. Is only non NULL when being used for t_cose_v1 compatibility mode. Is only filled in if linking against QCBOR v1.
- *                                                         Order is v1 order, inner-most first.
+ * \brief The main worker for signature verification.
+ *
+ * \param[in] me   Signature verification context
+ * \param[in] cbor_decoder    Source of the input COSE message to validate.
+ * \param[in] ext_supdata     Externally supplied data or NULL
+ * \param[in] is_detached     If true, the payload is detached
+ * \param[in,out] payload   If detached, this is an in parameter, if not an out parameter
+ * \param[out] returned_params  Place to return decoded parameters.
+ * \param[out] tag_numbers  May be NULL. Is only non NULL when being used for t_cose_v1 compatibility mode. Is only filled in if linking against QCBOR v1.
+ *                                                        The order of tag numbers depends on me->v1_compatible. If true
+ *   
+ *                                                        it is inner-most first. Otherwise it is outer-most first.
+ *
+ * I kind of wish the tag_numbers parameter could be avoided as it is only used for
+ * backwards compatibility and thus bloats the v2 code size a little, but an #ifdef would be ugly.
+ *
  */
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
@@ -609,7 +617,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 }
 
 
-
 /*
  * A semi-private function. See t_cose_sign_verify.h
  */
@@ -631,11 +638,13 @@ t_cose_sign_verify_msg_private(struct t_cose_sign_verify_ctx  *me,
     save_option_flags = me->option_flags;
 
 #if QCBOR_VERSION_MAJOR >= 2
-    error = process_msg_tag_numbers(&cbor_decoder, &me->option_flags, returned_tag_numbers);
+    error = t_cose_private_process_msg_tag_nums(&cbor_decoder, &me->option_flags, returned_tag_numbers);
     if(error != T_COSE_SUCCESS) {
         return error;
     }
-#endif
+#else
+    /* QCBORv1 tag number processing is in t_cose_sign_verify_private() */
+#endif /* QCBOR_VERSION_MAJOR >= 2 */
 
     error =  t_cose_sign_verify_private(me,
                                        &cbor_decoder,

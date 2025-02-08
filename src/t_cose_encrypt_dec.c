@@ -128,7 +128,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 /*
  * Public Function. See t_cose_encrypt_dec.h
  */
-/* The MAIN implementation of decryption */
+/* The main decryption implementation */
 enum t_cose_err_t
 t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
                             QCBORDecodeContext            *cbor_decoder,
@@ -437,24 +437,6 @@ Done:
 }
 
 
-
-
-/* TODO: get rid of this
-You tell t_cose you don't know what the type is by not specifying a type
-
- If there is no tag, the error is clearly 'can't determine message type'
-
- If there is a tag that doesn't indicate what the type is,
-  - could be unprocessed tag
-  - could also be can't determine message type -- this seems better 
-
- You tell t_cose the message type
-  - There is a tag number that not for the message type -- unprocessed tag number
-  - There is a tag number that is for the message type -- unprocessed tag number, but redundant tag number is better
-
-
- */
-
 /*
  * Public Function. See t_cose_encrypt_dec.h
  */
@@ -467,19 +449,21 @@ t_cose_encrypt_dec_msg(struct t_cose_encrypt_dec_ctx  *me,
                        struct t_cose_parameter      **returned_parameters,
                        uint64_t                       returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
-    QCBORDecodeContext cbor_decoder;
-    enum t_cose_err_t  error;
-    uint32_t           save_option_flags;
+    QCBORDecodeContext  cbor_decoder;
+    enum t_cose_err_t   error;
+    uint32_t            save_option_flags;
 
     QCBORDecode_Init(&cbor_decoder, cose_message, QCBOR_DECODE_MODE_NORMAL);
 
     save_option_flags = me->option_flags;
-#if QCBOR_VERSION_MAJOR >= 2
 
-    error = process_msg_tag_numbers(&cbor_decoder, &me->option_flags, returned_tag_numbers);
+#if QCBOR_VERSION_MAJOR >= 2
+    error = t_cose_private_process_msg_tag_nums(&cbor_decoder, &me->option_flags, returned_tag_numbers);
     if(error) {
         return error;
     }
+#else
+    /* QCBORv1 tag number processing is in t_cose_encrypt_dec() */
 #endif /* QCBOR_VERSION_MAJOR >= 2 */
 
     error = t_cose_encrypt_dec(me,
@@ -505,21 +489,22 @@ t_cose_encrypt_dec_detached_msg(struct t_cose_encrypt_dec_ctx *me,
                                 struct t_cose_parameter      **returned_parameters,
                                 uint64_t                       returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
-    QCBORDecodeContext cbor_decoder;
-    enum t_cose_err_t  error;
-    uint32_t           saved_option_flags;
+    QCBORDecodeContext  cbor_decoder;
+    enum t_cose_err_t   error;
+    uint32_t            saved_option_flags;
 
     QCBORDecode_Init(&cbor_decoder, cose_message, QCBOR_DECODE_MODE_NORMAL);
 
     saved_option_flags = me->option_flags;
 
 #if QCBOR_VERSION_MAJOR >= 2
-
-    error = process_msg_tag_numbers(&cbor_decoder, &me->option_flags, returned_tag_numbers);
+    error = t_cose_private_process_msg_tag_nums(&cbor_decoder, &me->option_flags, returned_tag_numbers);
     if(error != T_COSE_SUCCESS) {
         return error;
     }
-#endif
+#else
+    /* QCBORv1 tag number processing is in t_cose_encrypt_dec_detached() */
+#endif /* QCBOR_VERSION_MAJOR >= 2 */
 
     error = t_cose_encrypt_dec_detached(me,
                                        &cbor_decoder,

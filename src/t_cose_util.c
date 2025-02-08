@@ -117,17 +117,11 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 
 #if QCBOR_VERSION_MAJOR >= 2
 
-/*
- * Public function. See t_cose_util.h
- */
-// last_tag always points to a tag_number in tag_numbers.
-// If the value of tag_numbers[*last_tag_index] != INVALID, then
-// there is a last tag number; that is tag_numbers isn't empty
-/* This is used only when linked with QCBOR v2 */
+/* See interface documentation in t_cose_util.h */
 QCBORError
-t_cose_consume_tags(QCBORDecodeContext *cbor_decoder,
-                    uint64_t            tag_numbers[QCBOR_MAX_TAGS_PER_ITEM],
-                    int                *last_tag_index)
+t_cose_private_consume_tag_nums(QCBORDecodeContext *cbor_decoder,
+                                uint64_t            tag_numbers[QCBOR_MAX_TAGS_PER_ITEM],
+                                int                *last_tag_index)
 {
     QCBORError  cbor_error;
     uint64_t    message_type_tag_number;
@@ -150,16 +144,18 @@ t_cose_consume_tags(QCBORDecodeContext *cbor_decoder,
     return cbor_error;
 }
 
+
+/* See interface documentation in t_cose_util.h */
 enum t_cose_err_t
-process_msg_tag_numbers(QCBORDecodeContext  *cbor_decoder,
-                        uint32_t            *option_flags,
-                        uint64_t             returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+t_cose_private_process_msg_tag_nums(QCBORDecodeContext  *cbor_decoder,
+                                    uint32_t            *option_flags,
+                                    uint64_t             returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
     QCBORError  cbor_error;
     uint64_t    unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
     int         tag_num_index;
 
-    cbor_error = t_cose_consume_tags(cbor_decoder, unprocessed_tag_nums, &tag_num_index);
+    cbor_error = t_cose_private_consume_tag_nums(cbor_decoder, unprocessed_tag_nums, &tag_num_index);
     if(cbor_error != QCBOR_SUCCESS) {
         // TODO: make T_COSE_ERR_MAC_FORMAT a parameter
         return qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_MESSAGE_FORMAT);
@@ -196,6 +192,7 @@ process_msg_tag_numbers(QCBORDecodeContext  *cbor_decoder,
 
 /* t_cose v1 style tag number handling when linked with QCBOR v1
  * This code is cloned from t_cose v1
+ * Order of return_tag_numbers is inner-most first as in t_cose v1.
  */
 static enum t_cose_err_t
 t_cose_process_tag_numbers_qcbor1_t_cose1(uint32_t             option_flags,
@@ -327,7 +324,8 @@ t_cose_process_tag_numbers_qcbor1_t_cose2(QCBORDecodeContext  *cbor_decoder,
  *
  * @param[in] v1_semantics  If true, tag processing is per t_cose v1, if false it is per t_cose v2.
  *
- * @param[out] return_tag_numbers  Place to return tag numbers or NULL. Order is as encoded, outermost first.  Or does it depend on v1_semantics?
+ * @param[out] return_tag_numbers  Place to return tag numbers or NULL. The order depends on
+ * v1_semantics. If v1 is true, then it is inner-most first. Otherwise it is outer-most first.
  */
 enum t_cose_err_t
 t_cose_process_tag_numbers_qcbor1(uint32_t             option_flags,

@@ -86,7 +86,7 @@ t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
     /* This implements t_cose v1 tag semantics with QCBOR v2 */
 
     /* Get all the tag numbers that preceed the COSE_Sign1 */
-    cbor_error = t_cose_consume_tags(&cbor_decoder, tag_numbers, &tag_num_index);
+    cbor_error = t_cose_private_consume_tag_nums(&cbor_decoder, tag_numbers, &tag_num_index);
     if(cbor_error != QCBOR_SUCCESS) {
         return qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_SIGN1_FORMAT);
     }
@@ -155,4 +155,3 @@ t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
 Done:
     return return_value;
 }
-

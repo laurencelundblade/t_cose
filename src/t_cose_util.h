@@ -38,17 +38,44 @@ extern "C" {
 
 #if QCBOR_VERSION_MAJOR >= 2
 
-// TODO: document this
+/**
+ * @brief Consume all the tag numbers preceding and item.
+ *
+ * @param[in] cbor_decoder  Decoder to read the tag numbers from.
+ * @param[out] tag_numbers  The tag numbers consumed. Order is outer-most first.
+ * @param[out] last_tag_index   Index of the inner-most tag number.
+ *
+ * Used with QCBOR v2 where tag numbers are to be consumed.
+ *
+ * If the value of tag_numbers[*last_tag_index] != INVALID, then
+ * there is a last tag number; that is tag_numbers isn't empty.
+ */
 QCBORError
-t_cose_consume_tags(QCBORDecodeContext *cbor_decoder,
-                    uint64_t            tag_numbers[QCBOR_MAX_TAGS_PER_ITEM],
-                    int                *last_tag_index);
+t_cose_private_consume_tag_nums(QCBORDecodeContext *cbor_decoder,
+                                uint64_t            tag_numbers[QCBOR_MAX_TAGS_PER_ITEM],
+                                int                *last_tag_index);
 
 
+/**
+ * @brief A common processor for tag numbers for the _msg methods
+ *
+ * @param[in] cbor_decoder Decoder to read the tag numbers from.
+ * @param[in,out] option_flags
+ * @param[out] returned_tag_numbers   The tag numbers decoded. May be NULL.
+ *
+ * Used by the methods that consume and return all the tag numbers.
+ *
+ * This consumes all the tag numbers before the first item in the COSE message.
+ * The option_flags are examined to know if there should be a tag number
+ * to indicate the message type. If so it is put into the option_flags.
+ * Any remaining tag_numbers are returned. If there are any and
+ * returned_tag_numbers is NULL, it is an error.
+ *
+ */
 enum t_cose_err_t
-process_msg_tag_numbers(QCBORDecodeContext  *cbor_decoder,
-                        uint32_t            *option_flags,
-                        uint64_t             returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+t_cose_private_process_msg_tag_nums(QCBORDecodeContext  *cbor_decoder,
+                                    uint32_t            *option_flags,
+                                    uint64_t             returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
 
 #endif /* QCBOR_VERSION_MAJOR >= 2 */
 

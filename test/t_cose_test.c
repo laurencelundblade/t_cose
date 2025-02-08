@@ -2225,7 +2225,7 @@ int32_t crypto_context_test(void)
     t_cose_signature_verify_main_set_key(&verifier, key_pair, NULL_Q_USEFUL_BUF_C);
     t_cose_signature_verify_main_set_crypto_context(&verifier, &crypto_context);
     crypto_context.test_error = T_COSE_SUCCESS;
-    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+    t_cose_sign_verify_init(&verify_ctx, 0);
     t_cose_sign_add_verifier(&verify_ctx,
                              t_cose_signature_verify_from_main(&verifier));
     result = t_cose_sign_verify_msg(&verify_ctx,

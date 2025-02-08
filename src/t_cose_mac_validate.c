@@ -22,18 +22,11 @@
  */
 
 
-
-/**
- * @param[out] returned_tag_numbers  Place to return tag numbers or NULL. Encoded order, outer most first.
-
- */
-
 /**
  * \brief Semi-private function to validate a COSE_Mac0 message.
  *
  * \param[in] context   The context of COSE_Mac0 validation.
- * \param[in] cose_mac  Pointer and length of CBOR encoded \c COSE_Mac0
- *                      that is to be validated.
+ * \param[in] cbor_decoder    Source of the input COSE message to validate.
  * \param[in] ext_sup_data       The Additional Authenticated Data or
  *                      \c NULL_Q_USEFUL_BUF_C.
  * \param[in] payload_is_detached  If \c true, indicates the \c payload
@@ -42,7 +35,7 @@
  *                                 encoded payload.
  * \param[out] return_params       Place to return decoded parameters.
  *                                 May be \c NULL.
- * @param[out] returned_tag_numbers  Place to return tag numbers or NULL. Always the order from the input encoded CBOR, outer most first.
+ * \param[out] returned_tag_numbers  Place to return tag numbers or NULL. Always the order from the input encoded CBOR, outer most first.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -84,7 +77,6 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
         QCBORDecode_VGetNextTagNumber(cbor_decoder, &message_type_tag_number);
     }
 #endif /* QCBOR_VERSION_MAJOR >= 2 */
-
 
     /* --- The array of 4, type determination and tags --- */
     QCBORDecode_EnterArray(cbor_decoder, &array_item);
@@ -207,8 +199,11 @@ Done:
 
 
 /*
- * @param[out] returned_tag_numbers   Place to return tag numbers or NULL. Tag number order is outer-most first, the order from the encoded input.
-
+ * TODO: finish this documentation
+ * \param[out] returned_tag_numbers   Place to return tag numbers or NULL.
+ *                                    The order is outer-most first, the order
+ *                                    from the encoded input.
+ *
  * If returned_tag_numbers is NULL and tag numbers are present,
  * an error occurs.
  */
@@ -230,12 +225,12 @@ t_cose_mac_validate_msg_private(struct t_cose_mac_validate_ctx *me,
     saved_option_flags = me->option_flags;
     
 #if QCBOR_VERSION_MAJOR >= 2
-    error = process_msg_tag_numbers(&cbor_decoder, &me->option_flags, returned_tag_numbers);
+    error = t_cose_private_process_msg_tag_nums(&cbor_decoder, &me->option_flags, returned_tag_numbers);
     if(error != T_COSE_SUCCESS) {
         return error;
     }
 #else
-    /* Tag number processing with QCBORv1 is called inside t_cose_mac_validate_private() */
+    /* QCBORv1 tag number processing is in t_cose_mac_validate_private() */
 #endif /* QCBOR_VERSION_MAJOR >= 2 */
 
     error = t_cose_mac_validate_private(me,

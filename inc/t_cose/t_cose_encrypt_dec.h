@@ -242,7 +242,7 @@ t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
  * \brief Decryption of a \c COSE_Encrypt0 or \c COSE_Encrypt structure.
  *
  * \param[in,out] context       The t_cose_encrypt_dec_ctx context.
- * \param[in] cbor_decoder           Context from which COSE message is decoded.
+ * \param[in] cbor_decoder    Source of the input COSE message to decrypt.
  * \param[in] ext_sup_data               Externally supplied data or \ref NULL_Q_USEFUL_BUF.
  * \param[in] plaintext_buffer  A buffer for plaintext.
  * \param[out] plaintext        Place to return pointer and length of
@@ -293,8 +293,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
  * \brief Decrypt a \c COSE_Encrypt0 or \c COSE_Encrypt with detached cipher text.
  *
  * \param[in,out] context               The t_cose_encrypt_dec_ctx context.
- * \param[in] message                      The COSE message (a COSE_Encrypt0
- *                                      or COSE_Encrypt).
+ * \param[in] cbor_decoder    Source of the input COSE message to decrypt.
  * \param[in] ext_sup_data               Externally supplied data or \ref NULL_Q_USEFUL_BUF.
  * \param[in] detached_ciphertext  The detached ciphertext.
  * \param[in] plaintext_buffer                A buffer for plaintext.

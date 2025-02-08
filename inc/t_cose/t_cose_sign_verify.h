@@ -197,7 +197,7 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  * \brief Verify a COSE_Sign1 or COSE_Sign.
  *
  * \param[in,out] context   The t_cose signature verification context.
- * \param[in] decode_context      Decode context from which the COSE message will be decoded.
+ * \param[in] cbor_decoder    Source of the input COSE message to verify..
  * \param[in] ext_sup_data  Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload      Pointer and length of the payload that is returned.
  *                          Must not be \c NULL.
@@ -252,7 +252,7 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  */
 static enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
-                   QCBORDecodeContext            *decode_context,
+                   QCBORDecodeContext            *cbor_decoder,
                    struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf_c         *payload,
                    struct t_cose_parameter      **parameters);
@@ -263,7 +263,7 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
 */
 static enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
-                            QCBORDecodeContext            *decode_context,
+                            QCBORDecodeContext            *cbor_decoder,
                             struct q_useful_buf_c          ext_sup_data,
                             struct q_useful_buf_c          detached_payload,
                             struct t_cose_parameter      **parameters);
@@ -353,13 +353,13 @@ t_cose_sign_verify_msg_private(struct t_cose_sign_verify_ctx *me,
 
 static inline enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
-                   QCBORDecodeContext            *decoder,
+                   QCBORDecodeContext            *cbor_decoder,
                    struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf_c         *payload,
                    struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
-                                      decoder,
+                                      cbor_decoder,
                                       ext_sup_data,
                                       false,
                                       payload,
@@ -370,13 +370,13 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
 
 static inline enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
-                            QCBORDecodeContext            *decoder,
+                            QCBORDecodeContext            *cbor_decoder,
                             struct q_useful_buf_c          ext_sup_data,
                             struct q_useful_buf_c          detached_payload,
                             struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
-                                      decoder,
+                                      cbor_decoder,
                                       ext_sup_data,
                                       true,
                                       &detached_payload,

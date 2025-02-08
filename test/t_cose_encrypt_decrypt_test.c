@@ -857,7 +857,7 @@ int32_t decrypt_known_bad(void)
 
     for(i = 0; test_list[i].sz_description != NULL; i++) {
         const struct decrypt_test *t = &test_list[i];
-        const char *test_to_break_on = "wrong tag n";
+        const char *test_to_break_on = "wrong tag";
         if(!strncmp(t->sz_description, test_to_break_on, strlen(test_to_break_on))){
             /* For setting break point for a particular test */
             result = 99;
