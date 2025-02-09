@@ -190,7 +190,12 @@ t_cose_private_process_msg_tag_nums(QCBORDecodeContext  *cbor_decoder,
 
 #if QCBOR_VERSION_MAJOR == 1
 
-/* t_cose v1 style tag number handling when linked with QCBOR v1
+/* 
+ * This is hard-coded to only works for COSE_Sign1. It is the only
+ * format supported by t_cose v1 and hard coding simplies the calling stack.
+ *
+ *
+ * t_cose v1 style tag number handling when linked with QCBOR v1
  * This code is cloned from t_cose v1
  * Order of return_tag_numbers is inner-most first as in t_cose v1.
  */
@@ -213,8 +218,9 @@ t_cose_process_tag_numbers_qcbor1_t_cose1(uint32_t             option_flags,
     /* The 0th tag is the only one that might identify the type of the
      * CBOR we are trying to decode so it is handled special.
      */
-    uTag = QCBORDecode_GetNthTagOfLast(cbor_decoder, item_tag_index);
+    uTag = QCBORDecode_GetNthTag(cbor_decoder, item, item_tag_index);
     item_tag_index++;
+    // TODO: use message_type
     if(option_flags & T_COSE_OPT_TAG_REQUIRED) {
         /* The protocol that is using COSE says the input CBOR must
          * be a COSE tag.
@@ -234,6 +240,7 @@ t_cose_process_tag_numbers_qcbor1_t_cose1(uint32_t             option_flags,
     /* If the protocol using COSE doesn't say one way or another about the
      * tag, then either is OK.
      */
+    *message_type = CBOR_TAG_COSE_SIGN1;
 
 
     /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */

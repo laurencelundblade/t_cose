@@ -128,16 +128,15 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 /*
  * Public Function. See t_cose_encrypt_dec.h
  */
-/* The main decryption implementation */
 enum t_cose_err_t
-t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
-                            QCBORDecodeContext            *cbor_decoder,
-                            const struct q_useful_buf_c    ext_sup_data,
-                            const struct q_useful_buf_c    detached_ciphertext,
-                            struct q_useful_buf            plaintext_buffer,
-                            struct q_useful_buf_c         *plaintext,
-                            struct t_cose_parameter      **returned_parameters,
-                            uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+t_cose_encrypt_dec_main_private(struct t_cose_encrypt_dec_ctx* me,
+                                QCBORDecodeContext            *cbor_decoder,
+                                const struct q_useful_buf_c    ext_sup_data,
+                                const struct q_useful_buf_c    detached_ciphertext,
+                                struct q_useful_buf            plaintext_buffer,
+                                struct q_useful_buf_c         *plaintext,
+                                struct t_cose_parameter      **returned_parameters,
+                                uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
     enum t_cose_err_t              return_value;
     QCBORItem                      array_item;
@@ -441,7 +440,7 @@ Done:
  * Public Function. See t_cose_encrypt_dec.h
  */
 enum t_cose_err_t
-t_cose_encrypt_dec_msg(struct t_cose_encrypt_dec_ctx  *me,
+t_cose_encrypt_dec_msg(struct t_cose_encrypt_dec_ctx *me,
                        const struct q_useful_buf_c    cose_message,
                        const struct q_useful_buf_c    ext_sup_data,
                        struct q_useful_buf            plaintext_buffer,
@@ -466,19 +465,24 @@ t_cose_encrypt_dec_msg(struct t_cose_encrypt_dec_ctx  *me,
     /* QCBORv1 tag number processing is in t_cose_encrypt_dec() */
 #endif /* QCBOR_VERSION_MAJOR >= 2 */
 
-    error = t_cose_encrypt_dec(me,
-                              &cbor_decoder,
-                               ext_sup_data,
-                               plaintext_buffer,
-                               plaintext,
-                               returned_parameters);
+    error = t_cose_encrypt_dec_main_private(me,
+                                           &cbor_decoder,
+                                            ext_sup_data,
+                                            NULL_Q_USEFUL_BUF_C,
+                                            plaintext_buffer,
+                                            plaintext,
+                                            returned_parameters,
+                                            returned_tag_numbers);
 
-     me->option_flags = save_option_flags;
+    me->option_flags = save_option_flags;
 
     return error;
 }
 
 
+/*
+ * Public Function. See t_cose_encrypt_dec.h
+ */
 enum t_cose_err_t
 t_cose_encrypt_dec_detached_msg(struct t_cose_encrypt_dec_ctx *me,
                                 struct q_useful_buf_c          cose_message,
@@ -506,14 +510,14 @@ t_cose_encrypt_dec_detached_msg(struct t_cose_encrypt_dec_ctx *me,
     /* QCBORv1 tag number processing is in t_cose_encrypt_dec_detached() */
 #endif /* QCBOR_VERSION_MAJOR >= 2 */
 
-    error = t_cose_encrypt_dec_detached(me,
-                                       &cbor_decoder,
-                                        ext_sup_data,
-                                        detached_ciphertext,
-                                        plaintext_buffer,
-                                        plaintext,
-                                        returned_parameters,
-                                        returned_tag_numbers);
+    error = t_cose_encrypt_dec_main_private(me,
+                                           &cbor_decoder,
+                                            ext_sup_data,
+                                            detached_ciphertext,
+                                            plaintext_buffer,
+                                            plaintext,
+                                            returned_parameters,
+                                            returned_tag_numbers);
 
     me->option_flags = saved_option_flags;
 

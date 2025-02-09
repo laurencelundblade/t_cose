@@ -126,10 +126,11 @@ t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
         }
     }
 
+    me2->option_flags |= CBOR_TAG_COSE_SIGN1;
+
 #endif /* QCBOR_VERSION_MAJOR >= 2 */
     
     /* Possible tag error conditions processed and all OK. It's a COSE_Sign1 */
-    me2->option_flags |= CBOR_TAG_COSE_SIGN1;
     me2->v1_compatible = true;
 
     return_value = t_cose_sign_verify_private(me2,

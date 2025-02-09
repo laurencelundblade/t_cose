@@ -505,12 +505,14 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     return_value = t_cose_process_tag_numbers_qcbor1(me->option_flags,
                                                      me->v1_compatible,
                                                      cbor_decoder,
-                                                     &array_item,
-                                                     &message_type_tag_number,
+                                                    &array_item,
+                                                    &message_type_tag_number,
                                                      tag_numbers);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
+#else
+    (void)tag_numbers;
 #endif /* QCBOR_VERSION_MAJOR == 1 */
 
 
@@ -643,6 +645,7 @@ t_cose_sign_verify_msg_private(struct t_cose_sign_verify_ctx  *me,
         return error;
     }
 #else
+    (void)returned_tag_numbers;
     /* QCBORv1 tag number processing is in t_cose_sign_verify_private() */
 #endif /* QCBOR_VERSION_MAJOR >= 2 */
 

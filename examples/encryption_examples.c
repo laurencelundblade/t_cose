@@ -91,12 +91,12 @@ encrypt0_example(void)
     t_cose_encrypt_set_cek(&enc_context, cek);
 
     err = t_cose_encrypt_enc_detached(&enc_context,
-                              Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
-                                      NULL_Q_USEFUL_BUF_C,
-                              encrypted_payload_buf,
-                             cose_message_buf,
-                             &encrypted_payload,
-                             &encrypted_cose_message);
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
+                                          NULL_Q_USEFUL_BUF_C,
+                                       encrypted_payload_buf,
+                                       cose_message_buf,
+                                      &encrypted_payload,
+                                      &encrypted_cose_message);
     if(err != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -112,12 +112,13 @@ encrypt0_example(void)
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
     err = t_cose_encrypt_dec_detached_msg(&dec_ctx,
-                                      encrypted_cose_message,
-                                      NULL_Q_USEFUL_BUF_C,
-                                      encrypted_payload,
-                                      decrypted_payload_buf,
-                                     &decrypted_cose_message,
-                                      NULL, NULL);
+                                           encrypted_cose_message,
+                                           NULL_Q_USEFUL_BUF_C,
+                                           encrypted_payload,
+                                           decrypted_payload_buf,
+                                          &decrypted_cose_message,
+                                           NULL,
+                                           NULL);
 
     if (err != T_COSE_SUCCESS) {
         printf("\nDecryption failed %d!\n", err);
@@ -236,12 +237,13 @@ key_wrap_example(void)
     t_cose_encrypt_dec_add_recipient(&dec_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
 
     err = t_cose_encrypt_dec_detached_msg(&dec_context,
-                              encrypted_cose_message, /* ciphertext */
-                                      NULL_Q_USEFUL_BUF_C,
-                              encrypted_payload,
-                              decrypted_payload_buf,
-                             &decrypted_payload,
-                                      NULL, NULL);
+                                           encrypted_cose_message, /* ciphertext */
+                                           NULL_Q_USEFUL_BUF_C,
+                                           encrypted_payload,
+                                           decrypted_payload_buf,
+                                          &decrypted_payload,
+                                           NULL,
+                                           NULL);
     if(err) {
         goto Done;
     }
@@ -350,11 +352,11 @@ esdh_example(void)
                                      (struct t_cose_recipient_dec *)&dec_recipient);
 
     result = t_cose_encrypt_dec_msg(&dec_ctx,
-                                cose_encrypted_message,
-                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
-                                decrypted_buffer,
-                                &decrypted_payload,
-                                &params,
+                                     cose_encrypted_message,
+                                     NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                     decrypted_buffer,
+                                    &decrypted_payload,
+                                    &params,
                                     NULL);
     if(result != T_COSE_SUCCESS) {
         goto Done;
