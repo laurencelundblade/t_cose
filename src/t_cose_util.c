@@ -113,7 +113,6 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 
 
 
-#include <limits.h>
 
 #if QCBOR_VERSION_MAJOR >= 2
 

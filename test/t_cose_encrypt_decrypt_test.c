@@ -270,17 +270,17 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         goto Done;
     }
 
-#if 0
     // TODO: fix this
-    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED);
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
-    t_cose_err = t_cose_encrypt_dec_detached(&dec_ctx,
-                                              encrypted_cose_message,
-                                              NULL_Q_USEFUL_BUF_C,
-                                              encrypted_detached,
-                                              decrypted_payload_buf,
-                                             &decrypted_payload,
-                                             NULL);
+    t_cose_err = t_cose_encrypt_dec_detached_msg(&dec_ctx,
+                                                  encrypted_cose_message,
+                                                  NULL_Q_USEFUL_BUF_C,
+                                                  encrypted_detached,
+                                                  decrypted_payload_buf,
+                                                 &decrypted_payload,
+                                                  NULL,
+                                                  NULL);
     if(t_cose_err) {
         return_value = 7000 + (int32_t)t_cose_err;
         goto Done;
@@ -289,7 +289,6 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         return_value = -8;
         goto Done;
     }
-#endif
 
 
 Done:
