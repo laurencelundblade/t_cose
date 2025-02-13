@@ -1306,11 +1306,11 @@ int32_t verify_multi_test(void)
     t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_rsa);
 
     err = t_cose_sign_verify_msg(&verify_ctx,
-                              cose_sign,
-                              Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
-                             &payload,
-                              NULL,
-                                 NULL);
+                                  cose_sign,
+                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                                 &payload,
+                                  NULL,
+                                  NULL);
 
     if(err) {
         return 3;
@@ -1380,11 +1380,11 @@ int32_t decode_only_multi_test(void)
     t_cose_sign_add_param_storage(&verify_ctx, &st);
 
     err = t_cose_sign_verify_msg(&verify_ctx,
-                              cose_sign,
-                              Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
-                             &payload,
-                             &decoded_params,
-                                 NULL);
+                                  cose_sign,
+                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                                 &payload,
+                                 &decoded_params,
+                                  NULL);
 
     if(err) {
         return 2000 + (int32_t)err;
@@ -1432,11 +1432,11 @@ int32_t decode_only_multi_test(void)
      t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_eddsa);
 
      err = t_cose_sign_verify_msg(&verify_ctx,
-                               cose_sign,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
-                              &payload,
-                              &decoded_params,
-                                  NULL);
+                                   cose_sign,
+                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                                  &payload,
+                                  &decoded_params,
+                                   NULL);
 
      if(err) {
          return 4000 + (int32_t)err;
@@ -1458,11 +1458,11 @@ int32_t decode_only_multi_test(void)
      t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_eddsa);
 
      err = t_cose_sign_verify_msg(&verify_ctx,
-                               cose_sign,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
-                              &payload,
-                              &decoded_params,
-                                  NULL);
+                                   cose_sign,
+                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                                  &payload,
+                                  &decoded_params,
+                                   NULL);
 
      if(err) {
          return 5000 + (int32_t)err;

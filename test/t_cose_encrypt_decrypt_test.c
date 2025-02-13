@@ -231,12 +231,12 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
     // TODO: header callbacks
 
     t_cose_err = t_cose_encrypt_dec_msg(&dec_ctx,
-                                     encrypted_cose_message,
-                                     ext_sup_data,
-                                     decrypted_payload_buf,
-                                    &decrypted_payload,
-                                    &decoded_parameters,
-                                        NULL);
+                                         encrypted_cose_message,
+                                         ext_sup_data,
+                                         decrypted_payload_buf,
+                                        &decrypted_payload,
+                                        &decoded_parameters,
+                                         NULL);
     if(t_cose_err) {
         return_value = 3000 + (int32_t)t_cose_err;
         goto Done;

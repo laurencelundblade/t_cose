@@ -15,7 +15,6 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_compute_validate_mac_test.h"
 #include "data/test_messages.h"
-#include "qcbor/qcbor_decode.h"
 
 
 #define KEY_hmac256 \
@@ -503,10 +502,11 @@ int32_t compute_validate_known_good_test(void)
     t_cose_mac_validate_init(&validate_ctx, 0);
     t_cose_mac_set_validate_key(&validate_ctx, key);
     cose_res = t_cose_mac_validate_msg(&validate_ctx,
-                                    maced_cose,  /* COSE to validate */
-                                    NULL_Q_USEFUL_BUF_C,
-                                   &payload_out, /* Payload from maced_cose */
-                                    NULL, NULL);
+                                        maced_cose,  /* COSE to validate */
+                                        NULL_Q_USEFUL_BUF_C,
+                                       &payload_out, /* Payload from maced_cose */
+                                        NULL,
+                                        NULL);
     if (cose_res != T_COSE_SUCCESS) {
         return_value = 3000 + (int32_t)cose_res;
         goto Done;
@@ -530,10 +530,10 @@ int32_t compute_validate_known_good_test(void)
     t_cose_mac_add_param_storage(&validate_ctx, &extra_params);
 
     cose_res = t_cose_mac_validate_msg(&validate_ctx,
-                                    Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hmac_big_head),
-                                    NULL_Q_USEFUL_BUF_C,
-                                   &payload_out, /* Payload from maced_cose */
-                                   &returns_params, NULL);
+                                        Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hmac_big_head),
+                                        NULL_Q_USEFUL_BUF_C,
+                                       &payload_out, /* Payload from maced_cose */
+                                       &returns_params, NULL);
     if (cose_res != T_COSE_SUCCESS) {
         return_value = 3000 + (int32_t)cose_res;
         goto Done;
@@ -552,10 +552,10 @@ int32_t compute_validate_known_good_test(void)
     t_cose_mac_add_param_storage(&validate_ctx, &extra_params);
 
     cose_res = t_cose_mac_validate_msg(&validate_ctx,
-                                    Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hmac_error_header),
-                                    NULL_Q_USEFUL_BUF_C,
-                                   &payload_out, /* Payload from maced_cose */
-                                   &returns_params, NULL);
+                                        Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hmac_error_header),
+                                        NULL_Q_USEFUL_BUF_C,
+                                       &payload_out, /* Payload from maced_cose */
+                                       &returns_params, NULL);
     if (cose_res != T_COSE_ERR_CBOR_DECODE) {
         return_value = 5000 + (int32_t)cose_res;
         goto Done;

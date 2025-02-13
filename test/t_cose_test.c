@@ -1537,10 +1537,10 @@ int32_t sign1_structure_decode_test(void)
 
 
         result = t_cose_sign_verify_msg(&verify_ctx,
-                                     cose_sign,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
-                                    &payload,
-                                    &decoded_params,
+                                        cose_sign,
+                                        Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
+                                       &payload,
+                                       &decoded_params,
                                         NULL);
         if(result != T_COSE_SUCCESS) {
             return -99;
@@ -2229,14 +2229,11 @@ int32_t crypto_context_test(void)
     t_cose_sign_add_verifier(&verify_ctx,
                              t_cose_signature_verify_from_main(&verifier));
     result = t_cose_sign_verify_msg(&verify_ctx,
-                                /* COSE to verify */
-                                good_signed_cose,
-                                NULL_Q_USEFUL_BUF_C,
-                                /* The returned payload */
-                                &payload,
-                                /* Don't return parameters */
-                                NULL,
-                                    NULL);
+                                     good_signed_cose, /* COSE to verify */
+                                     NULL_Q_USEFUL_BUF_C, /* No ext sup  data*/
+                                    &payload, /* The returned payload */
+                                     NULL, /* Don't return parameters */
+                                     NULL/* Don't care about tag numbers */);
     if(result) {
         return 2000 + (int32_t)result;
     }
@@ -2251,14 +2248,11 @@ int32_t crypto_context_test(void)
     crypto_context.test_error = 18; /* 18 just picked to make test work */
     /* Run the signature verification */
     result = t_cose_sign_verify_msg(&verify_ctx,
-                                /* COSE to verify */
-                                good_signed_cose,
-                                NULL_Q_USEFUL_BUF_C,
-                                /* The returned payload */
-                                &payload,
-                                /* Don't return parameters */
-                                NULL,
-                                    NULL);
+                                     good_signed_cose, /* COSE to verify */
+                                     NULL_Q_USEFUL_BUF_C, /* No ext sup  data*/
+                                    &payload, /* The returned payload */
+                                     NULL, /* Don't return parameters */
+                                     NULL/* Don't care about tag numbers */);
     if(result != 18) {
         return 2000 + (int32_t)result;
     }
