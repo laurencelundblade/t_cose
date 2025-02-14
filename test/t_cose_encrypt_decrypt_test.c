@@ -270,7 +270,6 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         goto Done;
     }
 
-    // TODO: fix this
     t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED);
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
     t_cose_err = t_cose_encrypt_dec_detached_msg(&dec_ctx,

@@ -457,7 +457,10 @@ t_cose_encrypt_dec_msg(struct t_cose_encrypt_dec_ctx *me,
     save_option_flags = me->option_flags;
 
 #if QCBOR_VERSION_MAJOR >= 2
-    error = t_cose_private_process_msg_tag_nums(&cbor_decoder, &me->option_flags, returned_tag_numbers);
+    error = t_cose_private_process_msg_tag_nums(&cbor_decoder,
+                                                T_COSE_ERR_ENCRYPT_FORMAT,
+                                                &me->option_flags,
+                                                returned_tag_numbers);
     if(error) {
         return error;
     }
@@ -502,7 +505,10 @@ t_cose_encrypt_dec_detached_msg(struct t_cose_encrypt_dec_ctx *me,
     saved_option_flags = me->option_flags;
 
 #if QCBOR_VERSION_MAJOR >= 2
-    error = t_cose_private_process_msg_tag_nums(&cbor_decoder, &me->option_flags, returned_tag_numbers);
+    error = t_cose_private_process_msg_tag_nums(&cbor_decoder,
+                                                T_COSE_ERR_ENCRYPT_FORMAT,
+                                                &me->option_flags,
+                                                returned_tag_numbers);
     if(error != T_COSE_SUCCESS) {
         return error;
     }

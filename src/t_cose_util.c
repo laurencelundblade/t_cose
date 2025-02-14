@@ -147,6 +147,7 @@ t_cose_private_consume_tag_nums(QCBORDecodeContext *cbor_decoder,
 /* See interface documentation in t_cose_util.h */
 enum t_cose_err_t
 t_cose_private_process_msg_tag_nums(QCBORDecodeContext  *cbor_decoder,
+                                    enum t_cose_err_t    error_format,
                                     uint32_t            *option_flags,
                                     uint64_t             returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
@@ -156,8 +157,7 @@ t_cose_private_process_msg_tag_nums(QCBORDecodeContext  *cbor_decoder,
 
     cbor_error = t_cose_private_consume_tag_nums(cbor_decoder, unprocessed_tag_nums, &tag_num_index);
     if(cbor_error != QCBOR_SUCCESS) {
-        // TODO: make T_COSE_ERR_MAC_FORMAT a parameter
-        return qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_MESSAGE_FORMAT);
+        return qcbor_decode_error_to_t_cose_error(cbor_error, error_format);
     }
 
     if((*option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) == T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED) {
@@ -219,7 +219,6 @@ t_cose_process_tag_numbers_qcbor1_t_cose1(uint32_t             option_flags,
      */
     uTag = QCBORDecode_GetNthTag(cbor_decoder, item, item_tag_index);
     item_tag_index++;
-    // TODO: use message_type
     if(option_flags & T_COSE_OPT_TAG_REQUIRED) {
         /* The protocol that is using COSE says the input CBOR must
          * be a COSE tag.

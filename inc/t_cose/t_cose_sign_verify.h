@@ -78,6 +78,12 @@ struct t_cose_sign_verify_ctx {
  *
  * This must be called before using the verification context.
  *
+ * \c option_flags may include \ref T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED,
+ * \ref T_COSE_OPT_MESSAGE_TYPE_SIGN1 or \ref T_COSE_OPT_MESSAGE_TYPE_SIGN
+ * to indicate which COSE message type is expected. If
+ * \ref T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED is given, then there must
+ * be a tag number in the input encoded CBOR to indicate which.
+ *
  * TODO: describe (and implement) selection of COSE_Sign1 vs COSE_Sign.
  */
 static void
@@ -208,13 +214,6 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  * See t_cose_sign_add_verifier() for discussion on where the
  * verification key comes from, algorithms, formats and handling of
  * multiple signatures and multiple verifiers.
- *
- * If no option was given to t_cose_sign_verify_init() to indicate whether to process COSE_Sign
- * or COSE_SIgn1, this expects there to be one tag number in the input
- * to indicate which. If an option is given to indicate the message type
- * this expects no tag numbers in the input. See t_cose_sign_verify_message()
- * which does more tag processing.
- * TODO: can this be implemented with QCBOR v1?
  *
  * Verification involves the following steps.
  *

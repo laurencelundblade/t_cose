@@ -74,6 +74,7 @@ t_cose_private_consume_tag_nums(QCBORDecodeContext *cbor_decoder,
  */
 enum t_cose_err_t
 t_cose_private_process_msg_tag_nums(QCBORDecodeContext  *cbor_decoder,
+                                    enum t_cose_err_t    error_format,
                                     uint32_t            *option_flags,
                                     uint64_t             returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
 
