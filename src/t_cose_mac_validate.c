@@ -23,7 +23,7 @@
 
 
 /**
- * \brief Semi-private function to validate a COSE_Mac0 message.
+ * \brief Semi-private main function to validate a COSE_Mac0 message.
  *
  * \param[in] context   The context of COSE_Mac0 validation.
  * \param[in] cbor_decoder    Source of the input COSE message to validate.
@@ -53,7 +53,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             bool                            payload_is_detached,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params,
-                            uint64_t                        returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+                            uint64_t                        tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
@@ -93,7 +93,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                                                      cbor_decoder,
                                                      &array_item,
                                                      &message_type_tag_number,
-                                                     returned_tag_numbers);
+                                                     tag_numbers);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -198,15 +198,7 @@ Done:
 }
 
 
-/*
- * TODO: finish this documentation
- * \param[out] returned_tag_numbers   Place to return tag numbers or NULL.
- *                                    The order is outer-most first, the order
- *                                    from the encoded input.
- *
- * If returned_tag_numbers is NULL and tag numbers are present,
- * an error occurs.
- */
+/* See t_cose_mac_validate_msg() and t_cose_mac_validate_detached_msg() */
 enum t_cose_err_t
 t_cose_mac_validate_msg_private(struct t_cose_mac_validate_ctx *me,
                                 struct q_useful_buf_c           cose_mac,

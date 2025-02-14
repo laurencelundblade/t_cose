@@ -83,8 +83,6 @@ struct t_cose_sign_verify_ctx {
  * to indicate which COSE message type is expected. If
  * \ref T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED is given, then there must
  * be a tag number in the input encoded CBOR to indicate which.
- *
- * TODO: describe (and implement) selection of COSE_Sign1 vs COSE_Sign.
  */
 static void
 t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,

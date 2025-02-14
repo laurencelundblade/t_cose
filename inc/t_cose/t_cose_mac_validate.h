@@ -241,7 +241,7 @@ t_cose_mac_validate_detached_msg(struct t_cose_mac_validate_ctx *context,
  * Private and inline implementations of public functions defined above.
  * ------------------------------------------------------------------------ */
 
-
+/** @private  Semi-private function. See t_cose_mac_validate.c */
 enum t_cose_err_t
 t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             QCBORDecodeContext             *cbor_decoder,
@@ -249,8 +249,9 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             bool                            payload_is_detached,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params,
-                            uint64_t                       returned_tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+                            uint64_t                        tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
 
+/** @private  Semi-private function. See t_cose_mac_validate.c */
 enum t_cose_err_t
 t_cose_mac_validate_msg_private(struct t_cose_mac_validate_ctx *context,
                                 struct q_useful_buf_c           cose_message,
