@@ -1,7 +1,7 @@
 /*
  * t_cose_common.h
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2025, Laurence Lundblade
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -162,7 +162,7 @@ extern "C" {
  * Some formats of COSE_recipient have parameters that are in the
  * COSE_key format. It would be useful to have some library code to
  * handle these, in particular to encode and decode from the key data
- * structure used by the cr *ypto library (OpenSSL, PSA, …).
+ * structure used by the crypto library (OpenSSL, PSA, …).
  */
 
 
@@ -215,6 +215,10 @@ extern "C" {
 #define T_COSE_VERSION_PATCH 0
 
 
+/* The early versions of QCBOR 1.0 didn't define QCBOR_MAJOR_VERSION */
+#ifndef QCBOR_MAJOR_VERSION
+#define QCBOR_MAJOR_VERSION 1
+#endif
 
 
 /* Definition of algorithm IDs is moved to t_cose_standard_constants.h */
@@ -644,6 +648,12 @@ enum t_cose_err_t {
      * They are disabled by default for security reasons.
      * See \ref T_COSE_OPT_ENABLE_NON_AEAD if you are sure to use them. */
     T_COSE_ERR_NON_AEAD_DISABLED = 93,
+  
+    /** Failure decoding a COSE message */
+    T_COSE_ERR_MESSAGE_FORMAT = 94,
+
+    T_COSE_ERR_UNPROCESSED_TAG_NUMBERS = 95
+
 };
 
 
