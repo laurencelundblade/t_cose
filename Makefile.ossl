@@ -54,7 +54,7 @@ C_OPTS=-Os -fPIC
 
 # ---- T_COSE Config and test options ----
 TEST_CONFIG_OPTS=
-TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_sign_verify_test.o test/t_cose_make_test_messages.o $(CRYPTO_TEST_OBJ)
+TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_sign_verify_test.o test/t_cose_make_test_messages.o test/t_cose_mini_sign1_sign_test.o $(CRYPTO_TEST_OBJ)
 
 
 # ---- the main body that is invariant ----
@@ -62,7 +62,7 @@ T_COSE_INC=-I inc -I test -I src
 ALL_INC=$(T_COSE_INC) $(QCBOR_INC) $(CRYPTO_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
-SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o src/t_cose_short_circuit.o
+SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_mini_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o src/t_cose_short_circuit.o
 
 .PHONY: all install install_headers install_so uninstall clean
 
