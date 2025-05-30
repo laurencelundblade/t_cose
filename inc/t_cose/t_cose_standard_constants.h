@@ -275,6 +275,39 @@
 #define T_COSE_ALGORITHM_PS512 -39
 
 /**
+ * \def T_COSE_ALGORITHM_ESP256
+ *
+ * \brief Indicates ECDSA using P-256 curve and SHA-256.
+ *
+ * Value for \ref T_COSE_HEADER_PARAM_ALG to indicate ECDSA with P-256 curve and SHA-256.
+ *
+ * See https://datatracker.ietf.org/doc/html/draft-ietf-jose-fully-specified-algorithms
+ */
+#define T_COSE_ALGORITHM_ESP256 -9
+
+/**
+ * \def COSE_ALGORITHM_ESP384
+ *
+ * \brief Indicates ECDSA using P-384 curve and SHA-384.
+ *
+ * Value for \ref T_COSE_HEADER_PARAM_ALG to indicate ECDSA with P-384 curve and SHA-384.
+ *
+ * See https://datatracker.ietf.org/doc/html/draft-ietf-jose-fully-specified-algorithms
+ */
+#define T_COSE_ALGORITHM_ESP384 -51
+
+/**
+ * \def T_COSE_ALGORITHM_ESP512
+ *
+ * \brief Indicates ECDSA using P-521 curve and SHA-512.
+ *
+ * Value for \ref T_COSE_HEADER_PARAM_ALG to indicate ECDSA with P-521 curve and SHA-512.
+ *
+ * See https://datatracker.ietf.org/doc/html/draft-ietf-jose-fully-specified-algorithms
+ */
+#define T_COSE_ALGORITHM_ESP512 -52
+
+/**
  * \def T_COSE_ALGORITHM_SHA_256
  *
  * \brief Indicates simple SHA-256 hash.
