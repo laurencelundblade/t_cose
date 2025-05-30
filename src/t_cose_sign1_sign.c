@@ -153,6 +153,12 @@ add_unprotected_parameters(const struct t_cose_sign1_sign_ctx *me,
     }
 
     if(me->content_type_tstr != NULL) {
+        /* If the content type is a string, it must be a valid content type string. */
+        enum t_cose_err_t return_value = vaildate_content_type(me->content_type_tstr);
+        if(return_value != T_COSE_SUCCESS) {
+            return return_value;
+        }
+        /* Add the content type string */
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx,
                                       COSE_HEADER_PARAM_CONTENT_TYPE,
                                       me->content_type_tstr);
