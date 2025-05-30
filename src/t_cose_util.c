@@ -61,11 +61,14 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
      */
     static const int16_t hash_alg_map[][2] = {
         { T_COSE_ALGORITHM_ES256 , T_COSE_ALGORITHM_SHA_256 },
+        { T_COSE_ALGORITHM_ESP256 , T_COSE_ALGORITHM_SHA_256 },
 #ifndef T_COSE_DISABLE_ES384
         { T_COSE_ALGORITHM_ES384 , T_COSE_ALGORITHM_SHA_384 },
+        { T_COSE_ALGORITHM_ESP384 , T_COSE_ALGORITHM_SHA_384 },
 #endif
 #ifndef T_COSE_DISABLE_ES512
         { T_COSE_ALGORITHM_ES512 , T_COSE_ALGORITHM_SHA_512},
+        { T_COSE_ALGORITHM_ESP512 , T_COSE_ALGORITHM_SHA_512},
 #endif
 #ifndef T_COSE_DISABLE_PS256
         { T_COSE_ALGORITHM_PS256 , T_COSE_ALGORITHM_SHA_256 },

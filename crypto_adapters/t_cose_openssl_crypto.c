@@ -78,11 +78,14 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_SHA_384,
         T_COSE_ALGORITHM_SHA_512,
         T_COSE_ALGORITHM_ES256,
+        T_COSE_ALGORITHM_ESP256,
 #ifndef T_COSE_DISABLE_ES384
         T_COSE_ALGORITHM_ES384,
+        T_COSE_ALGORITHM_ESP384,
 #endif
 #ifndef T_COSE_DISABLE_ES512
         T_COSE_ALGORITHM_ES512,
+        T_COSE_ALGORITHM_ESP512,
 #endif
 #ifndef T_COSE_DISABLE_PS256
         T_COSE_ALGORITHM_PS256,
@@ -544,11 +547,14 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
     /* The simple list of COSE alg IDs that use ECDSA */
     static const int32_t ecdsa_list[] = {
         T_COSE_ALGORITHM_ES256,
+        T_COSE_ALGORITHM_ESP256,
 #ifndef T_COSE_DISABLE_ES384
         T_COSE_ALGORITHM_ES384,
+        T_COSE_ALGORITHM_ESP384,
 #endif
 #ifndef T_COSE_DISABLE_ES512
         T_COSE_ALGORITHM_ES512,
+        T_COSE_ALGORITHM_ESP512,
 #endif
         T_COSE_ALGORITHM_NONE};
 
