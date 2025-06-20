@@ -828,6 +828,26 @@ t_cose_param_find_kid(const struct t_cose_parameter *parameter_list)
  * Public function. See t_cose_parameters.h
  */
 struct q_useful_buf_c
+t_cose_param_find_enc(const struct t_cose_parameter *parameter_list)
+{
+    const struct t_cose_parameter *p_found;
+
+    p_found = t_cose_param_find(parameter_list, T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY);
+    if(p_found != NULL &&
+       p_found->value_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+        return p_found->value.string;
+    } else {
+        return NULL_Q_USEFUL_BUF_C;
+    }
+}
+
+
+
+
+/*
+ * Public function. See t_cose_parameters.h
+ */
+struct q_useful_buf_c
 t_cose_param_find_iv(const struct t_cose_parameter *parameter_list)
 {
     const struct t_cose_parameter *p_found;

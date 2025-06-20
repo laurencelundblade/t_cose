@@ -17,6 +17,11 @@
 #include "encryption_examples.h"
 
 
+#ifndef T_COSE_DISABLE_HPKE
+#include "encryption_examples.h"
+#endif /* T_COSE_DISABLE_HPKE */
+
+
 typedef int32_t (test_fun_t)(void);
 
 #define TEST_ENTRY(test_name)  {#test_name, test_name, true}
@@ -29,19 +34,27 @@ typedef struct {
 
 static test_entry s_tests[] = {
 
-    TEST_ENTRY(one_step_sign_example),
+/*    TEST_ENTRY(one_step_sign_example),
     TEST_ENTRY(two_step_sign_example),
     TEST_ENTRY(one_step_multi_sign_detached_example),
     TEST_ENTRY(old_one_step_sign_example),
     TEST_ENTRY(old_two_step_sign_example),
 
     TEST_ENTRY(encrypt0_example),
+    */
 #ifndef T_COSE_DISABLE_KEYWRAP
-    TEST_ENTRY(key_wrap_example),
+//    TEST_ENTRY(key_wrap_example),
 #endif /* !T_COSE_DISABLE_KEYWRAP */
 
-    TEST_ENTRY(esdh_example),
-    TEST_ENTRY(esdh_example_detached),
+//    TEST_ENTRY(esdh_example),
+//    TEST_ENTRY(esdh_example_detached),
+
+#ifndef T_COSE_DISABLE_HPKE
+    TEST_ENTRY(hpke0_example),
+    TEST_ENTRY(hpke1_example),
+    TEST_ENTRY(hpke2_example),
+    TEST_ENTRY(hpke_example_detached),
+#endif /* T_COSE_DISABLE_HPKE */
 };
 
 

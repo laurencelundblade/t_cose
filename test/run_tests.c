@@ -61,6 +61,10 @@ static test_entry s_tests[] = {
 
     TEST_ENTRY(decrypt_known_bad),
 
+#ifndef T_COSE_DISABLE_HPKE
+    TEST_ENTRY(hpke_enc_dec_test),
+#endif /* T_COSE_DISABLE_HPKE */
+
     TEST_ENTRY(kdf_context_test),
 
 #endif /* T_COSE_USE_B_CON_SHA256 */
@@ -319,6 +323,11 @@ static void PrintSize(const char    *szWhat,
 
 #include "t_cose/t_cose_recipient_enc_keywrap.h"
 #include "t_cose/t_cose_recipient_dec_keywrap.h"
+
+#ifndef T_COSE_DISABLE_HPKE
+#include "t_cose/t_cose_recipient_enc_hpke.h"
+#include "t_cose/t_cose_recipient_dec_hpke.h"
+#endif /* T_COSE_DISABLE_HPKE */
 
 #include "t_cose/t_cose_recipient_enc_esdh.h"
 #include "t_cose/t_cose_recipient_dec_esdh.h"

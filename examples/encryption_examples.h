@@ -24,4 +24,10 @@ int32_t esdh_example(void);
 
 int32_t esdh_example_detached(void);
 
+int32_t hpke0_example(void);
+int32_t hpke1_example(void);
+int32_t hpke2_example(void);
+
+int32_t hpke_example_detached(void);
+
 #endif /* encryption_examples_h */
