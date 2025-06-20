@@ -8,7 +8,7 @@ project(t_cose
 set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
 
 # Project options
-set(CRYPTO_PROVIDER "OpenSSL" CACHE STRING "The crypto provider to use: ${CRYPTO_PROVIDERS}")
+set(CRYPTO_PROVIDER "MbedTLS" CACHE STRING "The crypto provider to use: ${CRYPTO_PROVIDERS}")
 set(BUILD_TESTS ON CACHE BOOL "Build tests")
 set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 
@@ -34,7 +34,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     find_package(MbedTLS REQUIRED)
-    set(CRYPTO_LIBRARY MbedTLS::MbedCrypto)
+    set(CRYPTO_LIBRARY MbedTLS::tfpsacrypto)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
@@ -82,6 +82,9 @@ set(T_COSE_SRC_COMMON
     src/t_cose_recipient_enc_keywrap.c
     src/t_cose_recipient_dec_esdh.c
     src/t_cose_recipient_enc_esdh.c
+    src/t_cose_recipient_enc_hpke.c
+    src/t_cose_recipient_dec_hpke.c
+    src/hpke.c
     src/t_cose_qcbor_gap.c
 )
 

@@ -215,6 +215,14 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
          key_bitlen     = 256;
          break;
 
+    case T_COSE_ELLIPTIC_CURVE_P_384:
+         type_private   = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         type_public    = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         priv_key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_384_priv_sec1);
+         pub_key_bytes  = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_384_pub_sec1);
+         key_bitlen     = 384;
+         break;
+
     case T_COSE_ELLIPTIC_CURVE_P_521:
          type_private   = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          type_public    = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);

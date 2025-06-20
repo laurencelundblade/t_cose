@@ -730,6 +730,21 @@
  */
 #define T_COSE_HPKE_Base_P256_SHA256_AES128GCM  35
 
+/* Cipher suite for COSE-HPKE in Base Mode that uses the
+ *    DHKEM(P-384, HKDF-SHA384) KEM, the HKDF-SHA384 KDF, and the AES-
+ *    256-GCM AEAD.
+ * 
+ * HPKE-1: KEM = 0x11 | KDF = 0x2 | AEAD = 0x2
+ */
+#define T_COSE_HPKE_Base_P386_SHA384_AES256GCM  37
+
+/* Cipher suite for COSE-HPKE in Base Mode that uses the
+ *    DHKEM(P-521, HKDF-SHA512) KEM, the HKDF-SHA512 KDF, and the AES-
+ *     256-GCM AEAD.
+ * 
+ * HPKE-2: KEM = 0x12 | KDF = 0x3 | AEAD = 0x2
+ */
+#define T_COSE_HPKE_Base_P521_SHA512_AES256GCM  39
 
 /* ------- Constants from RFC 8152 ---------
  */
