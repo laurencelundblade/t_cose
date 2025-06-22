@@ -299,7 +299,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
                 goto Done;
             }
 
-            if(return_value != T_COSE_ERR_DECLINE) {
+            if(return_value ==  T_COSE_ERR_DECLINE) {
                 /* Either we got to the end of the list and on
                  * recipient decoder attempted, or some decoder
                  * attemted and there was an error.  TODO: a lot of

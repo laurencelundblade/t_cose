@@ -499,8 +499,8 @@ hpke2_example(void)
     struct q_useful_buf_c            decrypted_plain_text;
     struct t_cose_key                skR;
     struct t_cose_key                pkR;
-    Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 200);
-    Q_USEFUL_BUF_MAKE_STACK_UB  (    decrypted_plaintext_buffer, 50);
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 500);
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    decrypted_plaintext_buffer, 200);
     struct t_cose_recipient_dec_hpke dec_recipient;
     struct t_cose_encrypt_dec_ctx    dec_ctx;
 

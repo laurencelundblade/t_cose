@@ -238,11 +238,6 @@ int mbedtls_hpke_extract(
     size_t labeled_ikmlen = 0;
     size_t concat_offset = 0;
 
-    if( ikmlen > MBEDTLS_MD_MAX_SIZE )
-    {
-        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
-    }
-
     concat_offset = 0;
 
     // Add version

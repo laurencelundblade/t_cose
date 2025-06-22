@@ -104,12 +104,30 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
 
     /* Fetch algorithm id */
     alg = t_cose_param_find_alg_id_prot(*params);
-    if (alg == T_COSE_HPKE_Base_P256_SHA256_AES128GCM) {
+    switch(alg) {
+    case T_COSE_HPKE_Base_P256_SHA256_AES128GCM:
         sender_info.kem_id = T_COSE_HPKE_KEM_ID_P256;          /* kem id */
         //cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256; /* curve */
         sender_info.kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA256;   /* kdf id */
-        sender_info.aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_128; /* aead id */        
-    } else {
+        sender_info.aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_128; /* aead id */
+        break;
+
+    case T_COSE_HPKE_Base_P386_SHA384_AES256GCM:
+            sender_info.kem_id = T_COSE_HPKE_KEM_ID_P384;          /* kem id */
+            //cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_384; /* curve */
+            sender_info.kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA384;   /* kdf id */
+            sender_info.aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256; /* aead id */
+        break;
+
+    case T_COSE_HPKE_Base_P521_SHA512_AES256GCM:
+        sender_info.kem_id = T_COSE_HPKE_KEM_ID_P521;          /* kem id */
+        //cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_521; /* curve */
+        sender_info.kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA512;   /* kdf id */
+        sender_info.aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256; /* aead id */
+        break;
+
+    default:
+        /* Unsupported HPKE algorithm */
         cose_result = T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
         goto Done;
     }

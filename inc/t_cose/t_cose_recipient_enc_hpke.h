@@ -110,6 +110,12 @@ t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *me,
         kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA384;   /* kdf id */
         aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256; /* aead id */
         break;
+      case T_COSE_HPKE_Base_P521_SHA512_AES256GCM:
+        kem_id = T_COSE_HPKE_KEM_ID_P521;          /* kem id */
+        cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_521; /* curve */
+        kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA512;   /* kdf id */
+        aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256; /* aead id */
+        break;
       default:
         kem_id = 0;
         kdf_id = 0;
