@@ -17,14 +17,16 @@
 #include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose/t_cose_encrypt_dec.h"
 #include "t_cose/t_cose_key.h"
+#include "t_cose/t_cose_sign1_sign.h"
 
 #include <stdio.h>
 #include "print_buf.h"
 #include "init_keys.h"
 
 #define PAYLOAD  "This is the payload"
-#define TEST_SENDER_IDENTITY "sender"
-#define TEST_RECIPIENT_IDENTITY "recipient"
+#define TEST_SENDER_IDENTITY "bob"
+#define TEST_RECIPIENT_IDENTITY "alice"
+#define TEST_EXTERNAL_AAD "some externally provided aad"
 
 
 /* This file is crypto-library independent. It works for OpenSSL, Mbed
@@ -321,7 +323,7 @@ hpke0_example(void)
     /* Now do the actual encryption */
     result = t_cose_encrypt_enc(&enc_ctx, /* in: encryption context */
                                          Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD), /* in: payload to encrypt */
-                                         NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                         Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_EXTERNAL_AAD), /* in/unused: AAD */
                                          cose_encrypt_message_buffer, /* in: buffer for COSE_Encrypt */
                                         &cose_encrypted_message); /* out: COSE_Encrypt */
 
@@ -332,8 +334,102 @@ hpke0_example(void)
 
     print_useful_buf("COSE_Encrypt: ", cose_encrypted_message);
 
-    printf("\nHPKE encryption succeeded; starting decryption\n");
+    printf("\nHPKE encryption succeeded; starting signing\n");
 
+    /* ------   Sender signs the COSE_Encrypt    ------ */
+
+    enum t_cose_err_t                   return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB(         signed_cose_buffer, 300);
+    struct q_useful_buf_c               signed_cose;
+    //struct q_useful_buf_c               returned_payload;
+    //QCBOREncodeContext                  cbor_encoder;
+    //QCBORError                          cbor_result;
+    struct t_cose_sign_sign_ctx         sign_ctx;
+    struct t_cose_key                   key_pair;
+    struct t_cose_signature_sign_main   main_signer;
+
+    /* ------   Load signing key   ------ */
+    return_value = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair);
+
+    printf("Made EC key with curve prime256v1: %d (%s)\n",
+           return_value, return_value ? "fail" : "success");
+    if(return_value) {
+        goto Done;
+    }
+
+
+    /* ------   Initialize for signing    ------
+     *
+     * Initialize the signing context by telling it the the type of
+     * message, a COSE_Sign1.
+     *
+     * Then set up a signer object with the signing algorithm and key.
+     * In this example no kid is given.
+     *
+     * The set-up signer object is then associated with the signing
+     * context. Internally, a callback to the signer will fire when
+     * t_cose_sign_sign() is called. This is when the signer does its
+     * main work and the cryptographic algorithms are run.
+     */
+
+    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+
+    t_cose_signature_sign_main_init(&main_signer, T_COSE_ALGORITHM_ES256);
+
+    t_cose_signature_sign_main_set_signing_key(&main_signer, key_pair, Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_SENDER_IDENTITY));
+
+    t_cose_sign_add_signer(&sign_ctx, t_cose_signature_sign_from_main(&main_signer));
+
+    printf("Initialized t_cose and configured signing key\n");
+
+
+    /* ------   Sign    ------
+     *
+     * This performs encoding of the headers, the signing and
+     * formatting in one API call.
+     *
+     * With this API, the payload ends up in memory twice, once as the
+     * input here and once in the output. If the payload is large,
+     * this needs about double the size of the payload to work.
+     */
+    return_value =
+        t_cose_sign_sign(/* In: The context set up with signing key */
+                         &sign_ctx,
+
+                         /* In: No Externally Supplied AAD */
+                         NULL_Q_USEFUL_BUF_C,
+
+                         /* In: Pointer and length of payload to be
+                          * signed.
+                          */
+                         cose_encrypted_message,
+
+                         /* In: Non-const pointer and length of the
+                          * buffer where the completed output is
+                          * written to. The length is that of the
+                          * whole buffer.
+                          */
+
+                         signed_cose_buffer,
+
+                         /* Out: Const pointer and actual length of
+                          * the completed, signed and encoded
+                          * COSE_Sign1 message. This points into the
+                          * output buffer and has the lifetime of the
+                          * output buffer.
+                          */
+                          &signed_cose);
+
+    printf("Finished signing: %d (%s)\n",
+           return_value, return_value ? "fail" : "success");
+    if(return_value) {
+        goto Done;
+    }
+
+    print_useful_buf("COSE_Sign1 message:", signed_cose);
+    printf("\n");
+
+    printf("\nDecrypt HPKE encrypted payload\n");
 
     /* Set up the decryption context, telling it what type of
      * message to expect if there's no tag (that part isn't quite implemented right yet anyway).
@@ -353,7 +449,7 @@ hpke0_example(void)
 
     result = t_cose_encrypt_dec(&dec_ctx,
                                          cose_encrypted_message, /* in: the COSE_Encrypt message */
-                                         NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                         Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_EXTERNAL_AAD), /* in/unused: AAD */
                                          decrypted_plaintext_buffer,
                                         &decrypted_plain_text,
                                          NULL);
