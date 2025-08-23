@@ -260,6 +260,18 @@ create_enc_structure(const char             *context_string,
 
 
 /*
+ * Create Recipient_structure per Section 3.1.2.1 of 
+ * draft-ietf-cose-hpke.
+ */
+enum t_cose_err_t
+create_recipient_structure(const char            *context_string,
+                           int32_t                cose_alg_id,
+                           struct q_useful_buf_c  protected_headers,
+                           struct q_useful_buf_c  extra_info,
+                           struct q_useful_buf    buffer_for_recipient_struct,
+                           struct q_useful_buf_c *recipient_structure);
+                     
+/*
  * Create the KDF context info structure for ESDH content key
  * distribution as described RFC 9053 section 5. This doesn't allow
  * for filling in some fields like pary U/V nonce. The prevelance of

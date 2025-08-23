@@ -611,7 +611,8 @@ static struct t_cose_parameter
 t_cose_param_make_ct_tstr(struct q_useful_buf_c content_type);
 
 /**
- * Make a struct t_cose_parameter for a key identifier (kid).
+ * Make a struct t_cose_parameter for a key identifier (kid)
+ * for the unprotected header bucket.
  *
  * \param[in] kid    Key identifier.
  *
@@ -622,6 +623,20 @@ t_cose_param_make_ct_tstr(struct q_useful_buf_c content_type);
  */
 static struct t_cose_parameter
 t_cose_param_make_kid(struct q_useful_buf_c kid);
+
+/**
+ * Make a struct t_cose_parameter for a key identifier (kid)
+ * for the protected header bucket.
+ * 
+ * \param[in] kid    Key identifier.
+ *
+ * \return An initialized struct t_cose_parameter.
+ *
+ * See t_cose_param_make_alg_id(). This works the same,
+ * except it is for a key ID (kid).
+ */
+static struct t_cose_parameter
+t_cose_param_make_kid_protected(struct q_useful_buf_c kid);
 
 /**
  * Make a struct t_cose_parameter for an initialization vector.
@@ -1025,6 +1040,23 @@ t_cose_param_make_kid(struct q_useful_buf_c kid)
 
     parameter.critical         = false;
     parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = T_COSE_HEADER_PARAM_KID;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value.string     = kid;
+    parameter.next             = NULL;
+
+    return parameter;
+}
+
+static inline struct t_cose_parameter
+t_cose_param_make_kid_protected(struct q_useful_buf_c kid)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = true;
     parameter.location.index   = 0;
     parameter.location.nesting = 0;
     parameter.label            = T_COSE_HEADER_PARAM_KID;

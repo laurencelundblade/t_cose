@@ -791,6 +791,10 @@ enum t_cose_err_t {
  * TODO to give a bigger buffer.*/
 #define T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE 64
 
+/* Default size allowed for Recipient_structure used in COSE HPKE for key encryption. */
+#define T_COSE_RECIPIENT_STRUCT_DEFAULT_SIZE 200
+
+
 /**
  * The error \ref T_COSE_ERR_NO_KID is returned if the kid parameter
  * is missing. Note that the kid parameter is primarily passed on to

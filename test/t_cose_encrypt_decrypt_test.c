@@ -841,7 +841,6 @@ hpke_enc_dec_test(void)
 
     Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 200);
     struct q_useful_buf_c            cose_encrypted_message;
-    size_t n;
     struct q_useful_buf_c            plaintext_message;
     Q_USEFUL_BUF_MAKE_STACK_UB  (    plaintext_buffer, 100);
 

@@ -562,6 +562,41 @@ create_enc_structure(const char            *context_string,
     return T_COSE_SUCCESS;
 }
 
+enum t_cose_err_t
+create_recipient_structure(const char            *context_string,
+                           int32_t                cose_alg_id,
+                           struct q_useful_buf_c  protected_headers,
+                           struct q_useful_buf_c  extra_info,
+                           struct q_useful_buf    buffer_for_recipient_struct,
+                           struct q_useful_buf_c *recipient_structure)
+{
+    QCBOREncodeContext cbor_encoder;
+    QCBORError         err;
+
+
+    /* Create Recipient_structure per Section 3.1.2.1. of draft-ietf-cose-hpke
+     *
+     * Recipient_structure = [
+     *     context: "HPKE Recipient",
+     *     next_layer_alg: int/tstr,
+     *     recipient_protected_header: empty_or_serialize_map,
+     *     recipient_extra_info: bstr
+     * ]
+     */
+
+    QCBOREncode_Init(&cbor_encoder, buffer_for_recipient_struct);
+    QCBOREncode_OpenArray(&cbor_encoder);
+    QCBOREncode_AddSZString(&cbor_encoder, context_string);
+    QCBOREncode_AddInt64(&cbor_encoder, cose_alg_id);
+    QCBOREncode_AddBytes(&cbor_encoder, protected_headers);
+    QCBOREncode_AddBytes(&cbor_encoder, extra_info);
+    QCBOREncode_CloseArray(&cbor_encoder);
+    err = QCBOREncode_Finish(&cbor_encoder, recipient_structure);
+    if(err) {
+        return T_COSE_ERR_FAIL; // TODO: improve error mapping
+    }
+    return T_COSE_SUCCESS;
+}
 
 
 /*
