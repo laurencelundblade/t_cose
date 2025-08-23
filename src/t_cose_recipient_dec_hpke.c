@@ -60,10 +60,10 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     UsefulBufC   kid;
     UsefulBufC   enc;
  //   QCBORError         uErr;
+    // TODO: allow this to be supplied externally
+     Q_USEFUL_BUF_MAKE_STACK_UB( recipient_struct_buf, T_COSE_RECIPIENT_STRUCT_DEFAULT_SIZE);
 
-    MakeUsefulBufOnStack(enc_struct_buf, 50); // TODO: allow this to be
-                                              // supplied externally
-    struct q_useful_buf_c enc_struct;
+    struct q_useful_buf_c recipient_struct;
 
     me = (struct t_cose_recipient_dec_hpke *)me_x;
 
@@ -159,14 +159,15 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         }
     }
 
+    /* -- Make the Recipient_structure ---- */
+    cose_result =
+        create_recipient_structure("HPKE Recipient",/* in: context string */
+                              ce_alg.cose_alg_id,  /* in: next layer algorithm */
+                              protected_params, /* in: CBOR encoded protected headers */
+                              NULL_Q_USEFUL_BUF_C, /* in: recipient_extra_info */
+                              recipient_struct_buf,  /* in: output buffer */
+                              &recipient_struct);  /* out: encoded Recipient_structure */
 
-
-    /* --- Make the Enc_structure ---- */
-    cose_result = create_enc_structure("Enc_Recipient", /* in: context string */
-                         protected_params,
-                         NULL_Q_USEFUL_BUF_C, /* in: Externally supplied AAD */
-                         enc_struct_buf,
-                         &enc_struct);
     if(cose_result != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -196,7 +197,8 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
              cek_encrypted.ptr,                  // Ciphertext
         // TODO: fix the const-ness all the way down so the cast can be removed
              0, NULL, // enc_struct.len, (uint8_t *)(uintptr_t)enc_struct.ptr,   // AAD
-             0, NULL,                         // Info
+             recipient_struct.len,               // Info length
+             (uint8_t *) recipient_struct.ptr,   // Info
              &cek_len_in_out,                   // Plaintext length
              cek_buffer.ptr                   // Plaintext
          );
