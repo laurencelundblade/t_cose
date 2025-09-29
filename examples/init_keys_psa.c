@@ -2,7 +2,7 @@
  * init_keys_psa.c
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2025, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -239,7 +239,14 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
     status = psa_import_key(&attributes,
                             priv_key_bytes.ptr, priv_key_bytes.len,
                             (mbedtls_svc_key_id_t *)(&private_key->key.handle));
-
+    psa_reset_key_attributes(&attributes);
+    
+    if(status == PSA_ERROR_NOT_SUPPORTED) {
+        return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+    }
+    else if (status != PSA_SUCCESS) {
+        return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+    }
 
     /* Import the public key from the SEC1 representation. It is
      * the only format supported by psa_import_key(). ASN.1/DER/PEM
@@ -253,6 +260,7 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
     status = psa_import_key(&attributes,
                              pub_key_bytes.ptr, pub_key_bytes.len,
                              (mbedtls_svc_key_id_t *)(&public_key->key.handle));
+    psa_reset_key_attributes(&attributes);
 
     /*
      * With PSA, it is also possible to import the private key as
@@ -269,9 +277,13 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
     */
 
 
-    if (status != PSA_SUCCESS) {
-        psa_destroy_key((psa_key_handle_t)private_key->key.handle);
-        return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+    if(status == PSA_ERROR_NOT_SUPPORTED) {
+        (void)psa_destroy_key((mbedtls_svc_key_id_t)private_key->key.handle);
+        return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+    }
+    else if (status != PSA_SUCCESS) {
+        (void)psa_destroy_key((mbedtls_svc_key_id_t)private_key->key.handle);
+        return T_COSE_ERR_PUBLIC_KEY_IMPORT_FAILED;
     }
 
     return T_COSE_SUCCESS;
