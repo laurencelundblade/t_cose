@@ -1,6 +1,6 @@
 # Makefile.psa --  Makefile for t_cose with the Mbed TLS crypto library
 #
-# Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2025, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 # Copyright (c) 2022, Arm Limited. All rights reserved.
 #
