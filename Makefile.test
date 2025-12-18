@@ -82,7 +82,7 @@ warn:
 	make -f Makefile.test CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
 coverage:
-	make -f Makefile.psa CMD_LINE="$(CMD_LINE) -fprofile-arcs -ftest-coverage" t_cose_cov
+	make -f Makefile.test CMD_LINE="$(CMD_LINE) -fprofile-arcs -ftest-coverage" t_cose_cov
 
 # ---- Bring in common definitions of SRC_OBJ, TEST_OBJ, ... -----
 
