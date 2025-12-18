@@ -1,6 +1,6 @@
-# Makefile.ossl --  Makefile for t_cose with the OpenSSL crypto library
+# Makefile.psa --  Makefile for t_cose with the Mbed TLS crypto library
 #
-# Copyright (c) 2019-2025, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 # Copyright (c) 2022, Arm Limited. All rights reserved.
 #
@@ -12,9 +12,10 @@
 
 # ---- General comment ----
 
-# This makefile is for t_cose with the OpenSSL crypto library.  See
-# longer explanation in README.md. Adjust CRYPTO_INC and CRYPTO_LIB
-# for the location of the OpenSSL library on your build machine.
+# This makefile is for t_cose with the Mbed TLS crypto library. Mbed
+# TLS is an implementation of the PSA crypto API.  See longer
+# explanation in README.md. Adjust CRYPTO_INC and CRYPTO_LIB for the
+# location of the Mbed TLS library on your build machine.
 
 # Makefile.common, included below, contains the lists of library, test
 # and example object files that are invariant by crypto library.
@@ -25,7 +26,7 @@
 # This is for direct reference to QCBOR that is not installed in
 # /usr/local or some system location. The path may need to be adjusted
 # for your location of QCBOR.
-#QCBOR_DIR=../../QCBOR/master
+#QCBOR_DIR=../../QCBOR/tagfinish
 #QCBOR_INC=-I $(QCBOR_DIR)/inc
 #QCBOR_LIB=$(QCBOR_DIR)/libqcbor.a
 
@@ -38,22 +39,21 @@ QCBOR_LIB=-lqcbor
 
 # ---- crypto configuration -----
 
-# These two are for direct reference to OpenSSL that is not installed
-# in /usr/local or some system location. The path names
-# may need to be adjusted for your location of OpenSSL
-#CRYPTO_INC=-I ../../openssl/openssl-1.1.1b/include/openssl -I ../../openssl/openssl-1.1.1b/include
-#CRYPTO_LIB=../../openssl/openssl-1.1.1b/libcrypto.a
+# These two are for direct reference to Mbed TLS crypto that is not
+# installed in /usr/local or some system location. The path names may
+# need to be adjusted for your location of Mbed TLS
+#CRYPTO_INC=-I ../../mbedtls/include/
+#CRYPTO_LIB=../../mbedtls/library/libmbedcrypto.a
 
-# These two are for reference to OpenSSL that has been installed in
-# /usr/local/ or in some system location.
-CRYPTO_LIB=-l crypto
+# These two are for reference to Mbed TLS that has been installed in
+# /usr/local or in some system location.
+CRYPTO_LIB=-l mbedcrypto
 CRYPTO_INC=-I /usr/local/include
 
-CRYPTO_CONFIG_OPTS=-DT_COSE_USE_OPENSSL_CRYPTO
-CRYPTO_OBJ=crypto_adapters/t_cose_openssl_crypto.o
-CRYPTO_TEST_OBJ=examples/init_keys_ossl.o
-CRYPTO_EXAMPLE_OBJ=examples/init_keys_ossl.o
-
+CRYPTO_CONFIG_OPTS=-DT_COSE_USE_PSA_CRYPTO
+CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o
+CRYPTO_TEST_OBJ=examples/init_keys_psa.o
+CRYPTO_EXAMPLE_OBJ=examples/init_keys_psa.o
 
 
 # ---- other configuration ----
@@ -71,7 +71,7 @@ OTHER_OPTS=
 # https://github.com/laurencelundblade/tdv.  This script is used
 # before pushes to master (though not yet through an automated build
 # process). See "warn:" below.
-C_OPTS=-Os -fPIC -Wno-deprecated-declarations
+C_OPTS=-Os -fPIC
 
 
 # ---- Aggregate includes and options ----
@@ -88,10 +88,7 @@ all: libt_cose.a t_cose_test t_cose_examples
 # run "make warn" as a handy way to compile with the warning flags
 # used in the QCBOR release process. See C_OPTS above.
 warn:
-	make -f Makefile.ossl CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
-
-coverage:
-	make -f Makefile.ossl CMD_LINE="$(CMD_LINE) -fprofile-arcs -ftest-coverage" t_cose_cov
+	make -f Makefile.psa CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
 
 # ---- Bring in common definitions of SRC_OBJ, TEST_OBJ, ... -----
@@ -114,20 +111,14 @@ libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 t_cose_test: main.o $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
 	cc -dead_strip -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
-t_cose_cov: main.o $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
-	cc -fprofile-arcs -ftest-coverage -o $@ $^ $(CRYPTO_LIB) $(QCBOR_LIB)
+crypto_adapters/t_cose_psa_crypto.o: crypto_adapters/t_cose_psa_crypto.c \
+                                     src/t_cose_crypto.h \
+                                     src/t_cose_util.h \
+                                     inc/t_cose/t_cose_standard_constants.h
 
-t_cose_basic_example_ossl: examples/t_cose_basic_example_ossl.o examples/encryption_examples_ossl.o libt_cose.a
-	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
-
-crypto_adapters/t_cose_ossl_crypto.o: crypto_adapters/t_cose_ossl_crypto.c \
-                                      src/t_cose_crypto.h \
-                                      src/t_cose_util.h \
-                                      t_cose/t_cose_standard_constants.h
-
-examples/init_keys_ossl.o: 	examples/init_keys_ossl.c \
-				examples/init_keys.h \
-				$(PUBLIC_INTERFACE)
+examples/init_keys_psa.o: examples/init_keys_psa.c \
+                          examples/init_keys.h \
+                          $(PUBLIC_INTERFACE)
 
 t_cose_examples: $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
@@ -162,6 +153,6 @@ uninstall: libt_cose.a $(PUBLIC_INTERFACE)
 
 clean:
 	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) $(CRYPTO_TEST_OBJ) $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) \
-        $(COV_FILES) t_cose_cov t_cose_examples libt_cose.so \
+        t_cose_examples libt_cose.so \
         main.o t_cose_test libt_cose.a libt_cose.so
 
