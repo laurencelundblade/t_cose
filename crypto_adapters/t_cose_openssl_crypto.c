@@ -13,6 +13,8 @@
 
 #include "t_cose_crypto.h" /* The interface this code implements */
 
+#include <openssl/bn.h>
+#include <openssl/crypto.h>
 #include <openssl/ecdsa.h> /* Needed for signature format conversion */
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
