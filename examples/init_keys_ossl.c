@@ -48,8 +48,11 @@ init_signing_key_der(int32_t               cose_algorithm_id,
 
     switch (cose_algorithm_id) {
      case T_COSE_ALGORITHM_ES256:
+     case T_COSE_ALGORITHM_ESP256:
      case T_COSE_ALGORITHM_ES384:
+     case T_COSE_ALGORITHM_ESP384:
      case T_COSE_ALGORITHM_ES512:
+     case T_COSE_ALGORITHM_ESP512:
          key_type = EVP_PKEY_EC;
          break;
 
@@ -105,14 +108,17 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
     /* Select the key bytes based on the algorithm */
     switch (cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
+    case T_COSE_ALGORITHM_ESP256:
         der_encoded_key = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_key_pair_der);
         break;
 
     case T_COSE_ALGORITHM_ES384:
+    case T_COSE_ALGORITHM_ESP384:
         der_encoded_key = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_key_pair_der);
         break;
 
     case T_COSE_ALGORITHM_ES512:
+    case T_COSE_ALGORITHM_ESP512:
         der_encoded_key = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_key_pair_der);
         break;
 

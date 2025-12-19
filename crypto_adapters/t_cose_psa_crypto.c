@@ -76,11 +76,14 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_SHA_384,
         T_COSE_ALGORITHM_SHA_512,
         T_COSE_ALGORITHM_ES256,
+        T_COSE_ALGORITHM_ESP256,
 #ifndef T_COSE_DISABLE_ES384
         T_COSE_ALGORITHM_ES384,
+        T_COSE_ALGORITHM_ESP384,
 #endif
 #ifndef T_COSE_DISABLE_ES512
         T_COSE_ALGORITHM_ES512,
+        T_COSE_ALGORITHM_ESP512,
 #endif
 #ifndef T_COSE_DISABLE_PS256
         T_COSE_ALGORITHM_PS256,
@@ -123,12 +126,18 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 {
     /* The #ifdefs save a little code when algorithms are disabled */
     switch(cose_alg_id) {
-        case T_COSE_ALGORITHM_ES256 : return PSA_ALG_ECDSA(PSA_ALG_SHA_256);
+        case T_COSE_ALGORITHM_ES256 :
+        case T_COSE_ALGORITHM_ESP256 :
+            return PSA_ALG_ECDSA(PSA_ALG_SHA_256);
 #ifndef T_COSE_DISABLE_ES384
-        case T_COSE_ALGORITHM_ES384 : return PSA_ALG_ECDSA(PSA_ALG_SHA_384);
+        case T_COSE_ALGORITHM_ES384 :
+        case T_COSE_ALGORITHM_ESP384 :
+            return PSA_ALG_ECDSA(PSA_ALG_SHA_384);
 #endif
 #ifndef T_COSE_DISABLE_ES512
-        case T_COSE_ALGORITHM_ES512 : return PSA_ALG_ECDSA(PSA_ALG_SHA_512);
+        case T_COSE_ALGORITHM_ES512 :
+        case T_COSE_ALGORITHM_ESP512 :
+            return PSA_ALG_ECDSA(PSA_ALG_SHA_512);
 #endif
 #ifndef T_COSE_DISABLE_PS256
         case T_COSE_ALGORITHM_PS256 : return PSA_ALG_RSA_PSS(PSA_ALG_SHA_256);
