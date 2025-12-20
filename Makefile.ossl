@@ -1,6 +1,6 @@
 # Makefile -- UNIX-style make for t_cose using OpenSSL crypto
 #
-# Copyright (c) 2019-2021, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2025, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -68,6 +68,14 @@ SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/
 
 all: libt_cose.a t_cose_test t_cose_basic_example_ossl
 
+# run "make warn" as a handy way to compile with the warning flags
+# used in the QCBOR release process. See C_OPTS above.
+warn:
+	make -f Makefile.ossl CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
+
+coverage:
+	make -f Makefile.ossl CMD_LINE="$(CMD_LINE) -fprofile-arcs -ftest-coverage" t_cose_cov
+
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
 
@@ -79,6 +87,10 @@ libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 
 t_cose_test: main.o $(TEST_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
+
+t_cose_cov: main.o $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
+	cc -fprofile-arcs -ftest-coverage -o $@ $^ $(CRYPTO_LIB) $(QCBOR_LIB)
+
 
 
 t_cose_basic_example_ossl: examples/t_cose_basic_example_ossl.o libt_cose.a
@@ -113,8 +125,10 @@ uninstall: libt_cose.a $(PUBLIC_INTERFACE)
 	$(RM) $(addprefix $(DESTDIR)$(PREFIX)/lib/, \
 		libt_cose.a libt_cose.so libt_cose.so.1 libt_cose.so.1.0.0)
 
+GCOV_FILES=*.gcov src/*.gc{da,no} crypto_adapters/*.gc{da,no} crypto_adapters/b_con_hash/*.gc{da,no} *.gc{da,no} test/*.gc{da,no} examples/*.gc{no,da} *.gc{da,no} t_cose_cov
+
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_basic_example_ossl examples/*.o t_cose_test libt_cose.a libt_cose.so main.o
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) $(GCOV_FILES) t_cose_basic_example_ossl examples/*.o t_cose_test libt_cose.a libt_cose.so main.o
 
 
 # ---- public headers -----
