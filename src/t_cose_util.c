@@ -284,5 +284,49 @@ struct q_useful_buf_c get_short_circuit_kid(void)
 
     return short_circuit_kid;
 }
+#endif
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+
+/**
+ * Public function. See t_cose_util.h
+ */
+enum t_cose_err_t vaildate_content_type(const char *str)
+{
+    enum t_cose_err_t           return_value;
+    int i = 0;
+    int slash_index = -1;
+
+    if (is_space(str[0])) {
+        return T_COSE_ERR_BAD_CONTENT_TYPE;
+    }
+
+    while (str[i] != '\0') {
+        if (str[i] == '/') {
+            if (slash_index != -1) { // More than one slash?
+                return T_COSE_ERR_BAD_CONTENT_TYPE;
+            }
+            slash_index = i;
+        }
+        i++;
+    }
+
+    if (slash_index == -1) { // No slash?
+        return T_COSE_ERR_BAD_CONTENT_TYPE;
+    }else if (slash_index == 0 || str[slash_index + 1] == '\0') {
+        // Slash at the start or end?
+        return T_COSE_ERR_BAD_CONTENT_TYPE;
+    } else if (is_space(str[slash_index - 1]) || is_space(str[slash_index + 1])) {
+        // Check for spaces before and after the slash
+        return T_COSE_ERR_BAD_CONTENT_TYPE;
+    }
+
+    int last = i - 1;
+    if (is_space(str[last])){
+        // Space at the end
+        return T_COSE_ERR_BAD_CONTENT_TYPE;
+    }
+
+    return T_COSE_SUCCESS;
+}
 #endif
