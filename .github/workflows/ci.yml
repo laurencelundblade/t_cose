@@ -165,7 +165,7 @@ jobs:
           make install
 
       - name: Install OpenSSL with vcpkg
-        uses lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: '**/vcpkg.json'
 
