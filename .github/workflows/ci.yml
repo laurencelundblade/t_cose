@@ -128,3 +128,63 @@ jobs:
               matrix.config.crypto-provider-version == 'v3.4.0' &&
               matrix.config.crypto-provider-build-extra == '' ) }}
       run: build/t_cose_test
+
+  msvc:
+    name: msvc * windows-latest
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        crypto: OpenSSL   
+    
+    env:
+      ARCH: x64
+
+    steps:
+     - uses: actions/checkout@v4
+
+      # Optional: ensures Dev Cmd environment; the VS generator usually finds MSVC without this,
+      # but keeping it makes detection deterministic.
+      - name: Set up MSVC DevCmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.ARCH }}
+
+      - name: Fetch QCBOR
+        uses: actions/checkout@v3
+        with:
+          repository: laurencelundblade/QCBOR
+          path: QCBOR
+
+      - name: Install QCBOR
+      run: |
+        cd QCBOR
+        make
+        make install
+
+      -name: Install OpenSSL with vcpkg
+        uses lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: '**/vcpkg.json'
+
+      - name: Configure (CMake → VS solution)
+        shell: bash
+        run: |
+          cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
+            -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
+            -DCRYPT_PROVIDER=${{ matrix.crypto }}
+
+      - name: Build
+        run: cmake --build build
+        shell: pwsh
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $exe = "build/test/Debug/t_cose_test.exe"
+          if (!(Test-Path $exe)) {
+            Write-Error "Test binary not found: $exe"
+          }
+          & $exe
