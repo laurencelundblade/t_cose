@@ -130,20 +130,20 @@ jobs:
       run: build/t_cose_test
 
   msvc:
-    name: msvc * windows-latest
+    name:  msvc • windows-latest
     runs-on: windows-latest
 
     strategy:
       fail-fast: false
 
       matrix:
-        crypto: OpenSSL   
+        crypto: [ ossl ]
     
     env:
       ARCH: x64
 
     steps:
-     - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       # Optional: ensures Dev Cmd environment; the VS generator usually finds MSVC without this,
       # but keeping it makes detection deterministic.
@@ -159,10 +159,10 @@ jobs:
           path: QCBOR
 
       - name: Install QCBOR
-      run: |
-        cd QCBOR
-        make
-        make install
+        run: |
+          cd QCBOR
+          make
+          make install
 
       -name: Install OpenSSL with vcpkg
         uses lukka/run-vcpkg@v11
