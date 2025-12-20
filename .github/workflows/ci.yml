@@ -130,13 +130,13 @@ jobs:
       run: build/t_cose_test
 
   msvc:
-    name:  msvc • windows-latest
+    name: msvc • windows-latest
     runs-on: windows-latest
 
     strategy:
       fail-fast: false
-
       matrix:
+
         crypto: [ ossl ]
     
     env:
@@ -164,7 +164,7 @@ jobs:
           make
           make install
 
-      -name: Install OpenSSL with vcpkg
+      - name: Install OpenSSL with vcpkg
         uses lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: '**/vcpkg.json'
