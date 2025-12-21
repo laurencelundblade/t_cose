@@ -1,6 +1,7 @@
 {
   "name": "my-project",
   "version": "1.0.0",
+  "baseline": "e5b297b587a67dd570f9ff357831d06ce0ceaa65",
   "dependencies": [
     "openssl"
   ]
