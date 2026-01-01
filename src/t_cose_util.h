@@ -34,8 +34,6 @@ extern "C" {
  */
 
 
-
-
 /*
  * \brief Process CBOR tag numbers and figure out message type.
  *
@@ -389,6 +387,20 @@ t_cose_int16_map(const int16_t map[][2], int16_t query);
  */
 bool
 t_cose_alg_is_non_aead(int32_t cose_algorithm_id);
+
+/**
+ * \brief Determine whether a COSE algorithm identifier represents an HPKE
+ * integrated encryption algorithms.
+ *
+ * \param[in] cose_algorithm_id
+ *     The COSE algorithm identifier to test.
+ *
+ * \returns
+ *     true if the algorithm identifier represents a COSE-HPKE integrated
+ *     encryption algorithm, false otherwise.
+ */
+bool
+t_cose_alg_is_hpke_integrated(int32_t cose_algorithm_id);
 
 #ifdef __cplusplus
 }

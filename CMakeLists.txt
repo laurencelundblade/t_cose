@@ -11,6 +11,7 @@ set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
 set(CRYPTO_PROVIDER "MbedTLS" CACHE STRING "The crypto provider to use: ${CRYPTO_PROVIDERS}")
 set(BUILD_TESTS ON CACHE BOOL "Build tests")
 set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
+set(BUILD_CLI ON CACHE BOOL "Build hpke_cli")
 
 if (NOT CRYPTO_PROVIDER IN_LIST CRYPTO_PROVIDERS)
     message(FATAL_ERROR "CRYPTO_PROVIDER must be one of ${CRYPTO_PROVIDERS}")
@@ -34,7 +35,21 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     find_package(MbedTLS REQUIRED)
-    set(CRYPTO_LIBRARY MbedTLS::tfpsacrypto)
+
+    if (TARGET MbedTLS::tfpsacrypto)
+        # Newer layout: PSA backend target exported this way
+        # (untested at this point because the PSA API has changed as well)
+        set(CRYPTO_LIBRARY MbedTLS::tfpsacrypto)
+    elseif (TARGET MbedTLS::mbedcrypto)
+        # Classic Mbed TLS 2.x/3.x
+        # Tested with Mbed TLS 3.6.5
+        set(CRYPTO_LIBRARY MbedTLS::mbedcrypto)
+    else()
+        message(FATAL_ERROR
+            "No suitable Mbed TLS crypto target found "
+            "(expected MbedTLS::tfpsacrypto or MbedTLS::mbedcrypto)")
+    endif()
+
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
@@ -104,6 +119,68 @@ install(TARGETS t_cose
 )
 install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
+
+if (BUILD_CLI AND CRYPTO_PROVIDER STREQUAL "MbedTLS")
+
+    set(CLI_SRC_COMMON
+        examples/hpke_cli.c
+    )
+
+    add_executable(hpke_cli ${CLI_SRC_COMMON})
+
+    target_include_directories(hpke_cli
+        PRIVATE
+            examples
+            src
+    )
+
+    target_link_libraries(hpke_cli
+        PRIVATE
+            t_cose
+            ${CRYPTO_LIBRARY}
+            QCBOR::QCBOR
+    )
+
+    target_compile_definitions(hpke_cli
+        PRIVATE
+            ${CRYPTO_COMPILE_DEFS}
+            ${EXAMPLE_EXTRA_DEFS}
+    )
+elseif(BUILD_CLI)
+    message(STATUS "Skipping hpke_cli: requires CRYPTO_PROVIDER=MbedTLS")
+endif()
+
+
+if (BUILD_COSE_KEY_GEN AND CRYPTO_PROVIDER STREQUAL "MbedTLS")
+
+    set(CLI_SRC_COMMON
+        examples/cose_key_gen.c
+    )
+
+    add_executable(cose_key_gen ${CLI_SRC_COMMON})
+
+    target_include_directories(cose_key_gen
+        PRIVATE
+            examples
+            src
+    )
+
+    target_link_libraries(cose_key_gen
+        PRIVATE
+            t_cose
+            ${CRYPTO_LIBRARY}
+            QCBOR::QCBOR
+    )
+
+    target_compile_definitions(cose_key_gen
+        PRIVATE
+            ${CRYPTO_COMPILE_DEFS}
+            ${EXAMPLE_EXTRA_DEFS}
+    )
+elseif(BUILD_COSE_KEY_GEN)
+    message(STATUS "Skipping cose_key_gen: requires CRYPTO_PROVIDER=MbedTLS")
+endif()
+
 if (BUILD_EXAMPLES)
 
     set(EXAMPLE_SRC_COMMON
@@ -126,7 +203,7 @@ if (BUILD_EXAMPLES)
 
     add_executable(t_cose_examples ${EXAMPLE_SRC_COMMON} ${EXAMPLE_SRC_EXTRA})
 
-    target_include_directories(t_cose_examples PRIVATE examples)
+    target_include_directories(t_cose_examples PRIVATE src examples)
     target_link_libraries(t_cose_examples PRIVATE t_cose ${CRYPTO_LIBRARY})
     # Crypto defs are needed because the tests include headers from src/
     target_compile_definitions(t_cose_examples PRIVATE ${CRYPTO_COMPILE_DEFS} ${EXAMPLE_EXTRA_DEFS})

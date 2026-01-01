@@ -20,6 +20,8 @@ int32_t key_wrap_example(void);
 
 int32_t encrypt0_example(void);
 
+int32_t encrypt0_hpke_example(void);
+
 int32_t esdh_example(void);
 
 int32_t esdh_example_detached(void);

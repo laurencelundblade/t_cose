@@ -55,6 +55,8 @@
 #warning "Use of COSE algorithms A128KW..A256KW will return an error"
 #endif /* MBEDTLS_VERSION_MAJOR < 3 */
 
+// For debugging only
+#include <stdio.h>
 
 /* Avoid compiler warning due to unused argument */
 #define ARG_UNUSED(arg) (void)(arg)
@@ -699,6 +701,14 @@ t_cose_crypto_generate_ec_key(const int32_t       cose_ec_curve_id,
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 521;
          break;
+    case T_COSE_ELLIPTIC_CURVE_X25519:
+         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_MONTGOMERY);
+         key_bitlen = 255;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_X448:
+         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_MONTGOMERY);
+         key_bitlen = 448;
+         break;
     default:
         return(T_COSE_ERR_UNSUPPORTED_KEM_ALG);
     }
@@ -1092,6 +1102,12 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
             psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
             key_bitlen = 256;
             break;
+        case T_COSE_ALGORITHM_CHACHA20_POLY1305:
+            psa_algorithm = PSA_ALG_CHACHA20_POLY1305;
+            psa_keytype = PSA_KEY_TYPE_CHACHA20;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
+            key_bitlen = 256;
+            break;
 
         case T_COSE_ALGORITHM_HMAC256:
             psa_keytype = PSA_KEY_TYPE_HMAC;
@@ -1146,15 +1162,9 @@ static size_t
 aead_byte_count(const int32_t cose_algorithm_id,
                 size_t        plain_text_len)
 {
-    /* So far this just works for GCM AEAD algorithms, but can be
-     * augmented for others.
-     *
-     * For GCM as used by COSE and HPKE, the authentication tag is
-     * appended to the end of the cipher text and is always 16 bytes.
-     * Since GCM is a variant of counter mode, the ciphertext length
-     * is the same as the plaintext length. (This is not true of other
-     * ciphers).
-     * https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+    /* Works for the AEADs we support (GCM and ChaCha20-Poly1305), both of
+     * which append a 16-byte tag and keep ciphertext length equal to
+     * plaintext length. Extend if new AEADs with different tag sizes are added.
      */
 
     /* The same tag length for all COSE and HPKE AEAD algorithms supported.*/
@@ -1166,6 +1176,8 @@ aead_byte_count(const int32_t cose_algorithm_id,
         case T_COSE_ALGORITHM_A192GCM:
             return plain_text_len + common_gcm_tag_length;
         case T_COSE_ALGORITHM_A256GCM:
+            return plain_text_len + common_gcm_tag_length;
+        case T_COSE_ALGORITHM_CHACHA20_POLY1305:
             return plain_text_len + common_gcm_tag_length;
         default: return SIZE_MAX;;
     }
@@ -1264,7 +1276,8 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     psa_algorithm_t  psa_algorithm_id;
     psa_status_t     status;
 
-    /* Pretty sure the optimizer will do good things with this switch. */
+    fprintf(stderr, "cose_algorithm_id=%d\n", cose_algorithm_id);
+
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
             psa_algorithm_id = PSA_ALG_GCM;
@@ -1280,6 +1293,9 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
             break;
         case T_COSE_ALGORITHM_AES256CCM_16_128:
             psa_algorithm_id = PSA_ALG_CCM;
+            break;
+        case T_COSE_ALGORITHM_CHACHA20_POLY1305:
+            psa_algorithm_id = PSA_ALG_CHACHA20_POLY1305;
             break;
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
@@ -1303,10 +1319,6 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     ciphertext->ptr = ciphertext_buffer.ptr;
 
     return aead_psa_status_to_t_cose_err(status, T_COSE_ERR_ENCRYPT_FAIL);
-
-    /* If you want to feel good about how nice the PSA API for
-     * AEAD is, go look at the AEAD crypto adaptor for OpenSSL.
-     */
 }
 
 
@@ -1419,6 +1431,9 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
             break;
         case T_COSE_ALGORITHM_A256GCM:
             psa_algorithm_id = PSA_ALG_GCM;
+            break;
+        case T_COSE_ALGORITHM_CHACHA20_POLY1305:
+            psa_algorithm_id = PSA_ALG_CHACHA20_POLY1305;
             break;
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright 2023, Laurence Lundblade
- * Copyright (c) 2024, Hannes Tschofenig. All rights reserved.
+ * Copyright (c) 2024-2026, Hannes Tschofenig. All rights reserved.
  *
  * Created by Laurence Lundblade on 2/6/23 from previous files.
  *
@@ -18,6 +18,10 @@
 #include "t_cose/t_cose_encrypt_dec.h"
 #include "t_cose/t_cose_key.h"
 #include "t_cose/t_cose_sign1_sign.h"
+
+#ifndef T_COSE_DISABLE_HPKE
+#include "t_cose/t_cose_recipient_enc_hpke.h"
+#endif
 
 #include <stdio.h>
 #include "print_buf.h"
@@ -38,6 +42,76 @@
 * (not a test case). Someone should be able to easily copy the
 * example as a starting point for their use case.
 */
+
+
+
+int32_t
+encrypt0_hpke_example(void)
+{
+    struct t_cose_encrypt_enc        enc_context;
+    struct t_cose_recipient_enc_hpke recipient;
+    enum t_cose_err_t                err;
+    struct q_useful_buf_c            encrypted_cose_message;
+    Q_USEFUL_BUF_MAKE_STACK_UB(      cose_message_buf, 1024);
+    struct t_cose_key                skR;
+    struct t_cose_key                pkR;
+    enum t_cose_err_t                result;
+
+    printf("\n---- START HPKE integrated encrypt0 example  ----\n");
+    printf("Create COSE_Encrypt0 using HPKE with KEM: DHKEM(P-256, HKDF-SHA256), KDF: HKDF-SHA256, AEAD: AES-128-GCM\n");
+
+    /* Create a key pair for the recipient */
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                               &pkR, /* out: public key to be used for encryption */
+                                               &skR); /* out: corresponding private key for decryption */
+    if(result != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* Initialize the encryption context for COSE_Encrypt0 with HPKE integrated mode.
+     * The algorithm ID here is the HPKE suite (not just the AEAD).
+     */
+    t_cose_encrypt_enc_init(&enc_context,
+                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0,
+                            T_COSE_HPKE_Base_P256_SHA256_AES128GCM);
+
+    /* Create and configure the HPKE recipient object */
+    t_cose_recipient_enc_hpke_init(&recipient,
+                                    T_COSE_HPKE_Base_P256_SHA256_AES128GCM);
+
+    t_cose_recipient_enc_hpke_set_key(&recipient,
+                                       pkR,
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL("alice"));
+
+    /* Add the recipient to the encryption context.
+     * For Encrypt0 integrated mode, this single recipient provides the
+     * recipient public key (pkR) and HPKE suite configuration.
+     */
+    t_cose_encrypt_add_recipient(&enc_context,
+                                 (struct t_cose_recipient_enc *)&recipient);
+
+    /* Perform HPKE encryption (ciphertext is inside the COSE_Encrypt0) */
+    err = t_cose_encrypt_enc(&enc_context,
+                             Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
+                             NULL_Q_USEFUL_BUF_C,
+                             cose_message_buf,
+                             &encrypted_cose_message);
+    if(err != T_COSE_SUCCESS) {
+        printf("Encryption failed with error: %d\n", err);
+        goto Done;
+    }
+
+    print_useful_buf("COSE_Encrypt0 (HPKE integrated): ", encrypted_cose_message);
+    printf("\n");
+
+    printf("Encryption succeeded. Decryption not yet implemented for Encrypt0 integrated mode.\n");
+
+Done:
+    printf("---- %s EXAMPLE encrypt0_hpke (%d) ----\n\n",
+           err ? "FAILED" : "COMPLETED", err);
+    return (int32_t)err;
+}
+
 
 
 
@@ -517,7 +591,7 @@ hpke1_example(void)
      * there could be more)
      */
     t_cose_recipient_enc_hpke_init(&recipient,
-                                    T_COSE_HPKE_Base_P386_SHA384_AES256GCM);
+                                    T_COSE_HPKE_Base_P384_SHA384_AES256GCM);
 
     t_cose_recipient_enc_hpke_set_key(&recipient,
                                        pkR,
@@ -1011,4 +1085,3 @@ Done:
     return (int32_t)result;
 }
 #endif /* !T_COSE_DISABLE_ESDH */
-

@@ -44,6 +44,8 @@ struct t_cose_recipient_dec_hpke {
 
     struct t_cose_key     skr;
     struct q_useful_buf_c kid;
+    struct q_useful_buf_c psk;
+    struct q_useful_buf_c psk_id;
 };
 
 
@@ -62,6 +64,11 @@ static void
 t_cose_recipient_dec_hpke_set_skr(struct t_cose_recipient_dec_hpke *context,
                                   struct t_cose_key                 skr,
                                   struct q_useful_buf_c             kid);
+
+static void
+t_cose_recipient_dec_hpke_set_psk(struct t_cose_recipient_dec_hpke *context,
+                                  struct q_useful_buf_c             psk,
+                                  struct q_useful_buf_c             psk_id);
 
 
 /* =========================================================================
@@ -96,6 +103,15 @@ t_cose_recipient_dec_hpke_set_skr(struct t_cose_recipient_dec_hpke *me,
 {
     me->skr = skr;
     me->kid           = kid;
+}
+
+static inline void
+t_cose_recipient_dec_hpke_set_psk(struct t_cose_recipient_dec_hpke *me,
+                                  struct q_useful_buf_c             psk,
+                                  struct q_useful_buf_c             psk_id)
+{
+    me->psk    = psk;
+    me->psk_id = psk_id;
 }
 
 

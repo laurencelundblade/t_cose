@@ -1,0 +1,137 @@
+# Minimal CDDL for the COSE structures used here (RFC 9052 plus AKP keys
+# from PQC drafts such as draft-ietf-cose-dilithium, -falcon, -sphincs-plus).
+#
+# This is intentionally compact; extend as needed for additional headers.
+
+;label 1 kty
+;label 2 kid
+;label 3 alg
+;label 4 kid     ; COSE header kid
+;label 5 iv      ; COSE header IV
+;label 6 piv     ; COSE header Partial IV
+;label 7 counter_sig
+;label -1 crv    ; EC/OKP curve or ephemeral key (header param)
+;label -2 x
+;label -3 y
+;label -4 d      ; private key (d)
+;label -20 salt
+;label -21 party_u
+;label -24 party_v
+
+;header 1 alg
+;header 2 crit
+;header 3 content_type
+;header 4 kid
+;header 5 iv
+;header 6 partial_iv
+;header 7 counter_signature
+;header -1 ephemeral_key
+;header -4 ek
+;header -20 salt
+;header -21 party_u
+;header -24 party_v
+
+COSE_Key = {
+  1 => key_type,
+  3 => alg_id,
+  ?2 => bstr,            ; kid
+  * int => any           ; extension point, includes curve/x/y/d for EC/OKP or pub/priv for AKP
+}
+
+key_type = 7 / 1 / 2     ; AKP, OKP, EC2
+
+; COSE HPKE suites (draft-ietf-cose-hpke-19)
+; 35  ; HPKE-0  (P-256 + HKDF-SHA256 + AES-128-GCM)
+; 37  ; HPKE-1  (P-384 + HKDF-SHA384 + AES-256-GCM)
+; 39  ; HPKE-2  (P-521 + HKDF-SHA512 + AES-256-GCM)
+; 41  ; HPKE-3  (X25519 + HKDF-SHA256 + AES-128-GCM)
+; 42  ; HPKE-4  (X25519 + HKDF-SHA256 + ChaCha20/Poly1305)
+; 43  ; HPKE-5  (X448 + HKDF-SHA512 + AES-256-GCM)
+; 44  ; HPKE-6  (X448 + HKDF-SHA512 + ChaCha20/Poly1305)
+; 45  ; HPKE-7  (P-256 + HKDF-SHA256 + AES-256-GCM)
+; 46  ; HPKE-0-KE (DHKEM(P-256, HKDF-SHA256) / HKDF-SHA256 / AES-128-GCM)
+; 47  ; HPKE-1-KE (DHKEM(P-384, HKDF-SHA384) / HKDF-SHA384 / AES-256-GCM)
+; 48  ; HPKE-2-KE (DHKEM(P-521, HKDF-SHA512) / HKDF-SHA512 / AES-256-GCM)
+; 49  ; HPKE-3-KE (DHKEM(X25519, HKDF-SHA256) / HKDF-SHA256 / AES-128-GCM)
+; 50  ; HPKE-4-KE (DHKEM(X25519, HKDF-SHA256) / HKDF-SHA256 / ChaCha20Poly1305)
+; 51  ; HPKE-5-KE (DHKEM(X448, HKDF-SHA512) / HKDF-SHA512 / AES-256-GCM)
+; 52  ; HPKE-6-KE (DHKEM(X448, HKDF-SHA512) / HKDF-SHA512 / ChaCha20Poly1305)
+; 53  ; HPKE-7-KE (DHKEM(P-256, HKDF-SHA256) / HKDF-SHA256 / AES-256-GCM)
+
+; Common COSE alg IDs (see IANA registry)
+; -7   ; ES256
+; -35  ; ES384
+; -36  ; ES512
+; -8   ; EdDSA
+; -37  ; PS256
+; -38  ; PS384
+; -39  ; PS512
+; 1    ; A128GCM
+; 2    ; A192GCM
+; 3    ; A256GCM
+; 24   ; ChaCha20/Poly1305
+; 30   ; AES-CCM-16-128/128
+; 31   ; AES-CCM-16-256/128
+; -31  ; ECDH-ES+A256KW
+; -30  ; ECDH-ES+A192KW
+; -29  ; ECDH-ES+A128KW
+; -5   ; A256KW
+; -4   ; A192KW
+; -3   ; A128KW
+; -16  ; SHA-256
+; -43  ; SHA-384
+; -44  ; SHA-512
+; 5    ; HMAC 256/256
+; 6    ; HMAC 384/384
+; 7    ; HMAC 512/512
+
+; COSE Elliptic Curves (IANA registry)
+; crv 1   P-256
+; crv 2   P-384
+; crv 3   P-521
+; crv 4   X25519
+; crv 5   X448
+; crv 6   Ed25519
+; crv 7   Ed448
+; crv 8   secp256k1
+
+; Algorithm IDs (int) from IANA/drafts, e.g.:
+; -48  ; ML-DSA-44
+; -49  ; ML-DSA-65
+; -50  ; ML-DSA-87
+; -51  ; SLH-DSA-SHA2-128s
+; -52  ; SLH-DSA-SHAKE-128s
+; -53  ; SLH-DSA-SHA2-128f
+; -54  ; FN-DSA-512
+; -55  ; FN-DSA-1024
+alg_id = int
+
+COSE_Sign1 = [
+  protected : bstr .cbor header_map,
+  unprotected : { * label => any },
+  payload : bstr / nil,
+  signature : bstr
+]
+
+COSE_Encrypt0 = [
+  protected : bstr .cbor header_map,
+  unprotected : { * label => any },
+  ciphertext : bstr
+]
+
+COSE_Recipient = [
+  protected : bstr .cbor header_map,
+  unprotected : { * label => any },
+  encrypted_key : bstr / nil
+]
+
+COSE_Encrypt = [
+  protected : bstr .cbor header_map,
+  unprotected : { * label => any },
+  ciphertext : bstr,
+  recipients : [+ COSE_Recipient]
+]
+
+header_map = { * label => any }
+
+label = int / tstr

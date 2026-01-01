@@ -330,7 +330,7 @@ enum t_cose_err_t {
      * when verifying a \c COSE_Sign1. */
     T_COSE_ERR_NO_KID = 12,
 
-    /** Signature verification or data authentication failed. For
+    /** Signature verification or data authentication failed. For
      * example, the cryptographic operations completed successfully
      * but hash wasn't as expected.
      * TODO: separate these? Seems important to provide info about where this failure occured (key wrap, AEAD, ECDSA, MAC...*/

@@ -34,26 +34,41 @@ typedef struct {
 
 static test_entry s_tests[] = {
 
+    /* ES256 Sign1: single-call path */
     TEST_ENTRY(one_step_sign_example),
+    /* ES256 Sign1: explicit header and payload steps */
     TEST_ENTRY(two_step_sign_example),
+    /* COSE_Sign with ES384 + PS256, detached payload */
     TEST_ENTRY(one_step_multi_sign_detached_example),
+    /* Legacy one-step Sign1 example */
     TEST_ENTRY(old_one_step_sign_example),
+    /* Legacy two-step Sign1 example */
     TEST_ENTRY(old_two_step_sign_example),
-
-    TEST_ENTRY(encrypt0_example),
     
 #ifndef T_COSE_DISABLE_KEYWRAP
+    /* AES-KW wrapping CEK; detached payload */
     TEST_ENTRY(key_wrap_example),
 #endif /* !T_COSE_DISABLE_KEYWRAP */
 
+    /* ECDH-ES with attached ciphertext */
     TEST_ENTRY(esdh_example),
+    /* ECDH-ES with detached ciphertext */
     TEST_ENTRY(esdh_example_detached),
 
+    /* A128GCM Encrypt0 with detached ciphertext (non-HPKE) */
+    TEST_ENTRY(encrypt0_example),
+
 #ifndef T_COSE_DISABLE_HPKE
+    /* HPKE key-encryption mode: Base P-256 / HKDF-SHA256 / AES-128-GCM, attached ciphertext */
     TEST_ENTRY(hpke0_example),
+    /* HPKE key-encryption mode: Base P-384 / HKDF-SHA384 / AES-256-GCM, attached ciphertext */
     TEST_ENTRY(hpke1_example),
+    /* HPKE key-encryption mode: Base P-521 / HKDF-SHA512 / AES-256-GCM, attached ciphertext */
     TEST_ENTRY(hpke2_example),
+    /* HPKE key-encryption mode: Base P-256 with detached ciphertext */
     TEST_ENTRY(hpke_example_detached),
+    /* HPKE integrated mode: Encrypt0 with embedded ciphertext, no decrypt path */
+    TEST_ENTRY(encrypt0_hpke_example),
 #endif /* T_COSE_DISABLE_HPKE */
 };
 

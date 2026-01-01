@@ -363,6 +363,21 @@
 #define T_COSE_ALGORITHM_A192GCM 2
 
 /**
+ * \def T_COSE_ALGORITHM_CHACHA20_POLY1305
+ *
+ * \brief ChaCha20-Poly1305 AEAD cipher
+ *
+ * AEAD algorithm using the ChaCha20 stream cipher combined with
+ * the Poly1305 authenticator, producing a 128-bit authentication tag.
+ *
+ * COSE algorithm ID: 24
+ *
+ * Defined in RFC 8152 and RFC 8439.
+ */
+#define T_COSE_ALGORITHM_CHACHA20_POLY1305 24
+
+
+/**
  * \def COSE_ALGORITHM_A256GCM
  *
  * \brief AES-GCM mode w/ 256-bit key, 128-bit tag
@@ -718,33 +733,50 @@
 #define T_COSE_HPKE_AEAD_ID_AES_GCM_256     0x0002 ///< AES-GCM-256
 #define T_COSE_HPKE_AEAD_ID_CHACHA_POLY1305 0x0003 ///< Chacha20-Poly1305
 
-
 /* ------- Constants from draft-ietf-cose-hpke ---------
+ *
+ * COSE Algorithm IDs (draft version, may change once assigned):
+ *   HPKE-0 -> 35
+ *   HPKE-1 -> 37
+ *   HPKE-2 -> 39
+ *   HPKE-3 -> 41
+ *   HPKE-4 -> 42
+ *   HPKE-5 -> 43
+ *   HPKE-6 -> 44
  */
 
-/* Cipher suite for COSE-HPKE in Base Mode that uses the
- *      DHKEM(P-256, HKDF-SHA256) KEM, the HKDF-SHA256 KDF and the AES-
- *     128-GCM AEAD.
- * 
- * KEM = 0x10 | KDF = 0x1 | AEAD = 0x1
- */
-#define T_COSE_HPKE_Base_P256_SHA256_AES128GCM  35
+/* HPKE-0: P-256 + HKDF-SHA256 + AES-128-GCM */
+#define T_COSE_HPKE_Base_P256_SHA256_AES128GCM            35
 
-/* Cipher suite for COSE-HPKE in Base Mode that uses the
- *    DHKEM(P-384, HKDF-SHA384) KEM, the HKDF-SHA384 KDF, and the AES-
- *    256-GCM AEAD.
- * 
- * HPKE-1: KEM = 0x11 | KDF = 0x2 | AEAD = 0x2
- */
-#define T_COSE_HPKE_Base_P386_SHA384_AES256GCM  37
+/* HPKE-1: P-384 + HKDF-SHA384 + AES-256-GCM */
+#define T_COSE_HPKE_Base_P384_SHA384_AES256GCM            37
 
-/* Cipher suite for COSE-HPKE in Base Mode that uses the
- *    DHKEM(P-521, HKDF-SHA512) KEM, the HKDF-SHA512 KDF, and the AES-
- *     256-GCM AEAD.
- * 
- * HPKE-2: KEM = 0x12 | KDF = 0x3 | AEAD = 0x2
- */
-#define T_COSE_HPKE_Base_P521_SHA512_AES256GCM  39
+/* HPKE-2: P-521 + HKDF-SHA512 + AES-256-GCM */
+#define T_COSE_HPKE_Base_P521_SHA512_AES256GCM            39
+
+/* HPKE-3: X25519 + HKDF-SHA256 + AES-128-GCM */
+#define T_COSE_HPKE_Base_X25519_SHA256_AES128GCM          41
+
+/* HPKE-4: X25519 + HKDF-SHA256 + ChaCha20-Poly1305 */
+#define T_COSE_HPKE_Base_X25519_SHA256_CHACHA20POLY1305   42
+
+/* HPKE-5: X448 + HKDF-SHA512 + AES-256-GCM */
+#define T_COSE_HPKE_Base_X448_SHA512_AES256GCM            43
+
+/* HPKE-6: X448 + HKDF-SHA512 + ChaCha20-Poly1305 */
+#define T_COSE_HPKE_Base_X448_SHA512_CHACHA20POLY1305     44
+/* HPKE-7: P-256 + HKDF-SHA256 + AES-256-GCM */
+#define T_COSE_HPKE_Base_P256_SHA256_AES256GCM            45
+
+/* Key Encryption variants (HPKE-*-KE) */
+#define T_COSE_HPKE_KE_P256_SHA256_AES128GCM              46
+#define T_COSE_HPKE_KE_P384_SHA384_AES256GCM              47
+#define T_COSE_HPKE_KE_P521_SHA512_AES256GCM              48
+#define T_COSE_HPKE_KE_X25519_SHA256_AES128GCM            49
+#define T_COSE_HPKE_KE_X25519_SHA256_CHACHA20POLY1305     50
+#define T_COSE_HPKE_KE_X448_SHA512_AES256GCM              51
+#define T_COSE_HPKE_KE_X448_SHA512_CHACHA20POLY1305       52
+#define T_COSE_HPKE_KE_P256_SHA256_AES256GCM              53
 
 /* ------- Constants from RFC 8152 ---------
  */

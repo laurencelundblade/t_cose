@@ -19,6 +19,247 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
 #include "t_cose_crypto.h"
+#include "t_cose/t_cose_recipient_enc_hpke.h" /* Interface implemented */
+
+// For debugging purposes only
+#include <stdio.h>
+
+/* Local helper: minimal parameter encoding for HPKE integrated path
+ * to avoid calling internal-only t_cose_params_encode().
+ */
+static enum t_cose_err_t
+encode_param_entries_simple(QCBOREncodeContext            *cbor_encoder,
+                            const struct t_cose_parameter *parameters,
+                            bool                           is_protected_bucket)
+{
+    const struct t_cose_parameter *p_param;
+
+    for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
+        if(is_protected_bucket && !p_param->in_protected) {
+            continue;
+        }
+        if(!is_protected_bucket && p_param->in_protected) {
+            continue;
+        }
+
+        switch(p_param->value_type) {
+            case T_COSE_PARAMETER_TYPE_INT64:
+                QCBOREncode_AddInt64ToMapN(cbor_encoder, p_param->label, p_param->value.int64);
+                break;
+            case T_COSE_PARAMETER_TYPE_TEXT_STRING:
+                QCBOREncode_AddTextToMapN(cbor_encoder, p_param->label, p_param->value.string);
+                break;
+            case T_COSE_PARAMETER_TYPE_BYTE_STRING:
+                QCBOREncode_AddBytesToMapN(cbor_encoder, p_param->label, p_param->value.string);
+                break;
+            case T_COSE_PARAMETER_TYPE_SPECIAL:
+                if(p_param->value.special_encode.encode_cb) {
+                    enum t_cose_err_t rv =
+                        p_param->value.special_encode.encode_cb(p_param, cbor_encoder);
+                    if(rv != T_COSE_SUCCESS) {
+                        return rv;
+                    }
+                }
+                break;
+            default:
+                return T_COSE_ERR_INVALID_PARAMETER_TYPE;
+        }
+    }
+    return T_COSE_SUCCESS;
+}
+
+
+enum t_cose_err_t
+t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
+                                   struct q_useful_buf_c      payload,
+                                   struct q_useful_buf_c      ext_sup_data,
+                                   struct q_useful_buf        buffer_for_message,
+                                   struct q_useful_buf_c     *encrypted_cose_message)
+{
+    enum t_cose_err_t            return_value;
+    QCBORError                   cbor_err;
+    QCBOREncodeContext           cbor_encoder;
+    unsigned                     message_type;
+
+    struct t_cose_parameter      params_alg_only[1];
+    struct q_useful_buf_c        body_prot_headers;
+    struct q_useful_buf_c        enc_structure;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
+    const char                  *enc_struct_string;
+
+    /* HPKE outputs */
+    Q_USEFUL_BUF_MAKE_STACK_UB(  ct_tmp_buf, 0); /* not used directly */
+    (void)ct_tmp_buf;
+
+    /* For ek (encapsulated key) */
+    Q_USEFUL_BUF_MAKE_STACK_UB(  ek_buf, 256); /* genug für typische enc sizes */
+    struct q_useful_buf_c        ek = NULL_Q_USEFUL_BUF_C;
+
+    /* ciphertext output */
+    struct q_useful_buf          encrypt_buffer;
+    uint8_t                     *ciphertext_mem = NULL;
+    size_t                       ciphertext_len = 0;
+
+    fprintf(stderr, "t_cose_encrypt_enc_hpke_integrated\n");
+
+    /* ---- Figure out message type (must be Encrypt0 for Integrated Mode) ---- */
+    message_type = T_COSE_OPT_MESSAGE_TYPE_MASK & me->option_flags;
+    switch(message_type) {
+        case T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED:
+            message_type = T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0;
+            break;
+        case T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0:
+            break;
+        case T_COSE_OPT_MESSAGE_TYPE_ENCRYPT:
+            /* Integrated Mode is ONLY for Encrypt0 and NO recipients */
+            return T_COSE_ERR_BAD_OPT;
+        default:
+            return T_COSE_ERR_BAD_OPT;
+    }
+
+    /* Integrated Mode for Encrypt0 with HPKE requires exactly one recipient
+     * providing the ephemeral key and recipient public key configuration.
+     * This recipient is not serialized as a COSE_Recipient but used internally.
+     */
+    if(me->recipients_list == NULL) {
+        return T_COSE_ERR_BAD_OPT;
+    }
+
+    /* ---- Protected header: alg only (must be protected if present) ---- */
+    params_alg_only[0] = t_cose_param_make_alg_id(me->payload_cose_algorithm_id);
+    params_alg_only[0].next = me->added_body_parameters;
+
+    /* ---- Start CBOR encoding: COSE_Encrypt0 = [ protected, unprotected, ciphertext ] ---- */
+    QCBOREncode_Init(&cbor_encoder, buffer_for_message);
+    if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
+        QCBOREncode_AddTag(&cbor_encoder, message_type);
+    }
+    QCBOREncode_OpenArray(&cbor_encoder);
+
+    /* ---- Encode protected headers (bstr), unprotected will follow later ---- */
+    QCBOREncode_BstrWrap(&cbor_encoder);
+    QCBOREncode_OpenMap(&cbor_encoder);
+    return_value = encode_param_entries_simple(&cbor_encoder,
+                                               &params_alg_only[0],
+                                               true);
+    QCBOREncode_CloseMap(&cbor_encoder);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+    QCBOREncode_CloseBstrWrap2(&cbor_encoder, false, &body_prot_headers);
+
+    /* ---- Build Enc_structure for AAD with context "Encrypt0" ---- */
+    if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
+        enc_struct_buffer = me->extern_enc_struct_buffer;
+    }
+    enc_struct_string = "Encrypt0";
+
+    return_value =
+        create_enc_structure(enc_struct_string,
+                             body_prot_headers,
+                             ext_sup_data,
+                             enc_struct_buffer,
+                             &enc_structure);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* ---- Prepare info (default empty) ---- */
+    struct q_useful_buf_c info = me->hpke_info;
+    if(q_useful_buf_c_is_null(info)) {
+        info = (struct q_useful_buf_c){ "", 0 };
+    }
+    struct q_useful_buf_c aad = (struct q_useful_buf_c){ "", 0 }; /* Draft-19 integrated: empty AAD */
+
+    /* ---- Prepare ciphertext buffer for HPKE output ---- */
+    /* Ciphertext is plaintext + tag; add margin for tag and potential padding */
+    size_t ct_capacity = payload.len + 32; /* AEAD tags are small; 32 bytes is ample */
+    ciphertext_mem = (uint8_t *)malloc(ct_capacity);
+    if(ciphertext_mem == NULL) {
+        return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
+        goto Done;
+    }
+    encrypt_buffer = (struct q_useful_buf){ ciphertext_mem, ct_capacity };
+    ciphertext_len = ct_capacity;
+
+    /* ---- Get the first HPKE recipient from the recipients_list ---- */
+    struct t_cose_recipient_enc_hpke *hpke_recipient = NULL;
+    if(me->recipients_list != NULL) {
+        /* Cast the base recipient_enc to HPKE recipient
+         * (assumes the recipients_list contains t_cose_recipient_enc_hpke items)
+         */
+        hpke_recipient = (struct t_cose_recipient_enc_hpke *)me->recipients_list;
+    } else {
+        /* No recipients configured */
+        return T_COSE_ERR_BAD_OPT;
+    }
+
+    /*
+     * Call HPKE wrapper:
+     * - suite: derived from me->payload_cose_algorithm_id
+     * - recipient_pub_key: hpke_recipient->recipient_pub_key (pkR)
+     * - hpke_suite: hpke_recipient->hpke_suite
+     * - aad: enc_structure
+     * - info: info
+     * - plaintext: payload
+     * - ciphertext: encrypt_buffer
+     */
+
+    /* Use helper to generate ephemeral key, HPKE-seal the payload and
+     * return the encapsulated key (ek) into ek_buf. */
+    return_value = t_cose_recipient_enc_hpke_encrypt_for_encrypt0(
+                        hpke_recipient,
+                        aad,           /* aad (empty by default) */
+                        info,          /* info (empty or provided) */
+                        payload,
+                        encrypt_buffer,
+                        ek_buf,
+                        &ek,
+                        &ciphertext_len);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /*
+     * ---- Unprotected header MUST contain 'ek' (enc) as bstr ----
+     */
+    if(q_useful_buf_c_is_null(ek) || ek.len == 0) {
+        return_value = T_COSE_ERR_FAIL;
+        goto Done;
+    }
+
+    QCBOREncode_OpenMap(&cbor_encoder);
+    /* Any caller-supplied unprotected headers */
+    return_value = encode_param_entries_simple(&cbor_encoder,
+                                                &params_alg_only[0],
+                                                false);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+    QCBOREncode_AddBytesToMapN(&cbor_encoder,
+                                T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY,
+                                ek);
+    QCBOREncode_CloseMap(&cbor_encoder);
+
+    /* ---- Ciphertext (3rd array item) ---- */
+    QCBOREncode_AddBytes(&cbor_encoder,
+                         (struct q_useful_buf_c){ ciphertext_mem, ciphertext_len });
+
+    /* ---- Finish COSE array ---- */
+    QCBOREncode_CloseArray(&cbor_encoder);
+    cbor_err = QCBOREncode_Finish(&cbor_encoder, encrypted_cose_message);
+    if(cbor_err != QCBOR_SUCCESS) {
+        return qcbor_encode_error_to_t_cose_error(&cbor_encoder);
+    }
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    if(ciphertext_mem != NULL) {
+        free(ciphertext_mem);
+    }
+    return return_value;
+}
 
 
 /*

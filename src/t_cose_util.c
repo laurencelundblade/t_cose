@@ -237,7 +237,8 @@ bits_in_crypto_alg(int32_t cose_algorithm_id)
         case T_COSE_ALGORITHM_A256KW:
         case T_COSE_ALGORITHM_A256GCM:
         case T_COSE_ALGORITHM_A256CTR:
-        case T_COSE_ALGORITHM_A256CBC: return 256;
+        case T_COSE_ALGORITHM_A256CBC:
+        case T_COSE_ALGORITHM_CHACHA20_POLY1305: return 256;
         default: return UINT32_MAX;
     }
 }
@@ -270,6 +271,7 @@ bits_iv_alg(int32_t cose_algorithm_id)
         case T_COSE_ALGORITHM_AES256CCM_16_128:
         case T_COSE_ALGORITHM_A256KW:
         case T_COSE_ALGORITHM_A256GCM: return 256;
+        case T_COSE_ALGORITHM_CHACHA20_POLY1305: return 96; /* 12-byte nonce */
         default: return UINT32_MAX;
     }
 }
@@ -805,6 +807,28 @@ t_cose_link_rs(struct t_cose_rs_obj **list, struct t_cose_rs_obj *new_rs)
         t->next = new_rs;
     }
 }
+
+/* This returns true if the algorithm id is an HPKE integrated encryption algorithm */
+bool
+t_cose_alg_is_hpke_integrated(int32_t cose_algorithm_id)
+{
+    switch(cose_algorithm_id) {
+
+    case T_COSE_HPKE_Base_P256_SHA256_AES128GCM:          /* HPKE-0 */
+    case T_COSE_HPKE_Base_P384_SHA384_AES256GCM:          /* HPKE-1 */
+    case T_COSE_HPKE_Base_P521_SHA512_AES256GCM:          /* HPKE-2 */
+    case T_COSE_HPKE_Base_X25519_SHA256_AES128GCM:        /* HPKE-3 */
+    case T_COSE_HPKE_Base_X25519_SHA256_CHACHA20POLY1305: /* HPKE-4 */
+    case T_COSE_HPKE_Base_X448_SHA512_AES256GCM:          /* HPKE-5 */
+    case T_COSE_HPKE_Base_X448_SHA512_CHACHA20POLY1305:   /* HPKE-6 */
+    case T_COSE_HPKE_Base_P256_SHA256_AES256GCM:          /* HPKE-7 */
+        return true;
+
+    default:
+        return false;
+    }
+}
+
 
 /* This returns true if the algorithm id is non AEAD defined in RFC9459 */
 bool

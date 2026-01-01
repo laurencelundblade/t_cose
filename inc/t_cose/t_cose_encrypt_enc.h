@@ -18,6 +18,8 @@
 #include "t_cose_parameters.h"
 #include "t_cose/t_cose_key.h"
 #include "t_cose/t_cose_recipient_enc.h"
+#include "t_cose/t_cose_common.h"
+#include "t_cose_util.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -157,6 +159,10 @@ struct t_cose_encrypt_enc {
     struct q_useful_buf           extern_enc_struct_buffer;
     struct q_useful_buf           extern_hash_buffer;
     int32_t                       hash_cose_algorithm_id;
+    struct q_useful_buf_c         hpke_info;   /* optional, else empty */
+    /* only used temporarily here. */
+//    struct t_cose_key       hpke_recipient_pub_key; /* pkR */
+//    struct t_cose_key       hpke_pkE;               /* pkE (gemäß deinem Wrapper) */
 };
 
 
@@ -189,8 +195,8 @@ struct t_cose_encrypt_enc {
  * different algorithms (but there can only be one payload encryption
  * algorithm).
  */
-void
-t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,
+static void
+t_cose_encrypt_enc_init(struct t_cose_encrypt_enc *context,
                        uint32_t                   option_flags,
                        int32_t                    payload_cose_algorithm_id);
 
@@ -206,7 +212,7 @@ t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,
  * The recipient object should be initialized with algorithm ID and
  * key material.  Note that for COSE encryption there are two
  * algorithm IDs, the one for the payload/content set with
- * t_cose_encypt_enc_init() and the one for COSE_Recpient set in the
+ * t_cose_encrypt_enc_init() and the one for COSE_Recpient set in the
  * API implementing it.
  *
  * The recipient object set here has callbacks that will when t_cose_encrypt_enc()
@@ -441,6 +447,29 @@ t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,
     context->extern_enc_struct_buffer = extern_enc_buffer;
 }
 
+enum t_cose_err_t
+t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
+                                  struct q_useful_buf_c      payload,
+                                  struct q_useful_buf_c      ext_sup_data,
+                                  struct q_useful_buf        buffer_for_message,
+                                  struct q_useful_buf_c     *encrypted_cose_message);
+
+
+static inline enum t_cose_err_t
+t_cose_encrypt_enc_non_hpke(struct t_cose_encrypt_enc *context,
+                            struct q_useful_buf_c      payload,
+                            struct q_useful_buf_c      ext_sup_data,
+                            struct q_useful_buf        buffer_for_message,
+                            struct q_useful_buf_c     *encrypted_cose_message)
+{
+    return t_cose_encrypt_enc_detached(context,
+                                       payload,
+                                       ext_sup_data,
+                                       NULL_Q_USEFUL_BUF,
+                                       buffer_for_message,
+                                       NULL,
+                                       encrypted_cose_message);
+}
 
 static inline enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
@@ -449,12 +478,23 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                    struct q_useful_buf        buffer_for_message,
                    struct q_useful_buf_c     *encrypted_cose_message)
 {
-    return t_cose_encrypt_enc_detached(context,
+    /* HPKE algorithms are split into Integrated (Encrypt0, alg 35..45) and
+     * Key Encryption (Encrypt, alg 46..53). Only the Integrated ones run
+     * through the HPKE-specific path; the KE variants use the classic path.
+     */
+    if(t_cose_alg_is_hpke_integrated(context->payload_cose_algorithm_id)) {
+        return t_cose_encrypt_enc_hpke_integrated(context,
+                                                  payload,
+                                                  ext_sup_data,
+                                                  buffer_for_message,
+                                                  encrypted_cose_message);
+    }
+
+    /* classical (non-HPKE) path */
+    return t_cose_encrypt_enc_non_hpke(context,
                                        payload,
                                        ext_sup_data,
-                                       NULL_Q_USEFUL_BUF,
                                        buffer_for_message,
-                                       NULL,
                                        encrypted_cose_message);
 }
 

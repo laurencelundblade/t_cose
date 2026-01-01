@@ -35,6 +35,8 @@ struct t_cose_recipient_enc_hpke {
 
     struct t_cose_key           recipient_pub_key;
     struct q_useful_buf_c       kid;
+    struct q_useful_buf_c       psk;
+    struct q_useful_buf_c       psk_id;
     int32_t                     cose_ec_curve_id;
     int32_t                     cose_algorithm_id;
     struct t_cose_parameter    *added_params;
@@ -72,6 +74,11 @@ t_cose_recipient_enc_hpke_set_key(struct t_cose_recipient_enc_hpke *context,
                                   struct t_cose_key                 recipient,
                                   struct q_useful_buf_c             kid);
 
+static void
+t_cose_recipient_enc_hpke_set_psk(struct t_cose_recipient_enc_hpke *context,
+                                  struct q_useful_buf_c             psk,
+                                  struct q_useful_buf_c             psk_id);
+
 
 
 /* =========================================================================
@@ -99,22 +106,54 @@ t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *me,
   
     switch (cose_algorithm_id) {
       case T_COSE_HPKE_Base_P256_SHA256_AES128GCM:
+      case T_COSE_HPKE_Base_P256_SHA256_AES256GCM:
+      case T_COSE_HPKE_KE_P256_SHA256_AES128GCM:
+      case T_COSE_HPKE_KE_P256_SHA256_AES256GCM:
         kem_id = T_COSE_HPKE_KEM_ID_P256;          /* kem id */
         cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256; /* curve */
         kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA256;   /* kdf id */
-        aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_128; /* aead id */
+        aead_id = (cose_algorithm_id == T_COSE_HPKE_Base_P256_SHA256_AES256GCM ||
+                   cose_algorithm_id == T_COSE_HPKE_KE_P256_SHA256_AES256GCM)
+                    ? T_COSE_HPKE_AEAD_ID_AES_GCM_256
+                    : T_COSE_HPKE_AEAD_ID_AES_GCM_128;
         break;
-      case T_COSE_HPKE_Base_P386_SHA384_AES256GCM:
+      case T_COSE_HPKE_Base_P384_SHA384_AES256GCM:
+      case T_COSE_HPKE_KE_P384_SHA384_AES256GCM:
         kem_id = T_COSE_HPKE_KEM_ID_P384;          /* kem id */
         cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_384; /* curve */
         kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA384;   /* kdf id */
         aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256; /* aead id */
         break;
       case T_COSE_HPKE_Base_P521_SHA512_AES256GCM:
+      case T_COSE_HPKE_KE_P521_SHA512_AES256GCM:
         kem_id = T_COSE_HPKE_KEM_ID_P521;          /* kem id */
         cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_521; /* curve */
         kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA512;   /* kdf id */
         aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256; /* aead id */
+        break;
+      case T_COSE_HPKE_Base_X25519_SHA256_AES128GCM:
+      case T_COSE_HPKE_Base_X25519_SHA256_CHACHA20POLY1305:
+      case T_COSE_HPKE_KE_X25519_SHA256_AES128GCM:
+      case T_COSE_HPKE_KE_X25519_SHA256_CHACHA20POLY1305:
+        kem_id = T_COSE_HPKE_KEM_ID_25519;          /* kem id */
+        cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_X25519; /* curve */
+        kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA256;   /* kdf id */
+        aead_id = (cose_algorithm_id == T_COSE_HPKE_Base_X25519_SHA256_CHACHA20POLY1305 ||
+                   cose_algorithm_id == T_COSE_HPKE_KE_X25519_SHA256_CHACHA20POLY1305)
+                  ? T_COSE_HPKE_AEAD_ID_CHACHA_POLY1305
+                  : T_COSE_HPKE_AEAD_ID_AES_GCM_128;
+        break;
+      case T_COSE_HPKE_Base_X448_SHA512_AES256GCM:
+      case T_COSE_HPKE_Base_X448_SHA512_CHACHA20POLY1305:
+      case T_COSE_HPKE_KE_X448_SHA512_AES256GCM:
+      case T_COSE_HPKE_KE_X448_SHA512_CHACHA20POLY1305:
+        kem_id = T_COSE_HPKE_KEM_ID_448;          /* kem id */
+        cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_X448; /* curve */
+        kdf_id = T_COSE_HPKE_KDF_ID_HKDF_SHA512;   /* kdf id */
+        aead_id = (cose_algorithm_id == T_COSE_HPKE_Base_X448_SHA512_CHACHA20POLY1305 ||
+                   cose_algorithm_id == T_COSE_HPKE_KE_X448_SHA512_CHACHA20POLY1305)
+                  ? T_COSE_HPKE_AEAD_ID_CHACHA_POLY1305
+                  : T_COSE_HPKE_AEAD_ID_AES_GCM_256;
         break;
       default:
         kem_id = 0;
@@ -139,6 +178,29 @@ t_cose_recipient_enc_hpke_set_key(struct t_cose_recipient_enc_hpke *me,
     me->recipient_pub_key = pkR;
     me->kid = kid;
 }
+
+static inline void
+t_cose_recipient_enc_hpke_set_psk(struct t_cose_recipient_enc_hpke *me,
+                                  struct q_useful_buf_c             psk,
+                                  struct q_useful_buf_c             psk_id)
+{
+    me->psk = psk;
+    me->psk_id = psk_id;
+}
+
+/**
+ * @brief HPKE helper for COSE_Encrypt0: generate ephemeral key, perform HPKE Seal
+ *        and return ciphertext and encapsulated key (ek).
+ */
+enum t_cose_err_t
+t_cose_recipient_enc_hpke_encrypt_for_encrypt0(struct t_cose_recipient_enc_hpke *context,
+                         struct q_useful_buf_c            aad,
+                         struct q_useful_buf_c            info,
+                         struct q_useful_buf_c            plaintext,
+                         struct q_useful_buf              ciphertext,
+                         struct q_useful_buf              ek_buf,
+                         struct q_useful_buf_c           *ek_out,
+                         size_t                          *ciphertext_len);
 
 #ifdef __cplusplus
 }
