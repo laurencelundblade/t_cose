@@ -521,9 +521,9 @@ int mbedtls_hpke_extract_and_expand( hpke_suite_t suite,
 
     if( res != 0 )
     {
-        fprintf(stderr, "hpke_extract_and_expand: extract failed (kem=%u, ret=%d)\n",
+/*        fprintf(stderr, "hpke_extract_and_expand: extract failed (kem=%u, ret=%d)\n",
                 (unsigned)suite.kem_id, res);
-        goto exit;
+*/        goto exit;
     }
 
     res = mbedtls_hpke_expand( suite, mode5869,
@@ -535,9 +535,9 @@ int mbedtls_hpke_extract_and_expand( hpke_suite_t suite,
 
     if( res != 0 )
     {
-        fprintf(stderr, "hpke_extract_and_expand: expand failed (kem=%u, ret=%d, L=%zu)\n",
+/*        fprintf(stderr, "hpke_extract_and_expand: expand failed (kem=%u, ret=%d, L=%zu)\n",
                 (unsigned)suite.kem_id, res, lsecretlen);
-        goto exit;
+*/        goto exit;
     }
 
     *secretlen = lsecretlen;
@@ -695,9 +695,9 @@ static int hpke_do_kem( int encrypting,
 
     if( status != PSA_SUCCESS )
     {
-        fprintf(stderr, "hpke_do_kem: psa_raw_key_agreement failed (kem=%u, status=%d, peer_len=%zu)\n",
+/*        fprintf(stderr, "hpke_do_kem: psa_raw_key_agreement failed (kem=%u, status=%d, peer_len=%zu)\n",
                 (unsigned)suite.kem_id, (int)status, peer_public_key_len);
-        return( status );
+*/        return( status );
     }
 
     kem_contextlen = own_public_key_len + peer_public_key_len;
@@ -774,9 +774,9 @@ static int hpke_do_kem( int encrypting,
     
     if( ret != 0 )
     {
-        fprintf(stderr, "hpke_do_kem: extract_and_expand failed (kem=%u, ret=%d, zzlen=%zu, ctxlen=%zu)\n",
+/*        fprintf(stderr, "hpke_do_kem: extract_and_expand failed (kem=%u, ret=%d, zzlen=%zu, ctxlen=%zu)\n",
                 (unsigned)suite.kem_id, ret, zzlen, kem_contextlen);
-        goto error;
+*/        goto error;
     }
 
 error:
@@ -1191,10 +1191,10 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
     psa_key_type_t type;
     int ret;
     enum t_cose_err_t err;
-    const char *fail_stage = NULL;
+/*    const char *fail_stage = NULL;
     const int is_montgomery =
         (suite.kem_id == HPKE_KEM_ID_25519) || (suite.kem_id == HPKE_KEM_ID_448);
-
+*/
     // Input check: mode
     switch( mode )
     {
@@ -1204,9 +1204,9 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
         case HPKE_MODE_PSKAUTH:
             break;
         default:
-        fprintf(stderr, "hpke_enc_int: mode=%u\n",
+/*        fprintf(stderr, "hpke_enc_int: mode=%u\n",
                 mode );
-            return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+*/            return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
     // Input check: psk
@@ -1221,9 +1221,9 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
 
     if( ret != 0 )
     {
-        fprintf(stderr, "hpke_enc_int: hpke_suite_check, kem_id=%zu\n",
+/*        fprintf(stderr, "hpke_enc_int: hpke_suite_check, kem_id=%zu\n",
                 (unsigned)suite.kem_id);
-
+*/
         return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
@@ -1266,11 +1266,11 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
             return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
-    if( is_montgomery ) {
+/*    if( is_montgomery ) {
         fprintf(stderr, "hpke_enc_int: KEM=%u pkR_len=%zu\n",
                 (unsigned)suite.kem_id, pkR_len);
     }
-
+*/
     if( ext_pkE_handle == 0 )
     {
         /* generate key pair: skE, pkE */
@@ -1283,7 +1283,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
 
         if( status != PSA_SUCCESS )
         {
-            fail_stage = "generate pkE";
+//            fail_stage = "generate pkE";
             return( EXIT_FAILURE );
         }
     }
@@ -1296,7 +1296,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
 
     if( status != PSA_SUCCESS )
     {
-        fail_stage = "export pkE";
+//        fail_stage = "export pkE";
         return( EXIT_FAILURE );
     }
 
@@ -1313,16 +1313,17 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
 
     if( ret != 0 )
     {
-        if( is_montgomery ) {
+/*        if( is_montgomery ) {
             fprintf(stderr, "hpke_enc_int: hpke_do_kem failed (kem=%u, ret=%d)\n",
                     (unsigned)suite.kem_id, ret);
         }
-        return( MBEDTLS_ERR_HPKE_INTERNAL_ERROR );
+*/        return( MBEDTLS_ERR_HPKE_INTERNAL_ERROR );
     }
-    if( is_montgomery ) {
+/*    if( is_montgomery ) {
         fprintf(stderr, "hpke_enc_int: hpke_do_kem ok (kem=%u, ss_len=%zu)\n",
                 (unsigned)suite.kem_id, shared_secretlen);
     }
+*/
 
     /* Create context buffer */
     ks_context[0] = (unsigned char) ( mode % 256 );
@@ -1461,20 +1462,20 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
 
     if( err != 0 )
     {
-        if( is_montgomery ) {
+/*        if( is_montgomery ) {
             fprintf(stderr, "hpke_enc_int: aead_encrypt failed (kem=%u, err=%d)\n",
                     (unsigned)suite.kem_id, (int)err);
         }
-        ret = (int)err; // TODO: make this function return enum t_cose_err_t
+*/        ret = (int)err; // TODO: make this function return enum t_cose_err_t
         goto error;
     }
 
 error:
-    if( is_montgomery && ret != 0 && fail_stage != NULL ) {
+/*    if( is_montgomery && ret != 0 && fail_stage != NULL ) {
         fprintf(stderr, "hpke_enc_int: failure at stage %s (kem=%u, ret=%d)\n",
                 fail_stage, (unsigned)suite.kem_id, ret);
     }
-    return( ret );
+*/    return( ret );
 }
 
 

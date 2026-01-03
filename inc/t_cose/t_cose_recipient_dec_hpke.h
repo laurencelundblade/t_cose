@@ -46,6 +46,7 @@ struct t_cose_recipient_dec_hpke {
     struct q_useful_buf_c kid;
     struct q_useful_buf_c psk;
     struct q_useful_buf_c psk_id;
+    struct q_useful_buf_c info; /* recipient_extra_info for HPKE-KE Recipient_structure */
 };
 
 
@@ -69,6 +70,11 @@ static void
 t_cose_recipient_dec_hpke_set_psk(struct t_cose_recipient_dec_hpke *context,
                                   struct q_useful_buf_c             psk,
                                   struct q_useful_buf_c             psk_id);
+
+/* Set optional HPKE recipient_extra_info (draft-ietf-cose-hpke Recipient_structure). */
+static void
+t_cose_recipient_dec_hpke_set_info(struct t_cose_recipient_dec_hpke *context,
+                                   struct q_useful_buf_c             info);
 
 
 /* =========================================================================
@@ -112,6 +118,13 @@ t_cose_recipient_dec_hpke_set_psk(struct t_cose_recipient_dec_hpke *me,
 {
     me->psk    = psk;
     me->psk_id = psk_id;
+}
+
+static inline void
+t_cose_recipient_dec_hpke_set_info(struct t_cose_recipient_dec_hpke *me,
+                                   struct q_useful_buf_c             info)
+{
+    me->info = info;
 }
 
 

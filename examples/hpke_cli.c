@@ -263,6 +263,7 @@ static bool is_hpke_alg(int32_t alg)
     case T_COSE_HPKE_Base_X25519_SHA256_CHACHA20POLY1305:
     case T_COSE_HPKE_Base_X448_SHA512_AES256GCM:
     case T_COSE_HPKE_Base_X448_SHA512_CHACHA20POLY1305:
+    case T_COSE_HPKE_Base_P256_SHA256_AES256GCM:
         return true;
     default:
         return false;
@@ -651,7 +652,7 @@ load_cose_key_from_file(const char                   *path,
         return T_COSE_ERR_FAIL;
     }
 
-    fprintf(stderr, "load_cose_key_from_file: read %zu bytes from %s\n", file_len, path);
+//    fprintf(stderr, "load_cose_key_from_file: read %zu bytes from %s\n", file_len, path);
 
     struct q_useful_buf_c cose_key_buf = { file_buf, file_len };
 
@@ -772,7 +773,7 @@ static int do_encrypt(int argc, char **argv)
     const char *sender_file    = NULL;  /* COSE_Key signer */
     const char *sender_id      = NULL;
     const char *aad_file       = NULL;
-    const char *info_file      = NULL;  /* currently unused placeholder */
+    const char *info_file      = NULL;
     const char *payload_file   = NULL;
     const char *out_file       = NULL;
     const char *ct_out_file    = NULL;
@@ -838,14 +839,25 @@ static int do_encrypt(int argc, char **argv)
         aad_ub = (struct q_useful_buf_c){ aad, aad_len };
     }
 
-    (void)info_file;
+    uint8_t *info = NULL;
+    size_t   info_len = 0;
+    struct q_useful_buf_c info_ub = NULL_Q_USEFUL_BUF_C;
+    if(info_file) {
+        if(read_file(info_file, &info, &info_len) != 0) {
+            free(payload);
+            free(aad);
+            return 1;
+        }
+        info_ub = (struct q_useful_buf_c){ info, info_len };
+    }
+
     uint8_t *psk_buf = NULL;
     size_t   psk_len = 0;
     struct q_useful_buf_c psk_ub = NULL_Q_USEFUL_BUF_C;
     struct q_useful_buf_c psk_id_ub = NULL_Q_USEFUL_BUF_C;
     if(psk_file) {
         if(read_file(psk_file, &psk_buf, &psk_len) != 0) {
-            free(payload); free(aad);
+            free(payload); free(aad); free(info);
             return 1;
         }
         psk_ub = (struct q_useful_buf_c){ psk_buf, psk_len };
@@ -869,6 +881,7 @@ static int do_encrypt(int argc, char **argv)
         fprintf(stderr, "Failed to load recipient key\n");
         free(payload);
         free(aad);
+        free(info);
         return 1;
     }
 
@@ -887,6 +900,7 @@ static int do_encrypt(int argc, char **argv)
             fprintf(stderr, "Failed to load signer key\n");
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
         have_signer = 1;
@@ -909,15 +923,16 @@ static int do_encrypt(int argc, char **argv)
             fprintf(stderr, "Unsupported HPKE suite alg=%d for Encrypt body\n", recipient_alg);
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
         if(!is_hpke_ke_alg(recipient_alg)) {
             fprintf(stderr, "HPKE Key Encryption requires HPKE-*-KE alg IDs (46-53)\n");
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
-
         t_cose_encrypt_enc_init(&enc_ctx,
                                 T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
                                 aead_alg);
@@ -949,6 +964,7 @@ static int do_encrypt(int argc, char **argv)
             }
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
 
@@ -958,6 +974,7 @@ static int do_encrypt(int argc, char **argv)
                                           recipient_key,
                                           recipient_kid);
         t_cose_recipient_enc_hpke_set_psk(&recip, psk_ub, psk_id_ub);
+        t_cose_recipient_enc_hpke_set_info(&recip, info_ub);
 
         t_cose_encrypt_add_recipient(&enc_ctx,
                                      (struct t_cose_recipient_enc *)&recip);
@@ -982,6 +999,7 @@ static int do_encrypt(int argc, char **argv)
             fprintf(stderr, "HPKE encryption failed: %d\n", terr);
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
 
@@ -994,6 +1012,7 @@ static int do_encrypt(int argc, char **argv)
             fprintf(stderr, "HPKE Integrated Encryption requires HPKE-0..7 alg IDs (35-45)\n");
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
 
@@ -1001,6 +1020,7 @@ static int do_encrypt(int argc, char **argv)
         t_cose_encrypt_enc_init(&enc_ctx,
                                 T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0,
                                 recipient_alg);
+        enc_ctx.hpke_info = info_ub;
 
         /* recipient carries pkR + suite */
         t_cose_recipient_enc_hpke_init(&recip, recipient_alg);
@@ -1031,6 +1051,7 @@ static int do_encrypt(int argc, char **argv)
             fprintf(stderr, "HPKE Encrypt0 encryption failed: %d\n", terr);
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
 
@@ -1038,6 +1059,7 @@ static int do_encrypt(int argc, char **argv)
         fprintf(stderr, "Unknown mode: %s (use encrypt0 or encrypt)\n", mode);
         free(payload);
         free(aad);
+        free(info);
         return 1;
     }
 
@@ -1073,6 +1095,7 @@ static int do_encrypt(int argc, char **argv)
             fprintf(stderr, "Signing failed: %d\n", terr);
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
         final_out = signed_cose;
@@ -1083,6 +1106,7 @@ static int do_encrypt(int argc, char **argv)
                   final_out.len) != 0) {
         free(payload);
         free(aad);
+        free(info);
         return 1;
     }
 
@@ -1092,6 +1116,7 @@ static int do_encrypt(int argc, char **argv)
                     "Detached mode selected but no --ciphertext-out given.\n");
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
         if(write_file(ct_out_file,
@@ -1099,12 +1124,14 @@ static int do_encrypt(int argc, char **argv)
                       ct_ub.len) != 0) {
             free(payload);
             free(aad);
+            free(info);
             return 1;
         }
     }
 
     free(payload);
     free(aad);
+    free(info);
     free(psk_buf);
     return 0;
 }
@@ -1118,6 +1145,7 @@ static int do_decrypt(int argc, char **argv)
     const char *mode_arg     = NULL;       /* optional override; otherwise auto-detect */
     const char *my_key_file   = NULL;
     const char *aad_file      = NULL;
+    const char *info_file     = NULL;
     const char *cose_file     = NULL;
     const char *ct_file       = NULL;
     const char *out_file      = NULL;
@@ -1131,6 +1159,8 @@ static int do_decrypt(int argc, char **argv)
             my_key_file = argv[++i];
         } else if(strcmp(argv[i], "--aad") == 0 && i+1 < argc) {
             aad_file = argv[++i];
+        } else if(strcmp(argv[i], "--info") == 0 && i+1 < argc) {
+            info_file = argv[++i];
         } else if(strcmp(argv[i], "--in") == 0 && i+1 < argc) {
             cose_file = argv[++i];
         } else if(strcmp(argv[i], "--ciphertext-in") == 0 && i+1 < argc) {
@@ -1188,6 +1218,18 @@ static int do_decrypt(int argc, char **argv)
         aad_ub = (struct q_useful_buf_c){ aad, aad_len };
     }
 
+    uint8_t *info = NULL;
+    size_t   info_len = 0;
+    struct q_useful_buf_c info_ub = NULL_Q_USEFUL_BUF_C;
+    if(info_file) {
+        if(read_file(info_file, &info, &info_len) != 0) {
+            free(cose_data);
+            free(aad);
+            return 1;
+        }
+        info_ub = (struct q_useful_buf_c){ info, info_len };
+    }
+
     uint8_t *ct = NULL;
     size_t   ct_len = 0;
     struct q_useful_buf_c ct_ub = NULL_Q_USEFUL_BUF_C;
@@ -1195,6 +1237,7 @@ static int do_decrypt(int argc, char **argv)
         if(read_file(ct_file, &ct, &ct_len) != 0) {
             free(cose_data);
             free(aad);
+            free(info);
             return 1;
         }
         ct_ub = (struct q_useful_buf_c){ ct, ct_len };
@@ -1210,7 +1253,7 @@ static int do_decrypt(int argc, char **argv)
     struct q_useful_buf_c psk_id_ub = NULL_Q_USEFUL_BUF_C;
     if(psk_file) {
         if(read_file(psk_file, &psk_buf, &psk_len) != 0) {
-            free(cose_data); free(aad); free(ct);
+            free(cose_data); free(aad); free(info); free(ct);
             return 1;
         }
         psk_ub = (struct q_useful_buf_c){ psk_buf, psk_len };
@@ -1293,105 +1336,37 @@ static int do_decrypt(int argc, char **argv)
             use_encrypt0 = false;
         }
         if(alg_is_hpke) {
-            /* HPKE integrated Encrypt0: parse enc (ek) from unprotected, decrypt with HPKE */
-            QCBORDecodeContext dc;
-            QCBORItem          it;
-            UsefulBufC         protected_bstr = NULL_Q_USEFUL_BUF_C;
-            UsefulBufC         ct_bstr       = NULL_Q_USEFUL_BUF_C;
-            UsefulBufC         enc_bstr      = NULL_Q_USEFUL_BUF_C;
-            const char        *fail_stage    = NULL;
+            /* HPKE integrated Encrypt0: use library decrypt */
+            struct t_cose_encrypt_dec_ctx dec_ctx;
+            t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
+            t_cose_encrypt_dec_set_hpke_recipient_key(&dec_ctx,
+                                                      my_key,
+                                                      info_ub);
+            t_cose_encrypt_dec_set_hpke_psk(&dec_ctx, psk_ub, psk_id_ub);
 
-            QCBORDecode_Init(&dc, cose_msg, QCBOR_DECODE_MODE_NORMAL);
-            QCBORDecode_EnterArray(&dc, NULL);
-            if(QCBORDecode_GetError(&dc) != QCBOR_SUCCESS) { fail_stage = "Enter array"; goto decrypt_fail; }
-
-            QCBORDecode_GetNext(&dc, &it);
-            if(QCBORDecode_GetError(&dc) != QCBOR_SUCCESS || it.uDataType != QCBOR_TYPE_BYTE_STRING) { fail_stage = "Protected"; goto decrypt_fail; }
-            protected_bstr = it.val.string;
-
-            /* unprotected map */
-            QCBORDecode_EnterMap(&dc, NULL);
-            if(QCBORDecode_GetError(&dc) != QCBOR_SUCCESS) { fail_stage = "Enter unprot"; goto decrypt_fail; }
-            while(QCBORDecode_GetNext(&dc, &it) == QCBOR_SUCCESS) {
-                if(it.uLabelType == QCBOR_TYPE_INT64 && it.label.int64 == T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY &&
-                   it.uDataType == QCBOR_TYPE_BYTE_STRING) {
-                    enc_bstr = it.val.string;
-                }
-            }
-            QCBORDecode_ExitMap(&dc);
-            if(QCBORDecode_GetError(&dc) != QCBOR_SUCCESS || q_useful_buf_c_is_null(enc_bstr)) { fail_stage = "Find enc"; goto decrypt_fail; }
-
-            /* ciphertext */
-            QCBORDecode_GetNext(&dc, &it);
-            if(QCBORDecode_GetError(&dc) != QCBOR_SUCCESS || it.uDataType != QCBOR_TYPE_BYTE_STRING) { fail_stage = "Ciphertext"; goto decrypt_fail; }
-            ct_bstr = it.val.string;
-
-            QCBORDecode_ExitArray(&dc);
-            if(QCBORDecode_GetError(&dc) != QCBOR_SUCCESS) { fail_stage = "Exit array"; goto decrypt_fail; }
-
-        /* decode protected to get alg */
-        QCBORDecodeContext dcp;
-        QCBORDecode_Init(&dcp, protected_bstr, QCBOR_DECODE_MODE_NORMAL);
-        QCBORDecode_EnterMap(&dcp, NULL);
-        if(QCBORDecode_GetError(&dcp) != QCBOR_SUCCESS) goto decrypt_fail;
-        while(QCBORDecode_GetNext(&dcp, &it) == QCBOR_SUCCESS) {
-            if(it.uLabelType == QCBOR_TYPE_INT64 && it.label.int64 == 1 && it.uDataType == QCBOR_TYPE_INT64) {
-                alg_in_msg = it.val.int64;
-            }
-        }
-        QCBORDecode_ExitMap(&dcp);
-        if(QCBORDecode_GetError(&dcp) != QCBOR_SUCCESS) goto decrypt_fail;
-        if(!is_hpke_alg((int32_t)alg_in_msg)) {
-            fprintf(stderr, "COSE_Encrypt0 alg is not HPKE\n");
-            goto decrypt_fail;
-        }
-
-            hpke_suite_t suite;
-            hpke_suite_components_t comps;
-            if(!hpke_alg_to_components((int32_t)alg_in_msg, &comps)) goto decrypt_fail;
-            suite.kem_id  = comps.kem_id;
-            suite.kdf_id  = comps.kdf_id;
-            suite.aead_id = comps.aead_id;
-
-            size_t plaintext_len = plaintext_buf.len;
-            int ret = mbedtls_hpke_decrypt(
-                HPKE_MODE_BASE,
-                suite,
-                psk_id_ub.len ? (char *)psk_id_ub.ptr : NULL,
-                psk_ub.len, (unsigned char *)psk_ub.ptr, /* PSK */
-                0, NULL,                       /* pkS */
-                (psa_key_handle_t)my_key.key.handle, /* skR */
-                enc_bstr.len,
-                enc_bstr.ptr,
-                ct_bstr.len,
-                ct_bstr.ptr,
-                0, NULL,                       /* aad empty per draft-19 integrated */
-                0, NULL,                       /* info (empty) */
-                &plaintext_len,
-                plaintext_buf.ptr);
-
-            if(ret != 0) {
-                terr = T_COSE_ERR_HPKE_DECRYPT_FAIL;
-                goto decrypt_fail_ret;
-            }
-            plaintext.ptr = plaintext_buf.ptr;
-            plaintext.len = plaintext_len;
-            goto decrypt_success;
-
-decrypt_fail:
-            terr = T_COSE_ERR_FAIL;
-decrypt_fail_ret:
+            terr = t_cose_encrypt_dec_detached(&dec_ctx,
+                                               cose_msg,
+                                               aad_ub,
+                                               ct_file ? ct_ub : NULL_Q_USEFUL_BUF_C,
+                                               plaintext_buf,
+                                               &plaintext,
+                                               NULL);
             if(terr != T_COSE_SUCCESS) {
-                fprintf(stderr, "Decryption failed: %d", terr);
-                if(fail_stage) {
-                    fprintf(stderr, " (%s)", fail_stage);
-                }
-                fprintf(stderr, "\n");
+                fprintf(stderr, "Decryption failed: %d (t_cose_encrypt_dec)\n", terr);
+                free(cose_data); free(aad); free(ct);
+                free(info);
+                free(psk_buf);
+                return 1;
             }
+        } else {
+            fprintf(stderr,
+                    "Decrypt mode encrypt0 requires an HPKE integrated alg (got alg=%lld)\n",
+                    (long long)alg_in_msg);
             free(cose_data); free(aad); free(ct);
+            free(info);
+            free(psk_buf);
             return 1;
         }
-decrypt_success:
     } else {
         /* HPKE COSE_Encrypt path */
         if(!my_parsed.has_private) {
@@ -1399,6 +1374,7 @@ decrypt_success:
             free(cose_data);
             free(aad);
             free(ct);
+            free(info);
             return 1;
         }
 
@@ -1426,6 +1402,7 @@ decrypt_success:
             free(cose_data);
             free(aad);
             free(ct);
+            free(info);
             return 1;
         }
 
@@ -1436,6 +1413,7 @@ decrypt_success:
         t_cose_recipient_dec_hpke_init(&dec_recipient);
         t_cose_recipient_dec_hpke_set_skr(&dec_recipient, my_key, my_kid);
         t_cose_recipient_dec_hpke_set_psk(&dec_recipient, psk_ub, psk_id_ub);
+        t_cose_recipient_dec_hpke_set_info(&dec_recipient, info_ub);
         t_cose_encrypt_dec_add_recipient(&dec_ctx,
                                          (struct t_cose_recipient_dec *)&dec_recipient);
 
@@ -1461,6 +1439,7 @@ decrypt_success:
         free(cose_data);
         free(aad);
         free(ct);
+        free(info);
         return 1;
     }
 
@@ -1470,6 +1449,7 @@ decrypt_success:
         free(cose_data);
         free(aad);
         free(ct);
+        free(info);
         free(psk_buf);
         return 1;
     }
@@ -1477,6 +1457,7 @@ decrypt_success:
     free(cose_data);
     free(aad);
     free(ct);
+    free(info);
     free(psk_buf);
     return 0;
 }

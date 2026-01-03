@@ -186,7 +186,7 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         create_recipient_structure("HPKE Recipient",/* in: context string */
                               ce_alg.cose_alg_id,  /* in: next layer algorithm */
                               protected_params, /* in: CBOR encoded protected headers */
-                              NULL_Q_USEFUL_BUF_C, /* in: recipient_extra_info */
+                              me->info, /* in: recipient_extra_info */
                               recipient_struct_buf,  /* in: output buffer */
                               &recipient_struct);  /* out: encoded Recipient_structure */
 

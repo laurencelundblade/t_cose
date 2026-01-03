@@ -18,6 +18,8 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
 #include "t_cose_qcbor_gap.h"
+#include "hpke.h"
+#include "psa/crypto.h"
 
 
 /* These errors do not stop the calling of further verifiers for
@@ -40,6 +42,61 @@ is_soft_verify_error(enum t_cose_err_t error)
             return true;
         default:
             return false;
+    }
+}
+
+
+static bool
+hpke_suite_from_alg(int32_t alg, hpke_suite_t *suite)
+{
+    if(suite == NULL) {
+        return false;
+    }
+
+    switch(alg) {
+    case T_COSE_HPKE_Base_P256_SHA256_AES128GCM:
+        suite->kem_id  = T_COSE_HPKE_KEM_ID_P256;
+        suite->kdf_id  = T_COSE_HPKE_KDF_ID_HKDF_SHA256;
+        suite->aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_128;
+        return true;
+    case T_COSE_HPKE_Base_P256_SHA256_AES256GCM:
+        suite->kem_id  = T_COSE_HPKE_KEM_ID_P256;
+        suite->kdf_id  = T_COSE_HPKE_KDF_ID_HKDF_SHA256;
+        suite->aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256;
+        return true;
+    case T_COSE_HPKE_Base_P384_SHA384_AES256GCM:
+        suite->kem_id  = T_COSE_HPKE_KEM_ID_P384;
+        suite->kdf_id  = T_COSE_HPKE_KDF_ID_HKDF_SHA384;
+        suite->aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256;
+        return true;
+    case T_COSE_HPKE_Base_P521_SHA512_AES256GCM:
+        suite->kem_id  = T_COSE_HPKE_KEM_ID_P521;
+        suite->kdf_id  = T_COSE_HPKE_KDF_ID_HKDF_SHA512;
+        suite->aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256;
+        return true;
+    case T_COSE_HPKE_Base_X25519_SHA256_AES128GCM:
+        suite->kem_id  = T_COSE_HPKE_KEM_ID_25519;
+        suite->kdf_id  = T_COSE_HPKE_KDF_ID_HKDF_SHA256;
+        suite->aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_128;
+        return true;
+    case T_COSE_HPKE_Base_X25519_SHA256_CHACHA20POLY1305:
+        suite->kem_id  = T_COSE_HPKE_KEM_ID_25519;
+        suite->kdf_id  = T_COSE_HPKE_KDF_ID_HKDF_SHA256;
+        suite->aead_id = T_COSE_HPKE_AEAD_ID_CHACHA_POLY1305;
+        return true;
+    case T_COSE_HPKE_Base_X448_SHA512_AES256GCM:
+        suite->kem_id  = T_COSE_HPKE_KEM_ID_448;
+        suite->kdf_id  = T_COSE_HPKE_KDF_ID_HKDF_SHA512;
+        suite->aead_id = T_COSE_HPKE_AEAD_ID_AES_GCM_256;
+        return true;
+    case T_COSE_HPKE_Base_X448_SHA512_CHACHA20POLY1305:
+        suite->kem_id  = T_COSE_HPKE_KEM_ID_448;
+        suite->kdf_id  = T_COSE_HPKE_KDF_ID_HKDF_SHA512;
+        suite->aead_id = T_COSE_HPKE_AEAD_ID_CHACHA_POLY1305;
+        return true;
+    /* HPKE-7 duplicates HPKE-0 suite except for AEAD strength */
+    default:
+        return false;
     }
 }
 
@@ -158,6 +215,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     struct q_useful_buf_c          enc_structure;
     bool                           alg_id_prot;
     enum t_cose_err_t              previous_return_value;
+    bool                           is_hpke_integrated = false;
 
 
     /* --- Get started decoding array of 4 and tags --- */
@@ -204,15 +262,20 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         goto Done;
     }
 
-    nonce_cbor = t_cose_param_find_iv(body_params_list);
-    if(q_useful_buf_c_is_empty(nonce_cbor)) {
-        return T_COSE_ERR_BAD_IV;
-    }
-
     ce_alg.cose_alg_id = t_cose_param_find_alg_id(body_params_list, &alg_id_prot);
     if(ce_alg.cose_alg_id == T_COSE_ALGORITHM_NONE) {
         return T_COSE_ERR_NO_ALG_ID;
     }
+    is_hpke_integrated = (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) &&
+                         t_cose_alg_is_hpke_integrated(ce_alg.cose_alg_id);
+
+    if(!is_hpke_integrated) {
+        nonce_cbor = t_cose_param_find_iv(body_params_list);
+        if(q_useful_buf_c_is_empty(nonce_cbor)) {
+            return T_COSE_ERR_BAD_IV;
+        }
+    }
+
     if(t_cose_alg_is_non_aead(ce_alg.cose_alg_id)) {
         /* Make sure there are no protected headers for non-aead algorithms */
         if(!t_cose_params_empty(protected_params)) {
@@ -224,9 +287,11 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
             return T_COSE_ERR_NO_ALG_ID;
         }
     }
-    ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
-    if(ce_alg.bits_in_key == UINT32_MAX) {
-        return T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
+    if(!is_hpke_integrated) {
+        ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
+        if(ce_alg.bits_in_key == UINT32_MAX) {
+            return T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
+        }
     }
 
     all_params_list = body_params_list;
@@ -238,6 +303,102 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         cipher_text = detached_ciphertext;
     } else {
         QCBORDecode_GetByteString(&cbor_decoder, &cipher_text);
+    }
+
+    /* --- HPKE Integrated (Encrypt0) path --- */
+    if(is_hpke_integrated) {
+        struct q_useful_buf_c enc_param = t_cose_param_find_enc(body_params_list);
+        hpke_suite_t          suite;
+        struct q_useful_buf_c info = me->hpke_info;
+        size_t                pt_len;
+        int                   hpke_ret;
+        char                  pskid_buf[64];
+        char                 *pskid_cstr = NULL;
+        uint8_t               dummy_psk = 0;
+        unsigned char        *psk_ptr;
+
+        if(q_useful_buf_c_is_null(enc_param)) {
+            return_value = T_COSE_ERR_FAIL;
+            goto Done;
+        }
+        if(!hpke_suite_from_alg(ce_alg.cose_alg_id, &suite)) {
+            return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+            goto Done;
+        }
+
+        if(q_useful_buf_c_is_null(info)) {
+            info = (struct q_useful_buf_c){ "", 0 };
+        }
+        if(me->hpke_recipient_key.key.handle == 0 && me->hpke_recipient_key.key.ptr == NULL) {
+            return_value = T_COSE_ERR_FAIL;
+            goto Done;
+        }
+
+        if(me->hpke_psk_id.len > 0 && me->hpke_psk_id.len < sizeof(pskid_buf)) {
+            memcpy(pskid_buf, me->hpke_psk_id.ptr, me->hpke_psk_id.len);
+            pskid_buf[me->hpke_psk_id.len] = '\0';
+            pskid_cstr = pskid_buf;
+        }
+        if(pskid_cstr == NULL) {
+            pskid_cstr = "";
+        }
+        psk_ptr = (me->hpke_psk.len > 0 && me->hpke_psk.ptr != NULL) ?
+                    (unsigned char *)me->hpke_psk.ptr : &dummy_psk;
+
+        /* Build Enc_structure as AAD */
+        if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
+            enc_struct_buffer = me->extern_enc_struct_buffer;
+        }
+        return_value = create_enc_structure("Encrypt0",
+                                            protected_params,
+                                            ext_sup_data,
+                                            enc_struct_buffer,
+                                           &enc_structure);
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+
+        /* Close CBOR decoding cleanly */
+        QCBORDecode_ExitArray(&cbor_decoder);
+        cbor_error = QCBORDecode_Finish(&cbor_decoder);
+        if(cbor_error != QCBOR_SUCCESS) {
+            return_value = qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_ENCRYPT_FORMAT);
+            goto Done;
+        }
+
+        all_params_list = body_params_list;
+        if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
+            return_value = t_cose_params_check(all_params_list);
+            if(return_value != T_COSE_SUCCESS) {
+                goto Done;
+            }
+        }
+
+        pt_len = plaintext_buffer.len;
+        hpke_ret = mbedtls_hpke_decrypt(
+            HPKE_MODE_BASE,                /* HPKE mode */
+            suite,                         /* ciphersuite */
+            pskid_cstr, me->hpke_psk.len, psk_ptr, /* PSK/psk_id (mode still base in current backend) */
+            0, NULL,                       /* pkS */
+            (psa_key_handle_t)me->hpke_recipient_key.key.handle, /* skR */
+            enc_param.len,
+            enc_param.ptr,
+            cipher_text.len,
+            cipher_text.ptr,
+            enc_structure.len, (uint8_t *)(uintptr_t)enc_structure.ptr, /* aad */
+            info.len, (uint8_t *)(uintptr_t)info.ptr,                   /* info */
+            &pt_len,
+            plaintext_buffer.ptr);
+
+        if(hpke_ret != 0) {
+            return_value = T_COSE_ERR_HPKE_DECRYPT_FAIL;
+            goto Done;
+        }
+
+        plaintext->ptr = plaintext_buffer.ptr;
+        plaintext->len = pt_len;
+        return_value = T_COSE_SUCCESS;
+        goto Done;
     }
 
     /* --- COSE_Recipients (if there are any) --- */

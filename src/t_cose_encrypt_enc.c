@@ -100,8 +100,6 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
     uint8_t                     *ciphertext_mem = NULL;
     size_t                       ciphertext_len = 0;
 
-    fprintf(stderr, "t_cose_encrypt_enc_hpke_integrated\n");
-
     /* ---- Figure out message type (must be Encrypt0 for Integrated Mode) ---- */
     message_type = T_COSE_OPT_MESSAGE_TYPE_MASK & me->option_flags;
     switch(message_type) {
@@ -169,7 +167,8 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
     if(q_useful_buf_c_is_null(info)) {
         info = (struct q_useful_buf_c){ "", 0 };
     }
-    struct q_useful_buf_c aad = (struct q_useful_buf_c){ "", 0 }; /* Draft-19 integrated: empty AAD */
+    /* Draft-19 requires HPKE AAD to be the Enc_structure (with external_aad) */
+    struct q_useful_buf_c aad = enc_structure;
 
     /* ---- Prepare ciphertext buffer for HPKE output ---- */
     /* Ciphertext is plaintext + tag; add margin for tag and potential padding */

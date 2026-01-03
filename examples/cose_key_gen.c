@@ -603,7 +603,7 @@ int main(int argc, char *argv[])
 
     printf("Generated COSE_Key (public) -> %s\n", pub_out);
     printf("Generated COSE_Key (full)   -> %s\n", full_out);
-    printf("Suite=%s (alg=%d) kid='%s'\n", alg_name, (int)hpke_alg, kid_str);
+//    printf("Suite=%s (alg=%d) kid='%s'\n", alg_name, (int)hpke_alg, kid_str);
 
 cleanup:
     free(priv);

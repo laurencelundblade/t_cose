@@ -96,6 +96,10 @@ struct t_cose_encrypt_dec_ctx {
 
     uint32_t              option_flags;
     struct t_cose_key     cek;
+    struct t_cose_key     hpke_recipient_key;
+    struct q_useful_buf_c hpke_info;
+    struct q_useful_buf_c hpke_psk;
+    struct q_useful_buf_c hpke_psk_id;
 
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_DECODE_HEADERS];
@@ -158,6 +162,25 @@ t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *context,
 static void
 t_cose_encrypt_dec_set_cek(struct t_cose_encrypt_dec_ctx *context,
                            struct t_cose_key              cek);
+
+
+static inline void
+t_cose_encrypt_dec_set_hpke_recipient_key(struct t_cose_encrypt_dec_ctx *context,
+                                          struct t_cose_key              skR,
+                                          struct q_useful_buf_c          info)
+{
+    context->hpke_recipient_key = skR;
+    context->hpke_info = info;
+}
+
+static inline void
+t_cose_encrypt_dec_set_hpke_psk(struct t_cose_encrypt_dec_ctx *context,
+                                struct q_useful_buf_c         psk,
+                                struct q_useful_buf_c         psk_id)
+{
+    context->hpke_psk = psk;
+    context->hpke_psk_id = psk_id;
+}
 
 
 /**

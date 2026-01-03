@@ -1276,8 +1276,6 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     psa_algorithm_t  psa_algorithm_id;
     psa_status_t     status;
 
-    fprintf(stderr, "cose_algorithm_id=%d\n", cose_algorithm_id);
-
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
             psa_algorithm_id = PSA_ALG_GCM;

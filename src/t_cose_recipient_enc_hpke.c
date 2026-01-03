@@ -75,8 +75,6 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
     hpke_suite.kdf_id = suite.kdf_id;
     hpke_suite.kem_id = suite.kem_id;
 
-    fprintf(stderr, "t_cose_crypto_hpke_encrypt: aead_id=%d, kdf=%d, kem_id=%d\n", suite.aead_id, suite.kdf_id, suite.kem_id);
-
     /* Export recipient public key: EC2 -> uncompressed SEC1, OKP -> raw */
     result = t_cose_crypto_export_ec2_key(recipient_pub_key,
                                           &cose_curve,
@@ -176,9 +174,6 @@ t_cose_recipient_enc_hpke_encrypt_for_encrypt0(struct t_cose_recipient_enc_hpke 
     size_t                 cipher_len_io = ciphertext.len;
     uint8_t                enc_buf[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE];
     size_t                 enc_len = 0;
-
-    fprintf(stderr, "t_cose_crypto_hpke_encrypt: aead_id=%d, kdf=%d, kem_id=%d, cose_ec_curve_id=%d\n",
-        context->hpke_suite.aead_id, context->hpke_suite.kdf_id, context->hpke_suite.kem_id, context->cose_ec_curve_id);
 
     if(context == NULL || ek_out == NULL || ciphertext_len == NULL) {
         return T_COSE_ERR_INVALID_ARGUMENT;
@@ -373,7 +368,7 @@ t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
         create_recipient_structure("HPKE Recipient",/* in: context string */
                               ce_alg.cose_alg_id,  /* in: next layer algorithm */
                               header, /* in: CBOR encoded protected headers */
-                              NULL_Q_USEFUL_BUF_C, /* in: recipient_extra_info */
+                              context->info, /* in: recipient_extra_info */
                               recipient_struct_buf,  /* in: output buffer */
                               &recipient_struct);  /* out: encoded Recipient_structure */
 
