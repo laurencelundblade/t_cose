@@ -115,7 +115,7 @@ jobs:
         cmake --install qcbor-build --config Release --prefix "$GITHUB_WORKSPACE/install" 
 
     - name: Configure t_cose
-      shell:bash
+      shell: bash
       run: |
         cmake S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
 
