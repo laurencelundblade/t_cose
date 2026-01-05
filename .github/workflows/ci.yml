@@ -201,7 +201,7 @@ jobs:
           vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Config t_cose
-        run: cmake S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
+        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
         shell: pwsh
 
       - name: Build t_cose
