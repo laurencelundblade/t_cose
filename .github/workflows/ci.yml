@@ -114,12 +114,15 @@ jobs:
         cd QCBOR
         cmake --install qcbor-build --config Release --prefix "$GITHUB_WORKSPACE/install" 
 
+    - name: Configure t_cose
+      shell:bash
+      run: |
+        cmake S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
+
     - name: Build t_cose
       run: |
         set -ex
-        mkdir build
-        cd build
-        cmake -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
+        cmake --build build -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
           ${{ matrix.config.crypto-provider-extra }} \
           ${{ matrix.config.defines }} \
           ..\
@@ -166,26 +169,31 @@ jobs:
         with:
           arch: ${{ env.ARCH }}
 
-      - name: Fetch QCBOR
+      - name: Fetch QCBOR Win
         uses: actions/checkout@v3
         with:
           repository: laurencelundblade/QCBOR
           ref: better-cmake
           path: QCBOR
 
-      - name: Configure QCBOR
+      - name: Configure QCBOR Win
         shell: bash
         run: |
+          cd QCBOR
           ARCH="${{ env.ARCH }}"
           cmake -S . -B qcbor-build -G "Visual Studio 17 2022" -A "$ARCH" 
 
-      - name: build QCBOR
-        run: cmake --build qcbor-build --config Release
-        shell: pwsh
+      - name: build QCBOR Win
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake --build qcbor-build --config Release
 
-      - name: Install QCBOR
-        run: cmake --install qcbor-build --config Release --prefix "$GITHUB_WORKSPACE/install"
-        shell: pwsh
+      - name: Install QCBOR Win
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake --install qcbor-build --config Release --prefix "$GITHUB_WORKSPACE/install"
 
       - name: Install OpenSSL with vcpkg
         uses: lukka/run-vcpkg@v11
