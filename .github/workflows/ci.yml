@@ -164,9 +164,10 @@ jobs:
           path: QCBOR
 
       - name: Configure QCBOR
-        ARCH="${{ env.ARCH }}"
-        run: cmake -S . -B qcbor-build -G "Visual Studio 17 2022" -A "$ARCH" 
-        shell: pwsh
+        shell: bash
+        run: |
+          ARCH="${{ env.ARCH }}"
+          cmake -S . -B qcbor-build -G "Visual Studio 17 2022" -A "$ARCH" 
 
       - name: build QCBOR
         run: cmake --build qcbor-build --config Release
