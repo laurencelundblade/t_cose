@@ -181,11 +181,6 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: '**/vcpkg.json'
-        shell: bash
-        run: |
-          cmake -S . -B build \
-            -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
-            -DCRYPTO_PROVIDER=${{ matrix.crypto }}
 
       - name: Build t_cose
         run: cmake --build build
