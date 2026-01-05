@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.15)
 project(t_cose
     DESCRIPTION "t_cose"
     LANGUAGES C
@@ -85,7 +85,7 @@ set(T_COSE_SRC_COMMON
     src/t_cose_qcbor_gap.c
 )
 
-find_package(QCBOR REQUIRED)
+find_package(qcbor REQUIRED)
 
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
 target_compile_options(t_cose PRIVATE -ffunction-sections)

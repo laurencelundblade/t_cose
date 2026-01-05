@@ -117,7 +117,7 @@ jobs:
     - name: Configure t_cose
       shell: bash
       run: |
-        cmake S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
+        cmake -S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
 
     - name: Build t_cose
       run: |
