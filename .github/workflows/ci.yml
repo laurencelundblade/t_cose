@@ -97,13 +97,22 @@ jobs:
         path: QCBOR
 
     - name: Configure QCBOR
-      run: cmake -S . -B qcbor-build 
+      shell: bash
+      run: |
+        cd QCBOR
+        cmake -S . -B qcbor-build 
 
     - name: build QCBOR
-      run: cmake --build qcbor-build
+      shell: bash
+      run: |
+        cd QCBOR
+        cmake --build qcbor-build
 
     - name: Install QCBOR
-      run: cmake --install qcbor-build 
+      shell: bash
+      run: |
+        cd QCBOR
+        cmake --install qcbor-build 
 
     - name: Build t_cose
       run: |
