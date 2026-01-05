@@ -165,7 +165,8 @@ jobs:
 
       - name: Configure QCBOR
         ARCH="${{ env.ARCH }}"
-        cmake -S . -B qcbor-build -G "Visual Studio 17 2022" -A "$ARCH" 
+        run: cmake -S . -B qcbor-build -G "Visual Studio 17 2022" -A "$ARCH" 
+        shell: pwsh
 
       - name: build QCBOR
         run: cmake --build qcbor-build --config Release
@@ -173,6 +174,7 @@ jobs:
 
       - name: Install QCBOR
         run: cmake --install qcbor-build --config Release
+        shell: pwsh
 
       - name: Install OpenSSL with vcpkg
         uses: lukka/run-vcpkg@v11
