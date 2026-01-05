@@ -181,7 +181,6 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: '**/vcpkg.json'
-
         shell: bash
         run: |
           cmake -S . -B build \
