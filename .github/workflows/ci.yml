@@ -117,17 +117,15 @@ jobs:
     - name: Configure t_cose
       shell: bash
       run: |
-        cmake -S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
+        cmake -S . -B build \
+          -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
+          -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
+          ${{ matrix.config.crypto-provider-extra }} 
 
     - name: Build t_cose
       run: |
         set -ex
-        cmake --build build -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
-          ${{ matrix.config.crypto-provider-extra }} \
-          ${{ matrix.config.defines }} \
-          ..\
-          -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
-        make -j $(nproc)
+        cmake --build build 
 
     - name: Run examples
       run: build/t_cose_examples
