@@ -1,23 +1,33 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022-2023, Arm Limited. All rights reserved.
+# Copyright (c) 2024-2026, Laurence Lundblade. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# See BSD-3-Clause license in README.md
+#-------------------------------------------------------------------------------
+
 cmake_minimum_required(VERSION 3.15)
+
 project(t_cose
     DESCRIPTION "t_cose"
     LANGUAGES C
-    VERSION 1.0.1)
+    VERSION 2.0.0)
 
 # Constants
 set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
 
 # Project options
+option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
+option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_EXAMPLES "Build examples" OFF)
+option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
+
 set(CRYPTO_PROVIDER "OpenSSL" CACHE STRING "The crypto provider to use: ${CRYPTO_PROVIDERS}")
-set(BUILD_TESTS ON CACHE BOOL "Build tests")
-set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 
 if (NOT CRYPTO_PROVIDER IN_LIST CRYPTO_PROVIDERS)
     message(FATAL_ERROR "CRYPTO_PROVIDER must be one of ${CRYPTO_PROVIDERS}")
 endif()
-
-# Built-in CMake options
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Create shared instead of static libraries")
 
 # Used in find_package() calls as preferred search paths
 set(QCBOR_ROOT "" CACHE PATH "Installation prefix of QCBOR")
@@ -59,7 +69,14 @@ else()
 endif()
 
 # Global compile options applying to all targets
-add_compile_options(-pedantic -Wall)
+if (BUILD_QCBOR_WARN)
+    # Compile options applying to all targets in current directory and below
+    add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
+    
+    # Tell MSVC not to warn about padded structures
+    if (MSVC)
+        target_compile_options(mylib PRIVATE /wd4820)
+endif()
 
 set(T_COSE_SRC_COMMON
     src/t_cose_sign1_sign.c
