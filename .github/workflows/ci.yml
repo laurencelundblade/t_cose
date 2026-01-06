@@ -112,7 +112,7 @@ jobs:
       shell: bash
       run: |
         cd QCBOR
-        cmake --install qcbor-build --config Release --prefix "$GITHUB_WORKSPACE/install" 
+        cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install" 
 
     - name: Configure t_cose
       shell: bash
@@ -187,13 +187,13 @@ jobs:
         shell: bash
         run: |
           cd QCBOR
-          cmake --build qcbor-build --config Release
+          cmake --build qcbor-build 
 
       - name: Install QCBOR Win
         shell: bash
         run: |
           cd QCBOR
-          cmake --install qcbor-build --config Release --prefix "$GITHUB_WORKSPACE/install"
+          cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install"
 
       - name: Install OpenSSL with vcpkg
         uses: lukka/run-vcpkg@v11
