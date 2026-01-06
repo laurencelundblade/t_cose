@@ -191,7 +191,7 @@ jobs:
         shell: bash
         run: |
           cd QCBOR
-          cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install"
+          cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install" --config Debug
 
       - name: Install OpenSSL with vcpkg
         uses: lukka/run-vcpkg@v11
