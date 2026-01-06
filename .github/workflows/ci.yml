@@ -209,7 +209,7 @@ jobs:
       - name: Run tests
         shell: pwsh
         run: |
-          $exe = "build/test/Debug/t_cose_test.exe"
+          $exe = "build/Debug/t_cose_test.exe"
           if (!(Test-Path $exe)) {
             Write-Error "Test binary not found: $exe"
           }
