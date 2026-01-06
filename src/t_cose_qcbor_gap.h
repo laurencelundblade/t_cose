@@ -1,7 +1,7 @@
 /*
  * t_cose_qcbor_gap.h
  *
- * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, 2026, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 5/29/23.
  *
  * SPDX-License-Identifier: BSD-3-Clause
