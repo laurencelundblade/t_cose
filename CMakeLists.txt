@@ -76,6 +76,7 @@ if (BUILD_QCBOR_WARN)
     # Tell MSVC not to warn about padded structures
     if (MSVC)
         target_compile_options(mylib PRIVATE /wd4820)
+    endif()
 endif()
 
 set(T_COSE_SRC_COMMON
