@@ -14,14 +14,39 @@ project(t_cose
     LANGUAGES C
     VERSION 2.0.0)
 
-# Constants
-set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
 
-# Project options
+# =========================================================================
+#    General Configuration
+# =========================================================================
+
 option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
 option(BUILD_TESTS "Build tests" OFF)
 option(BUILD_EXAMPLES "Build examples" OFF)
 option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
+
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "No build type selected, defaulting to Release")
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+endif()
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+# Global compile options applying to all targets
+if (BUILD_QCBOR_WARN)
+    # Compile options applying to all targets in current directory and below
+    add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
+    
+    # Tell MSVC not to warn about padded structures
+    if (MSVC)
+        target_compile_options(mylib PRIVATE /wd4820)
+    endif()
+endif()
+
+
+# =========================================================================
+#    Crypto provider configuration
+# =========================================================================
+set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
 
 set(CRYPTO_PROVIDER "OpenSSL" CACHE STRING "The crypto provider to use: ${CRYPTO_PROVIDERS}")
 
@@ -33,13 +58,6 @@ endif()
 set(QCBOR_ROOT "" CACHE PATH "Installation prefix of QCBOR")
 set(MbedTLS_ROOT "" CACHE PATH "Installation prefix of MbedTLS")
 set(OpenSSL_ROOT "" CACHE PATH "Installation prefix of OpenSSL")
-
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    message(STATUS "No build type selected, defaulting to Release")
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
-endif()
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
@@ -68,16 +86,10 @@ else()
     message(FATAL_ERROR "Bug!")
 endif()
 
-# Global compile options applying to all targets
-if (BUILD_QCBOR_WARN)
-    # Compile options applying to all targets in current directory and below
-    add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
-    
-    # Tell MSVC not to warn about padded structures
-    if (MSVC)
-        target_compile_options(mylib PRIVATE /wd4820)
-    endif()
-endif()
+
+# =========================================================================
+#    Build the t_cose library
+# =========================================================================
 
 set(T_COSE_SRC_COMMON
     src/t_cose_sign1_sign.c
@@ -111,6 +123,11 @@ target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
 target_link_libraries(t_cose PUBLIC qcbor::qcbor PRIVATE ${CRYPTO_LIBRARY})
 
+
+# =========================================================================
+#    Install the t_cose library
+# =========================================================================
+
 include(GNUInstallDirs)
 
 install(TARGETS t_cose
@@ -118,6 +135,11 @@ install(TARGETS t_cose
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+
+# =========================================================================
+#    Build the example code
+# =========================================================================
 
 if (BUILD_EXAMPLES)
 
@@ -148,6 +170,10 @@ if (BUILD_EXAMPLES)
 
 endif()
 
+
+# =========================================================================
+#    Build the test app 
+# =========================================================================
 
 if (BUILD_TESTS)
 
