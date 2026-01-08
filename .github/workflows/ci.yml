@@ -139,7 +139,8 @@ jobs:
           matrix.config.crypto-provider-build-extra == ''
       # This Mbed TLS version has the option of restartable ECP, however it is
       # not turned on. In this case the restartable testcase should fail.
-      run: build/t_cose_test | grep 'restart_test_2_step FAILED'
+      #run: build/t_cose_test | grep 'restart_test_2_step FAILED'
+      run: build/t_cose_test 
 
     - name: Run tests
       if: ${{ ! ( matrix.config.crypto-provider == 'MbedTLS' &&
@@ -154,8 +155,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-
-        crypto: [ OpenSSL ]
+        crypto: [ Test, OpenSSL, MbedTLS ]
     
     env:
       ARCH: x64
@@ -202,8 +202,12 @@ jobs:
           vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Config t_cose
-        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON
-        shell: bash
+        run: |
+          shell: bash
+          cmake -S . -B build \
+          -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
+          -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON \
+          -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} 
 
       - name: Build t_cose
         run: cmake --build build --config Debug

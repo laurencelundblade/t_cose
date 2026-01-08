@@ -33,12 +33,11 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Global compile options applying to all targets
 if (BUILD_QCBOR_WARN)
-    # Compile options applying to all targets in current directory and below
-    add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
+    target_compile_options(t_cose PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
     
     # Tell MSVC not to warn about padded structures
     if (MSVC)
-        target_compile_options(mylib PRIVATE /wd4820)
+        target_compile_options(t_cose PRIVATE /wd4820)
     endif()
 endif()
 
@@ -118,7 +117,6 @@ set(T_COSE_SRC_COMMON
 find_package(qcbor REQUIRED)
 
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
-target_compile_options(t_cose PRIVATE -ffunction-sections)
 target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
 target_link_libraries(t_cose PUBLIC qcbor::qcbor PRIVATE ${CRYPTO_LIBRARY})
