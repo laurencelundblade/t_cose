@@ -207,7 +207,7 @@ jobs:
           cmake -S . -B build \
           -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
           -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON \
-          -DCRYPTO_PROVIDER=${{ matrix.config }} 
+          -DCRYPTO_PROVIDER=${{ matrix.crypto }} 
 
       - name: Build t_cose
         run: cmake --build build --config Debug
