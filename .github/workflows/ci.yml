@@ -120,10 +120,10 @@ jobs:
       shell: bash
       run: |
         cmake -S . -B build \
+          -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON \
           -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
           -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
-          ${{ matrix.config.crypto-provider-extra }} \
-          -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON
+          ${{ matrix.config.crypto-provider-extra }}
 
     - name: Build t_cose
       run: |
@@ -202,8 +202,7 @@ jobs:
           vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Config t_cose
-        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
-          -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON
+        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON
         shell: bash
 
       - name: Build t_cose
