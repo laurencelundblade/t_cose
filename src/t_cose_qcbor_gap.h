@@ -38,7 +38,7 @@ typedef struct {
     uint32_t           offset;
     QCBORDecodeNesting Nesting;
     // TODO: Should more be saved and restored?
-} QCBORSaveDecodeCursor;
+} QCBORSavedDecodeCursor;
 
 
 /*
@@ -46,9 +46,9 @@ typedef struct {
  * This saves the decode state such that any decoding done after
  * this call can be abandoned with a call to QCBORDecode_RestoreCursor().
  */
-void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSaveDecodeCursor *cursor);
+void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSavedDecodeCursor *cursor);
 
-void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSaveDecodeCursor *cursor);
+void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeCursor *cursor);
 
 #endif /* QCBOR_VERSION_MAJOR < 2 */
 

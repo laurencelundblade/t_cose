@@ -207,7 +207,7 @@ jobs:
         shell: bash
 
       - name: Build t_cose
-        run: cmake --build build
+        run: cmake --build build --config Debug
         shell: bash
 
       - name: Run tests
