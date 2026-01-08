@@ -196,6 +196,11 @@ jobs:
           cd QCBOR
           cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install" --config Debug
 
+      - name: Install MbedTLS with vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: '**/vcpkg-psa.json'
+
       - name: Install OpenSSL with vcpkg
         uses: lukka/run-vcpkg@v11
         with:
