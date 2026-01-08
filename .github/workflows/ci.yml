@@ -202,8 +202,8 @@ jobs:
           vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Config t_cose
+        shell: bash
         run: |
-          shell: bash
           cmake -S . -B build \
           -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
           -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON \
