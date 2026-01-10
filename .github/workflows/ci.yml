@@ -182,16 +182,17 @@ jobs:
         run: conan profile detect --force
 
       - name: Install mbedTLS with Conan (inline)
+        shell: bash
         run: |
-          conan install ^
-            --requires=mbedtls/3.5.2 ^
-            --output-folder=build ^
-            --build=missing ^
-            -g CMakeDeps ^
-            -g CMakeToolchain ^
-            -s compiler=msvc ^
-            -s compiler.runtime=dynamic ^
-            -s build_type=Release
+          conan install \
+            --requires=mbedtls/3.5.2 \
+            --output-folder=build \
+            --build=missing \
+            -g CMakeDeps \
+            -g CMakeToolchain \
+            -s compiler=msvc \
+            -s compiler.runtime=dynamic \
+            -s build_type=Debug
 
       - name: Fetch QCBOR Win
         uses: actions/checkout@v3
