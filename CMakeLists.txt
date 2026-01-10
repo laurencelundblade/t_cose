@@ -1,28 +1,28 @@
-cmake_minimum_required(VERSION 3.12)
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022-2023, Arm Limited. All rights reserved.
+# Copyright (c) 2024-2026, Laurence Lundblade. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# See BSD-3-Clause license in README.md
+#-------------------------------------------------------------------------------
+
+cmake_minimum_required(VERSION 3.15)
+
 project(t_cose
     DESCRIPTION "t_cose"
     LANGUAGES C
-    VERSION 1.0.1)
+    VERSION 2.0.0)
 
-# Constants
-set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
 
-# Project options
-set(CRYPTO_PROVIDER "OpenSSL" CACHE STRING "The crypto provider to use: ${CRYPTO_PROVIDERS}")
-set(BUILD_TESTS ON CACHE BOOL "Build tests")
-set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
+# =========================================================================
+#    General Configuration
+# =========================================================================
 
-if (NOT CRYPTO_PROVIDER IN_LIST CRYPTO_PROVIDERS)
-    message(FATAL_ERROR "CRYPTO_PROVIDER must be one of ${CRYPTO_PROVIDERS}")
-endif()
-
-# Built-in CMake options
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Create shared instead of static libraries")
-
-# Used in find_package() calls as preferred search paths
-set(QCBOR_ROOT "" CACHE PATH "Installation prefix of QCBOR")
-set(MbedTLS_ROOT "" CACHE PATH "Installation prefix of MbedTLS")
-set(OpenSSL_ROOT "" CACHE PATH "Installation prefix of OpenSSL")
+option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
+option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_EXAMPLES "Build examples" OFF)
+option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "No build type selected, defaulting to Release")
@@ -31,10 +31,37 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+# Global compile options applying to all targets
+if (BUILD_QCBOR_WARN)
+    target_compile_options(t_cose PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
+    
+    # Tell MSVC not to warn about padded structures
+    if (MSVC)
+        target_compile_options(t_cose PRIVATE /wd4820)
+    endif()
+endif()
+
+
+# =========================================================================
+#    Crypto provider configuration
+# =========================================================================
+set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
+
+set(CRYPTO_PROVIDER "OpenSSL" CACHE STRING "The crypto provider to use: ${CRYPTO_PROVIDERS}")
+
+if (NOT CRYPTO_PROVIDER IN_LIST CRYPTO_PROVIDERS)
+    message(FATAL_ERROR "CRYPTO_PROVIDER must be one of ${CRYPTO_PROVIDERS}")
+endif()
+
+# Used in find_package() calls as preferred search paths
+set(QCBOR_ROOT "" CACHE PATH "Installation prefix of QCBOR")
+set(MbedTLS_ROOT "" CACHE PATH "Installation prefix of MbedTLS")
+set(OpenSSL_ROOT "" CACHE PATH "Installation prefix of OpenSSL")
+
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     find_package(MbedTLS REQUIRED)
-    set(CRYPTO_LIBRARY MbedTLS::MbedCrypto)
+    set(CRYPTO_LIBRARY MbedTLS::mbedcrypto)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
@@ -58,8 +85,10 @@ else()
     message(FATAL_ERROR "Bug!")
 endif()
 
-# Global compile options applying to all targets
-add_compile_options(-pedantic -Wall)
+
+# =========================================================================
+#    Build the t_cose library
+# =========================================================================
 
 set(T_COSE_SRC_COMMON
     src/t_cose_sign1_sign.c
@@ -85,13 +114,17 @@ set(T_COSE_SRC_COMMON
     src/t_cose_qcbor_gap.c
 )
 
-find_package(QCBOR REQUIRED)
+find_package(qcbor REQUIRED)
 
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
-target_compile_options(t_cose PRIVATE -ffunction-sections)
 target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
-target_link_libraries(t_cose PUBLIC QCBOR::QCBOR PRIVATE ${CRYPTO_LIBRARY})
+target_link_libraries(t_cose PUBLIC qcbor::qcbor PRIVATE ${CRYPTO_LIBRARY})
+
+
+# =========================================================================
+#    Install the t_cose library
+# =========================================================================
 
 include(GNUInstallDirs)
 
@@ -100,6 +133,11 @@ install(TARGETS t_cose
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+
+# =========================================================================
+#    Build the example code
+# =========================================================================
 
 if (BUILD_EXAMPLES)
 
@@ -130,6 +168,10 @@ if (BUILD_EXAMPLES)
 
 endif()
 
+
+# =========================================================================
+#    Build the test app 
+# =========================================================================
 
 if (BUILD_TESTS)
 
