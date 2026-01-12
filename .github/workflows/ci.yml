@@ -12,9 +12,9 @@ jobs:
         qcbor-version: [better-cmake, m-bet-cmake ]
 
         config:
-        # OpenSSL 1.1.1 (Ubuntu 20.04)
+        # OpenSSL 1.1.1 (Ubuntu 22.04)
         - os-image: ubuntu-latest
-          container: ubuntu:20.04
+          container: ubuntu:22.04
           crypto-provider: OpenSSL
 
         # OpenSSL 3.0 (Ubuntu 22.04)
@@ -23,35 +23,35 @@ jobs:
           crypto-provider: OpenSSL
         
         - os-image: ubuntu-latest
-          container: ubuntu:20.04
+          container: ubuntu:22.04
           crypto-provider: MbedTLS
           crypto-provider-version: 'v2.28.0'
           crypto-provider-extra: ''
           crypto-provider-build-extra: ''
         
         - os-image: ubuntu-latest
-          container: ubuntu:20.04
+          container: ubuntu:22.04
           crypto-provider: MbedTLS
           crypto-provider-version: 'v3.1.0'
           crypto-provider-extra: ''
           crypto-provider-build-extra: ''
 
         - os-image: ubuntu-latest
-          container: ubuntu:20.04
+          container: ubuntu:22.04
           crypto-provider: MbedTLS
           crypto-provider-version: 'v3.4.0'
           crypto-provider-extra: ''
           crypto-provider-build-extra: ''
 
         - os-image: ubuntu-latest
-          container: ubuntu:20.04
+          container: ubuntu:22.04
           crypto-provider: MbedTLS
           crypto-provider-version: 'v3.4.0'
           crypto-provider-extra: ''
           crypto-provider-build-extra: 'python3 scripts/config.py set MBEDTLS_ECP_RESTARTABLE'
 
         - os-image: ubuntu-latest
-          container: ubuntu:20.04
+          container: ubuntu:22.04
           crypto-provider: Test
 
     name: ${{ matrix.config.crypto-provider }} ${{ matrix.config.crypto-provider-version }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }} ${{ matrix.qcbor-version }}
