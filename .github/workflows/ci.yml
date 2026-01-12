@@ -114,6 +114,7 @@ jobs:
       run: |
         cmake -S . -B build \
           -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON \
+          -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
           -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
           -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
           ${{ matrix.config.crypto-provider-extra }}
