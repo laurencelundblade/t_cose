@@ -42,21 +42,6 @@ if (BUILD_QCBOR_WARN)
 endif()
 
 
-# =========================================================================
-#    Need this because Conan lower-cases package names
-# =========================================================================
-function(alias_first_available alias)
-    foreach(tgt IN LISTS ARGN)
-        if(TARGET ${tgt})
-            add_library(${alias} ALIAS ${tgt})
-            return()
-        endif()
-    endforeach()
-    message(FATAL_ERROR
-        "MbedTLS found, but none of the expected targets exist:\n  ${ARGN}"
-    )
-endfunction()
-
 
 # =========================================================================
 #    Crypto provider configuration
@@ -147,7 +132,7 @@ find_package(qcbor REQUIRED)
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
 target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
-target_link_libraries(t_cose PUBLIC qcbor::qcbor PRIVATE ${CRYPTO_LIBRARY})
+target_link_libraries(t_cose PUBLIC qcbor::qcbor PUBLIC ${CRYPTO_LIBRARY})
 
 
 # =========================================================================
