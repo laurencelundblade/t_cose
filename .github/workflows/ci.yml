@@ -75,21 +75,29 @@ jobs:
       if: matrix.config.crypto-provider == 'OpenSSL'
       run: apt-get install -y libssl-dev
 
-    - name: Fetch MbedTLS
-      if: matrix.config.crypto-provider == 'MbedTLS'
-      uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        repository: ARMmbed/mbedtls
-        ref: ${{ matrix.config.crypto-provider-version }}
-        path: mbedtls
+        python-version: "3.11"
 
-    - name: Install MbedTLS
-      if: matrix.config.crypto-provider == 'MbedTLS'
+    - name: Install Conan
+      run: pip install --upgrade conan
+
+    - name: Detect Conan profile
+      run: conan profile detect --force
+
+    - name: Install mbedTLS with Conan (inline)
+      shell: bash
       run: |
-        cd mbedtls
-        ${{ matrix.config.crypto-provider-build-extra }}
-        make -j $(nproc)
-        make install
+        conan install \
+          --requires=mbedtls/3.5.2 \
+          --output-folder=build \
+          --build=missing \
+          -g CMakeDeps \
+          -g CMakeToolchain \
+          -s compiler=msvc \
+          -s compiler.runtime=dynamic \
+          -s build_type=Debug
 
     - name: Fetch QCBOR
       uses: actions/checkout@v3
