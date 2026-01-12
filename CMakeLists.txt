@@ -62,6 +62,13 @@ set(OpenSSL_ROOT "" CACHE PATH "Installation prefix of OpenSSL")
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     # Set up aliases for upper/lower cases library target name because of Conan
+    find_package(mbedtls CONFIG QUIET)
+
+    # Fallback to system installs if present
+    if(NOT TARGET mbedtls::mbedcrypto)
+        find_package(MbedTLS QUIET)
+    endif()
+
     find_package(MbedTLS QUIET)
     if(TARGET MbedTLS::mbedcrypto)
         add_library(t_cose::mbedcrypto ALIAS MbedTLS::mbedcrypto)
