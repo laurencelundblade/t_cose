@@ -43,6 +43,22 @@ endif()
 
 
 # =========================================================================
+#    Need this because Conan lower-cases package names
+# =========================================================================
+function(alias_first_available alias)
+    foreach(tgt IN LISTS ARGN)
+        if(TARGET ${tgt})
+            add_library(${alias} ALIAS ${tgt})
+            return()
+        endif()
+    endforeach()
+    message(FATAL_ERROR
+        "MbedTLS found, but none of the expected targets exist:\n  ${ARGN}"
+    )
+endfunction()
+
+
+# =========================================================================
 #    Crypto provider configuration
 # =========================================================================
 set(CRYPTO_PROVIDERS "OpenSSL" "MbedTLS" "Test")
@@ -60,8 +76,20 @@ set(OpenSSL_ROOT "" CACHE PATH "Installation prefix of OpenSSL")
 
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
-    find_package(MbedTLS REQUIRED)
-    set(CRYPTO_LIBRARY MbedTLS::mbedcrypto)
+    # Set up aliases for upper/lower cases library target name because of Conan
+    find_package(MbedTLS QUIET)
+    if(TARGET MbedTLS::mbedcrypto)
+        add_library(t_cose::mbedcrypto ALIAS MbedTLS::mbedcrypto)
+    elseif(TARGET mbedtls::mbedcrypto)
+        add_library(t_cose::mbedcrypto ALIAS mbedtls::mbedcrypto)
+    elseif(TARGET MBedTLS::MBedCrypto) 
+        add_library(t_cose::mbedcrypto ALIAS MBedTLS::MBedCrypto)
+    else()
+        message(FATAL_ERROR
+            "MbedTLS not found. Provide it via system install or Conan.")
+    endif()
+
+    set(CRYPTO_LIBRARY MbedTLS::MbedTLS)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
