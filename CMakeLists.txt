@@ -72,16 +72,19 @@ if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
     # Normalize target name
     if(TARGET mbedtls::mbedcrypto)
         add_library(t_cose::mbedcrypto ALIAS mbedtls::mbedcrypto)
+        add_library(t_cose::mbedtls ALIAS mbedtls::mbedtls)
     elseif(TARGET MbedTLS::mbedcrypto)
         add_library(t_cose::mbedcrypto ALIAS MbedTLS::mbedcrypto)
+        add_library(t_cose::mbedtls ALIAS MbedTLS::mbedtls)
     elseif(TARGET MBedTLS::MBedCrypto)
         add_library(t_cose::mbedcrypto ALIAS MBedTLS::MBedCrypto)
+        add_library(t_cose::mbedtls ALIAS MBedTLS::MBedTLS)
     else()
         message(FATAL_ERROR
                 "MbedTLS not found. Provide it via system install or Conan.")
     endif()
 
-    set(CRYPTO_LIBRARY t_cose::mbedcrypto)
+    set(CRYPTO_LIBRARY t_cose::mbedcrypto t_cose::mbedtls)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
