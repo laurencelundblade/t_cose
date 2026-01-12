@@ -69,16 +69,16 @@ if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
         find_package(MbedTLS QUIET)
     endif()
 
-    find_package(MbedTLS QUIET)
-    if(TARGET MbedTLS::mbedcrypto)
-        add_library(t_cose::mbedcrypto ALIAS MbedTLS::mbedcrypto)
-    elseif(TARGET mbedtls::mbedcrypto)
+    # Normalize target name
+    if(TARGET mbedtls::mbedcrypto)
         add_library(t_cose::mbedcrypto ALIAS mbedtls::mbedcrypto)
-    elseif(TARGET MBedTLS::MBedCrypto) 
+    elseif(TARGET MbedTLS::mbedcrypto)
+        add_library(t_cose::mbedcrypto ALIAS MbedTLS::mbedcrypto)
+    elseif(TARGET MBedTLS::MBedCrypto)
         add_library(t_cose::mbedcrypto ALIAS MBedTLS::MBedCrypto)
     else()
         message(FATAL_ERROR
-            "MbedTLS not found. Provide it via system install or Conan.")
+                "MbedTLS not found. Provide it via system install or Conan.")
     endif()
 
     set(CRYPTO_LIBRARY t_cose::mbedcrypto)
