@@ -84,6 +84,7 @@ jobs:
           -g CMakeToolchain \
           -o mbedtls/*:enable_psa=True \
           -s build_type=Debug
+        find . -name crypto.h -print
 
     - name: Fetch QCBOR
       uses: actions/checkout@v3
