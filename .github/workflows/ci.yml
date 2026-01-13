@@ -82,6 +82,7 @@ jobs:
           --build=missing \
           -g CMakeDeps \
           -g CMakeToolchain \
+          -o mbedtls:enable_psa=ON \
           -s build_type=Debug
 
     - name: Fetch QCBOR
@@ -186,6 +187,7 @@ jobs:
             -g CMakeToolchain \
             -s compiler=msvc \
             -s compiler.runtime=dynamic \
+            -o mbedtls:enable_psa=ON \
             -s build_type=Debug
 
       - name: Fetch QCBOR Win
