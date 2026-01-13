@@ -66,7 +66,7 @@ if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     # Fallback to system installs if present
     if(NOT TARGET mbedtls::mbedcrypto)
-        find_package(MbedTLS QUIET)
+        find_package(MbedTLS CONFIG QUIET)
         message(STATUS "MbedTLS")
     endif()
 
