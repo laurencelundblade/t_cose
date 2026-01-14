@@ -62,33 +62,8 @@ set(OpenSSL_ROOT "" CACHE PATH "Installation prefix of OpenSSL")
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     # Set up aliases for upper/lower cases library target name because of Conan
-    find_package(mbedtls CONFIG QUIET)
-
-    # Fallback to system installs if present
-    if(NOT TARGET mbedtls::mbedcrypto)
-        find_package(MbedTLS CONFIG QUIET)
-        message(STATUS "MbedTLS")
-    endif()
-
-    # Normalize target name
-    if(TARGET mbedtls::mbedcrypto AND TARGET mbedtls::mbedtls)
-        add_library(t_cose::mbedcrypto ALIAS mbedtls::mbedcrypto)
-        add_library(t_cose::mbedtls ALIAS mbedtls::mbedtls)
-        message(STATUS "ll")
-    elseif(TARGET MbedTLS::mbedcrypto AND TARGET MbedTLS::mbedtls)
-        add_library(t_cose::mbedcrypto ALIAS MbedTLS::mbedcrypto)
-        add_library(t_cose::mbedtls ALIAS MbedTLS::mbedtls)
-        message(STATUS "lu")
-    elseif(TARGET MbedTLS::MbedCrypto AND TARGET MbedTLS::MbedTLS)
-        add_library(t_cose::mbedcrypto ALIAS MbedTLS::MbedCrypto)
-        add_library(t_cose::mbedtls ALIAS MbedTLS::MbedTLS)
-        message(STATUS "uu")
-    else()
-        message(FATAL_ERROR
-                "MbedTLS not found. Provide it via system install or Conan.")
-    endif()
-
-    set(CRYPTO_LIBRARY t_cose::mbedcrypto t_cose::mbedtls)
+    find_package(mbedtls REQUIRED)
+    set(CRYPTO_LIBRARY mbedtls::mbedcrypto mbedtls::mbedtls)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
