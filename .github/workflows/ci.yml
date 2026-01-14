@@ -125,6 +125,7 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
           -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
           -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
+          --debug-find-pkg=mbedtls \
           ${{ matrix.config.crypto-provider-extra }}
 
     - name: Build t_cose
