@@ -85,11 +85,7 @@ jobs:
           -o mbedtls/*:enable_psa=True \
           -s build_type=Debug
         echo "%%%%%%%%%%%%%%%%%%%%%%%"
-        find . -name crypto.h -print
-        echo "---"
-        find . -name md.h -print
-        echo "---"
-        ls
+        ls build
         echo "#######################"
 
     - name: Fetch QCBOR
@@ -125,7 +121,7 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
           -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
           -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
-          --debug-find-pkg=mbedtls \
+          --debug-find-pkg=MbedTLS \
           ${{ matrix.config.crypto-provider-extra }}
 
     - name: Build t_cose
