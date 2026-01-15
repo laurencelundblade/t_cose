@@ -9,7 +9,7 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
-        qcbor-version: [better-cmake, m-bet-cmake ]
+        qcbor-version: [master, dev ]
 
         config:
         # OpenSSL 1.1.1 (Ubuntu 22.04)
