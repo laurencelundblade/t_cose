@@ -65,7 +65,7 @@ if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
     # find_package(MbedTLS CONFIG REQUIRED)
     find_package(MbedTLS CONFIG REQUIRED)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
-    set(CRYPTO_LIBRARY MbedTLS::MbedCrypto MbedTLS::MbedTLS)
+    set(CRYPTO_LIBRARY MbedTLS::mbedcrypto MbedTLS::mbedtls)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
