@@ -31,18 +31,6 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-# Global compile options applying to all targets
-if (BUILD_QCBOR_WARN)
-    target_compile_options(t_cose PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
-    
-    # Tell MSVC not to warn about padded structures
-    if (MSVC)
-        target_compile_options(t_cose PRIVATE /wd4820)
-    endif()
-endif()
-
-
-
 # =========================================================================
 #    Crypto provider configuration
 # =========================================================================
@@ -54,18 +42,11 @@ if (NOT CRYPTO_PROVIDER IN_LIST CRYPTO_PROVIDERS)
     message(FATAL_ERROR "CRYPTO_PROVIDER must be one of ${CRYPTO_PROVIDERS}")
 endif()
 
-# Used in find_package() calls as preferred search paths
-set(QCBOR_ROOT "" CACHE PATH "Installation prefix of QCBOR")
-set(MbedTLS_ROOT "" CACHE PATH "Installation prefix of MbedTLS")
-set(OpenSSL_ROOT "" CACHE PATH "Installation prefix of OpenSSL")
-
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
-    # Set up aliases for upper/lower cases library target name because of Conan
-    # find_package(MbedTLS CONFIG REQUIRED)
-    find_package(MbedTLS CONFIG REQUIRED)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
-    set(CRYPTO_LIBRARY MbedTLS::mbedcrypto MbedTLS::mbedtls)
+    find_package(MbedTLS CONFIG REQUIRED)
+    set(CRYPTO_LIBRARY MbedTLS::mbedcrypto)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
@@ -122,13 +103,22 @@ find_package(qcbor REQUIRED)
 
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
 target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
+set_target_properties(t_cose PROPERTIES C_STANDARD 99)
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
 target_link_libraries(t_cose PUBLIC qcbor::qcbor)
-#target_link_libraries(t_cose PUBLIC MbedTLS::mbedcrypto)
 target_link_libraries(t_cose PUBLIC ${CRYPTO_LIBRARY})
 
-#get_target_property(_incs MbedTLS::mbedcrypto INTERFACE_INCLUDE_DIRECTORIES)
-#message(STATUS "mbedcrypto includes = ${_incs}")
+# Global compile options applying to all targets
+if (BUILD_QCBOR_WARN)
+    target_compile_options(t_cose PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
+    
+    # Tell MSVC not to warn about padded structures
+    if (MSVC)
+        target_compile_options(t_cose PRIVATE /wd4820)
+    endif()
+endif()
+
+
 
 
 # =========================================================================

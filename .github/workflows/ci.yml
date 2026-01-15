@@ -84,12 +84,6 @@ jobs:
           -g CMakeToolchain \
           -o mbedtls/*:enable_psa=True \
           -s build_type=Debug
-        echo "%%%%%%%%%%%%%%%%%%%%%%%"
-        ls build
-        cat build/MbedTLSConfig.cmake
-        echo "------"
-        cat build/MbedTLSTargets.cmake
-        echo "#######################"
 
     - name: Fetch QCBOR
       uses: actions/checkout@v3
@@ -245,7 +239,7 @@ jobs:
       - name: Run tests
         shell: pwsh
         run: |
-          $exe = "build/Debug/t_cose_test.exe"
+          $exe = "build/Debug/t_cose_test.exe verify_multi_test"
           if (!(Test-Path $exe)) {
             Write-Error "Test binary not found: $exe"
           }
