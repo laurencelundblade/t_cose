@@ -124,7 +124,8 @@ add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
 target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
 target_link_libraries(t_cose PUBLIC qcbor::qcbor)
-target_link_libraries(t_cose PUBLIC ${CRYPTO_LIBRARY})
+target_link_libraries(t_cose PUBLIC MbedTLS::mbedcrypto)
+#target_link_libraries(t_cose PUBLIC ${CRYPTO_LIBRARY})
 
 
 # =========================================================================
