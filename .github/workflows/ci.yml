@@ -86,6 +86,9 @@ jobs:
           -s build_type=Debug
         echo "%%%%%%%%%%%%%%%%%%%%%%%"
         ls build
+        cat MbedTLSConfig.cmake
+        echo "------"
+        cat MbedTLSTargets.cmake
         echo "#######################"
 
     - name: Fetch QCBOR
