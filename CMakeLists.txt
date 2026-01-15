@@ -127,6 +127,9 @@ target_link_libraries(t_cose PUBLIC qcbor::qcbor)
 target_link_libraries(t_cose PUBLIC MbedTLS::mbedcrypto)
 #target_link_libraries(t_cose PUBLIC ${CRYPTO_LIBRARY})
 
+get_target_property(_incs MbedTLS::mbedcrypto INTERFACE_INCLUDE_DIRECTORIES)
+message(STATUS "mbedcrypto includes = ${_incs}")
+
 
 # =========================================================================
 #    Install the t_cose library
