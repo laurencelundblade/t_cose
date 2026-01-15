@@ -63,7 +63,7 @@ if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     # Set up aliases for upper/lower cases library target name because of Conan
     # find_package(MbedTLS CONFIG REQUIRED)
-    find_package(mbedtls CONFIG REQUIRED)
+    find_package(MbedTLS CONFIG REQUIRED)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
     set(CRYPTO_LIBRARY mbedtls::mbedcrypto mbedtls::mbedtls)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
