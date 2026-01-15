@@ -62,8 +62,10 @@ set(OpenSSL_ROOT "" CACHE PATH "Installation prefix of OpenSSL")
 if(CRYPTO_PROVIDER STREQUAL "MbedTLS")
 
     # Set up aliases for upper/lower cases library target name because of Conan
-    find_package(MbedTLS REQUIRED)
-    set(CRYPTO_LIBRARY MbedTLS::mbedcrypto MbedTLS::mbedtls)
+    # find_package(MbedTLS CONFIG REQUIRED)
+    find_package(mbedtls CONFIG REQUIRED)
+    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+    set(CRYPTO_LIBRARY mbedtls::mbedcrypto mbedtls::mbedtls)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_PSA_CRYPTO=1 ${CC_DEFINES})
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_psa_crypto.c)
 
