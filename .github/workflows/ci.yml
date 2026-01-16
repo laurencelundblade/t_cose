@@ -50,8 +50,8 @@ jobs:
 
         ifdef: &ifdef-array
           - ""
-          - -DT_COSE_DISABLE_CONTENT_TYPE
-          - -DT_COSE_DISABLE_COSE_SIGN
+          - T_COSE_DISABLE_CONTENT_TYPE
+          - T_COSE_DISABLE_COSE_SIGN
 
         config:
           - os-image: ubuntu-latest
@@ -132,13 +132,19 @@ jobs:
     - name: Configure t_cose
       shell: bash
       run: |
+        IFD="${{ matrix.ifdef }}"
+        if [ -z "$IFD" ]; then
+          CONDITIONAL=""
+        else
+          CONDITIONAL="-D${IFD}=ON"
+        fi
         cmake -S . -B build \
           -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON \
           ${{ matrix.crypto.cmake }} \
           -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} \
           -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
           -DCMAKE_BUILD_TYPE=Debug \
-          ${{ matrix.ifdef }}
+          "$CONDITIONAL"
 
     - name: Build t_cose
       run: |
@@ -250,4 +256,4 @@ jobs:
           if (!(Test-Path $exe)) {
             Write-Error "Test binary not found: $exe"
           }
-          & $exe verify_multi_test
+          & $exe 
