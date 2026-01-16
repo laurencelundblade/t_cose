@@ -33,10 +33,10 @@ jobs:
             crypto-version: 3.2
 
         config:
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
+          - os-image: ubuntu-latest
+            container: ubuntu:22.04
 
-    name: ${{ matrix.crypto-interface}} ${{ matrix.crypto-provider }} ${{matrix.crypto-version}} • ${{ matrix.c-compiler }} ${{ matrix.qcbor-version }}
+    name: ${{ matrix.crypto-interface}} • ${{ matrix.crypto-provider }} • ${{matrix.crypto-version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }}
 
     runs-on: ${{ matrix.config.os-image }}
  #   container: ${{ matrix.config.container }}
@@ -109,8 +109,7 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
           -DCRYPTO_PROVIDER=${{ matrix.crypto-provider }} \
           -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
-          -DCMAKE_BUILD_TYPE=Debug \
-          --debug-find-pkg=MbedTLS 
+          -DCMAKE_BUILD_TYPE=Debug 
 
     - name: Build t_cose
       run: |
@@ -121,18 +120,6 @@ jobs:
       run: build/t_cose_examples
 
     - name: Run tests
-      if: matrix.config.crypto-provider == 'MbedTLS' &&
-          matrix.config.crypto-provider-version == 'v3.4.0' &&
-          matrix.config.crypto-provider-build-extra == ''
-      # This Mbed TLS version has the option of restartable ECP, however it is
-      # not turned on. In this case the restartable testcase should fail.
-      #run: build/t_cose_test | grep 'restart_test_2_step FAILED'
-      run: build/t_cose_test 
-
-    - name: Run tests
-      if: ${{ ! ( matrix.config.crypto-provider == 'MbedTLS' &&
-              matrix.config.crypto-provider-version == 'v3.4.0' &&
-              matrix.config.crypto-provider-build-extra == '' ) }}
       run: build/t_cose_test
 
   msvc:
