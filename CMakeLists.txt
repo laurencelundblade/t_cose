@@ -29,6 +29,17 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
 
+option(T_COSE_DISABLE_CONTENT_TYPE             "" OFF)
+option(T_COSE_DISABLE_COSE_SIGN            "" OFF)
+option(T_COSE_DISABLE_ES384            "" OFF)
+option(T_COSE_DISABLE_ES512            "" OFF)
+option(T_COSE_DISABLE_KEYWRAP             "" OFF)
+option(T_COSE_DISABLE_PS256            "" OFF)
+option(T_COSE_DISABLE_PS384            "" OFF)
+option(T_COSE_DISABLE_PS512            "" OFF)
+option(T_COSE_DISABLE_SHORT_CIRCUIT_SIGN            "" OFF)
+option(T_COSE_DISABLE_USAGE_GUARDS            "" OFF)
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # =========================================================================
@@ -103,6 +114,19 @@ find_package(qcbor REQUIRED)
 
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
 target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
+target_compile_definitions(qcbor
+    PUBLIC
+        $<$<BOOL:${T_COSE_DISABLE_CONTENT_TYPE}>:T_COSE_DISABLE_CONTENT_TYPE>
+        $<$<BOOL:${T_COSE_DISABLE_COSE_SIGN}>:T_COSE_DISABLE_COSE_SIGN>
+        $<$<BOOL:${T_COSE_DISABLE_ES384}>:T_COSE_DISABLE_ES384>
+        $<$<BOOL:${T_COSE_DISABLE_ES512}>:T_COSE_DISABLE_ES512>
+        $<$<BOOL:${T_COSE_DISABLE_PS256}>:T_COSE_DISABLE_PS256>
+        $<$<BOOL:${T_COSE_DISABLE_PS384}>:T_COSE_DISABLE_PS384>
+        $<$<BOOL:${T_COSE_DISABLE_PS512}>:T_COSE_DISABLE_PS512>
+        $<$<BOOL:${T_COSE_DISABLE_KEYWRAP}>:T_COSE_DISABLE_KEYWRAP>
+        $<$<BOOL:${T_COSE_DISABLE_SHORT_CIRCUIT_SIGN}>:T_COSE_DISABLE_SHORT_CIRCUIT_SIGN>
+        $<$<BOOL:${T_COSE_DISABLE_USAGE_GUARDS}>:T_COSE_DISABLE_USAGE_GUARDS>
+
 set_target_properties(t_cose PROPERTIES C_STANDARD 99)
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
 target_link_libraries(t_cose PUBLIC qcbor::qcbor)
