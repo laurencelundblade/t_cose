@@ -126,6 +126,7 @@ target_compile_definitions(qcbor
         $<$<BOOL:${T_COSE_DISABLE_KEYWRAP}>:T_COSE_DISABLE_KEYWRAP>
         $<$<BOOL:${T_COSE_DISABLE_SHORT_CIRCUIT_SIGN}>:T_COSE_DISABLE_SHORT_CIRCUIT_SIGN>
         $<$<BOOL:${T_COSE_DISABLE_USAGE_GUARDS}>:T_COSE_DISABLE_USAGE_GUARDS>
+)
 
 set_target_properties(t_cose PROPERTIES C_STANDARD 99)
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
