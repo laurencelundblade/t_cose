@@ -114,7 +114,7 @@ find_package(qcbor REQUIRED)
 
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
 target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
-target_compile_definitions(qcbor
+target_compile_definitions(t_cose
     PUBLIC
         $<$<BOOL:${T_COSE_DISABLE_CONTENT_TYPE}>:T_COSE_DISABLE_CONTENT_TYPE>
         $<$<BOOL:${T_COSE_DISABLE_COSE_SIGN}>:T_COSE_DISABLE_COSE_SIGN>
