@@ -36,7 +36,7 @@ jobs:
         - os-image: ubuntu-latest
           container: ubuntu:22.04
 
-    name: ${{ matrix.crypto-interface}} ${{ matrix-crypto-providers }} ${{matrix.crypto-version}} • ${{ matrix.c-compiler }} ${{ matrix.qcbor-version }}
+    name: ${{ matrix.crypto-interface}} ${{ matrix-crypto-provider }} ${{matrix.crypto-version}} • ${{ matrix.c-compiler }} ${{ matrix.qcbor-version }}
 
     runs-on: ${{ matrix.config.os-image }}
  #   container: ${{ matrix.config.container }}
