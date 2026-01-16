@@ -48,6 +48,11 @@ jobs:
             version: 3.6.0
             cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
 
+        ifdef: &ifdef-array
+          - ""
+          -DT_COSE_DISABLE_CONTENT_TYPE
+          -DT_COSE_DISABLE_COSE_SIGN
+
         config:
           - os-image: ubuntu-latest
             container: ubuntu:22.04
@@ -133,6 +138,7 @@ jobs:
           -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} \
           -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
           -DCMAKE_BUILD_TYPE=Debug 
+          ${{ matrix.ifdef }}
 
     - name: Build t_cose
       run: |
@@ -197,7 +203,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: laurencelundblade/QCBOR
-          ref: better-cmake
+          ref: master
           path: QCBOR
 
       - name: Configure QCBOR Win
