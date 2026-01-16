@@ -137,7 +137,7 @@ jobs:
           ${{ matrix.crypto.cmake }} \
           -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} \
           -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
-          -DCMAKE_BUILD_TYPE=Debug 
+          -DCMAKE_BUILD_TYPE=Debug \
           ${{ matrix.ifdef }}
 
     - name: Build t_cose
