@@ -26,6 +26,10 @@ jobs:
         crypto:
           - interface: psa
             provider: MbedTLS
+            version: 2.28.9
+
+          - interface: psa
+            provider: MbedTLS
             version: 3.5.2
 
           - interface: OpenSSL
@@ -44,17 +48,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install OpenSSL
-      if: matrix.crypto.provider == 'OpenSSL'
-      run: |
-        conan install \
-          --requires=openssl/${{ matrix.crypto.version }} \
-          --output-folder=build \
-          --build=missing \
-          -g CMakeDeps \
-          -g CMakeToolchain \
-          -s build_type=Debug
-
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -69,6 +62,17 @@ jobs:
 
     - name: Detect Conan profile
       run: conan profile detect --force
+
+    - name: Install OpenSSL
+      if: matrix.crypto.provider == 'OpenSSL'
+      run: |
+        conan install \
+          --requires=openssl/${{ matrix.crypto.version }} \
+          --output-folder=build \
+          --build=missing \
+          -g CMakeDeps \
+          -g CMakeToolchain \
+          -s build_type=Debug
 
     - name: Install mbedTLS with Conan (inline)
       if: matrix.crypto.provider == 'MbedTLS'
