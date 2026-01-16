@@ -30,6 +30,137 @@ jobs:
 
           - interface: psa
             provider: MbedTLS
+            version: 3.5.2
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
+
+#TODO: switch to later version of OpenSSL
+          - interface: OpenSSL
+            provider: OpenSSL
+            version: 1.1.1v
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
+
+        ifdef: &ifdef-array
+          - ""
+
+        config:
+          - os-image: ubuntu-latest
+            container: ubuntu:22.04
+
+    name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }} • ${{ matrix.ifdef }}
+
+    runs-on: ${{ matrix.config.os-image }}
+ #   container: ${{ matrix.config.container }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+
+    - name: Install Conan
+      run: pip install --upgrade conan
+
+    - name: Detect Conan profile
+      run: conan profile detect --force
+
+    - name: Install OpenSSL
+      if: matrix.crypto.provider == 'OpenSSL'
+      run: |
+        conan install \
+          --requires=openssl/${{ matrix.crypto.version }} \
+          --output-folder=build \
+          --build=missing \
+          -g CMakeDeps \
+          -g CMakeToolchain \
+          -s build_type=Debug
+
+    - name: Install mbedTLS with Conan (inline)
+      if: matrix.crypto.provider == 'MbedTLS'
+      shell: bash
+      run: |
+        conan install \
+          --requires=mbedtls/${{ matrix.crypto.version }} \
+          --output-folder=build \
+          --build=missing \
+          -g CMakeDeps \
+          -g CMakeToolchain \
+          -o mbedtls/*:enable_psa=True \
+          -s build_type=Debug
+
+    - name: Fetch QCBOR
+      uses: actions/checkout@v3
+      with:
+        repository: laurencelundblade/QCBOR
+        ref: ${{ matrix.qcbor-version }}
+        path: QCBOR
+
+    - name: Configure QCBOR
+      shell: bash
+      run: |
+        cd QCBOR
+        cmake -S . -B qcbor-build 
+
+    - name: build QCBOR
+      shell: bash
+      run: |
+        cd QCBOR
+        cmake --build qcbor-build
+
+    - name: Install QCBOR
+      shell: bash
+      run: |
+        cd QCBOR
+        cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install" 
+
+    - name: Configure t_cose
+      shell: bash
+      run: |
+        IFD="${{ matrix.ifdef }}"
+        if [ -z "$IFD" ]; then
+          CONDITIONAL=""
+        else
+          CONDITIONAL="-D${IFD}=ON"
+        fi
+        cmake -S . -B build \
+          -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON \
+          ${{ matrix.crypto.cmake }} \
+          -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} \
+          -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
+          -DCMAKE_BUILD_TYPE=Debug \
+          "$CONDITIONAL"
+
+    - name: Build t_cose
+      run: |
+        set -ex
+        cmake --build build --verbose
+
+    - name: Run examples
+      run: build/t_cose_examples
+
+    - name: Run tests
+      run: build/t_cose_test
+
+  ifdef-fan-out:
+    strategy:
+      fail-fast: false
+      matrix:
+        c-compiler: [clang]
+
+        qcbor-version: [dev]
+
+        crypto:
+          - interface: Test
+            provider: Test
+            cmake: ""
+
+          - interface: psa
+            provider: MbedTLS
             version: 2.28.9
             cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
 
@@ -52,12 +183,21 @@ jobs:
           - ""
           - T_COSE_DISABLE_CONTENT_TYPE
           - T_COSE_DISABLE_COSE_SIGN
+          - T_COSE_DISABLE_ES384
+          - T_COSE_DISABLE_ES512
+          - T_COSE_DISABLE_PS384
+          - T_COSE_DISABLE_PS256
+          - T_COSE_DISABLE_PS512
+          - T_COSE_DISABLE_ES384
+          - T_COSE_DISABLE_KEYWRAP
+          - T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+          - T_COSE_DISABLE_USAGE_GUARDS
 
         config:
           - os-image: ubuntu-latest
             container: ubuntu:22.04
 
-    name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }} • ${{ matrix.ifdef }}
+    name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • QCBOR: ${{ matrix.qcbor-version }} • ${{ matrix.ifdef }}
 
     runs-on: ${{ matrix.config.os-image }}
  #   container: ${{ matrix.config.container }}

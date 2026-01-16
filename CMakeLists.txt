@@ -158,6 +158,9 @@ install(TARGETS t_cose
 )
 install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
+# TODO: install cmake package info
+
+
 
 # =========================================================================
 #    Build the example code
