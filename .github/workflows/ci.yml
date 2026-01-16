@@ -23,20 +23,20 @@ jobs:
 
         qcbor-version: [master, dev]
 
-        include:
-          - crypto-interface: psa
-            crypto-provider: MbedTLS
-            crypto-version: 3.5.2
+        crypto:
+          - interface: psa
+            provider: MbedTLS
+            version: 3.5.2
 
-          - crypto-interface: OpenSSL
-            crypto-provider: OpenSSL
-            crypto-version: 3.2
+          - interface: OpenSSL
+            provider: OpenSSL
+            version: 3.2
 
         config:
           - os-image: ubuntu-latest
             container: ubuntu:22.04
 
-    name: ${{ matrix.crypto-interface}} • ${{ matrix.crypto-provider }} • ${{matrix.crypto-version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }}
+    name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }}
 
     runs-on: ${{ matrix.config.os-image }}
  #   container: ${{ matrix.config.container }}
@@ -45,7 +45,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install OpenSSL
-      if: matrix.crypto-provider == 'OpenSSL'
+      if: matrix.crypto.provider == 'OpenSSL'
       run: sudo apt-get install -y libssl-dev
 
     - name: Set up Python
@@ -64,7 +64,7 @@ jobs:
       run: conan profile detect --force
 
     - name: Install mbedTLS with Conan (inline)
-      if: matrix.crypto-provider == 'MbedTLS'
+      if: matrix.crypto.provider == 'MbedTLS'
       shell: bash
       run: |
         conan install \
@@ -107,7 +107,7 @@ jobs:
         cmake -S . -B build \
           -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON \
           -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
-          -DCRYPTO_PROVIDER=${{ matrix.crypto-provider }} \
+          -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} \
           -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
           -DCMAKE_BUILD_TYPE=Debug 
 
