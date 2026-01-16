@@ -24,6 +24,9 @@ jobs:
         qcbor-version: [master, dev]
 
         crypto:
+          - interface: Test
+            provider: Test
+
           - interface: psa
             provider: MbedTLS
             version: 2.28.9
@@ -34,7 +37,7 @@ jobs:
 
           - interface: OpenSSL
             provider: OpenSSL
-            version: 3.2
+            version: 3.6.0
 
         config:
           - os-image: ubuntu-latest
