@@ -50,8 +50,8 @@ jobs:
 
         ifdef: &ifdef-array
           - ""
-          -DT_COSE_DISABLE_CONTENT_TYPE
-          -DT_COSE_DISABLE_COSE_SIGN
+          - -DT_COSE_DISABLE_CONTENT_TYPE
+          - -DT_COSE_DISABLE_COSE_SIGN
 
         config:
           - os-image: ubuntu-latest
