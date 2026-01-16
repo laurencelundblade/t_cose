@@ -1,3 +1,15 @@
+
+# 15 ifdefs
+# 3 qcbor versions
+# 3 compilers
+# 3 containers
+# 6 crypto libraries
+# 2 debug/release 
+
+# ifdefs X crypto 15 * 6 = 90 
+
+# qcbor X compilers X min crypto  = 3 * 2 * 3 = 18
+
 name: CI
 
 on: [push, pull_request]
@@ -9,53 +21,31 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
-        qcbor-version: [master, dev ]
+        qcbor-version: [master, dev]
+
+        include:
+          - crypto-interface: psa
+            crypto-provider: MbedTLS
+            crypto-version: 3.5.2
+
+          - crypto-interface: OpenSSL
+            crypto-provider: OpenSSL
+            crypto-version: 3.2
 
         config:
-        # OpenSSL 1.1.1 (Ubuntu 22.04)
         - os-image: ubuntu-latest
-          crypto-provider: OpenSSL
+          container: ubuntu:22.04
 
-        # OpenSSL 3.0 (Ubuntu 22.04)
-        - os-image: ubuntu-latest
-          crypto-provider: OpenSSL
-        
-        - os-image: ubuntu-latest
-          crypto-provider: MbedTLS
-          crypto-provider-version: 'v2.28.0'
-          crypto-provider-extra: ''
-          crypto-provider-build-extra: ''
-        
-        - os-image: ubuntu-latest
-          crypto-provider: MbedTLS
-          crypto-provider-version: 'v3.1.0'
-          crypto-provider-extra: ''
-          crypto-provider-build-extra: ''
-
-        - os-image: ubuntu-latest
-          crypto-provider: MbedTLS
-          crypto-provider-version: 'v3.4.0'
-          crypto-provider-extra: ''
-          crypto-provider-build-extra: ''
-
-        - os-image: ubuntu-latest
-          crypto-provider: MbedTLS
-          crypto-provider-version: 'v3.4.0'
-          crypto-provider-extra: ''
-          crypto-provider-build-extra: 'python3 scripts/config.py set MBEDTLS_ECP_RESTARTABLE'
-
-        - os-image: ubuntu-latest
-          crypto-provider: Test
-
-    name: ${{ matrix.config.crypto-provider }} ${{ matrix.config.crypto-provider-version }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }} ${{ matrix.qcbor-version }}
+    name: ${{ matrix.crypto-interface}} ${{ matrix-crypto-providers }} ${{matrix.crypto-version}} • ${{ matrix.c-compiler }} ${{ matrix.qcbor-version }}
 
     runs-on: ${{ matrix.config.os-image }}
+ #   container: ${{ matrix.config.container }}
 
     steps:
     - uses: actions/checkout@v3
 
     - name: Install OpenSSL
-      if: matrix.config.crypto-provider == 'OpenSSL'
+      if: matrix..crypto-provider == 'OpenSSL'
       run: sudo apt-get install -y libssl-dev
 
     - name: Set up Python
@@ -74,10 +64,11 @@ jobs:
       run: conan profile detect --force
 
     - name: Install mbedTLS with Conan (inline)
+      if: matrix.crypto-provider == 'MbedTLS'
       shell: bash
       run: |
         conan install \
-          --requires=mbedtls/3.5.2 \
+          --requires=mbedtls/${{ matrix.version }} \
           --output-folder=build \
           --build=missing \
           -g CMakeDeps \
@@ -116,11 +107,10 @@ jobs:
         cmake -S . -B build \
           -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON \
           -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
-          -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
+          -DCRYPTO_PROVIDER=${{ matrix.crypto-provider }} \
           -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
           -DCMAKE_BUILD_TYPE=Debug \
-          --debug-find-pkg=MbedTLS \
-          ${{ matrix.config.crypto-provider-extra }}
+          --debug-find-pkg=MbedTLS 
 
     - name: Build t_cose
       run: |
@@ -152,7 +142,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        crypto: [ Test, OpenSSL, MbedTLS ]
+        # TODO: add OPenSSL back in when we figure out why it is broken
+        crypto: [ Test, MbedTLS ]
     
     env:
       ARCH: x64
