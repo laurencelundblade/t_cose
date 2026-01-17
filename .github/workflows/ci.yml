@@ -353,9 +353,10 @@ jobs:
 
       - name: Install OpenSSL
         if: matrix.crypto.provider == 'OpenSSL'
+        shell: bash
         run: |
           conan install \
-            --requires=openssl/${{ matrix.crypto.version }} \
+            --requires=mbedtls/${{ matrix.crypto.version }} \
             --output-folder=build \
             --build=missing \
             -g CMakeDeps \
@@ -365,8 +366,8 @@ jobs:
             -s build_type=Debug
 
       - name: Install mbedTLS with Conan (inline)
-        shell: bash
         if: matrix.crypto.provider == 'MbedTLS'
+        shell: bash
         run: |
           conan install \
             --requires=mbedtls/${{ matrix.crypto.version }} \
