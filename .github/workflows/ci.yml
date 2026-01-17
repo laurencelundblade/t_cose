@@ -357,7 +357,6 @@ jobs:
         run: |
           conan install \
             --requires=mbedtls/${{ matrix.crypto.version }} \
-            --requires=mbedtls/3.5.2 \
             --output-folder=build \
             --build=missing \
             -g CMakeDeps \
