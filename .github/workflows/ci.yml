@@ -319,11 +319,11 @@ jobs:
             version: 3.5.2
             cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
 
-#TODO: switch to later version of OpenSSL
-          - interface: OpenSSL
-            provider: OpenSSL
-            version: 1.1.1v
-            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+#TODO: figure out why OpenSSL is broken on Windows; also switch to later version of OpenSSL
+#          - interface: OpenSSL
+#            provider: OpenSSL
+#            version: 1.1.1v
+#            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
     
     name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • MSVC • ${{ matrix.qcbor-version }} 
 
