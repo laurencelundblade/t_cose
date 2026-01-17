@@ -320,10 +320,10 @@ jobs:
             cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
 
 #TODO: switch to later version of OpenSSL
-#          - interface: OpenSSL
-#            provider: OpenSSL
-#            version: 1.1.1v
-#            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+          - interface: OpenSSL
+            provider: OpenSSL
+            version: 1.1.1v
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
     
     name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • MSVC • ${{ matrix.qcbor-version }} 
 
@@ -350,6 +350,17 @@ jobs:
 
       - name: Detect Conan profile
         run: conan profile detect --force
+
+      - name: Install OpenSSL
+        if: matrix.crypto.provider == 'OpenSSL'
+        run: |
+          conan install \
+            --requires=openssl/${{ matrix.crypto.version }} \
+            --output-folder=build \
+            --build=missing \
+            -g CMakeDeps \
+            -g CMakeToolchain \
+            -s build_type=Debug
 
       - name: Install mbedTLS with Conan (inline)
         shell: bash
