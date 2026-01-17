@@ -252,8 +252,7 @@ jobs:
         ref: ${{ matrix.qcbor-version }}
         path: QCBOR
 
-    - name: Configure Q        qcbor-version: [master, dev]
-CBOR
+    - name: Configure QCBOR
       shell: bash
       run: |
         cd QCBOR
@@ -306,6 +305,7 @@ CBOR
     strategy:
       fail-fast: false
       matrix:
+
         qcbor-version: [master, dev]
 
         # TODO: add OPenSSL back in when we figure out why it is broken
