@@ -69,7 +69,10 @@ jobs:
     name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }} • ${{ matrix.ifdef }}
 
     runs-on: ${{ matrix.config.os-image }}
- #   container: ${{ matrix.config.container }}
+    container: ${{ matrix.config.container }}
+
+    env:
+      CC: ${{ matrix.c-compiler }}
 
     steps:
       - uses: actions/checkout@v3
