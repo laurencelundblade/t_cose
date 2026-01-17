@@ -64,7 +64,7 @@ jobs:
 
         config:
           - os-image: ubuntu-latest
-            container: ubuntu:22.04
+          # Intentionally not using a container to have less problems with libc and python versions
 
     name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }} • ${{ matrix.ifdef }}
 
@@ -223,7 +223,7 @@ jobs:
 
         config:
           - os-image: ubuntu-latest
-            container: ubuntu:22.04
+          # Intentionally not using a container to have less problems with libc and python versions
 
     name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }} • ${{ matrix.ifdef }}
 
