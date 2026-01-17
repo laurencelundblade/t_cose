@@ -308,10 +308,24 @@ jobs:
         qcbor-version: [master, dev]
 
         # TODO: add OPenSSL back in when we figure out why it is broken
-        crypto: [ Test, MbedTLS ]
+
+        crypto:
+          - interface: Test
+            provider: Test
+            cmake: ""
+
+          - interface: psa
+            provider: MbedTLS
+            version: 3.5.2
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+
+#TODO: switch to later version of OpenSSL
+#          - interface: OpenSSL
+#            provider: OpenSSL
+#            version: 1.1.1v
+#            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
     
-    #name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • MSVC • ${{ matrix.qcbor-version }} 
-    name: MSVC • ${{ matrix.qcbor-version }} 
+    name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • MSVC • ${{ matrix.qcbor-version }} 
 
     env:
       ARCH: x64
@@ -339,8 +353,10 @@ jobs:
 
       - name: Install mbedTLS with Conan (inline)
         shell: bash
+        if: matrix.crypto.provider == 'MbedTLS'
         run: |
           conan install \
+            --requires=mbedtls/${{ matrix.crypto.version }} \
             --requires=mbedtls/3.5.2 \
             --output-folder=build \
             --build=missing \
@@ -377,19 +393,14 @@ jobs:
           cd QCBOR
           cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install" --config Debug
 
-      - name: Install OpenSSL with vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgJsonGlob: '**/vcpkg.json'
-
       - name: Config t_cose
         shell: bash
         run: |
           cmake -S . -B build \
           -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
           -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON \
-          -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
-          -DCRYPTO_PROVIDER=${{ matrix.crypto }} 
+          ${{ matrix.crypto.cmake }} \
+          -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} 
 
       - name: Build t_cose
         run: cmake --build build --config Debug
