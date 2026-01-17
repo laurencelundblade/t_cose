@@ -356,7 +356,7 @@ jobs:
         shell: bash
         run: |
           conan install \
-            --requires=mbedtls/${{ matrix.crypto.version }} \
+            --requires=openssl/${{ matrix.crypto.version }} \
             --output-folder=build \
             --build=missing \
             -g CMakeDeps \
