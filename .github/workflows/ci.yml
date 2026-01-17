@@ -360,6 +360,8 @@ jobs:
             --build=missing \
             -g CMakeDeps \
             -g CMakeToolchain \
+            -s compiler=msvc \
+            -s compiler.runtime=dynamic \
             -s build_type=Debug
 
       - name: Install mbedTLS with Conan (inline)
