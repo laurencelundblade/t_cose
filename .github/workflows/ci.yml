@@ -299,7 +299,6 @@ jobs:
       run: build/t_cose_test
 
   msvc:
-    name: msvc • windows-latest
     runs-on: windows-latest
 
     strategy:
@@ -311,6 +310,9 @@ jobs:
         # TODO: add OPenSSL back in when we figure out why it is broken
         crypto: [ Test, MbedTLS ]
     
+    #name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • MSVC • ${{ matrix.qcbor-version }} 
+    name: MSVC • ${{ matrix.qcbor-version }} 
+
     env:
       ARCH: x64
 
