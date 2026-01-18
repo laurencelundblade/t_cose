@@ -19,7 +19,7 @@ project(t_cose
 #    General Configuration
 # =========================================================================
 
-option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
+option(BUILD_T_COSE_WARN  "Compile with the warning flags used in the t_cose release process" OFF)
 option(BUILD_TESTS "Build tests" OFF)
 option(BUILD_EXAMPLES "Build examples" OFF)
 option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
@@ -152,7 +152,7 @@ target_link_libraries(t_cose PUBLIC qcbor::qcbor)
 target_link_libraries(t_cose PUBLIC ${CRYPTO_LIBRARY})
 
 # Global compile options applying to all targets
-if (BUILD_QCBOR_WARN)
+if (BUILD_T_COSE_WARN)
     target_compile_options(t_cose PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
     
     # Tell MSVC not to warn about padded structures
