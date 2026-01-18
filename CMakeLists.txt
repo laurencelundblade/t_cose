@@ -70,12 +70,11 @@ elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
 
 elseif(CRYPTO_PROVIDER STREQUAL "Test")
 
-    add_library(b_con_hash crypto_adapters/b_con_hash/sha256.c)
-    target_include_directories(b_con_hash PUBLIC crypto_adapters/b_con_hash)
-
-    set(CRYPTO_LIBRARY b_con_hash)
     set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_B_CON_SHA256 -DT_COSE_ENABLE_HASH_FAIL_TEST)
-    set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_test_crypto.c)
+    set(EXTRA_INC ${CMAKE_CURRENT_SOURCE_DIR}/crypto_adapters/b_con_hash)
+    set(CRYPTO_ADAPTER_SRC
+        crypto_adapters/t_cose_test_crypto.c
+        crypto_adapters/b_con_hash/sha256.c)
 
 else()
     message(FATAL_ERROR "Bug!")
@@ -113,6 +112,17 @@ set(T_COSE_SRC_COMMON
 find_package(qcbor REQUIRED)
 
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
+
+add_library(t_cose::t_cose ALIAS t_cose)
+
+set_target_properties(
+    t_cose PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        POSITION_INDEPENDENT_CODE ON
+        C_STANDARD 99
+)
+
 target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
 target_compile_definitions(t_cose
     PUBLIC
@@ -128,8 +138,16 @@ target_compile_definitions(t_cose
         $<$<BOOL:${T_COSE_DISABLE_USAGE_GUARDS}>:T_COSE_DISABLE_USAGE_GUARDS>
 )
 
-set_target_properties(t_cose PROPERTIES C_STANDARD 99)
-target_include_directories(t_cose PUBLIC inc PRIVATE src)
+
+target_include_directories(t_cose
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${EXTRA_INC}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+        $<INSTALL_INTERFACE:include>
+)
+
 target_link_libraries(t_cose PUBLIC qcbor::qcbor)
 target_link_libraries(t_cose PUBLIC ${CRYPTO_LIBRARY})
 
@@ -153,13 +171,49 @@ endif()
 include(GNUInstallDirs)
 
 install(TARGETS t_cose
+    EXPORT t_coseTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# TODO: install cmake package info
+install(DIRECTORY
+        inc/t_cose
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
+install(
+    EXPORT t_coseTargets
+    NAMESPACE t_cose::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/t_cose
+)
+
+
+
+# =========================================================================
+#    install cmake package info
+# =========================================================================
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+    cmake/t_coseConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/t_coseConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/t_cose
+)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/t_coseConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+    
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/t_coseConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/t_coseConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/t_cose
+) 
 
 
 # =========================================================================
