@@ -14,10 +14,12 @@
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose_make_test_messages.h"
 #include "t_cose/q_useful_buf.h"
-#include "t_cose_crypto.h" /* For signature size constant */
-#include "t_cose_util.h" /* for get_short_circuit_kid */
 #include "t_cose/t_cose_key.h"
 #include "init_keys.h" /* Use the same test keys as examples */
+
+
+/* Replicated from t_cose_crypto.h */
+#define T_COSE_PRIVATE_EC_P256_SIG_SIZE 64
 
 
 
@@ -602,7 +604,7 @@ int32_t short_circuit_decode_only_test(void)
      * and tweak so if signature verification were attempted, it would
      * fail (but this is a decode-only test so it won't fail).
      */
-    const size_t last_byte_offset = signed_cose.len - T_COSE_EC_P256_SIG_SIZE;
+    const size_t last_byte_offset = signed_cose.len - T_COSE_PRIVATE_EC_P256_SIG_SIZE;
     struct q_useful_buf temp_unconst = q_useful_buf_unconst(signed_cose);
     ((uint8_t *)temp_unconst.ptr)[last_byte_offset]++;
 
@@ -918,7 +920,7 @@ int32_t bad_parameters_test(void)
         if(!test->test_option) {
             break;
         }
-        if(n == 0) {
+        if(n == 12) {
             err = 11; // To set a break point
         }
         err = run_test_sign_and_verify(test->test_option, test->verify_option);

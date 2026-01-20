@@ -44,11 +44,12 @@ typedef struct {
 
 
 static test_entry s_tests[] = {
+
     TEST_ENTRY(aead_test),
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
     TEST_ENTRY(decrypt_known_good_aeskw_non_aead_test),
-#endif
+#endif /* ! T_COSE_DISABLE_KEYWRAP */
     TEST_ENTRY(hkdf_test),
 
 #ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
@@ -63,7 +64,7 @@ static test_entry s_tests[] = {
 
     TEST_ENTRY(kdf_context_test),
 
-#endif /* T_COSE_USE_B_CON_SHA256 */
+#endif /* ! T_COSE_USE_B_CON_SHA256 */
 
     TEST_ENTRY(sign1_structure_decode_test),
 
@@ -309,7 +310,6 @@ static void PrintSize(const char    *szWhat,
 #include "t_cose/t_cose_signature_sign_eddsa.h"
 #include "t_cose/t_cose_signature_verify_eddsa.h"
 
-#include "t_cose_crypto.h"
 #include "t_cose/t_cose_parameters.h"
 
 #include "t_cose/t_cose_encrypt_enc.h"
@@ -397,10 +397,6 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_recipient_dec_esdh)",
               (uint32_t)sizeof(struct t_cose_recipient_dec_esdh),
-              pfOutput, pOutCtx);
-
-    PrintSize("sizeof(struct t_cose_crypto_hash)",
-              (uint32_t)sizeof(struct t_cose_crypto_hash),
               pfOutput, pOutCtx);
 
     (*pfOutput)("", pOutCtx, 1);
