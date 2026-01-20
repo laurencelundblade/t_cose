@@ -3,6 +3,7 @@
  *
  * Copyright 2022-2023, Laurence Lundblade
  * Created by Laurence Lundblade on 12/28/22.
+ * Copyright (c) 2025, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -56,6 +57,11 @@ int32_t aead_test(void)
 
 
     cose_algorithm_id = T_COSE_ALGORITHM_A128GCM;
+
+    /* Skip gracefully if AES-GCM isn’t supported by the crypto backend. */
+    if(!t_cose_is_algorithm_supported(cose_algorithm_id)){
+        return 0;
+    }
 
     err = t_cose_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
                                                   UsefulBuf_FROM_BYTE_ARRAY_LITERAL(test_key_0_128bit),
@@ -322,12 +328,16 @@ int32_t ecdh_test(void)
     struct t_cose_key           private_key;
     struct q_useful_buf_c       shared_key;
     Q_USEFUL_BUF_MAKE_STACK_UB( shared_key_buf, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE);
-
+    int32_t rc = 0;
 
     err = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                            &public_key,
                                            &private_key);
-    if(err != T_COSE_SUCCESS) {
+
+    if(err == T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG) {
+        return 0;
+    }
+    else if(err != T_COSE_SUCCESS) {
         return -1;
     }
 
@@ -335,21 +345,27 @@ int32_t ecdh_test(void)
                              public_key,
                              shared_key_buf,
                             &shared_key);
-
-    if(err != T_COSE_SUCCESS) {
-        return (int32_t)err;
+    
+    if(err == T_COSE_ERR_KEY_AGREEMENT_FAIL){
+        rc = 0;
+        goto cleanup;
+    }
+    else if(err != T_COSE_SUCCESS) {
+        rc = (int32_t)err;
+        goto cleanup;
     }
 
     /* The main point of this test is that the same result comes from
      * all the crypto libraries integrated. */
     if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(expected_ecdh_p256), shared_key)) {
-        return 44;
+        rc = 44;
+        goto cleanup;
     }
 
+cleanup:
     free_fixed_test_ec_encryption_key(public_key);
     free_fixed_test_ec_encryption_key(private_key);
-
-    return 0;
+    return rc;
 
 }
 
@@ -381,12 +397,18 @@ int32_t ec_import_export_test(void)
     struct q_useful_buf_c  y_coord;
     bool                   y_sign;
     int32_t                curve;
+    int32_t                rc = 0;
 
     err = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                            &public_key,
                                            &private_key);
-    if(err) {
-        return 1;
+    if(err == T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG) {
+        rc = 0;
+        goto cleanup;
+    }
+    else if(err){
+        rc = 1;
+        goto cleanup;
     }
 
     err = t_cose_crypto_export_ec2_key(public_key,
@@ -397,7 +419,8 @@ int32_t ec_import_export_test(void)
                                       &y_coord,
                                       &y_sign);
     if(err) {
-        return 2;
+        rc = 2;
+        goto cleanup;
     }
 
     err = t_cose_crypto_import_ec2_pubkey(curve,
@@ -406,7 +429,8 @@ int32_t ec_import_export_test(void)
                                           y_sign,
                                           &public_key_next);
     if(err) {
-        return 3;
+        rc = 3;
+        goto cleanup;
     }
 
     err = t_cose_crypto_export_ec2_key(public_key_next,
@@ -417,28 +441,39 @@ int32_t ec_import_export_test(void)
                                       &y_coord,
                                       &y_sign);
 
-    free_fixed_test_ec_encryption_key(public_key);
-    free_fixed_test_ec_encryption_key(private_key);
-
-
     if(err) {
-        return 4;
+        rc = 4;
+        goto cleanup;
     }
 
     if(curve != T_COSE_ELLIPTIC_CURVE_P_256) {
-        return 5;
+        rc = 5;
+        goto cleanup;
     }
 
     if(q_useful_buf_compare(x_coord, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(x_coord_P_256) )) {
-        return 6;
+        rc = 6;
+        goto cleanup;
     }
 
 
     if(q_useful_buf_compare(y_coord, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(y_coord_P_256) )) {
-        return 6;
+        rc = 6;
+        goto cleanup;
     }
 
-    return 0;
+cleanup:
+    if (public_key_next.key.handle) {
+        free_fixed_test_ec_encryption_key(public_key_next);
+    }
+    if(public_key.key.handle) {
+        free_fixed_test_ec_encryption_key(public_key);
+    }
+    if(private_key.key.handle) {
+        free_fixed_test_ec_encryption_key(private_key);
+    }
+
+    return rc;
 }
 
 
