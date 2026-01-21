@@ -14,12 +14,14 @@
 #include "t_cose/t_cose_standard_constants.h"
 
 
-#define T_COSE_PRIVATE_EXPORT_PUBLIC_KEY_MAX_SIZE 128 // TODO: right value; think....
 
-/* Used to size some stack buffers. Should be larger than T_COSE_ECC_MAX_CURVE_BITS*/
-#define T_COSE_PRIVATE_ECC_MAX_CURVE_BITS 512
+/* Maximum size ECC key used in tests here in bits */
+#define ECC_MAX_CURVE_BITS 521
 
 #define T_COSE_BITS_TO_BYTES(bits) (((bits) + 7) / 8)
+
+/* Buffer size in bytes for max size ECC key used here */
+#define EXPORT_PUBLIC_KEY_MAX_SIZE (2*T_COSE_BITS_TO_BYTES(ECC_MAX_CURVE_BITS)+1)
 
 
 static const uint8_t test_key_0_128bit[] = {
@@ -330,7 +332,7 @@ int32_t ecdh_test(void)
     struct t_cose_key           public_key;
     struct t_cose_key           private_key;
     struct q_useful_buf_c       shared_key;
-    Q_USEFUL_BUF_MAKE_STACK_UB( shared_key_buf, T_COSE_PRIVATE_EXPORT_PUBLIC_KEY_MAX_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB( shared_key_buf, EXPORT_PUBLIC_KEY_MAX_SIZE);
 
 
     err = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
@@ -384,8 +386,8 @@ int32_t ec_import_export_test(void)
     struct t_cose_key      public_key;
     struct t_cose_key      private_key;
     struct t_cose_key      public_key_next;
-    MakeUsefulBufOnStack(  x_coord_buf, T_COSE_BITS_TO_BYTES(T_COSE_PRIVATE_ECC_MAX_CURVE_BITS));
-    MakeUsefulBufOnStack(  y_coord_buf, T_COSE_BITS_TO_BYTES(T_COSE_PRIVATE_ECC_MAX_CURVE_BITS));
+    MakeUsefulBufOnStack(  x_coord_buf, T_COSE_BITS_TO_BYTES(ECC_MAX_CURVE_BITS));
+    MakeUsefulBufOnStack(  y_coord_buf, T_COSE_BITS_TO_BYTES(ECC_MAX_CURVE_BITS));
     struct q_useful_buf_c  x_coord;
     struct q_useful_buf_c  y_coord;
     bool                   y_sign;
