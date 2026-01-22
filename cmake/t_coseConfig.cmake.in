@@ -1,0 +1,16 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(qcbor CONFIG)
+
+set(T_COSE_CRYPTO_BACKEND "@T_COSE_CRYPTO_BACKEND@")
+
+if (T_COSE_CRYPTO_BACKEND STREQUAL "mbedTLS")
+  find_dependency(mbedTLS CONFIG)
+elseif (T_COSE_CRYPTO_BACKEND STREQUAL "OpenSSL")
+  find_dependency(OpenSSL CONFIG)
+# else there is no crypto back end to find
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/t_coseTargets.cmake")
