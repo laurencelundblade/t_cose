@@ -44,10 +44,6 @@ jobs:
         qcbor-version: [master, dev]
 
         crypto:
-          - interface: Test
-            provider: Test
-            cmake: ""
-
           - interface: psa
             provider: MbedTLS
             version: 3.5.2
@@ -183,10 +179,6 @@ jobs:
         qcbor-version: [dev]
 
         crypto:
-          - interface: Test
-            provider: Test
-            cmake: ""
-
           - interface: psa
             provider: MbedTLS
             version: 2.28.9
@@ -341,10 +333,6 @@ jobs:
         qcbor-version: [master, dev]
 
         crypto:
-          - interface: Test
-            provider: Test
-            cmake: ""
-
           - interface: psa
             provider: MbedTLS
             version: 3.5.2

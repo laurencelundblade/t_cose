@@ -72,11 +72,13 @@ elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
 
 elseif(CRYPTO_PROVIDER STREQUAL "Test")
 
-    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_B_CON_SHA256 -DT_COSE_ENABLE_HASH_FAIL_TEST)
-    set(EXTRA_INC ${CMAKE_CURRENT_SOURCE_DIR}/crypto_adapters/b_con_hash)
-    set(CRYPTO_ADAPTER_SRC
-        crypto_adapters/t_cose_test_crypto.c
-        crypto_adapters/b_con_hash/sha256.c)
+    message(FATAL_ERROR "Use 'Makefile.test' to build for Test crypto")
+
+    # Decided not to support Test crypto via CMake for t_cose 1.x
+    # because it requires some refactoring of the tests and little
+    # further development on 1.x is planed The refactoring was done
+    # for t_cose 2.x because it is the main branch going forward and
+    # uses a lot more crypto
 
 else()
     message(FATAL_ERROR "Bug!")
@@ -247,9 +249,6 @@ if (BUILD_TESTS)
     elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
         set(TEST_SRC_EXTRA test/t_cose_make_openssl_test_key.c)
         set(TEST_EXTRA_DEFS)
-    elseif(CRYPTO_PROVIDER STREQUAL "Test")
-        set(TEST_SRC_EXTRA)
-        set(TEST_EXTRA_DEFS -DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS)
     else()
         message(FATAL_ERROR "Bug!")
     endif()
