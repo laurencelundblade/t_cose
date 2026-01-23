@@ -1,101 +1,460 @@
+# ci.yml -- Configuration QCBOR continuous integration for github workflow
+#
+# Copyright (c) 2024-2026, Laurence Lundblade. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# See BSD-3-Clause license in README.md
+#
+
+# The fan out strategy is two parts:
+#
+# 1) Fan out all ifdefs and all crypto libraries against each other.
+#
+# 2) Fan out QCBOR versions, compilers and minimal crypto libraries.
+#
+# If everything fans out against everything it ends up with
+# over 1,000. This two-part strategy keeps it under 200.
+#
+# The ifdefs relate to crypto algorithms and features hence testing
+# them against crypto libraries.
+#
+# The QCBOR version and compiler doesn't relate much to the
+# ifdefs and the crypto library.
+#
+# Case 2) is handled by the "main" and "msvc" jobs. MSVC has to
+# be separate because it is just different.
+
+
 name: CI
 
 on: [push, pull_request]
 
 jobs:
+  # =========================================================================
+  #  Fan out compiler vs qcbor vs minimal crypto on Linux
+  # =========================================================================
+
   main:
     strategy:
       fail-fast: false
       matrix:
         c-compiler: [gcc, clang]
 
+        qcbor-version: [master, dev]
+
+        crypto:
+          - interface: Test
+            provider: Test
+            cmake: ""
+
+          - interface: psa
+            provider: MbedTLS
+            version: 3.5.2
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
+
+#TODO: switch to later version of OpenSSL
+          - interface: OpenSSL
+            provider: OpenSSL
+            version: 1.1.1v
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
+
+        ifdef: &ifdef-array
+          - ""
+
         config:
-        # OpenSSL 1.1.1 (Ubuntu 20.04)
-        - os-image: ubuntu-latest
-          container: ubuntu:20.04
-          crypto-provider: OpenSSL
+          - os-image: ubuntu-latest
+          # Intentionally not using a container to have less problems with libc and python versions
 
-        # OpenSSL 3.0 (Ubuntu 22.04)
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          crypto-provider: OpenSSL
-        
-        - os-image: ubuntu-latest
-          container: ubuntu:20.04
-          crypto-provider: MbedTLS
-          crypto-provider-version: '2.28.0'
-        
-        - os-image: ubuntu-latest
-          container: ubuntu:20.04
-          crypto-provider: MbedTLS
-          crypto-provider-version: '3.1.0'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:20.04
-          crypto-provider: Test
-
-    name: ${{ matrix.config.crypto-provider }} ${{ matrix.config.crypto-provider-version }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
+    name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }} • ${{ matrix.ifdef }}
 
     runs-on: ${{ matrix.config.os-image }}
     container: ${{ matrix.config.container }}
 
+    env:
+      CC: ${{ matrix.c-compiler }}
+
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+  
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Install build tools
-      run: |
-        set -ex
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update
-        apt-get install -y build-essential cmake python3 ${{ matrix.c-compiler }}
-        echo "CC=${{ matrix.c-compiler }}" >> $GITHUB_ENV
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+  
+      - name: Install Conan
+        run: pip install --upgrade conan
+  
+      - name: Detect Conan profile
+        run: conan profile detect --force
+  
+      - name: Install OpenSSL
+        if: matrix.crypto.provider == 'OpenSSL'
+        run: |
+          conan install \
+            --requires=openssl/${{ matrix.crypto.version }} \
+            --output-folder=build \
+            --build=missing \
+            -g CMakeDeps \
+            -g CMakeToolchain \
+            -s build_type=Debug
+  
+      - name: Install mbedTLS with Conan (inline)
+        if: matrix.crypto.provider == 'MbedTLS'
+        shell: bash
+        run: |
+          conan install \
+            --requires=mbedtls/${{ matrix.crypto.version }} \
+            --output-folder=build \
+            --build=missing \
+            -g CMakeDeps \
+            -g CMakeToolchain \
+            -o mbedtls/*:enable_psa=True \
+            -s build_type=Debug
+  
+      - name: Fetch QCBOR
+        uses: actions/checkout@v3
+        with:
+          repository: laurencelundblade/QCBOR
+          ref: ${{ matrix.qcbor-version }}
+          path: QCBOR
+  
+      - name: Configure QCBOR
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake -S . -B qcbor-build 
+  
+      - name: build QCBOR
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake --build qcbor-build
+  
+      - name: Install QCBOR
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install" 
+  
+      - name: Configure t_cose
+        shell: bash
+        run: |
+          IFD="${{ matrix.ifdef }}"
+          if [ -z "$IFD" ]; then
+            CONDITIONAL=""
+          else
+            CONDITIONAL="-D${IFD}=ON"
+          fi
+          cmake -S . -B build \
+            -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON \
+            ${{ matrix.crypto.cmake }} \
+            -DBUILD_T_COSE_WARN=ON \
+            -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
+            -DCMAKE_BUILD_TYPE=Debug \
+            "$CONDITIONAL"
+  
+      - name: Build t_cose
+        run: |
+          set -ex
+          cmake --build build --verbose
+  
+      - name: Run examples
+        run: build/t_cose_examples
+  
+      - name: Run tests
+        run: build/t_cose_test
+  
+  # =========================================================================
+  #  Fan out ifdefs against crypto libraries and versions
+  #  Hold compiler constant (clang), and QCBOR constant (dev branch) 
+  # =========================================================================
+  ifdef-fan-out:
+    strategy:
+      fail-fast: false
+      matrix:
+        c-compiler: [clang]
+
+        qcbor-version: [dev]
+
+        crypto:
+          - interface: Test
+            provider: Test
+            cmake: ""
+
+          - interface: psa
+            provider: MbedTLS
+            version: 2.28.9
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
+
+          - interface: psa
+            provider: MbedTLS
+            version: 3.5.2
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
+
+          - interface: OpenSSL
+            provider: OpenSSL
+            version: 1.1.1v
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
+
+# TODO: re-enable this
+#          - interface: OpenSSL
+#            provider: OpenSSL
+#            version: 3.6.0
+#            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
+
+        ifdef: &ifdef-array
+          - ""
+          - T_COSE_DISABLE_CONTENT_TYPE
+          - T_COSE_DISABLE_COSE_SIGN
+          - T_COSE_DISABLE_ES384
+          - T_COSE_DISABLE_ES512
+          - T_COSE_DISABLE_PS384
+          - T_COSE_DISABLE_PS256
+          - T_COSE_DISABLE_PS512
+          - T_COSE_DISABLE_ES384
+# TODO: re-enable this          - T_COSE_DISABLE_KEYWRAP
+          - T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+          - T_COSE_DISABLE_USAGE_GUARDS
+
+        config:
+          - os-image: ubuntu-latest
+          # Intentionally not using a container to have less problems with libc and python versions
+
+    name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • ${{ matrix.c-compiler }} • ${{ matrix.qcbor-version }} • ${{ matrix.ifdef }}
+
+    runs-on: ${{ matrix.config.os-image }}
+ #   container: ${{ matrix.config.container }}
+
+    steps:
+      - uses: actions/checkout@v3
+  
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+  
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+  
+      - name: Install Conan
+        run: pip install --upgrade conan
+  
+      - name: Detect Conan profile
+        run: conan profile detect --force
+  
+      - name: Install OpenSSL
+        if: matrix.crypto.provider == 'OpenSSL'
+        run: |
+          conan install \
+            --requires=openssl/${{ matrix.crypto.version }} \
+            --output-folder=build \
+            --build=missing \
+            -g CMakeDeps \
+            -g CMakeToolchain \
+            -s build_type=Debug
+  
+      - name: Install mbedTLS with Conan (inline)
+        if: matrix.crypto.provider == 'MbedTLS'
+        shell: bash
+        run: |
+          conan install \
+            --requires=mbedtls/${{ matrix.crypto.version }} \
+            --output-folder=build \
+            --build=missing \
+            -g CMakeDeps \
+            -g CMakeToolchain \
+            -o mbedtls/*:enable_psa=True \
+            -s build_type=Debug
+  
+      - name: Fetch QCBOR
+        uses: actions/checkout@v3
+        with:
+          repository: laurencelundblade/QCBOR
+          ref: ${{ matrix.qcbor-version }}
+          path: QCBOR
+  
+      - name: Configure QCBOR
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake -S . -B qcbor-build 
+  
+      - name: build QCBOR
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake --build qcbor-build
+  
+      - name: Install QCBOR
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install" 
+  
+      - name: Configure t_cose
+        shell: bash
+        run: |
+          IFD="${{ matrix.ifdef }}"
+          if [ -z "$IFD" ]; then
+            CONDITIONAL=""
+          else
+            CONDITIONAL="-D${IFD}=ON"
+          fi
+          cmake -S . -B build \
+            -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON \
+            ${{ matrix.crypto.cmake }} \
+            -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install \
+            -DCMAKE_BUILD_TYPE=Debug \
+            "$CONDITIONAL"
+  
+      - name: Build t_cose
+        run: |
+          set -ex
+          cmake --build build --verbose
+  
+      - name: Run examples
+        run: build/t_cose_examples
+  
+      - name: Run tests
+        run: build/t_cose_test
+
+
+  # =========================================================================
+  #  Fan out CBOR versions and minimal crypto for MSVC compiler
+  #  No ifdefs are ever set 
+  # =========================================================================
+  msvc:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+
+        qcbor-version: [master, dev]
+
+        crypto:
+          - interface: Test
+            provider: Test
+            cmake: ""
+
+          - interface: psa
+            provider: MbedTLS
+            version: 3.5.2
+            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+
+#TODO: figure out why OpenSSL is broken on Windows; also switch to later version of OpenSSL
+#          - interface: OpenSSL
+#            provider: OpenSSL
+#            version: 1.1.1v
+#            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
     
-    - name: Install OpenSSL
-      if: matrix.config.crypto-provider == 'OpenSSL'
-      run: apt-get install -y libssl-dev
+    name: ${{ matrix.crypto.interface}} • ${{ matrix.crypto.provider }} • ${{matrix.crypto.version}} • MSVC • ${{ matrix.qcbor-version }} 
 
-    - name: Fetch MbedTLS
-      if: matrix.config.crypto-provider == 'MbedTLS'
-      uses: actions/checkout@v3
-      with:
-        repository: ARMmbed/mbedtls
-        ref: v${{ matrix.config.crypto-provider-version }}
-        path: mbedtls
+    env:
+      ARCH: x64
 
-    - name: Install MbedTLS
-      if: matrix.config.crypto-provider == 'MbedTLS'
-      run: |
-        cd mbedtls
-        make -j $(nproc)
-        make install
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Fetch QCBOR
-      uses: actions/checkout@v3
-      with:
-        repository: laurencelundblade/QCBOR
-        path: QCBOR
+      # Optional: ensures Dev Cmd environment; the VS generator usually finds MSVC without this,
+      # but keeping it makes detection deterministic.
+      - name: Set up MSVC DevCmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.ARCH }}
 
-    - name: Install QCBOR
-      run: |
-        cd QCBOR
-        make -j$(nproc)
-        make install
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Build t_cose
-      run: |
-        set -ex
-        mkdir build
-        cd build
-        cmake -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} ..
-        make -j $(nproc)
+      - name: Install Conan
+        run: pip install --upgrade conan
 
-    - name: Run OpenSSL example
-      if: matrix.config.crypto-provider == 'OpenSSL'
-      run: build/t_cose_basic_example_ossl
+      - name: Detect Conan profile
+        run: conan profile detect --force
 
-    - name: Run MbedTLS example
-      if: matrix.config.crypto-provider == 'MbedTLS'
-      run: build/t_cose_basic_example_psa
+      - name: Install OpenSSL
+        if: matrix.crypto.provider == 'OpenSSL'
+        shell: bash
+        run: |
+          conan install \
+            --requires=openssl/${{ matrix.crypto.version }} \
+            --output-folder=build \
+            --build=missing \
+            -g CMakeDeps \
+            -g CMakeToolchain \
+            -s compiler=msvc \
+            -s compiler.runtime=dynamic \
+            -s build_type=Debug
 
-    - name: Run tests
-      run: build/t_cose_test
+      - name: Install mbedTLS with Conan (inline)
+        if: matrix.crypto.provider == 'MbedTLS'
+        shell: bash
+        run: |
+          conan install \
+            --requires=mbedtls/${{ matrix.crypto.version }} \
+            --output-folder=build \
+            --build=missing \
+            -g CMakeDeps \
+            -g CMakeToolchain \
+            -s compiler=msvc \
+            -s compiler.runtime=dynamic \
+            -o mbedtls/*:enable_psa=True \
+            -s build_type=Debug
+
+      - name: Fetch QCBOR Win
+        uses: actions/checkout@v3
+        with:
+          repository: laurencelundblade/QCBOR
+          ref: ${{ matrix.qcbor-version }}
+          path: QCBOR
+
+      - name: Configure QCBOR Win
+        shell: bash
+        run: |
+          cd QCBOR
+          ARCH="${{ env.ARCH }}"
+          cmake -S . -B qcbor-build -G "Visual Studio 17 2022" -A "$ARCH" 
+
+      - name: build QCBOR Win
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake --build qcbor-build 
+
+      - name: Install QCBOR Win
+        shell: bash
+        run: |
+          cd QCBOR
+          cmake --install qcbor-build --prefix "$GITHUB_WORKSPACE/install" --config Debug
+
+      - name: Config t_cose
+        shell: bash
+        run: |
+          cmake -S . -B build \
+          -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install" \
+          -DBUILD_TESTS=ON  -DBUILD_EXAMPLES=ON \
+          ${{ matrix.crypto.cmake }} \
+          -DCRYPTO_PROVIDER=${{ matrix.crypto.provider }} 
+
+      - name: Build t_cose
+        run: cmake --build build --config Debug
+        shell: bash
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $exe = "build/Debug/t_cose_test.exe"
+          if (!(Test-Path $exe)) {
+            Write-Error "Test binary not found: $exe"
+          }
+          & $exe 
