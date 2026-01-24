@@ -9,7 +9,7 @@ Imported Targets
 
 This module provides the following imported targets, if found:
 
-``QCBOR::QCBOR``
+``qcbor::qcbor``
   The QCBOR library
 
 Result Variables
@@ -64,14 +64,14 @@ if(QCBOR_FOUND)
   set(QCBOR_INCLUDE_DIRS "${QCBOR_INCLUDE_DIR}")
 endif()
 
-if(QCBOR_FOUND AND NOT TARGET QCBOR::QCBOR)
-  add_library(QCBOR::QCBOR UNKNOWN IMPORTED)
-  set_target_properties(QCBOR::QCBOR PROPERTIES
+if(QCBOR_FOUND AND NOT TARGET qcbor::qcbor)
+  add_library(qcbor::qcbor UNKNOWN IMPORTED)
+  set_target_properties(qcbor::qcbor PROPERTIES
     IMPORTED_LOCATION "${QCBOR_LIBRARY}"
     INTERFACE_INCLUDE_DIRECTORIES "${QCBOR_INCLUDE_DIR}"
   )
   if (EXTRA_LIBS)
-    target_link_libraries(QCBOR::QCBOR INTERFACE ${EXTRA_LIBS})
+    target_link_libraries(qcbor::qcbor INTERFACE ${EXTRA_LIBS})
   endif()
 endif()
 
