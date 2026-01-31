@@ -21,7 +21,7 @@ over all. But note that it only supports COSE_Sign1.
 *t_cose* 2.x implements the following parts of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052)
 and [COSE, RFC 9053](https://tools.ietf.org/html/rfc9053):
 * COSE_Sign1 (single signer) with ECDSA, EdDSA and RSA algorithmns
-* COSE_Sign (multiple signatures) with ECDSA, EdDSA and RSA 
+* COSE_Sign (multiple signatures) with ECDSA, EdDSA and RSA
 * COSE_Mac0 (single MAC) with HMAC 256, 384 and 512
 * COSE_Encrypt0 (single recipient) with AES GCM 128, 192 and 256
 * COSE_Encrypt (multiple recipients) with ECDH + AES key wrap or just with AES key wrap
@@ -45,14 +45,14 @@ are included.
 discipline for safe coding and handling of binary data.
 
 **Small simple memory model** – Malloc is not used. Stack use is generally
-small. The caller supplies the larger buffers like those for the paylod giving full 
-control of memory usage and allocation making t_cose useful for embedded 
+small. The caller supplies the larger buffers like those for the paylod giving full
+control of memory usage and allocation making t_cose useful for embedded
 implementations that have to run in small fixed memory.
 
 
 ## Code Status
 
-As of Novermber 2023, the major t_cose 2.0 features are in and 
+As of Novermber 2023, the major t_cose 2.0 features are in and
 functioning. There are many details to fix, interop testing and general
 testing to do, documentation to complete and correct.
 
@@ -73,18 +73,34 @@ libraries and [QCBOR](https://github.com/laurencelundblade/QCBOR)
 (which is also very portable). Hence most of this section is about
 crypto library set up.
 
+Both cmake and make are supported.
+
+The cmake configuration is modern
+and supports packages for its dependencies and dependents. It
+works with cmake GUIs that let you configure options. It
+should find QCBOR and the crypto library fairly automatically,
+especially if they are installed as a cmake package.
+
+For cmake, the CRYPTO_PROVIDER parameter selects the library. For
+make there is a separate Makefile for each crypto library.
+
 ### QCBOR
 
-If QCBOR is installed in /usr/local, then the makefiles should find
-it. If not then QCBOR may need to be downloaded. The makefiles can be
-modified to reference it other than in /usr/local.
+If QCBOR is installed in a standard place like /usr/local, then it should be found
+automatically.
+
+QCBOR may need to be downloaded and installed. Doing a full cmake
+install of QCBOR works best as t_cose can pick up the headers
+and library paths automatically. Regular install is OK too
+and make or cmake is likely to find it. If not the path to it
+can be set in Makefile.xxx or by configuration options in cmake.
 
 ### Supported Cryptographic Libraries
 
 Here's three crypto library configurations that are supported. Others
 can be added with relative ease.
 
-#### Test Crypto -- Makefile.test
+#### Test Crypto
 
 This configuration should work instantly on any device and is useful
 to do a large amount of testing with, but can't be put to full
@@ -95,9 +111,14 @@ This configuration (and only this configuration) uses a bundled
 SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
 not).
 
-To build run:
+To build, run:
 
     make -f Makefile.test
+
+or
+
+    cmake -S . -B build -DCRYPTO_PROVIDER=Test
+    cmake --build build
 
 #### OpenSSL Crypto -- Makefile.ossl
 
@@ -112,12 +133,17 @@ probably just run make:
 
     make -f Makefile.ossl
 
+or
+
+    cmake -S . -B build -DCRYPTO_PROVIDER=OpenSSL
+    cmake --build build
+
 The specific things that Makefile.ossl does is:
     * Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
     * Links test/test/t_cose_make_openssl_test_key.o into the test binary
     * `#define T_COSE_USE_OPENSSL_CRYPTO`
 
-t_cose is regularly tested against OpenSSL 1.1.1 and 3.0.
+t_cose is regularly tested against OpenSSL 1.1.1 and more recent.
 
 The crypto adaptor for OpenSSL is about twice the size of that for
 Mbed TLS because the API doesn't line up well with the needs for COSE
@@ -156,7 +182,12 @@ make:
 
     make -f Makefile.psa
 
-If this doesn't work or you have Mbed TLS elsewhere edit the makefile.
+or
+    cmake -S . -B build -DCRYPTO_PROVIDER=MbedTLS
+    cmake --build build
+
+If this doesn't work or you have Mbed TLS elsewhere you may have
+to edit Makefile.xxx or pass path options to cmake.
 
 The specific things that Makefile.psa does is:
     * Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a

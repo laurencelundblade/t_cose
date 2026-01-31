@@ -52,7 +52,7 @@ if(HAVE_LIB_M)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(QCBOR
+find_package_handle_standard_args(qcbor
   FOUND_VAR QCBOR_FOUND
   REQUIRED_VARS
     QCBOR_LIBRARY
