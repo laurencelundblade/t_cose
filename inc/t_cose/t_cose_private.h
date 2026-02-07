@@ -15,19 +15,19 @@
 /* These are functions exposed for the use of the t_cose test suite,
  * not part of public interface.
  *
- * They mostly correspond to the adaptation/abstraction layer t_cose uses
- * to access the crypto library it is configured for. Exposing
- * this allows the test suite to make use of the crypto functions
- * to construct test messages and to test the crypto
- * adaptation layer itself.
+ * They mostly correspond to the adaptation/abstraction layer t_cose
+ * uses to access the crypto library it is configured for. Exposing
+ * this allows the test suite to make use of the crypto functions to
+ * construct test messages and to test the crypto adaptation layer
+ * itself.
  *
- * They are not document here to discourage use.
+ * They are not documented here to discourage use.
  */
 
 
 
 /* Do not want to make struct t_cose_crypto_hash public, so fake
- * it with an overly large stand in
+ * it with an overly large stand in.
  */
 struct t_cose_private_test_crypto_hash {
     uint8_t large[512]; /* This is larger than struct t_cose_crypto_hash */

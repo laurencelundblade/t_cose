@@ -78,49 +78,31 @@ Both cmake and make are supported.
 The cmake configuration is modern
 and supports packages for its dependencies and dependents. It
 works with cmake GUIs that let you configure options. It
-should find QCBOR and the crypto library fairly automatically,
-especially if they are installed as a cmake package.
+should find QCBOR and the crypto library automatically,
+especially if they are installed as cmake packages. When
+t_cose is installed by cmake, it is install as a cmake
+package.
 
 For cmake, the CRYPTO_PROVIDER parameter selects the library. For
 make there is a separate Makefile for each crypto library.
 
 ### QCBOR
 
-If QCBOR is installed in a standard place like /usr/local, then it should be found
-automatically.
+If QCBOR is installed in a standard location such as /usr/local, it
+may be found automatically.
 
-QCBOR may need to be downloaded and installed. Doing a full cmake
-install of QCBOR works best as t_cose can pick up the headers
-and library paths automatically. Regular install is OK too
-and make or cmake is likely to find it. If not the path to it
-can be set in Makefile.xxx or by configuration options in cmake.
+If QCBOR is installed but not found, the location must be specified
+explicitly. For Make-based builds, edit the paths in the appropriate
+Makefile.xxx. For CMake-based builds, set the cache variables
+QCBOR_INCLUDE_DIR and QCBOR_LIBRARY.
+
+If you need to download and install QCBOR, using CMake to build it is
+recommended, since it installs QCBOR as a CMake package, which
+integrates more easily with CMake-based builds.
 
 ### Supported Cryptographic Libraries
 
-Here's three crypto library configurations that are supported. Others
-can be added with relative ease.
-
-#### Test Crypto
-
-This configuration should work instantly on any device and is useful
-to do a large amount of testing with, but can't be put to full
-commercial use. What it lacks is integration with an crypto libraries
-implementation so it can't produce real COSE messages.
-
-This configuration (and only this configuration) uses a bundled
-SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
-not).
-
-To build, run:
-
-    make -f Makefile.test
-
-or
-
-    cmake -S . -B build -DCRYPTO_PROVIDER=Test
-    cmake --build build
-
-#### OpenSSL Crypto -- Makefile.ossl
+#### OpenSSL
 
 This OpenSSL integration supports SHA-256, SHA-384 and SHA-512 with
 ECDSA, EdDSA, or RSAPSS to support the COSE algorithms ES256, ES384 and
@@ -132,16 +114,19 @@ If OpenSSL is installed in /usr/local or as a standard library, you can
 probably just run make:
 
     make -f Makefile.ossl
+    make -f Makefile.ossl install
 
 or
 
-    cmake -S . -B build -DCRYPTO_PROVIDER=OpenSSL
-    cmake --build build
+    cmake -S . -B <build_dir> -DCRYPTO_PROVIDER=OpenSSL
+    cmake --build <build_dir>
+    cmake --install <build_dir>
 
-The specific things that Makefile.ossl does is:
-    * Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
-    * Links test/test/t_cose_make_openssl_test_key.o into the test binary
-    * `#define T_COSE_USE_OPENSSL_CRYPTO`
+The specific things that OpenSSL make configurations do are:
+
+* Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
+* Links test/test/t_cose_make_openssl_test_key.o into the test binary
+* `#define T_COSE_USE_OPENSSL_CRYPTO`
 
 t_cose is regularly tested against OpenSSL 1.1.1 and more recent.
 
@@ -167,7 +152,7 @@ adaptor is good. Not every single memory allocation failure has
 test coverage, but the code should handle them all correctly.
 
 
-#### PSA Crypto -- Makefile.psa
+#### PSA/MbedTLS
 
 As of March 2022, t_cose works with the PSA 1.0 Crypto API as
 implemented by Mbed TLS 2.x and 3.x.
@@ -181,18 +166,22 @@ If Mbed TLS is installed in /usr/local, you can probably just run
 make:
 
     make -f Makefile.psa
+    make -f Makefile.psa install
 
 or
-    cmake -S . -B build -DCRYPTO_PROVIDER=MbedTLS
-    cmake --build build
+
+    cmake -S . -B <build_dir> -DCRYPTO_PROVIDER=MbedTLS
+    cmake --build <build_dir>
+    cmake --install <build_dir>
 
 If this doesn't work or you have Mbed TLS elsewhere you may have
-to edit Makefile.xxx or pass path options to cmake.
+to edit Makefile.psa or pass path options to cmake.
 
-The specific things that Makefile.psa does is:
-    * Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a
-    * Links test/test/t_cose_make_psa_test_key.o into the test binary
-    * `#define T_COSE_USE_PSA_CRYPTO`
+The specific things that MbedTLS make configurations do are:
+
+* Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a
+* Links test/test/t_cose_make_psa_test_key.o into the test binary
+* `#define T_COSE_USE_PSA_CRYPTO`
 
 This crypto adapter is small and simple. The adapter allocates no
 memory and as far as I know it internally allocates no memory. It is a
@@ -203,11 +192,32 @@ deprecated or to-be-deprecated functions are called (an older t_cose
 used some to be deprecated APIs).
 
 It is regularly tested against the latest version 2 and version 3 of
-Mbed TLS, an implementation of the PSA crypto API.
+MbedTLS, an implementation of the PSA crypto API.
 
 Confidence in the adaptor code is high and reasonably well tested
 because it is simple.
 
+#### Test Crypto
+
+While not useful for anything real, a stub "Test" crypto 
+is available that can be built and run to validate 
+large parts of t_cose without any crypto library.
+
+This configuration (and only this configuration) uses a bundled
+SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
+not).
+
+To build and test, run:
+
+    make -f Makefile.test
+    ./t_cose_test
+
+or
+
+    cmake -S . -B <build_dir> -DCRYPTO_PROVIDER=Test -DBUILD_TESTS=ON
+    cmake --build <build_dir>
+    <build_dir>/t_cose_test
+    
 
 ### General Crypto Library Strategy
 
@@ -257,8 +267,8 @@ IDs.
 To go into detail of how compilation and linking are handled, the
 crypto adaptation layer should rely on #defines in the crypto library
 headers to know what files it can include and what functions it can
-call. Hopefully, the crypto libraries provide the necessary
-#defines. t_cose should always compile and link successfully with any
+call. Hopefully, the crypto libraries provide the necessary #defines. 
+t_cose should always compile and link successfully with any
 crypto libraries it supports no matter the version or
 configuration. For example, if a version of Mbed TLS that doesn't
 support HPKE is used, it should still compile and link with no user
@@ -321,12 +331,13 @@ into.
 ### Code
 
 Things that make the code smaller:
+
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
 * gcc is usually smaller than llvm because stack guards are off by default
-* Use only 256-bit crypto with the T_COSE_DISABLE_ESXXX options
-* Disable short-circut sig debug facility T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-* Disable the content type header T_COSE_DISABLE_CONTENT_TYPE
-* Disable COSE_Sign structure support with T_COSE_DISABLE_COSE_SIGN
+* Use only 256-bit crypto with the `T_COSE_DISABLE_ESXXX` options
+* Disable short-circut sig debug facility `T_COSE_DISABLE_SHORT_CIRCUIT_SIGN`
+* Disable the content type header `T_COSE_DISABLE_CONTENT_TYPE`
+* Disable COSE_Sign structure support with `T_COSE_DISABLE_COSE_SIGN`
   (use only COSE_Sign1 signature structures if adequate).
 
 
