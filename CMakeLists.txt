@@ -112,39 +112,38 @@ set(T_COSE_SRC_COMMON
     src/t_cose_private_test.c
 )
 
-# Strategy is to try to find a cmake-based install of QCBOR quietly. If that
-# is found, then we are done. If not request the caller set some cache
-# variables to say where it is.
-#
-# This does the job both for compiling t_cose (which only needs headers)
-# and for linking apps that use t_cose
-#
-# Some functions in QCBOR required the math library, -lm, but t_cose
+# Some functions in QCBOR require the math library, -lm, but t_cose
 # doesn't use any of them so there is nothing here in the manual
 # configuration for the math library. If QCBOR was installed as 
 # a cmake package, then the math library dependency will
 # be brought through, even though it is unnecessary because
 # t_cose doesn't use and math-related CBOR functionality.
 
-find_package(qcbor REQUIRED QUIET)
+if(NOT QCBOR_LIBRARY OR NOT QCBOR_INCLUDE_DIR)
+    # The caller didn't specify the QCBOR locations manually.
+    # Try to find it as a cmake package.
+    find_package(qcbor QUIET)
+endif()
 
 if(NOT qcbor_FOUND)
-    message(STATUS "qcbor package not found. Please specify the paths.")
-
-    # Optionally, use cache variables to specify paths if `qcbor` is not found
-    set(QCBOR_INCLUDE_DIR "" CACHE PATH "Path to the qcbor include directory")
-    set(QCBOR_LIBRARY "" CACHE FILEPATH "Path to the qcbor library file (.a or .so)")
-
-    if(NOT QCBOR_INCLUDE_DIR OR NOT QCBOR_LIBRARY)
-        message(FATAL_ERROR "You must specify the qcbor include directory and library path.")
+    # Allow user to specify these via -DQCBOR_LIBRARY=... and -DQCBOR_INCLUDE_DIR=...
+    if(QCBOR_LIBRARY AND QCBOR_INCLUDE_DIR)
+        # Create an imported target to match what find_package would create
+        add_library(qcbor::qcbor UNKNOWN IMPORTED)
+        set_target_properties(qcbor::qcbor PROPERTIES
+            IMPORTED_LOCATION "${QCBOR_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${QCBOR_INCLUDE_DIR}"
+        )
+        # So the config file can access these variables
+        set(QCBOR_FOUND_AS_PACKAGE FALSE)
+        set(QCBOR_LIBRARY_PATH "${QCBOR_LIBRARY}")
+        set(QCBOR_INCLUDE_PATH "${QCBOR_INCLUDE_DIR}")
+        message(STATUS "Using manually specified qcbor: ${QCBOR_LIBRARY}")
+    else()
+        message(FATAL_ERROR "qcbor not found. Either install it as a CMake package or specify QCBOR_LIBRARY and QCBOR_INCLUDE_DIR")
     endif()
 else()
-    message(STATUS "Using found qcbor package.")
-    message(STATUS ${qcbor_INCLUDE_DIRS})
-    message(STATUS ${qcbor_LIBRARIES})
-    message(STATUS ${qcbor_FOUND})
-    set(QCBOR_INCLUDE_DIR ${qcbor_INCLUDE_DIRS})
-    set(QCBOR_LIBRARY ${qcbor_LIBRARIES})
+    set(QCBOR_FOUND_AS_PACKAGE TRUE)
 endif()
 
 
@@ -183,10 +182,10 @@ target_include_directories(t_cose
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
         $<INSTALL_INTERFACE:include>
-        ${QCBOR_INCLUDE_DIR}
+        ${QCBOR_INCLUDE_DIRS}
 )
 
-target_link_libraries(t_cose PUBLIC ${QCBOR_LIBRARY})
+target_link_libraries(t_cose PUBLIC qcbor::qcbor)
 target_link_libraries(t_cose PUBLIC ${CRYPTO_LIBRARY})
 
 # Global compile options applying to all targets
@@ -245,7 +244,6 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
-    
 install(
     FILES
         ${CMAKE_CURRENT_BINARY_DIR}/t_coseConfig.cmake
