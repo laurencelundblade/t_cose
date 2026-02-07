@@ -67,24 +67,25 @@ fully supported.
 
 ## Building and Dependencies
 
-Except for the crypto library set up, t_cose is very portable and
-should largely just work in any environment. It needs a few standard
-libraries and [QCBOR](https://github.com/laurencelundblade/QCBOR)
-(which is also very portable). Hence most of this section is about
-crypto library set up.
+Aside from the cryptographic library configuration, t_cose is highly
+portable and works across a wide range of environments. It depends
+only on a few standard libraries and on QCBOR, which is itself highly
+portable. As a result, most of this section focuses on configuring the
+cryptographic library.
 
-Both cmake and make are supported.
+Both CMake and make build systems are supported.
 
-The cmake configuration is modern
-and supports packages for its dependencies and dependents. It
-works with cmake GUIs that let you configure options. It
-should find QCBOR and the crypto library automatically,
-especially if they are installed as cmake packages. When
-t_cose is installed by cmake, it is install as a cmake
-package.
+The CMake configuration uses modern CMake practices and supports
+packages for both its dependencies and its dependents. It works with
+CMake GUI tools for configuring options. In most cases, it will locate
+QCBOR and the selected cryptographic library automatically,
+particularly when they are installed as CMake packages. When t_cose is
+installed using CMake, it is installed as a CMake package.
 
-For cmake, the CRYPTO_PROVIDER parameter selects the library. For
-make there is a separate Makefile for each crypto library.
+With CMake, the CRYPTO_PROVIDER parameter selects the cryptographic
+library to use. With make, a separate Makefile is provided for each
+supported cryptographic library.
+
 
 ### QCBOR
 
@@ -99,6 +100,7 @@ QCBOR_INCLUDE_DIR and QCBOR_LIBRARY.
 If you need to download and install QCBOR, using CMake to build it is
 recommended, since it installs QCBOR as a CMake package, which
 integrates more easily with CMake-based builds.
+
 
 ### Supported Cryptographic Libraries
 
@@ -155,7 +157,10 @@ test coverage, but the code should handle them all correctly.
 #### PSA/MbedTLS
 
 As of March 2022, t_cose works with the PSA 1.0 Crypto API as
-implemented by Mbed TLS 2.x and 3.x.
+implemented by MbedTLS 2.x and 3.x. In theory t_cose might
+work with a PSA implementation other than MbedTLS, but it is
+not tested and some t_cose features not supported by PSA
+would have to be disabled.
 
 This integration supports SHA-256, SHA-384 and SHA-512 with
 ECDSA, EdDSA or RSAPSS to support the COSE algorithms ES256, ES384 and

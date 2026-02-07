@@ -182,7 +182,7 @@ target_include_directories(t_cose
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
         $<INSTALL_INTERFACE:include>
-        ${QCBOR_INCLUDE_DIRS}
+        ${QCBOR_INCLUDE_DIR}
 )
 
 target_link_libraries(t_cose PUBLIC qcbor::qcbor)
