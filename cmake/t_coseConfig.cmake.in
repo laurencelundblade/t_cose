@@ -2,7 +2,25 @@
 
 include(CMakeFindDependencyMacro)
 
-find_dependency(qcbor CONFIG)
+# Try to find qcbor as a package first
+if(@QCBOR_FOUND_AS_PACKAGE@)
+    find_dependency(qcbor)
+else()
+    # Use the qcbor paths that t_cose was built with
+    set(QCBOR_LIBRARY "@QCBOR_LIBRARY_PATH@")
+    set(QCBOR_INCLUDE_DIR "@QCBOR_INCLUDE_PATH@")
+
+    if(QCBOR_LIBRARY AND QCBOR_INCLUDE_DIR)
+        add_library(qcbor::qcbor UNKNOWN IMPORTED)
+        set_target_properties(qcbor::qcbor PROPERTIES
+            IMPORTED_LOCATION "${QCBOR_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${QCBOR_INCLUDE_DIR}"
+        )
+    else()
+        message(FATAL_ERROR "qcbor paths not available in t_cose config")
+    endif()
+endif()
+
 
 set(T_COSE_CRYPTO_BACKEND "@T_COSE_CRYPTO_BACKEND@")
 

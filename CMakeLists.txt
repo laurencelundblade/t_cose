@@ -29,16 +29,14 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
 
-option(T_COSE_DISABLE_CONTENT_TYPE             "" OFF)
-option(T_COSE_DISABLE_COSE_SIGN            "" OFF)
-option(T_COSE_DISABLE_ES384            "" OFF)
-option(T_COSE_DISABLE_ES512            "" OFF)
-option(T_COSE_DISABLE_KEYWRAP             "" OFF)
-option(T_COSE_DISABLE_PS256            "" OFF)
-option(T_COSE_DISABLE_PS384            "" OFF)
-option(T_COSE_DISABLE_PS512            "" OFF)
-option(T_COSE_DISABLE_SHORT_CIRCUIT_SIGN            "" OFF)
-option(T_COSE_DISABLE_USAGE_GUARDS            "" OFF)
+option(T_COSE_DISABLE_CONTENT_TYPE        "" OFF)
+option(T_COSE_DISABLE_ES384               "" OFF)
+option(T_COSE_DISABLE_ES512               "" OFF)
+option(T_COSE_DISABLE_PS256               "" OFF)
+option(T_COSE_DISABLE_PS384               "" OFF)
+option(T_COSE_DISABLE_PS512               "" OFF)
+option(T_COSE_DISABLE_EDDSA               "" OFF)
+option(T_COSE_DISABLE_SHORT_CIRCUIT_SIGN  "" OFF)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -97,7 +95,40 @@ set(T_COSE_SRC_COMMON
     src/t_cose_short_circuit.c
 )
 
-find_package(qcbor REQUIRED)
+# Some functions in QCBOR require the math library, -lm, but t_cose
+# doesn't use any of them so there is nothing here in the manual
+# configuration for the math library. If QCBOR was installed as 
+# a cmake package, then the math library dependency will
+# be brought through, even though it is unnecessary because
+# t_cose doesn't use and math-related CBOR functionality.
+
+if(NOT QCBOR_LIBRARY OR NOT QCBOR_INCLUDE_DIR)
+    # The caller didn't specify the QCBOR locations manually.
+    # Try to find it as a cmake package.
+    find_package(qcbor QUIET)
+endif()
+
+if(NOT qcbor_FOUND)
+    # Allow user to specify these via -DQCBOR_LIBRARY=... and -DQCBOR_INCLUDE_DIR=...
+    if(QCBOR_LIBRARY AND QCBOR_INCLUDE_DIR)
+        # Create an imported target to match what find_package would create
+        add_library(qcbor::qcbor UNKNOWN IMPORTED)
+        set_target_properties(qcbor::qcbor PROPERTIES
+            IMPORTED_LOCATION "${QCBOR_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${QCBOR_INCLUDE_DIR}"
+        )
+        # So the config file can access these variables
+        set(QCBOR_FOUND_AS_PACKAGE FALSE)
+        set(QCBOR_LIBRARY_PATH "${QCBOR_LIBRARY}")
+        set(QCBOR_INCLUDE_PATH "${QCBOR_INCLUDE_DIR}")
+        message(STATUS "Using manually specified qcbor: ${QCBOR_LIBRARY}")
+    else()
+        message(FATAL_ERROR "qcbor not found. Either install it as a CMake package or specify QCBOR_LIBRARY and QCBOR_INCLUDE_DIR")
+    endif()
+else()
+    set(QCBOR_FOUND_AS_PACKAGE TRUE)
+endif()
+
 
 add_library(t_cose ${T_COSE_SRC_COMMON} ${CRYPTO_ADAPTER_SRC})
 
@@ -115,15 +146,13 @@ target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
 target_compile_definitions(t_cose
     PUBLIC
         $<$<BOOL:${T_COSE_DISABLE_CONTENT_TYPE}>:T_COSE_DISABLE_CONTENT_TYPE>
-        $<$<BOOL:${T_COSE_DISABLE_COSE_SIGN}>:T_COSE_DISABLE_COSE_SIGN>
         $<$<BOOL:${T_COSE_DISABLE_ES384}>:T_COSE_DISABLE_ES384>
         $<$<BOOL:${T_COSE_DISABLE_ES512}>:T_COSE_DISABLE_ES512>
         $<$<BOOL:${T_COSE_DISABLE_PS256}>:T_COSE_DISABLE_PS256>
         $<$<BOOL:${T_COSE_DISABLE_PS384}>:T_COSE_DISABLE_PS384>
         $<$<BOOL:${T_COSE_DISABLE_PS512}>:T_COSE_DISABLE_PS512>
-        $<$<BOOL:${T_COSE_DISABLE_KEYWRAP}>:T_COSE_DISABLE_KEYWRAP>
+        $<$<BOOL:${T_COSE_DISABLE_EDDSA}>:T_COSE_DISABLE_EDDSA>
         $<$<BOOL:${T_COSE_DISABLE_SHORT_CIRCUIT_SIGN}>:T_COSE_DISABLE_SHORT_CIRCUIT_SIGN>
-        $<$<BOOL:${T_COSE_DISABLE_USAGE_GUARDS}>:T_COSE_DISABLE_USAGE_GUARDS>
 )
 
 
@@ -134,6 +163,7 @@ target_include_directories(t_cose
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
         $<INSTALL_INTERFACE:include>
+        ${QCBOR_INCLUDE_DIR}
 )
 
 target_link_libraries(t_cose PUBLIC qcbor::qcbor)
@@ -195,7 +225,6 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
-    
 install(
     FILES
         ${CMAKE_CURRENT_BINARY_DIR}/t_coseConfig.cmake
@@ -211,9 +240,9 @@ install(
 if (BUILD_EXAMPLES)
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
-        add_executable(t_cose_examples examples/t_cose_basic_example_psa.c)
+        add_executable(t_cose_examples examples/t_cose_basic_example_psa.c test/t_cose_make_psa_test_key.c)
     elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
-        add_executable(t_cose_examples examples/t_cose_basic_example_ossl.c)
+        add_executable(t_cose_examples examples/t_cose_basic_example_ossl.c test/t_cose_make_openssl_test_key.c)
     endif()
 
     target_include_directories(t_cose_examples PRIVATE examples)

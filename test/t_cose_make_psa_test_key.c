@@ -1,7 +1,7 @@
 /*
  *  t_cose_make_psa_test_key.c
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2026, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -10,8 +10,17 @@
 
 
 #include "t_cose_make_test_pub_key.h" /* The interface implemented here */
-#include "t_cose_standard_constants.h"
 #include "psa/crypto.h"
+
+/* Standard constants from IANA registry */
+#define COSE_ALGORITHM_ES256 -7
+#define COSE_ALGORITHM_ES384 -35
+#define COSE_ALGORITHM_ES512 -36
+
+#define COSE_ALGORITHM_PS256 -37
+#define COSE_ALGORITHM_PS384 -38
+#define COSE_ALGORITHM_PS512 -39
+
 
 
 /*
