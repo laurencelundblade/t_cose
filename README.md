@@ -190,12 +190,7 @@ To build and test, run:
     make -f Makefile.test
     ./t_cose_test
 
-or
-
-    cmake -S . -B <build_dir> -DCRYPTO_PROVIDER=Test -DBUILD_TESTS=ON
-    cmake --build <build_dir>
-    <build_dir>/t_cose_test
-
+t_cose with test crypto can't be built with CMake.
 
 ### General Crypto Library Strategy
 
