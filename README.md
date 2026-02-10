@@ -204,8 +204,8 @@ because it is simple.
 
 #### Test Crypto
 
-While not useful for anything real, a stub "Test" crypto 
-is available that can be built and run to validate 
+While not useful for anything real, a stub "Test" crypto
+is available that can be built and run to validate
 large parts of t_cose without any crypto library.
 
 This configuration (and only this configuration) uses a bundled
@@ -222,7 +222,7 @@ or
     cmake -S . -B <build_dir> -DCRYPTO_PROVIDER=Test -DBUILD_TESTS=ON
     cmake --build <build_dir>
     <build_dir>/t_cose_test
-    
+
 
 ### General Crypto Library Strategy
 

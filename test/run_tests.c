@@ -1,7 +1,7 @@
 /* ==============================================================================
  * run_tests.c -- test aggregator and results reporting
  *
- * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2026, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause

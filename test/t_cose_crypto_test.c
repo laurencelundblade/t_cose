@@ -68,7 +68,7 @@ int32_t aead_test(void)
 
     cose_algorithm_id = T_COSE_ALGORITHM_A128GCM;
 
-    err = t_cose_private_test_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
+    err = t_cose_private_tcrypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
                                                                UsefulBuf_FROM_BYTE_ARRAY_LITERAL(test_key_0_128bit),
                                                               &key);
     if(err) {
@@ -76,7 +76,7 @@ int32_t aead_test(void)
     }
 
     /* First the simplest case, no payload, no aad, just the tag */
-    err = t_cose_private_test_crypto_aead_encrypt(cose_algorithm_id,
+    err = t_cose_private_tcrypto_aead_encrypt(cose_algorithm_id,
                                                   key,
                                                   Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(iv_0),
                                                   NULL_Q_USEFUL_BUF_C,
@@ -104,7 +104,7 @@ int32_t aead_test(void)
      * fake encryption and decryption. */
 #endif
 
-    err = t_cose_private_test_crypto_aead_decrypt(cose_algorithm_id,
+    err = t_cose_private_tcrypto_aead_decrypt(cose_algorithm_id,
                                                   key,
                                                   Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(iv_0),
                                                   NULL_Q_USEFUL_BUF_C,
@@ -122,7 +122,7 @@ int32_t aead_test(void)
 
 
     /* Test with text and aad */
-    err = t_cose_private_test_crypto_aead_encrypt(cose_algorithm_id,
+    err = t_cose_private_tcrypto_aead_encrypt(cose_algorithm_id,
                                      key,
                                      Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(iv_0),
                                      Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(aad),
@@ -133,7 +133,7 @@ int32_t aead_test(void)
         return 4000 + (int32_t)err;
     }
 
-    err = t_cose_private_test_crypto_aead_decrypt(cose_algorithm_id,
+    err = t_cose_private_tcrypto_aead_decrypt(cose_algorithm_id,
                                      key,
                                      Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(iv_0),
                                      Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(aad),
@@ -187,7 +187,7 @@ int32_t kw_test(void)
         return INT32_MIN; /* Means no testing was actually done */
     }
 
-    e = t_cose_private_test_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
+    e = t_cose_private_tcrypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
                                                 kek_x,
                                                &kek);
     if(e != T_COSE_SUCCESS) {
@@ -196,7 +196,7 @@ int32_t kw_test(void)
 
     // TODO: test more sizes and algorithms
 
-    e = t_cose_private_test_crypto_kw_wrap(T_COSE_ALGORITHM_A128KW,
+    e = t_cose_private_tcrypto_kw_wrap(T_COSE_ALGORITHM_A128KW,
                               kek,
                               key_data,
                               ciphertext_buffer,
@@ -218,7 +218,7 @@ int32_t kw_test(void)
      * fake wrap and unwrap. */
 #endif
 
-    e = t_cose_private_test_crypto_kw_unwrap(T_COSE_ALGORITHM_A128KW,
+    e = t_cose_private_tcrypto_kw_unwrap(T_COSE_ALGORITHM_A128KW,
                                 kek,
                                 ciphertext,
                                 plaintext_buffer,
@@ -236,7 +236,7 @@ int32_t kw_test(void)
     /* It's only a test case so cheating a bit here by casting away const is not too big of a crime. */
     ((uint8_t *)(uintptr_t)ciphertext.ptr)[ciphertext.len-1] += 1;
 
-    e = t_cose_private_test_crypto_kw_unwrap(T_COSE_ALGORITHM_A128KW,
+    e = t_cose_private_tcrypto_kw_unwrap(T_COSE_ALGORITHM_A128KW,
                                 kek,
                                 ciphertext,
                                 plaintext_buffer,
@@ -293,7 +293,7 @@ int32_t hkdf_test(void)
     enum t_cose_err_t          err;
     struct q_useful_buf_c      okm;
 
-    err = t_cose_private_test_crypto_hkdf(T_COSE_ALGORITHM_SHA_256,
+    err = t_cose_private_tcrypto_hkdf(T_COSE_ALGORITHM_SHA_256,
                          Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(tc1_salt_bytes),
                          Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(tc1_ikm_bytes),
                          Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(tc1_info_bytes),
@@ -342,7 +342,7 @@ int32_t ecdh_test(void)
         return -1;
     }
 
-    err = t_cose_private_test_crypto_ecdh(private_key,
+    err = t_cose_private_tcrypto_ecdh(private_key,
                              public_key,
                              shared_key_buf,
                             &shared_key);
@@ -400,7 +400,7 @@ int32_t ec_import_export_test(void)
         return 1;
     }
 
-    err = t_cose_private_test_crypto_export_ec2_key(public_key,
+    err = t_cose_private_tcrypto_export_ec2_key(public_key,
                                       &curve,
                                        x_coord_buf,
                                       &x_coord,
@@ -411,7 +411,7 @@ int32_t ec_import_export_test(void)
         return 2;
     }
 
-    err = t_cose_private_test_crypto_import_ec2_pubkey(curve,
+    err = t_cose_private_tcrypto_import_ec2_pubkey(curve,
                                           x_coord,
                                           y_coord,
                                           y_sign,
@@ -420,7 +420,7 @@ int32_t ec_import_export_test(void)
         return 3;
     }
 
-    err = t_cose_private_test_crypto_export_ec2_key(public_key_next,
+    err = t_cose_private_tcrypto_export_ec2_key(public_key_next,
                                       &curve,
                                        x_coord_buf,
                                       &x_coord,

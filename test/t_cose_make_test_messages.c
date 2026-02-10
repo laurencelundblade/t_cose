@@ -116,7 +116,7 @@ test_private_hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
  * hashed into the output.
  */
 static void
-test_private_hash_bstr(struct t_cose_private_test_crypto_hash *hash_ctx,
+test_private_hash_bstr(struct t_cose_private_tcrypto_hash *hash_ctx,
                        struct q_useful_buf_c      bstr)
 {
     /* Aproximate stack usage
@@ -137,8 +137,8 @@ test_private_hash_bstr(struct t_cose_private_test_crypto_hash *hash_ctx,
                                           bstr.len);
 
     /* An encoded bstr is the CBOR head with its length followed by the bytes */
-    t_cose_private_test_crypto_hash_update(hash_ctx, encoded_head);
-    t_cose_private_test_crypto_hash_update(hash_ctx, bstr);
+    t_cose_private_tcrypto_hash_update(hash_ctx, encoded_head);
+    t_cose_private_tcrypto_hash_update(hash_ctx, bstr);
 }
 
 
@@ -161,7 +161,7 @@ test_private_create_tbs_hash(const int32_t                    cose_algorithm_id,
     enum t_cose_err_t           return_value;
     int32_t                     hash_alg_id;
     struct q_useful_buf_c       first_part;
-    struct t_cose_private_test_crypto_hash   hash_ctx;
+    struct t_cose_private_tcrypto_hash   hash_ctx;
 
     /* Start the hashing */
     hash_alg_id = test_private_hash_alg_id_from_sig_alg_id(cose_algorithm_id);
@@ -174,7 +174,7 @@ test_private_create_tbs_hash(const int32_t                    cose_algorithm_id,
         goto Done;
     }
 
-    return_value = t_cose_private_test_crypto_hash_start(&hash_ctx, hash_alg_id);
+    return_value = t_cose_private_tcrypto_hash_start(&hash_ctx, hash_alg_id);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -217,7 +217,7 @@ test_private_create_tbs_hash(const int32_t                    cose_algorithm_id,
         /* 0x84 is array of 4, 0x6a is length of a 10 byte string in CBOR */
         first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1);
     }
-    t_cose_private_test_crypto_hash_update(&hash_ctx, first_part);
+    t_cose_private_tcrypto_hash_update(&hash_ctx, first_part);
 
     /* body_protected */
     test_private_hash_bstr(&hash_ctx, sign_inputs->body_protected);
@@ -234,7 +234,7 @@ test_private_create_tbs_hash(const int32_t                    cose_algorithm_id,
     test_private_hash_bstr(&hash_ctx, sign_inputs->payload);
 
     /* Finish the hash and set up to return it */
-    return_value = t_cose_private_test_crypto_hash_finish(&hash_ctx,
+    return_value = t_cose_private_tcrypto_hash_finish(&hash_ctx,
                                              buffer_for_hash,
                                              hash);
 Done:
@@ -710,7 +710,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
 
 
     /* Normal, non-short-circuit signing */
-    return_value = t_cose_private_test_crypto_sign(me->cose_algorithm_id,
+    return_value = t_cose_private_tcrypto_sign(me->cose_algorithm_id,
                                       me->signing_key,
                                       NULL, /* no crypto-context here */
                                       tbs_hash,
