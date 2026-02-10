@@ -200,6 +200,10 @@ jobs:
 #            version: 3.6.0
 #            cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
 
+# No CI of the Test crypto config for t_cose 1.x because 1.x is not
+# in development much any more. The builds with MbedTLS and OpenSSL are
+# are enough to test the updates and tweaks expected
+
         ifdef: &ifdef-array
           - ""
           - T_COSE_DISABLE_CONTENT_TYPE
