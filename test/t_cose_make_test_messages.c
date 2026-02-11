@@ -1,7 +1,7 @@
 /*
  * t_cose_make_test_messages.c
  *
- * Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2019-2026, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -11,8 +11,7 @@
 
 #include "t_cose_make_test_messages.h"
 #include "qcbor/qcbor.h"
-#include "t_cose_crypto.h"
-#include "t_cose_util.h"
+#include "t_cose/t_cose_private.h"
 #include "t_cose/t_cose_signature_main.h"
 
 
@@ -25,6 +24,223 @@
  *
  * This is essentially a hacked-up version of t_cose_sign1_sign.c.
  */
+
+#define T_COSE_INVALID_ALGORITHM_ID T_COSE_ALGORITHM_RESERVED
+
+
+static int16_t
+test_private_int16_map(const int16_t map[][2], int16_t query)
+{
+    int i;
+    for(i = 0; ; i++) {
+        if(map[i][0] == query || map[i][0] == INT16_MIN) {
+            return map[i][1];
+        }
+    }
+}
+
+static int32_t
+test_private_hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
+{
+    /* If other hashes, particularly those that output bigger hashes
+     * are added here, various other parts of this code have to be
+     * changed to have larger buffers, in particular
+     * \ref T_COSE_XXX_MAX_HASH_SIZE.
+     */
+    // TODO: allows disabling ES256
+
+    /* Private-use algorithm IDs, those less than -65536, won't fit in
+     * the int16_t values in this table so a switch statement like
+     * that for T_COSE_ALGORITHM_SHORT_CIRCUIT_XXX will be needed.
+     */
+    static const int16_t hash_alg_map[][2] = {
+        { T_COSE_ALGORITHM_ES256 , T_COSE_ALGORITHM_SHA_256 },
+#ifndef T_COSE_DISABLE_ES384
+        { T_COSE_ALGORITHM_ES384 , T_COSE_ALGORITHM_SHA_384 },
+#endif
+#ifndef T_COSE_DISABLE_ES512
+        { T_COSE_ALGORITHM_ES512 , T_COSE_ALGORITHM_SHA_512},
+#endif
+#ifndef T_COSE_DISABLE_PS256
+        { T_COSE_ALGORITHM_PS256 , T_COSE_ALGORITHM_SHA_256 },
+#endif
+#ifndef T_COSE_DISABLE_PS384
+        { T_COSE_ALGORITHM_PS384 , T_COSE_ALGORITHM_SHA_384},
+#endif
+#ifndef T_COSE_DISABLE_PS512
+        { T_COSE_ALGORITHM_PS512 , T_COSE_ALGORITHM_SHA_512 },
+#endif
+        { INT16_MIN ,              T_COSE_INVALID_ALGORITHM_ID}
+    };
+
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    /* T_COSE_ALGORITHM_SHORT_CIRCUIT_256 and related are outside of
+     * the standard allocation space and outside the range of int16_t
+     * so they are handled by a case statement (which usually optimize
+     * well).
+     */
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_256: return T_COSE_ALGORITHM_SHA_256;
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_384: return T_COSE_ALGORITHM_SHA_384;
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_512: return T_COSE_ALGORITHM_SHA_512;
+        default: break;/* intentional fall through */
+    }
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+
+
+#ifndef T_COSE_DISABLE_USE_GUARDS
+    /* This check can be disabled for tested apps using t_cose because
+     * they won't pass in bad algorithm IDs outside the range of an
+     * int16_t and even if they did it is unlikely it would fold into
+     * a valid ID and further unlikely it would be the hash required.
+     * It's pretty safe to disable this check even with use cases that
+     * arent' tested. */
+    if(cose_algorithm_id > INT16_MAX || cose_algorithm_id < INT16_MIN) {
+        return T_COSE_INVALID_ALGORITHM_ID;
+    }
+#endif
+
+    /* Cast to int16_t is safe because of check above */
+    return (int32_t)test_private_int16_map(hash_alg_map, (int16_t)(cose_algorithm_id));
+}
+
+
+
+/**
+ * \brief Hash an encoded bstr without actually encoding it in memory.
+ *
+ * @param hash_ctx  Hash context to hash it into.
+ * @param bstr      Bytes of the bstr.
+ *
+ * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
+ * hashed into the output.
+ */
+static void
+test_private_hash_bstr(struct t_cose_private_tcrypto_hash *hash_ctx,
+                       struct q_useful_buf_c      bstr)
+{
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   buffer_for_encoded                             9           9
+     *   useful_buf                                    16           8
+     *   hash function (a guess! variable!)        16-512      16-512
+     *   TOTAL                                     41-537      23-529
+     */
+
+    /* make a struct q_useful_buf on the stack of size QCBOR_HEAD_BUFFER_SIZE */
+    Q_USEFUL_BUF_MAKE_STACK_UB (buffer_for_encoded_head, QCBOR_HEAD_BUFFER_SIZE);
+    struct q_useful_buf_c       encoded_head;
+
+    encoded_head = QCBOREncode_EncodeHead(buffer_for_encoded_head,
+                                          CBOR_MAJOR_TYPE_BYTE_STRING,
+                                          0,
+                                          bstr.len);
+
+    /* An encoded bstr is the CBOR head with its length followed by the bytes */
+    t_cose_private_tcrypto_hash_update(hash_ctx, encoded_head);
+    t_cose_private_tcrypto_hash_update(hash_ctx, bstr);
+}
+
+
+/*
+ * Public function. See t_cose_util.h
+ */
+enum t_cose_err_t
+test_private_create_tbs_hash(const int32_t                    cose_algorithm_id,
+                const struct t_cose_sign_inputs *sign_inputs,
+                const struct q_useful_buf        buffer_for_hash,
+                struct q_useful_buf_c           *hash)
+{
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    24          14
+     *   hash_ctx                                   8-224       8-224
+     *   hash function (a guess! variable!)        16-512      16-512
+     *   TOTAL                                     48-760      38-750
+     */
+    enum t_cose_err_t           return_value;
+    int32_t                     hash_alg_id;
+    struct q_useful_buf_c       first_part;
+    struct t_cose_private_tcrypto_hash   hash_ctx;
+
+    /* Start the hashing */
+    hash_alg_id = test_private_hash_alg_id_from_sig_alg_id(cose_algorithm_id);
+    // TODO: possibly remove this check and let t_cose_crypto_hash_start()
+    // handle this error. The problem right now is that it returns
+    // UNSUPPORTED HASH, not T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
+    // The removal of the check is just to save object code.
+    if (hash_alg_id == T_COSE_INVALID_ALGORITHM_ID) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
+    return_value = t_cose_private_tcrypto_hash_start(&hash_ctx, hash_alg_id);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /*
+     * Format of to-be-signed bytes.  This is defined in COSE RFC 9052
+     * section 4.4. It is the input to the hash.
+     *
+     * Sig_structure = [
+     *    context : "Signature" / "Signature1" / "CounterSignature",
+     *    body_protected : empty_or_serialized_map,
+     *    ? sign_protected : empty_or_serialized_map,
+     *    external_aad : bstr,
+     *    payload : bstr
+     * ]
+     *
+     * body_protected refers to the protected parameters from the main
+     * COSE_Sign1 structure. This is a little hard to to understand in
+     * the spec.
+     *
+     * sign_protected is not used with COSE_Sign1 so it is sometimes
+     * NULL.
+     *
+     * external_aad allows external data to be covered by the
+     * signature, but may be a NULL_Q_USEFUL_BUF_C in which case a
+     * zero-length bstr will be correctly hashed into the result.
+     *
+     * Instead of formatting the TBS bytes in one buffer, they are
+     * formatted in chunks and fed into the hash. If actually
+     * formatted, the TBS bytes are slightly larger than the payload,
+     * so this saves a lot of memory. This also puts no limit on the
+     * size of protected headers.
+     */
+
+    /* Hand-constructed CBOR for the enclosing array and the context string */
+    if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
+        /* 0x85 is array of 5, 0x69 is length of a 9 byte string in CBOR */
+        first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x69" COSE_SIG_CONTEXT_STRING_SIGNATURE);
+    } else {
+        /* 0x84 is array of 4, 0x6a is length of a 10 byte string in CBOR */
+        first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    }
+    t_cose_private_tcrypto_hash_update(&hash_ctx, first_part);
+
+    /* body_protected */
+    test_private_hash_bstr(&hash_ctx, sign_inputs->body_protected);
+
+    /* sign_protected */
+    if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
+        test_private_hash_bstr(&hash_ctx, sign_inputs->sign_protected);
+    }
+
+    /* external_aad */
+    test_private_hash_bstr(&hash_ctx, sign_inputs->ext_sup_data);
+
+    /* payload */
+    test_private_hash_bstr(&hash_ctx, sign_inputs->payload);
+
+    /* Finish the hash and set up to return it */
+    return_value = t_cose_private_tcrypto_hash_finish(&hash_ctx,
+                                             buffer_for_hash,
+                                             hash);
+Done:
+    return return_value;
+}
+
 
 
 
@@ -370,7 +586,7 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
     /* Check the cose_algorithm_id now by getting the hash alg as an early
      * error check even though it is not used until later.
      */
-    hash_alg_id = hash_alg_id_from_sig_alg_id(me->cose_algorithm_id);
+    hash_alg_id = test_private_hash_alg_id_from_sig_alg_id(me->cose_algorithm_id);
     if(hash_alg_id == T_COSE_INVALID_ALGORITHM_ID) {
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
@@ -477,7 +693,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
     sign_inputs.payload        = signed_payload;
 
-    return_value = create_tbs_hash(me->cose_algorithm_id,
+    return_value = test_private_create_tbs_hash(me->cose_algorithm_id,
                                    &sign_inputs,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);
@@ -494,7 +710,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
 
 
     /* Normal, non-short-circuit signing */
-    return_value = t_cose_crypto_sign(me->cose_algorithm_id,
+    return_value = t_cose_private_tcrypto_sign(me->cose_algorithm_id,
                                       me->signing_key,
                                       NULL, /* no crypto-context here */
                                       tbs_hash,
