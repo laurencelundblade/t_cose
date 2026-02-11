@@ -7,8 +7,8 @@ This is the COSE_Sign1 part of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9
 
 **Implemented in C with minimal dependency** – There are three main 
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
-2) A cryptographic library for ECDSA and SHA-2, 3) C99, <stdint.h>,
-<stddef.h>, <stdbool.h> and <string.h>.  It is  highly
+2) A cryptographic library for ECDSA and SHA-2, 3) C99, `<stdint.h>`,
+`<stddef.h>`, `<stdbool.h>` and `<string.h>`.  It is  highly
 portable to different HW, OS's and cryptographic libraries. Except for
 some minor configuration for the cryptographic library, no #ifdefs or
 compiler options need to be set for it to run correctly.
@@ -48,6 +48,7 @@ t_cose 1.0 only supports COSE Sign1, signing with one recipeint.
 ## t_cose 2.0
 
 As of August 2022, there are alpha releases of t_cose 2.0. It supports:
+
 * COSE_Sign
 * Multiple signatures
 * COSE_MAC0
@@ -66,54 +67,47 @@ crypto library set up.
 
 ### QCBOR
 
-If QCBOR is installed in /usr/local, then the makefiles should find
-it. If not then QCBOR may need to be downloaded. The makefiles can be
-modified to reference it other than in /usr/local.
+If QCBOR is installed in a standard location such as /usr/local, it
+may be found automatically.
 
-This works with both QCBOR v1 and v2. When running with v2 it
-uses the QCBOR v1 compatibility mode for tag decoding.
+If QCBOR is installed but not found, the location must be specified
+explicitly. For Make-based builds, edit the paths in the appropriate
+Makefile.xxx. For CMake-based builds, set the cache variables
+QCBOR_INCLUDE_DIR and QCBOR_LIBRARY.
+
+If you need to download and install QCBOR, using CMake to build it is
+recommended, since it installs QCBOR as a CMake package, which
+integrates more easily with CMake-based builds.
+
 
 ### Supported Cryptographic Libraries
 
-Here's three crypto library configurations that are supported. Others
-can be added with relative ease.
-
-#### Test Crypto -- Makefile.test
-
-This configuration should work instantly on any device and is useful
-to do a large amount of testing with, but can't be put to full
-commercial use. What it lacks is integration with an ECDSA
-implementation so it can't produce real ECDSA signatures. It does
-however produce fake signatures called "short-circuit
-signatures" that are very useful for testing. See header
-documentation for details on short-circuit sigs.
-
-This configuration (and only this configuration) uses a bundled
-SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
-not).
-
-To build run:
-
-    make -f Makefile.test
-
-#### OpenSSL Crypto -- Makefile.ossl
+#### OpenSSL
 
 This OpenSSL integration supports SHA-256, SHA-384 and SHA-512 with
 ECDSA, EdDSA, or RSAPSS to support the COSE algorithms ES256, ES384 and
 ES512, PS256, PS384 and PS512. It is a full and tested integration
 with OpenSSL crypto.
 
-If OpenSSL is installed in /usr/local or as a standar library, you can
+If OpenSSL is installed in /usr/local or as a standard library, you can
 probably just run make:
 
     make -f Makefile.ossl
+    make -f Makefile.ossl install
 
-The specific things that Makefile.ossl does is:
-    * Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
-    * Links test/test/t_cose_make_openssl_test_key.o into the test binary
-    * `#define T_COSE_USE_OPENSSL_CRYPTO`
+or
 
-t_cose is regularly tested against OpenSSL 1.1.1 and 3.0.
+    cmake -S . -B <build_dir> -DCRYPTO_PROVIDER=OpenSSL
+    cmake --build <build_dir>
+    cmake --install <build_dir>
+
+The specific things that OpenSSL make configurations do are:
+
+* Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
+* Links test/test/t_cose_make_openssl_test_key.o into the test binary
+* `#define T_COSE_USE_OPENSSL_CRYPTO`
+
+t_cose is regularly tested against OpenSSL 1.1.1 and more recent.
 
 The crypto adaptor for OpenSSL is about twice the size of that for
 Mbed TLS because the API doesn't line up well with the needs for COSE
@@ -137,10 +131,10 @@ adaptor is good. Not every single memory allocation failure has
 test coverage, but the code should handle them all correctly.
 
 
-#### PSA Crypto -- Makefile.psa
+#### PSA/MbedTLS
 
 As of March 2022, t_cose works with the PSA 1.0 Crypto API as
-implemented by Mbed TLS 2.x and 3.x.
+implemented by MbedTLS 2.x and 3.x.
 
 This integration supports SHA-256, SHA-384 and SHA-512 with
 ECDSA, EdDSA or RSAPSS to support the COSE algorithms ES256, ES384 and
@@ -150,13 +144,22 @@ If Mbed TLS is installed in /usr/local, you can probably just run
 make:
 
     make -f Makefile.psa
+    make -f Makefile.psa install
 
-If this doesn't work or you have Mbed TLS elsewhere edit the makefile.
+or
 
-The specific things that Makefile.psa does is:
-    * Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a
-    * Links test/test/t_cose_make_psa_test_key.o into the test binary
-    * `#define T_COSE_USE_PSA_CRYPTO`   
+    cmake -S . -B <build_dir> -DCRYPTO_PROVIDER=MbedTLS
+    cmake --build <build_dir>
+    cmake --install <build_dir>
+
+If this doesn't work or you have Mbed TLS elsewhere you may have
+to edit Makefile.psa or pass path options to cmake.
+
+The specific things that MbedTLS make configurations do are:
+
+* Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a
+* Links test/test/t_cose_make_psa_test_key.o into the test binary
+* `#define T_COSE_USE_PSA_CRYPTO`
 
 This crypto adapter is small and simple. The adapter allocates no
 memory and as far as I know it internally allocates no memory. It is a
@@ -167,11 +170,27 @@ deprecated or to-be-deprecated functions are called (an older t_cose
 used some to be deprecated APIs).
 
 It is regularly tested against the latest version 2 and version 3 of
-Mbed TLS, an implementation of the PSA crypto API.
+MbedTLS, an implementation of the PSA crypto API.
 
 Confidence in the adaptor code is high and reasonably well tested
 because it is simple.
 
+#### Test Crypto
+
+While not useful for anything real, a stub "Test" crypto
+is available that can be built and run to validate
+large parts of t_cose without any crypto library.
+
+This configuration (and only this configuration) uses a bundled
+SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
+not).
+
+To build and test, run:
+
+    make -f Makefile.test
+    ./t_cose_test
+
+t_cose with test crypto can't be built with CMake.
 
 ### General Crypto Library Strategy
 
@@ -208,14 +227,15 @@ the t_cose_crypto.h interface into the underlying crypto.
 
 Here are code sizes on 64-bit x86 optimized for size
 
-     |                           | smallest | largest |  
-     |---------------------------|----------|---------|
-     | signing only              |     1500 |    2300 |
-     | verification only         |     2500 |    3300 |
-     | common to sign and verify |     (500)|    (800)|
-     | combined                  |     3500 |    4800 |
+|                           | smallest | largest |  
+|---------------------------|----------|---------|
+| signing only              |     1500 |    2300 |
+| verification only         |     2500 |    3300 |
+| common to sign and verify |     (500)|    (800)|
+| combined                  |     3500 |    4800 |
      
 Things that make the code smaller:
+
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
 * gcc is usually smaller than llvm because stack guards are off by default
 * Use only 256-bit crypto with the T_COSE_DISABLE_ESXXX options
@@ -282,13 +302,13 @@ implementation of ECDSA might not use malloc, as the keys are small
 enough.
 
 ### Mixed code style
-QCBOR uses camelCase and t_cose follows 
+QCBOR uses camelCase and t_cose follows
 [Arm's coding guidelines](https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git/tree/docs/contributing/coding_guide.rst)
 resulting in code with mixed styles. For better or worse, an Arm-style version of UsefulBuf
 is created and used and so there is a duplicate of UsefulBuf. The two are identical. They
 just have different names.
 
-## Limitations 
+## Limitations
 
 * Most inputs and outputs must be in a continguous buffer. One
   exception to this is that CBOR payloads being signed can be
