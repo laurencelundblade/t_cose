@@ -2590,11 +2590,13 @@ t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
         goto Done1;
     }
 
-    /* Cast to int OK'd by check above */
-    ossl_result = EVP_PKEY_CTX_set1_hkdf_salt(ctx, salt.ptr, (int)salt.len);
-    if(ossl_result != 1) {
-        return_value = T_COSE_ERR_HKDF_FAIL;
-        goto Done1;
+    if(!UsefulBuf_IsNULLC(salt)) {
+        /* Cast to int OK'd by check above */
+        ossl_result = EVP_PKEY_CTX_set1_hkdf_salt(ctx, salt.ptr, (int)salt.len);
+        if(ossl_result != 1) {
+            return_value = T_COSE_ERR_HKDF_FAIL;
+            goto Done1;
+        }
     }
 
     /* Cast to int OK'd by check above */

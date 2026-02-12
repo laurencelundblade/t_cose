@@ -204,7 +204,7 @@ jobs:
 
           - interface: OpenSSL
             provider: OpenSSL
-            version: 3.0.1
+            version: 3.0.5
             cmake: -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake 
 
           - interface: OpenSSL
