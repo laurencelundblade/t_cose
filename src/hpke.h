@@ -37,6 +37,7 @@
 #include "psa/crypto.h"
 #include <stdint.h>
 #include <stdio.h>
+#include "mbedtls/md.h"
 
 /*
  * The HPKE modes
@@ -213,6 +214,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
 
 
 
+
 /**
  * \brief check if a suite is supported locally
  *
@@ -356,4 +358,3 @@ int mbedtls_hpke_extract_and_expand(hpke_suite_t suite, int mode5869,
                                     unsigned char *secret, size_t *secretlen );
 
 #endif
-

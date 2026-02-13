@@ -40,10 +40,24 @@
 #include "mbedtls/platform_util.h"
 #include "mbedtls/error.h"
 
+#ifndef HPKE_DEBUG
+#define HPKE_DEBUG 0
+
+#endif
+
 #if defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
 #else
 #include <stdio.h>
+#endif
+
+#if HPKE_DEBUG
+#define HPKE_DBG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define HPKE_DBG(...) do { } while(0)
+#endif
+
+#if !defined(MBEDTLS_PLATFORM_C)
 #include <stdlib.h>
 #define mbedtls_calloc     calloc
 #define mbedtls_free       free
@@ -220,6 +234,23 @@ hpke_aead_id_2_cose(const hpke_suite_t suite)
     }
 }
 
+static uint16_t
+hpke_kem_kdf_id(const uint16_t kem_id)
+{
+    switch(kem_id) {
+        case HPKE_KEM_ID_P256:
+        case HPKE_KEM_ID_25519:
+            return HPKE_KDF_ID_HKDF_SHA256;
+        case HPKE_KEM_ID_P384:
+            return HPKE_KDF_ID_HKDF_SHA384;
+        case HPKE_KEM_ID_P521:
+        case HPKE_KEM_ID_448:
+            return HPKE_KDF_ID_HKDF_SHA512;
+        default:
+            return HPKE_KDF_ID_RESERVED;
+    }
+}
+
 
 
 int mbedtls_hpke_extract(
@@ -233,12 +264,38 @@ int mbedtls_hpke_extract(
     int ret;
     const mbedtls_md_info_t *md;
     mbedtls_md_type_t md_type;
-    unsigned char labeled_ikmbuf[ MBEDTLS_SSL_HPKE_5869_MODE_FULL_MAX_LABEL_LEN ];
-    unsigned char *labeled_ikm = labeled_ikmbuf;
+    unsigned char *labeled_ikm = NULL;
     size_t labeled_ikmlen = 0;
     size_t concat_offset = 0;
+    size_t labeled_ikm_cap = 0;
 
     concat_offset = 0;
+
+    switch( mode5869 )
+    {
+        case HPKE_5869_MODE_KEM:
+            labeled_ikm_cap = sizeof( mbedtls_ssl_hpke_labels.version ) +
+                              sizeof( mbedtls_ssl_hpke_labels.kem ) +
+                              2 + /* kem_id */
+                              labellen +
+                              ikmlen;
+            break;
+        case HPKE_5869_MODE_FULL:
+            labeled_ikm_cap = sizeof( mbedtls_ssl_hpke_labels.version ) +
+                              sizeof( mbedtls_ssl_hpke_labels.hpke ) +
+                              6 + /* kem_id,kdf_id,aead_id */
+                              labellen +
+                              ikmlen;
+            break;
+        default:
+            return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+    }
+
+    labeled_ikm = mbedtls_calloc( 1, labeled_ikm_cap );
+    if( labeled_ikm == NULL )
+    {
+        return( MBEDTLS_ERR_HPKE_BUFFER_TOO_SMALL );
+    }
 
     // Add version
     memcpy( labeled_ikm, MBEDTLS_SSL_HPKE_LBL_WITH_LEN( version ) );
@@ -282,8 +339,6 @@ int mbedtls_hpke_extract(
             labeled_ikm[concat_offset] = (unsigned char)( suite.aead_id );
             concat_offset += 1;
             break;
-        default:
-            return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
     // Add label
@@ -299,19 +354,28 @@ int mbedtls_hpke_extract(
 
     labeled_ikmlen = concat_offset;
 
-    switch( suite.kdf_id )
     {
-    case HPKE_KDF_ID_HKDF_SHA256:
-        md_type = MBEDTLS_MD_SHA256;
-        break;
-    case HPKE_KDF_ID_HKDF_SHA384:
-        md_type = MBEDTLS_MD_SHA384;
-        break;
-    case HPKE_KDF_ID_HKDF_SHA512:
-        md_type = MBEDTLS_MD_SHA512;
-        break;
-    default:
-        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+        uint16_t kdf_id = suite.kdf_id;
+        if( mode5869 == HPKE_5869_MODE_KEM ) {
+            kdf_id = hpke_kem_kdf_id(suite.kem_id);
+            if( kdf_id == HPKE_KDF_ID_RESERVED ) {
+                return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+            }
+        }
+        switch( kdf_id )
+        {
+        case HPKE_KDF_ID_HKDF_SHA256:
+            md_type = MBEDTLS_MD_SHA256;
+            break;
+        case HPKE_KDF_ID_HKDF_SHA384:
+            md_type = MBEDTLS_MD_SHA384;
+            break;
+        case HPKE_KDF_ID_HKDF_SHA512:
+            md_type = MBEDTLS_MD_SHA512;
+            break;
+        default:
+            return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+        }
     }
 
     md = mbedtls_md_info_from_type( md_type );
@@ -336,7 +400,11 @@ int mbedtls_hpke_extract(
     }
 
 exit:
-    mbedtls_platform_zeroize( labeled_ikmbuf, sizeof( labeled_ikmbuf ) );
+    if( labeled_ikm != NULL )
+    {
+        mbedtls_platform_zeroize( labeled_ikm, labeled_ikm_cap );
+        mbedtls_free( labeled_ikm );
+    }
 
     return( ret );
 }
@@ -438,19 +506,28 @@ int mbedtls_hpke_expand( const hpke_suite_t suite, const int mode5869,
             return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
-    switch( suite.kdf_id )
     {
-    case HPKE_KDF_ID_HKDF_SHA256:
-        md_type = MBEDTLS_MD_SHA256;
-        break;
-    case HPKE_KDF_ID_HKDF_SHA384:
-        md_type = MBEDTLS_MD_SHA384;
-        break;
-    case HPKE_KDF_ID_HKDF_SHA512:
-        md_type = MBEDTLS_MD_SHA512;
-        break;
-    default:
-        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+        uint16_t kdf_id = suite.kdf_id;
+        if( mode5869 == HPKE_5869_MODE_KEM ) {
+            kdf_id = hpke_kem_kdf_id(suite.kem_id);
+            if( kdf_id == HPKE_KDF_ID_RESERVED ) {
+                return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+            }
+        }
+        switch( kdf_id )
+        {
+        case HPKE_KDF_ID_HKDF_SHA256:
+            md_type = MBEDTLS_MD_SHA256;
+            break;
+        case HPKE_KDF_ID_HKDF_SHA384:
+            md_type = MBEDTLS_MD_SHA384;
+            break;
+        case HPKE_KDF_ID_HKDF_SHA512:
+            md_type = MBEDTLS_MD_SHA512;
+            break;
+        default:
+            return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+        }
     }
 
     md = mbedtls_md_info_from_type( md_type );
@@ -681,9 +758,22 @@ static int hpke_do_kem( int encrypting,
     unsigned char zz[ 2 * PSA_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE ];
     size_t zzlen2;
     
-    // Buffer for context
-    size_t kem_contextlen = PSA_EXPORT_PUBLIC_KEY_MAX_SIZE * 3;
-    unsigned char kem_context[ PSA_EXPORT_PUBLIC_KEY_MAX_SIZE * 3 ];
+    // Buffer for context (allocated dynamically to fit exact size)
+    size_t kem_contextlen = 0;
+    unsigned char *kem_context = NULL;
+
+    HPKE_DBG("hpke_do_kem: enc=%d kem=0x%04x own_pub_len=%zu peer_pub_len=%zu auth_pub_len=%zu\n",
+             encrypting,
+             (unsigned)suite.kem_id,
+             own_public_key_len,
+             peer_public_key_len,
+             apublen);
+
+    if( apublen != 0 && apub == NULL )
+    {
+        HPKE_DBG("hpke_do_kem: auth public key length set but pointer is NULL\n");
+        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+    }
 
     /* Produce ECDH key */
     status = psa_raw_key_agreement( PSA_ALG_ECDH,          // algorithm
@@ -695,14 +785,18 @@ static int hpke_do_kem( int encrypting,
 
     if( status != PSA_SUCCESS )
     {
-/*        fprintf(stderr, "hpke_do_kem: psa_raw_key_agreement failed (kem=%u, status=%d, peer_len=%zu)\n",
-                (unsigned)suite.kem_id, (int)status, peer_public_key_len);
-*/        return( status );
+        HPKE_DBG("hpke_do_kem: psa_raw_key_agreement failed (kem=0x%04x, status=%d, peer_len=%zu)\n",
+                 (unsigned)suite.kem_id, (int)status, peer_public_key_len);
+        return( status );
     }
 
     kem_contextlen = own_public_key_len + peer_public_key_len;
-
-    if( kem_contextlen >= ( PSA_EXPORT_PUBLIC_KEY_MAX_SIZE * 3 ) )
+    if( apublen != 0 )
+    {
+        kem_contextlen += apublen;
+    }
+    kem_context = mbedtls_calloc( 1, kem_contextlen );
+    if( kem_context == NULL )
     {
         ret = MBEDTLS_ERR_HPKE_BUFFER_TOO_SMALL;
         goto error;
@@ -723,14 +817,8 @@ static int hpke_do_kem( int encrypting,
     // Append the public auth key (mypub) to context
     if( apublen != 0 )
     {
-        if( ( kem_contextlen + apublen ) >= ( PSA_EXPORT_PUBLIC_KEY_MAX_SIZE * 3 ) )
-        {
-            ret = MBEDTLS_ERR_HPKE_BUFFER_TOO_SMALL;
-            goto error;
-        }
-        
-        memcpy( kem_context + kem_contextlen, apub, apublen );
-        kem_contextlen += apublen;
+        size_t offset = own_public_key_len + peer_public_key_len;
+        memcpy( kem_context + offset, apub, apublen );
     }
     
     // Authentication part
@@ -760,6 +848,8 @@ static int hpke_do_kem( int encrypting,
 
         if( status != PSA_SUCCESS )
         {
+            HPKE_DBG("hpke_do_kem: psa_raw_key_agreement(auth) failed (kem=0x%04x, status=%d, peer_len=%zu)\n",
+                     (unsigned)suite.kem_id, (int)status, peer_public_key_len);
             return( status );
         }
 
@@ -774,13 +864,18 @@ static int hpke_do_kem( int encrypting,
     
     if( ret != 0 )
     {
-/*        fprintf(stderr, "hpke_do_kem: extract_and_expand failed (kem=%u, ret=%d, zzlen=%zu, ctxlen=%zu)\n",
-                (unsigned)suite.kem_id, ret, zzlen, kem_contextlen);
-*/        goto error;
+        HPKE_DBG("hpke_do_kem: extract_and_expand failed (kem=0x%04x, ret=%d, zzlen=%zu, ctxlen=%zu)\n",
+                 (unsigned)suite.kem_id, ret, zzlen, kem_contextlen);
+        goto error;
     }
 
 error:
     mbedtls_platform_zeroize( zz, zzlen );
+    if( kem_context != NULL )
+    {
+        mbedtls_platform_zeroize( kem_context, kem_contextlen );
+        mbedtls_free( kem_context );
+    }
 
     return( ret );
 }
@@ -833,6 +928,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
     size_t halflen;
     size_t pskidlen;
 
+
     // Input check: mode
     switch( mode )
     {
@@ -859,6 +955,9 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
     {
         return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
+    HPKE_DBG("hpke_dec: kem=0x%04x kdf=0x%04x aead=0x%04x pkE_len=%zu aad_len=%zu info_len=%zu ct_len=%zu\n",
+             (unsigned)suite.kem_id, (unsigned)suite.kdf_id, (unsigned)suite.aead_id,
+             pkE_len, aadlen, infolen, cipherlen);
 
     // Input check: Is buffer for plaintext available
     if( clearlen == 0 || clear == NULL )
@@ -895,8 +994,10 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
 
         if( status != PSA_SUCCESS )
         {
+            HPKE_DBG("hpke_dec: psa_export_public_key failed (status=%d)\n", (int)status);
             return( EXIT_FAILURE );
         }
+        HPKE_DBG("hpke_dec: exported pkR_len=%zu\n", pkR_len);
     }
 
     /* Run DH KEM to get shared secret */
@@ -911,8 +1012,10 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
                        
     if( ret != 0 )
     {
+        HPKE_DBG("hpke_dec: hpke_do_kem failed (ret=%d)\n", ret);
         return( MBEDTLS_ERR_HPKE_INTERNAL_ERROR );
     }
+
 
     /* Create context buffer */
     ks_context[0] = ( unsigned char ) ( mode % 256 );
@@ -949,6 +1052,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
 
     ks_contextlen += 1 + halflen;
 
+
     /* Extract secret */
     ret = mbedtls_hpke_extract( suite,
                                 HPKE_5869_MODE_FULL,
@@ -976,6 +1080,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
         goto error;
     }
 
+
     noncelen = hpke_aead_tab[suite.aead_id].Nn;
 
     ret = mbedtls_hpke_expand( suite,
@@ -989,6 +1094,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
     {
         goto error;
     }
+
 
     keylen = hpke_aead_tab[suite.aead_id].Nk;
 
@@ -1004,6 +1110,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
         goto error;
     }
 
+
     exporterlen = hpke_kdf_tab[suite.kdf_id].Nh;
 
     ret = mbedtls_hpke_expand( suite,
@@ -1017,6 +1124,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
     {
         goto error;
     }
+
 
     noncelen = hpke_aead_tab[suite.aead_id].Nn;
 
@@ -1042,6 +1150,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
 
     if( ret != 0 )
     {
+        HPKE_DBG("hpke_dec: aead_dec failed (ret=%d)\n", ret);
         goto error;
     }
 
@@ -1148,6 +1257,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
     // FOR TEST PURPOSES ONLY
     size_t pkS_len = 0;
     uint8_t *pkS = NULL;
+    uint8_t pkS_buf[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE];
 
     // Buffer for context
     size_t ks_contextlen = MBEDTLS_MD_MAX_SIZE * 2 + 1;
@@ -1195,6 +1305,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
     const int is_montgomery =
         (suite.kem_id == HPKE_KEM_ID_25519) || (suite.kem_id == HPKE_KEM_ID_448);
 */
+
     // Input check: mode
     switch( mode )
     {
@@ -1299,6 +1410,29 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
 //        fail_stage = "export pkE";
         return( EXIT_FAILURE );
     }
+    if( ext_pkE_handle != 0 )
+    {
+        if( *pkE_len < pkE_tmp_len )
+        {
+            return( EXIT_FAILURE );
+        }
+        memcpy( pkE, pkE_tmp, pkE_tmp_len );
+        *pkE_len = pkE_tmp_len;
+    }
+
+    /* Export sender authentication public key if present (AUTH/PSK-AUTH) */
+    if( skS_handle != 0 )
+    {
+        pkS_len = sizeof(pkS_buf);
+        status = psa_export_public_key( skS_handle,
+                                        pkS_buf, sizeof(pkS_buf),
+                                        &pkS_len );
+        if( status != PSA_SUCCESS )
+        {
+            return( EXIT_FAILURE );
+        }
+        pkS = pkS_buf;
+    }
 
     /* Run DH KEM to get shared secret */
     ret = hpke_do_kem( 1,                                                     // 1 means encryption
@@ -1319,6 +1453,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
         }
 */        return( MBEDTLS_ERR_HPKE_INTERNAL_ERROR );
     }
+ 
 /*    if( is_montgomery ) {
         fprintf(stderr, "hpke_enc_int: hpke_do_kem ok (kem=%u, ss_len=%zu)\n",
                 (unsigned)suite.kem_id, shared_secretlen);
@@ -1359,6 +1494,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
 
     ks_contextlen += 1 + halflen;
 
+
     /* Extract secret */
     ret = mbedtls_hpke_extract( suite,
                                 HPKE_5869_MODE_FULL,
@@ -1386,6 +1522,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
         goto error;
     }
 
+
     noncelen = hpke_aead_tab[suite.aead_id].Nn;
 
     ret = mbedtls_hpke_expand( suite,
@@ -1399,6 +1536,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
     {
         goto error;
     }
+
 
     keylen = hpke_aead_tab[suite.aead_id].Nk;
 
@@ -1414,6 +1552,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
         goto error;
     }
 
+
     exporterlen = hpke_kdf_tab[suite.kdf_id].Nh;
 
     ret = mbedtls_hpke_expand( suite,
@@ -1427,6 +1566,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
     {
         goto error;
     }
+
 
     int32_t               cose_aead_algorithm_id;
     struct q_useful_buf_c ci;

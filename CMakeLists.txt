@@ -111,6 +111,10 @@ target_compile_definitions(t_cose PRIVATE ${CRYPTO_COMPILE_DEFS})
 target_include_directories(t_cose PUBLIC inc PRIVATE src)
 target_link_libraries(t_cose PUBLIC QCBOR::QCBOR PRIVATE ${CRYPTO_LIBRARY})
 
+if (BUILD_CLI AND CRYPTO_PROVIDER STREQUAL "MbedTLS")
+    target_compile_definitions(t_cose PRIVATE HPKE_TEST_CAPTURE)
+endif()
+
 include(GNUInstallDirs)
 
 install(TARGETS t_cose
@@ -142,6 +146,48 @@ if (BUILD_CLI AND CRYPTO_PROVIDER STREQUAL "MbedTLS")
     )
 
     target_compile_definitions(hpke_cli
+        PRIVATE
+            ${CRYPTO_COMPILE_DEFS}
+            ${EXAMPLE_EXTRA_DEFS}
+    )
+
+    add_executable(hpke_rfc9180_vectors examples/hpke_rfc9180_vectors.c)
+
+    target_include_directories(hpke_rfc9180_vectors
+        PRIVATE
+            examples
+            src
+    )
+
+    target_link_libraries(hpke_rfc9180_vectors
+        PRIVATE
+            t_cose
+            ${CRYPTO_LIBRARY}
+            QCBOR::QCBOR
+    )
+
+    target_compile_definitions(hpke_rfc9180_vectors
+        PRIVATE
+            ${CRYPTO_COMPILE_DEFS}
+            ${EXAMPLE_EXTRA_DEFS}
+    )
+
+    add_executable(hpke_decrypt_tool examples/hpke_decrypt_tool.c)
+
+    target_include_directories(hpke_decrypt_tool
+        PRIVATE
+            examples
+            src
+    )
+
+    target_link_libraries(hpke_decrypt_tool
+        PRIVATE
+            t_cose
+            ${CRYPTO_LIBRARY}
+            QCBOR::QCBOR
+    )
+
+    target_compile_definitions(hpke_decrypt_tool
         PRIVATE
             ${CRYPTO_COMPILE_DEFS}
             ${EXAMPLE_EXTRA_DEFS}
