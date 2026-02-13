@@ -59,6 +59,7 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
      Q_USEFUL_BUF_MAKE_STACK_UB( recipient_struct_buf, T_COSE_RECIPIENT_STRUCT_DEFAULT_SIZE);
 
     struct q_useful_buf_c recipient_struct;
+    struct q_useful_buf_c aad;
 
     me = (struct t_cose_recipient_dec_hpke *)me_x;
 
@@ -221,6 +222,11 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     }
     psk_ptr = (me->psk.len > 0 && me->psk.ptr != NULL) ? (unsigned char *)me->psk.ptr : &dummy_psk;
 
+    aad = me->aad;
+    if(q_useful_buf_c_is_null(aad)) {
+        aad = (struct q_useful_buf_c){ "", 0 };
+    }
+
     psa_ret = mbedtls_hpke_decrypt(
              HPKE_MODE_BASE,                  // HPKE mode
              suite,                           // ciphersuite
@@ -232,7 +238,7 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
              cek_encrypted.len,                  // Ciphertext length
              cek_encrypted.ptr,                  // Ciphertext
         // TODO: fix the const-ness all the way down so the cast can be removed
-             0, NULL, // enc_struct.len, (uint8_t *)(uintptr_t)enc_struct.ptr,   // AAD
+             aad.len, (uint8_t *)(uintptr_t)aad.ptr, // AAD (optional, defaults to empty)
              recipient_struct.len,               // Info length
              (uint8_t *) recipient_struct.ptr,   // Info
              &cek_len_in_out,                   // Plaintext length

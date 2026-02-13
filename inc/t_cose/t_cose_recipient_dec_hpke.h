@@ -42,11 +42,15 @@ struct t_cose_recipient_dec_hpke {
        */
     struct t_cose_recipient_dec base;
 
-    struct t_cose_key     skr;
-    struct q_useful_buf_c kid;
-    struct q_useful_buf_c psk;
-    struct q_useful_buf_c psk_id;
-    struct q_useful_buf_c info; /* recipient_extra_info for HPKE-KE Recipient_structure */
+	    struct t_cose_key     skr;
+	    struct q_useful_buf_c kid;
+	    struct q_useful_buf_c psk;
+	    struct q_useful_buf_c psk_id;
+	    /* Optional application-supplied HPKE AAD for HPKE Seal/Open in Key Encryption mode.
+	     * Defaults to empty string per draft-ietf-cose-hpke.
+	     */
+	    struct q_useful_buf_c aad;
+	    struct q_useful_buf_c info; /* recipient_extra_info for HPKE-KE Recipient_structure */
 };
 
 
@@ -75,6 +79,11 @@ t_cose_recipient_dec_hpke_set_psk(struct t_cose_recipient_dec_hpke *context,
 static void
 t_cose_recipient_dec_hpke_set_info(struct t_cose_recipient_dec_hpke *context,
                                    struct q_useful_buf_c             info);
+
+/* Set optional application-supplied HPKE AAD for HPKE-KE (defaults to empty). */
+static void
+t_cose_recipient_dec_hpke_set_aad(struct t_cose_recipient_dec_hpke *context,
+                                  struct q_useful_buf_c             aad);
 
 
 /* =========================================================================
@@ -125,6 +134,13 @@ t_cose_recipient_dec_hpke_set_info(struct t_cose_recipient_dec_hpke *me,
                                    struct q_useful_buf_c             info)
 {
     me->info = info;
+}
+
+static inline void
+t_cose_recipient_dec_hpke_set_aad(struct t_cose_recipient_dec_hpke *me,
+                                  struct q_useful_buf_c             aad)
+{
+    me->aad = aad;
 }
 
 

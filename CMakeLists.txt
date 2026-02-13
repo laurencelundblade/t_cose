@@ -12,6 +12,8 @@ set(CRYPTO_PROVIDER "MbedTLS" CACHE STRING "The crypto provider to use: ${CRYPTO
 set(BUILD_TESTS ON CACHE BOOL "Build tests")
 set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 set(BUILD_CLI ON CACHE BOOL "Build hpke_cli")
+set(BUILD_OPENSSL_INTEROP_TOOLS ON CACHE BOOL "Build OpenSSL HPKE interop helper tools")
+set(OPENSSL_INTEROP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/openssl" CACHE PATH "Path to local OpenSSL build tree used for HPKE interop tools")
 
 if (NOT CRYPTO_PROVIDER IN_LIST CRYPTO_PROVIDERS)
     message(FATAL_ERROR "CRYPTO_PROVIDER must be one of ${CRYPTO_PROVIDERS}")
@@ -192,8 +194,65 @@ if (BUILD_CLI AND CRYPTO_PROVIDER STREQUAL "MbedTLS")
             ${CRYPTO_COMPILE_DEFS}
             ${EXAMPLE_EXTRA_DEFS}
     )
+
+    add_executable(hpke_encrypt_tool examples/hpke_encrypt_tool.c)
+
+    target_include_directories(hpke_encrypt_tool
+        PRIVATE
+            examples
+            src
+    )
+
+    target_link_libraries(hpke_encrypt_tool
+        PRIVATE
+            t_cose
+            ${CRYPTO_LIBRARY}
+            QCBOR::QCBOR
+    )
+
+    target_compile_definitions(hpke_encrypt_tool
+        PRIVATE
+            ${CRYPTO_COMPILE_DEFS}
+            ${EXAMPLE_EXTRA_DEFS}
+    )
 elseif(BUILD_CLI)
     message(STATUS "Skipping hpke_cli: requires CRYPTO_PROVIDER=MbedTLS")
+endif()
+
+if (BUILD_OPENSSL_INTEROP_TOOLS)
+    if (EXISTS "${OPENSSL_INTEROP_ROOT}/include/openssl/hpke.h")
+        find_library(OPENSSL_INTEROP_CRYPTO_LIB
+            NAMES crypto libcrypto
+            PATHS
+                "${OPENSSL_INTEROP_ROOT}"
+                "${OPENSSL_INTEROP_ROOT}/lib"
+                "${OPENSSL_INTEROP_ROOT}/lib64"
+            NO_DEFAULT_PATH)
+
+        if (OPENSSL_INTEROP_CRYPTO_LIB)
+            add_executable(openssl_hpke_seal_dump tools/openssl_hpke_seal_dump.c)
+            target_include_directories(openssl_hpke_seal_dump
+                PRIVATE
+                    "${OPENSSL_INTEROP_ROOT}/include")
+            target_link_libraries(openssl_hpke_seal_dump
+                PRIVATE
+                    "${OPENSSL_INTEROP_CRYPTO_LIB}")
+
+            add_executable(openssl_hpke_open_dump tools/openssl_hpke_open_dump.c)
+            target_include_directories(openssl_hpke_open_dump
+                PRIVATE
+                    "${OPENSSL_INTEROP_ROOT}/include")
+            target_link_libraries(openssl_hpke_open_dump
+                PRIVATE
+                    "${OPENSSL_INTEROP_CRYPTO_LIB}")
+        else()
+            message(STATUS
+                "Skipping OpenSSL interop helper tools: libcrypto not found under OPENSSL_INTEROP_ROOT=${OPENSSL_INTEROP_ROOT}")
+        endif()
+    else()
+        message(STATUS
+            "Skipping OpenSSL interop helper tools: OpenSSL HPKE headers not found under OPENSSL_INTEROP_ROOT=${OPENSSL_INTEROP_ROOT}")
+    endif()
 endif()
 
 

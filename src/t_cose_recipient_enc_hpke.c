@@ -268,6 +268,7 @@ t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
     struct q_useful_buf_c  recipient_struct;
     struct t_cose_recipient_enc_hpke *context;
     struct q_useful_buf_c   header;
+    struct q_useful_buf_c   aad;
 
     struct t_cose_parameter params[3];
     struct t_cose_parameter *params2;
@@ -376,6 +377,11 @@ t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
         goto done_free_ec;
     }
 
+    aad = context->aad;
+    if(q_useful_buf_c_is_null(aad)) {
+        aad = (struct q_useful_buf_c){ "", 0 };
+    }
+
     /* --- HPKE encryption of the CEK ---- */
     return_value = t_cose_crypto_hpke_encrypt(
                         context->hpke_suite, // HPKE ciphersuite
@@ -383,7 +389,7 @@ t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
                         ephemeral_key, // pkE
                         context->psk,
                         context->psk_id,
-                        NULL_Q_USEFUL_BUF_C, // No AAD
+                        aad, // optional AAD (defaults to empty)
                         recipient_struct, // Info
                         cek, // Plaintext
                         (struct q_useful_buf) {.ptr = encrypted_cek,

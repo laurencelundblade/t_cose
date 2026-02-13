@@ -37,6 +37,8 @@
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 
+static void print_usage(const char *prog);
+
 /* ============================================================
  * COSE_Key parsing for ECC (EC2 / OKP)
  * ============================================================ */
@@ -774,6 +776,7 @@ static int do_encrypt(int argc, char **argv)
     const char *sender_id      = NULL;
     const char *aad_file       = NULL;
     const char *info_file      = NULL;
+    const char *hpke_aad_file  = NULL;  /* HPKE AAD for Key Encryption mode */
     const char *payload_file   = NULL;
     const char *out_file       = NULL;
     const char *ct_out_file    = NULL;
@@ -794,6 +797,8 @@ static int do_encrypt(int argc, char **argv)
             aad_file = argv[++i];
         } else if(strcmp(argv[i], "--info") == 0 && i+1 < argc) {
             info_file = argv[++i];
+        } else if(strcmp(argv[i], "--hpke-aad") == 0 && i+1 < argc) {
+            hpke_aad_file = argv[++i];
         } else if(strcmp(argv[i], "--payload") == 0 && i+1 < argc) {
             payload_file = argv[++i];
         } else if(strcmp(argv[i], "--out") == 0 && i+1 < argc) {
@@ -809,7 +814,8 @@ static int do_encrypt(int argc, char **argv)
         } else if(strcmp(argv[i], "--psk-id") == 0 && i+1 < argc) {
             psk_id_str = argv[++i];
         } else {
-            fprintf(stderr, "Unknown or incomplete option: %s\n", argv[i]);
+            fprintf(stderr, "Unknown or incomplete option: %s\n\n", argv[i]);
+            print_usage(argv[0]);
             return 1;
         }
     }
@@ -817,7 +823,8 @@ static int do_encrypt(int argc, char **argv)
     if(!mode || !recipient_file || !payload_file || !out_file) {
         fprintf(stderr,
                 "Missing required parameters for encrypt.\n"
-                "Required: --mode, --recipient-key, --payload, --out\n");
+                "Required: --mode, --recipient-key, --payload, --out\n\n");
+        print_usage(argv[0]);
         return 1;
     }
 
@@ -849,6 +856,19 @@ static int do_encrypt(int argc, char **argv)
             return 1;
         }
         info_ub = (struct q_useful_buf_c){ info, info_len };
+    }
+
+    uint8_t *hpke_aad = NULL;
+    size_t   hpke_aad_len = 0;
+    struct q_useful_buf_c hpke_aad_ub = NULL_Q_USEFUL_BUF_C;
+    if(hpke_aad_file) {
+        if(read_file(hpke_aad_file, &hpke_aad, &hpke_aad_len) != 0) {
+            free(payload);
+            free(aad);
+            free(info);
+            return 1;
+        }
+        hpke_aad_ub = (struct q_useful_buf_c){ hpke_aad, hpke_aad_len };
     }
 
     uint8_t *psk_buf = NULL;
@@ -975,6 +995,7 @@ static int do_encrypt(int argc, char **argv)
                                           recipient_kid);
         t_cose_recipient_enc_hpke_set_psk(&recip, psk_ub, psk_id_ub);
         t_cose_recipient_enc_hpke_set_info(&recip, info_ub);
+        t_cose_recipient_enc_hpke_set_aad(&recip, hpke_aad_ub);
 
         t_cose_encrypt_add_recipient(&enc_ctx,
                                      (struct t_cose_recipient_enc *)&recip);
@@ -1013,6 +1034,17 @@ static int do_encrypt(int argc, char **argv)
             free(payload);
             free(aad);
             free(info);
+	        return 1;
+	    }
+
+        if(hpke_aad_file) {
+            fprintf(stderr,
+                    "--hpke-aad applies to HPKE Key Encryption (COSE_Encrypt recipients) only; "
+                    "for Integrated Encryption use --aad (external_aad in Enc_structure)\n");
+            free(payload);
+            free(aad);
+            free(info);
+            free(hpke_aad);
             return 1;
         }
 
@@ -1060,6 +1092,7 @@ static int do_encrypt(int argc, char **argv)
         free(payload);
         free(aad);
         free(info);
+        free(hpke_aad);
         return 1;
     }
 
@@ -1096,6 +1129,7 @@ static int do_encrypt(int argc, char **argv)
             free(payload);
             free(aad);
             free(info);
+            free(hpke_aad);
             return 1;
         }
         final_out = signed_cose;
@@ -1117,6 +1151,7 @@ static int do_encrypt(int argc, char **argv)
             free(payload);
             free(aad);
             free(info);
+            free(hpke_aad);
             return 1;
         }
         if(write_file(ct_out_file,
@@ -1132,6 +1167,7 @@ static int do_encrypt(int argc, char **argv)
     free(payload);
     free(aad);
     free(info);
+    free(hpke_aad);
     free(psk_buf);
     return 0;
 }
@@ -1146,6 +1182,7 @@ static int do_decrypt(int argc, char **argv)
     const char *my_key_file   = NULL;
     const char *aad_file      = NULL;
     const char *info_file     = NULL;
+    const char *hpke_aad_file = NULL;      /* HPKE AAD for Key Encryption mode */
     const char *cose_file     = NULL;
     const char *ct_file       = NULL;
     const char *out_file      = NULL;
@@ -1161,6 +1198,8 @@ static int do_decrypt(int argc, char **argv)
             aad_file = argv[++i];
         } else if(strcmp(argv[i], "--info") == 0 && i+1 < argc) {
             info_file = argv[++i];
+        } else if(strcmp(argv[i], "--hpke-aad") == 0 && i+1 < argc) {
+            hpke_aad_file = argv[++i];
         } else if(strcmp(argv[i], "--in") == 0 && i+1 < argc) {
             cose_file = argv[++i];
         } else if(strcmp(argv[i], "--ciphertext-in") == 0 && i+1 < argc) {
@@ -1172,7 +1211,8 @@ static int do_decrypt(int argc, char **argv)
         } else if(strcmp(argv[i], "--psk-id") == 0 && i+1 < argc) {
             psk_id_str = argv[++i];
         } else {
-            fprintf(stderr, "Unknown or incomplete option: %s\n", argv[i]);
+            fprintf(stderr, "Unknown or incomplete option: %s\n\n", argv[i]);
+            print_usage(argv[0]);
             return 1;
         }
     }
@@ -1180,7 +1220,8 @@ static int do_decrypt(int argc, char **argv)
     if(!my_key_file || !cose_file || !out_file) {
         fprintf(stderr,
                 "Missing required parameters for decrypt.\n"
-                "Required: --my-key, --in, --out\n");
+                "Required: --my-key, --in, --out\n\n");
+        print_usage(argv[0]);
         return 1;
     }
 
@@ -1228,6 +1269,19 @@ static int do_decrypt(int argc, char **argv)
             return 1;
         }
         info_ub = (struct q_useful_buf_c){ info, info_len };
+    }
+
+    uint8_t *hpke_aad = NULL;
+    size_t   hpke_aad_len = 0;
+    struct q_useful_buf_c hpke_aad_ub = NULL_Q_USEFUL_BUF_C;
+    if(hpke_aad_file) {
+        if(read_file(hpke_aad_file, &hpke_aad, &hpke_aad_len) != 0) {
+            free(cose_data);
+            free(aad);
+            free(info);
+            return 1;
+        }
+        hpke_aad_ub = (struct q_useful_buf_c){ hpke_aad, hpke_aad_len };
     }
 
     uint8_t *ct = NULL;
@@ -1337,6 +1391,16 @@ static int do_decrypt(int argc, char **argv)
         }
         if(alg_is_hpke) {
             /* HPKE integrated Encrypt0: use library decrypt */
+            if(hpke_aad_file) {
+                fprintf(stderr,
+                        "--hpke-aad applies to HPKE Key Encryption (COSE_Encrypt recipients) only; "
+                        "for Integrated Encryption use --aad (external_aad in Enc_structure)\n");
+                free(cose_data); free(aad); free(ct);
+                free(info);
+                free(hpke_aad);
+                free(psk_buf);
+                return 1;
+            }
             struct t_cose_encrypt_dec_ctx dec_ctx;
             t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
             t_cose_encrypt_dec_set_hpke_recipient_key(&dec_ctx,
@@ -1355,6 +1419,7 @@ static int do_decrypt(int argc, char **argv)
                 fprintf(stderr, "Decryption failed: %d (t_cose_encrypt_dec)\n", terr);
                 free(cose_data); free(aad); free(ct);
                 free(info);
+                free(hpke_aad);
                 free(psk_buf);
                 return 1;
             }
@@ -1364,6 +1429,7 @@ static int do_decrypt(int argc, char **argv)
                     (long long)alg_in_msg);
             free(cose_data); free(aad); free(ct);
             free(info);
+            free(hpke_aad);
             free(psk_buf);
             return 1;
         }
@@ -1375,6 +1441,7 @@ static int do_decrypt(int argc, char **argv)
             free(aad);
             free(ct);
             free(info);
+            free(hpke_aad);
             return 1;
         }
 
@@ -1403,6 +1470,7 @@ static int do_decrypt(int argc, char **argv)
             free(aad);
             free(ct);
             free(info);
+            free(hpke_aad);
             return 1;
         }
 
@@ -1414,6 +1482,7 @@ static int do_decrypt(int argc, char **argv)
         t_cose_recipient_dec_hpke_set_skr(&dec_recipient, my_key, my_kid);
         t_cose_recipient_dec_hpke_set_psk(&dec_recipient, psk_ub, psk_id_ub);
         t_cose_recipient_dec_hpke_set_info(&dec_recipient, info_ub);
+        t_cose_recipient_dec_hpke_set_aad(&dec_recipient, hpke_aad_ub);
         t_cose_encrypt_dec_add_recipient(&dec_ctx,
                                          (struct t_cose_recipient_dec *)&dec_recipient);
 
@@ -1440,6 +1509,7 @@ static int do_decrypt(int argc, char **argv)
         free(aad);
         free(ct);
         free(info);
+        free(hpke_aad);
         return 1;
     }
 
@@ -1450,6 +1520,7 @@ static int do_decrypt(int argc, char **argv)
         free(aad);
         free(ct);
         free(info);
+        free(hpke_aad);
         free(psk_buf);
         return 1;
     }
@@ -1458,6 +1529,7 @@ static int do_decrypt(int argc, char **argv)
     free(aad);
     free(ct);
     free(info);
+    free(hpke_aad);
     free(psk_buf);
     return 0;
 }
@@ -1466,14 +1538,38 @@ static int do_decrypt(int argc, char **argv)
  * main()
  * ============================================================ */
 
+static void print_usage(const char *prog)
+{
+    fprintf(stderr,
+            "Usage:\n"
+            "  %s encrypt --mode (encrypt0|encrypt) --recipient-key <cose_key.cbor> --payload <file> --out <file> [options]\n"
+            "  %s decrypt [--mode (encrypt0|encrypt)] --my-key <cose_key.cbor> --in <cose.cbor> --out <file> [options]\n"
+            "\n"
+            "Terminology / layers:\n"
+            "  - COSE external AAD (layer 0): --aad <file>\n"
+            "      Used as RFC9052 Enc_structure.external_aad and authenticated with the payload encryption.\n"
+            "      For Integrated HPKE (mode encrypt0), HPKE AAD is the Enc_structure, so external AAD MUST be provided via --aad.\n"
+            "  - HPKE AAD for Key Encryption (layer 1): --hpke-aad <file>\n"
+            "      Used as the HPKE 'aad' input for wrapping/unwrapping the CEK in the COSE_Recipient (HPKE-*-KE).\n"
+            "      Defaults to empty; this is distinct from COSE external AAD.\n"
+            "  - HPKE/recipient info:\n"
+            "      --info <file> is used as HPKE 'info' in mode encrypt0; in mode encrypt it is recipient_extra_info inside Recipient_structure.\n"
+            "\n"
+            "Common options:\n"
+            "  --aad <file>            COSE external AAD (layer 0)\n"
+            "  --info <file>           HPKE info / recipient_extra_info (see above)\n"
+            "  --hpke-aad <file>       HPKE AAD for Key Encryption (layer 1, mode encrypt only)\n"
+            "  --psk <file> --psk-id <string>\n"
+            "  --detached / --attach   (encrypt) detached payload\n"
+            "  --ciphertext-out <file> (encrypt) detached ciphertext output\n"
+            "  --ciphertext-in <file>  (decrypt) detached ciphertext input\n",
+            prog, prog);
+}
+
 int main(int argc, char **argv)
 {
     if(argc < 2) {
-        fprintf(stderr,
-                "Usage:\n"
-                "  %s encrypt [options]\n"
-                "  %s decrypt [options]\n",
-                argv[0], argv[0]);
+        print_usage(argv[0]);
         return 1;
     }
 
@@ -1488,7 +1584,8 @@ int main(int argc, char **argv)
     } else if(strcmp(argv[1], "decrypt") == 0) {
         return do_decrypt(argc, argv);
     } else {
-        fprintf(stderr, "Unknown command: %s (use encrypt or decrypt)\n", argv[1]);
+        fprintf(stderr, "Unknown command: %s\n\n", argv[1]);
+        print_usage(argv[0]);
         return 1;
     }
 }

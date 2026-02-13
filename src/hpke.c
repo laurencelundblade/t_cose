@@ -583,8 +583,11 @@ int mbedtls_hpke_extract_and_expand( hpke_suite_t suite,
             lsecretlen = 32;
             break;
         case HPKE_KEM_ID_448:
-            /* HPKE x448 shared secret size is 56 bytes (per RFC 7748) */
-            lsecretlen = 56;
+            /*
+             * DH output for X448 is 56 bytes, but HPKE KEM Nsecret for
+             * DHKEM(X448, HKDF-SHA512) is Nh=64 bytes.
+             */
+            lsecretlen = 64;
             break;
         default:
             return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );

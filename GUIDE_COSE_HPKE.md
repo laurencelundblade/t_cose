@@ -35,7 +35,9 @@ Adjust the paths as necessary.
 ```
 CCACHE_DISABLE=1 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug \
   -DBUILD_COSE_KEY_GEN=ON -DBUILD_CLI=ON -DBUILD_TESTS=ON \
-  -DBUILD_EXAMPLES=ON -DCRYPTO_PROVIDER=MbedTLS \
+  -DBUILD_EXAMPLES=ON -DBUILD_OPENSSL_INTEROP_TOOLS=ON \
+  -DOPENSSL_INTEROP_ROOT=./openssl \
+  -DCRYPTO_PROVIDER=MbedTLS \
   -DMbedTLS_DIR=../mbedtls/build/cmake \
   -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER=
 
@@ -47,6 +49,12 @@ This builds four programs:
  - hpke_cli
  - t_cose_examples
  - t_cose_test
+
+With `-DBUILD_OPENSSL_INTEROP_TOOLS=ON` it also builds:
+ - openssl_hpke_seal_dump
+ - openssl_hpke_open_dump
+ - hpke_encrypt_tool
+ - hpke_decrypt_tool
  
 Using the tool cose_key_gen you can generate COSE Key structures for use with the hpke_cli program. 
 
@@ -142,7 +150,7 @@ The test the HPKE implementation against the RFC 9180 Appendix A provided test v
 ./examples/run_rfc9180_vectors.sh
 ```
 
-## HPKE Test Script
+## COSE HPKE Test Script
 
 To test the functionality a test script is available, which runs through all combinations of the program.
 
@@ -152,3 +160,71 @@ To execute the test script run:
 ./examples/run_hpke_tests.sh
 ```
 
+To write detailed test vectors (full COSE_Key and ciphertext in HEX) to a file:
+
+```
+./examples/run_hpke_tests.sh --log testvectors.md
+```
+
+The script covers:
+- Integrated Encryption (`encrypt0`) and Key Encryption (`encrypt`)
+- HPKE-0 .. HPKE-7 and HPKE-0-KE .. HPKE-7-KE
+- Variants: base, external aad, external info, external aad+info
+- PSK and non-PSK runs
+
+## OpenSSL Interoperability Tests
+
+The OpenSSL interop tooling tests raw HPKE in both directions:
+- OpenSSL `seal` -> t_cose `decrypt`
+- t_cose `encrypt` -> OpenSSL `open`
+
+Run:
+
+```
+python3 tools/run_openssl_seal_cases.py
+```
+
+### Build only the interop tools
+
+If you only want to build the OpenSSL interop tooling targets:
+
+```
+CCACHE_DISABLE=1 cmake -S . -B build \
+  -DBUILD_OPENSSL_INTEROP_TOOLS=ON \
+  -DOPENSSL_INTEROP_ROOT=./openssl \
+  -DCRYPTO_PROVIDER=MbedTLS
+
+CCACHE_DISABLE=1 cmake --build build --target \
+  openssl_hpke_seal_dump \
+  openssl_hpke_open_dump \
+  hpke_encrypt_tool \
+  hpke_decrypt_tool -j$(nproc)
+```
+
+Then run:
+
+```
+python3 tools/run_openssl_seal_cases.py
+```
+
+The script currently covers:
+
+- KEMs: X25519, X448, P-256, P-521
+- Modes:
+  - X25519, P-256: base, psk, auth, pskauth (for primary KDF)
+  - X448: base
+  - P-521: base, psk, auth, pskauth
+- KDFs:
+  - X25519: HKDF-SHA256, HKDF-SHA384, HKDF-SHA512
+  - X448: HKDF-SHA512
+  - P-256: HKDF-SHA256, HKDF-SHA512
+  - P-521: HKDF-SHA512
+- AEADs: AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305
+
+The interop script uses helper binaries and OpenSSL helper tools:
+  - `hpke_encrypt_tool`
+  - `hpke_decrypt_tool`
+  - `openssl_hpke_seal_dump`
+  - `openssl_hpke_open_dump`
+
+OpenSSL must be available and loadable via `LD_LIBRARY_PATH`.

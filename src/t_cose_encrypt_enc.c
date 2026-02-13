@@ -208,7 +208,7 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
      * return the encapsulated key (ek) into ek_buf. */
     return_value = t_cose_recipient_enc_hpke_encrypt_for_encrypt0(
                         hpke_recipient,
-                        aad,           /* aad (empty by default) */
+                        aad,           /* aad */
                         info,          /* info (empty or provided) */
                         payload,
                         encrypt_buffer,
@@ -234,6 +234,12 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
                                                 false);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
+    }
+    /* Add kid to unprotected header for Encrypt0 if provided */
+    if(!q_useful_buf_c_is_null(hpke_recipient->kid)) {
+        QCBOREncode_AddBytesToMapN(&cbor_encoder,
+                                  T_COSE_HEADER_PARAM_KID,
+                                  hpke_recipient->kid);
     }
     QCBOREncode_AddBytesToMapN(&cbor_encoder,
                                 T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY,
