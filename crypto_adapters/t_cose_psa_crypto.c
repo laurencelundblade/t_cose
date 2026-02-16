@@ -836,7 +836,7 @@ t_cose_crypto_kw_wrap(
 
     /* Initialize */
     memcpy(A, AES_KW_DEFAULT_IV, 8);
-    memcpy(ciphertext_buffer.ptr + 8, plaintext.ptr, plaintext.len);
+    memcpy((uint8_t *)ciphertext_buffer.ptr + 8, plaintext.ptr, plaintext.len);
     R = (uint8_t *)ciphertext_buffer.ptr + 8;
 
     /* Wrapping process - RFC 3394 Section 2.2.1 */
@@ -939,7 +939,7 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
 
     /* Initialize - copy ciphertext to working buffer */
     memcpy(A, ciphertext.ptr, 8);
-    memcpy(plaintext_buffer.ptr, ciphertext.ptr + 8, ciphertext.len - 8);
+    memcpy(plaintext_buffer.ptr, (const uint8_t *)ciphertext.ptr + 8, ciphertext.len - 8);
     R = plaintext_buffer.ptr;
 
     /* Unwrapping process - RFC 3394 Section 2.2.2 */
