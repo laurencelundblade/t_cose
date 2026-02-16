@@ -222,6 +222,7 @@ jobs:
           - T_COSE_DISABLE_PS256
           - T_COSE_DISABLE_PS512
           - T_COSE_DISABLE_ES384
+# TODO: re-enable this          - T_COSE_DISABLE_KEYWRAP
           - T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
           - T_COSE_DISABLE_USAGE_GUARDS
 
