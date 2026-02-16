@@ -46,10 +46,8 @@ typedef struct {
 static test_entry s_tests[] = {
 
     TEST_ENTRY(aead_test),
-#ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
     TEST_ENTRY(decrypt_known_good_aeskw_non_aead_test),
-#endif /* ! T_COSE_DISABLE_KEYWRAP */
     TEST_ENTRY(hkdf_test),
 
 #ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
@@ -58,6 +56,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ec_import_export_test),
 
     TEST_ENTRY(esdh_enc_dec_test),
+
     TEST_ENTRY(decrypt_known_good),
 
     TEST_ENTRY(decrypt_known_bad),

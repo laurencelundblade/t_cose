@@ -39,9 +39,6 @@
 #include <psa/crypto.h>     /* PSA Crypto Interface to mbed crypto or such */
 #include <mbedtls/aes.h> // TODO: Isn't there a PSA API for AES?
 
-#ifndef T_COSE_DISABLE_KEYWRAP
-#include <mbedtls/nist_kw.h>
-#endif /* T_COSE_DISABLE_KEYWRAP */
 
 #include <mbedtls/hkdf.h>
 #include <mbedtls/md.h>
@@ -97,12 +94,9 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_A128GCM,
         T_COSE_ALGORITHM_A192GCM,
         T_COSE_ALGORITHM_A256GCM,
-
-#if !defined NO_MBED_KW_API & !defined T_COSE_DISABLE_KEYWRAP
         T_COSE_ALGORITHM_A128KW,
         T_COSE_ALGORITHM_A192KW,
         T_COSE_ALGORITHM_A256KW,
-#endif /* !(NO_MBED_KW_API && T_COSE_DISABLE_KEYWRAP) */
 
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
@@ -760,8 +754,6 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 }
 
 
-#ifndef T_COSE_DISABLE_KEYWRAP
-
 
 static unsigned int
 bits_in_kw_key(int32_t cose_algorithm_id)
@@ -774,101 +766,116 @@ bits_in_kw_key(int32_t cose_algorithm_id)
     }
 }
 
+/* Default Initial Value for AES Key Wrap (RFC 3394) */
+static const uint8_t AES_KW_DEFAULT_IV[8] = {
+    0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6
+};
+
 
 /*
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
-                      struct t_cose_key       kek,
-                      struct q_useful_buf_c   plaintext,
-                      struct q_useful_buf     ciphertext_buffer,
-                      struct q_useful_buf_c  *ciphertext_result)
+t_cose_crypto_kw_wrap(
+    int32_t                 cose_algorithm_id,
+    struct t_cose_key       kek,
+    struct q_useful_buf_c   plaintext,
+    struct q_useful_buf     ciphertext_buffer,
+    struct q_useful_buf_c  *ciphertext_result)
 {
-#ifdef NO_MBED_KW_API
-    /* Handle MbedTLS 2.28 that doesn't support key wrap by default */
-    return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
-#else
-    mbedtls_nist_kw_context kw_context;
-    enum t_cose_err_t       err;
-    int                     ret;
-    size_t                  ciphertext_len;
-    unsigned int            kek_bits;
+    psa_status_t status;
+    uint8_t A[8];  /* Integrity Check Register */
+    uint8_t B[16]; /* AES input/output block */
+    uint8_t *R;    /* Pointer to ciphertext register array */
+    size_t n;      /* Number of 64-bit blocks */
+    size_t i, j;
+    uint64_t t;
+    size_t           kek_bits;
     unsigned int            expected_kek_bits;
-    struct q_useful_buf_c   kek_bytes;
-    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
+    psa_key_attributes_t kek_attributes;
+    psa_key_id_t kek_id;
+    size_t outlen;
 
+    psa_crypto_init();
 
-    /* Export the actual key bytes from t_cose_key (which might be a handle) */
-    err = t_cose_crypto_export_symmetric_key(kek,
-                                              kek_bytes_buf,
-                                              &kek_bytes);
-    if(err != T_COSE_SUCCESS) {
-        return err;
-    }
-
-    /* Check the supplied kek and algorithm ID */
-    if(kek_bytes.len > UINT_MAX / 8) {
-        /* Integer math would overflow (and it would be an enormous key) */
-        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
-    }
-    kek_bits = (unsigned int)(8 * kek_bytes.len);
+    kek_id = (psa_key_id_t)kek.key.handle;
 
     expected_kek_bits = bits_in_kw_key(cose_algorithm_id);
     if(expected_kek_bits == UINT_MAX) {
         return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
 
+    kek_attributes = psa_key_attributes_init();
+    status = psa_get_key_attributes(kek_id, &kek_attributes);
+    if(status) {
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+    kek_bits = psa_get_key_bits(&kek_attributes);
+
     if(kek_bits != expected_kek_bits) {
         /* An unsupported algorithm will return UINT_MAX bits */
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
 
-    mbedtls_nist_kw_init(&kw_context);
-
-    /* Configure KEK to be externally supplied symmetric key */
-    ret = mbedtls_nist_kw_setkey(&kw_context,
-                                  MBEDTLS_CIPHER_ID_AES,
-                                  kek_bytes.ptr,
-                                  kek_bits,
-                                  MBEDTLS_ENCRYPT
-                                );
-
-    if (ret != 0) {
+    /* Key wrap requires at least 16 bytes (2 blocks) */
+    if(plaintext.len < 16) {
         return T_COSE_ERR_KW_FAILED;
     }
 
-    /* Encrypt CEK with the AES key wrap algorithm defined in RFC 3394. */
-    ret = mbedtls_nist_kw_wrap(&kw_context,
-                                MBEDTLS_KW_MODE_KW,
-                                plaintext.ptr,
-                                plaintext.len,
-                                ciphertext_buffer.ptr,
-                               &ciphertext_len,
-                                ciphertext_buffer.len
-                              );
-
-    if (ret != 0) {
+    /* Input must be multiple of 8 bytes */
+    if(plaintext.len % 8 != 0) {
         return T_COSE_ERR_KW_FAILED;
     }
 
+    /* Check output buffer size */
+    if(ciphertext_buffer.len < plaintext.len + 8) {
+        return T_COSE_ERR_KW_FAILED;
+    }
+
+    n = plaintext.len / 8;
+
+    /* Initialize */
+    memcpy(A, AES_KW_DEFAULT_IV, 8);
+    memcpy(ciphertext_buffer.ptr + 8, plaintext.ptr, plaintext.len);
+    R = (uint8_t *)ciphertext_buffer.ptr + 8;
+
+    /* Wrapping process - RFC 3394 Section 2.2.1 */
+    for(j = 0; j < 6; j++) {
+        for(i = 0; i < n; i++) {
+            /* Construct B = A | R[i] */
+            memcpy(B, A, 8);
+            memcpy(B + 8, R + (i * 8), 8);
+
+            /* B = AES(K, B) */
+            status = psa_cipher_encrypt((psa_key_id_t)kek.key.handle,
+                                        PSA_ALG_ECB_NO_PADDING,
+                                        B, 16,
+                                        B, 16,
+                                        &outlen);
+            if(status != PSA_SUCCESS) {
+                return T_COSE_ERR_KW_FAILED;
+            }
+
+            /* A = MSB(64, B) ^ t where t = (n*j)+i+1 */
+            memcpy(A, B, 8);
+            t = (n * j) + i + 1;
+            /* XOR with t in big-endian format */
+            for(int k = 7; k >= 0; k--) {
+                A[k] ^= (t & 0xFF);
+                t >>= 8;
+            }
+
+            /* R[i] = LSB(64, B) */
+            memcpy(R + (i * 8), B + 8, 8);
+        }
+    }
+
+    /* Set final output: C[0] = A, C[1..n] = R[0..n-1] */
+    memcpy(ciphertext_buffer.ptr, A, 8);
     ciphertext_result->ptr = ciphertext_buffer.ptr;
-    ciphertext_result->len = ciphertext_len;
-
-    // TODO: this needs to be called in error conditions
-
-    mbedtls_nist_kw_free(&kw_context);
+    ciphertext_result->len = plaintext.len + 8;
 
     return T_COSE_SUCCESS;
-
-    /* Here's a personal commentary on the Mbed/PSA API -- it's worse
-     * that the other Mbed/PSA APIs so this adaptor function is
-     * actually kind of large. It would be better if it took
-     * a key handle as input rather than a key. It would better if it
-     * combined setkey and init to save a function call. It's
-     * not clear fro the API documentation whether it does any
-     * checking on the key size. */
-#endif /* NO_MBED_KW_API */
 }
 
 
@@ -879,90 +886,110 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
                         struct q_useful_buf     plaintext_buffer,
                         struct q_useful_buf_c  *plaintext_result)
 {
-#ifdef NO_MBED_KW_API
-    return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
-#else
-    mbedtls_nist_kw_context kw_context;
-    enum t_cose_err_t       err;
-    int                     ret;
-    size_t                  plaintext_len;
-    unsigned int            kek_bits;
-    unsigned int            expected_kek_bits;
-    enum t_cose_err_t       return_value;
-    struct q_useful_buf_c   kek_bytes;
-    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
+    psa_status_t status;
+    uint8_t A[8];  /* Integrity Check Register */
+    uint8_t B[16]; /* AES input/output block */
+    uint8_t *R;    /* Working register array */
+    size_t n;      /* Number of 64-bit blocks */
+    int i, j;
+    uint64_t t;
+    psa_key_id_t kek_id;
+    size_t expected_kek_bits;
+    psa_key_attributes_t kek_attributes;
+    size_t kek_bits;
+    size_t output_len;
 
-    /* Export the actual key bytes from t_cose_key (which might be a handle) */
-    /* Maybe someday there will be wrap API that takes a key handle as input. */
-    err = t_cose_crypto_export_symmetric_key(kek,
-                                             kek_bytes_buf,
-                                            &kek_bytes);
-    if(err != T_COSE_SUCCESS) {
-        return err;
-    }
+    psa_crypto_init();
 
-    /* Check the supplied kek and algorithm ID */
-    if(kek_bytes.len > UINT_MAX / 8) {
-        /* Integer math would overflow (and it would be an enormous key) */
-        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
-    }
-    kek_bits = (unsigned int)(8 * kek_bytes.len);
+    kek_id = (psa_key_id_t)kek.key.handle;
 
-    /* This checks the algorithm ID in addition to getting the number of bits */
     expected_kek_bits = bits_in_kw_key(cose_algorithm_id);
     if(expected_kek_bits == UINT_MAX) {
         return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
+
+    kek_attributes = psa_key_attributes_init();
+    status = psa_get_key_attributes(kek_id, &kek_attributes );
+    if (status) {
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+    kek_bits = psa_get_key_bits(&kek_attributes);
 
     if(kek_bits != expected_kek_bits) {
         /* An unsupported algorithm will return UINT_MAX bits */
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
 
-    /* Initialize and configure KEK */
-    mbedtls_nist_kw_init(&kw_context);
-    ret = mbedtls_nist_kw_setkey(&kw_context,
-                                 MBEDTLS_CIPHER_ID_AES,
-                                 kek_bytes.ptr,
-                                 kek_bits,
-                                 MBEDTLS_DECRYPT
-                                );
-    if (ret != 0) {
-        return_value = T_COSE_ERR_KW_FAILED;
-        goto Done;
+    /* Wrapped key must be at least 24 bytes (3 blocks) */
+    if (ciphertext.len < 24) {
+        return T_COSE_ERR_KW_FAILED;
     }
 
-    /* Encrypt CEK with the AES key wrap algorithm defined in RFC 3394. */
-    ret = mbedtls_nist_kw_unwrap(&kw_context,
-                                  MBEDTLS_KW_MODE_KW,
-                                  ciphertext.ptr,
-                                  ciphertext.len,
-                                  plaintext_buffer.ptr,
-                                 &plaintext_len,
-                                  plaintext_buffer.len
-                                );
+    /* Input must be multiple of 8 bytes */
+    if (ciphertext.len % 8 != 0) {
+        return T_COSE_ERR_KW_FAILED;
+    }
 
-    if(ret == MBEDTLS_ERR_CIPHER_AUTH_FAILED) {
-        return_value = T_COSE_ERR_DATA_AUTH_FAILED;
-        goto Done;
+    /* Check output buffer size */
+    if (plaintext_buffer.len < ciphertext.len - 8) {
+        return T_COSE_ERR_HASH_BUFFER_SIZE; // TODO: error code
     }
-    if (ret != 0) {
-        return_value = T_COSE_ERR_KW_FAILED;
-        goto Done;
+
+    n = (ciphertext.len / 8) - 1;
+
+    /* Initialize - copy ciphertext to working buffer */
+    memcpy(A, ciphertext.ptr, 8);
+    memcpy(plaintext_buffer.ptr, ciphertext.ptr + 8, ciphertext.len - 8);
+    R = plaintext_buffer.ptr;
+
+    /* Unwrapping process - RFC 3394 Section 2.2.2 */
+    for(j = 5; j >= 0; j--) {
+        for(i = (int)n - 1; i >= 0; i--) {
+            /* A = A ^ t where t = n*j+i+1 */
+            /* i and j never negative here, but have to be signed for loop */
+            t = (n * (size_t)j) + (size_t)i + 1;
+            for(int k = 7; k >= 0; k--) {
+                A[k] ^= (t & 0xFF);
+                t >>= 8;
+            }
+
+            /* Construct B = A | R[i] */
+            memcpy(B, A, 8);
+            memcpy(B + 8, R + (i * 8), 8);
+
+            /* B = AES-1(K, B) - use decrypt */
+            status = psa_cipher_decrypt(
+                kek_id,
+                PSA_ALG_ECB_NO_PADDING,
+                B, 16,
+                B, 16,
+                &output_len
+            );
+
+            if (status != PSA_SUCCESS) {
+                /* Clear sensitive data on error */
+                return T_COSE_ERR_KW_FAILED;
+            }
+
+            /* A = MSB(64, B) */
+            memcpy(A, B, 8);
+
+            /* R[i] = LSB(64, B) */
+            memcpy(R + (i * 8), B + 8, 8);
+        }
     }
+
+
+    /* Verify integrity check value */
+    if (memcmp(A, AES_KW_DEFAULT_IV, 8) != 0) {
+        return T_COSE_ERR_DATA_AUTH_FAILED;
+    }
+
+    plaintext_result->len = ciphertext.len - 8;
     plaintext_result->ptr = plaintext_buffer.ptr;
-    plaintext_result->len = plaintext_len;
 
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    mbedtls_nist_kw_free(&kw_context);
-
-    return return_value;
-#endif /* NO_MBED_KW_API */
+    return T_COSE_SUCCESS;
 }
-#endif /* !T_COSE_DISABLE_KEYWRAP */
-
 
 
 
@@ -1043,8 +1070,14 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
      */
 
     switch (cose_algorithm_id) {
-        case T_COSE_ALGORITHM_A128GCM:
         case T_COSE_ALGORITHM_A128KW:
+            psa_algorithm = PSA_ALG_ECB_NO_PADDING;
+            psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
+            key_bitlen = 128;
+            break;
+
+        case T_COSE_ALGORITHM_A128GCM:
             psa_algorithm = PSA_ALG_GCM;
             psa_keytype = PSA_KEY_TYPE_AES;
             psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
@@ -1803,3 +1836,25 @@ t_cose_crypto_free_ec_key(struct t_cose_key key_handle)
 {
     psa_destroy_key((psa_key_id_t)key_handle.key.handle);
 }
+
+
+
+
+
+
+
+
+/**
+ * AES Key Unwrap (KW mode without padding) - RFC 3394
+ *
+ * @param kek_id        PSA key ID for the Key Encryption Key (KEK)
+ * @param ciphertext    Wrapped key input
+ * @param ciphertext_len Length of wrapped key (must be >= 24 and multiple of 8)
+ * @param plaintext     Output buffer for unwrapped key
+ * @param plaintext_size Size of output buffer (must be >= ciphertext_len - 8)
+ * @param plaintext_len Actual length of unwrapped output
+ *
+ * @return PSA_SUCCESS on success, PSA_ERROR_INVALID_SIGNATURE if integrity check fails
+ */
+
+

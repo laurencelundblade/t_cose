@@ -444,7 +444,6 @@ int32_t base_encrypt_decrypt_test(void)
 }
 
 
-#ifndef T_COSE_DISABLE_KEYWRAP
 
 int32_t decrypt_key_wrap(struct q_useful_buf_c cose_encrypt_buffer, bool enable_non_aead)
 {
@@ -525,7 +524,6 @@ int32_t decrypt_known_good_aeskw_non_aead_test(void)
     return 0;
 }
 
-#endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
 

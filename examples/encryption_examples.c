@@ -135,7 +135,6 @@ Done:
 
 
 
-#ifndef T_COSE_DISABLE_KEYWRAP
 #include "t_cose/t_cose_recipient_enc_keywrap.h"
 #include "t_cose/t_cose_recipient_dec_keywrap.h"
 
@@ -257,7 +256,6 @@ key_wrap_example(void)
     return (int32_t)err;
 }
 
-#endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
 

@@ -36,9 +36,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(old_two_step_sign_example),
 
     TEST_ENTRY(encrypt0_example),
-#ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(key_wrap_example),
-#endif /* !T_COSE_DISABLE_KEYWRAP */
 
     TEST_ENTRY(esdh_example),
     TEST_ENTRY(esdh_example_detached),
