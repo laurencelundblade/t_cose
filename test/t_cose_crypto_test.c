@@ -157,89 +157,173 @@ int32_t aead_test(void)
     return 0;
 }
 
+struct kw_test_case {
+    int32_t                cose_kw_algorithm_id;
+    int32_t                cose_key_algorithm_id;
+    struct q_useful_buf_c  kek;
+    struct q_useful_buf_c  to_be_wrapped;
+    struct q_useful_buf_c  expected_wrap;
+    enum t_cose_err_t      expected_wrap_result;
+    enum t_cose_err_t      expected_unwrap_result;
+};
+
+static const struct kw_test_case s_kw_test_cases[] = {
+    {
+        T_COSE_ALGORITHM_A128KW,
+        T_COSE_ALGORITHM_A128KW,
+        {"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 16},
+        {"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF", 16},
+        {"\x1F\xA6\x8B\x0A\x81\x12\xB4\x47\xAE\xF3\x4B\xD8\xFB\x5A\x7B\x82\x9D\x3E\x86\x23\x71\xD2\xCF\xE5", 24},
+        T_COSE_SUCCESS,
+        T_COSE_SUCCESS
+    },
+    {
+        T_COSE_ALGORITHM_A128GCM, // Bad algorithm for key wrap
+        T_COSE_ALGORITHM_A128KW,
+        {"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 16},
+        {"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF", 16},
+        {"\x1F\xA6\x8B\x0A\x81\x12\xB4\x47\xAE\xF3\x4B\xD8\xFB\x5A\x7B\x82\x9D\x3E\x86\x23\x71\xD2\xCF\xE5", 24},
+        T_COSE_ERR_UNSUPPORTED_CIPHER_ALG,
+        T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+    },
+
+    {
+        T_COSE_ALGORITHM_A192KW, // Bad key length
+        T_COSE_ALGORITHM_A128KW,
+        {"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 16},
+        {"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF", 16},
+        {"\x1F\xA6\x8B\x0A\x81\x12\xB4\x47\xAE\xF3\x4B\xD8\xFB\x5A\x7B\x82\x9D\x3E\x86\x23\x71\xD2\xCF\xE5", 24},
+        T_COSE_ERR_WRONG_TYPE_OF_KEY,
+        T_COSE_ERR_WRONG_TYPE_OF_KEY
+    },
+    {
+        T_COSE_ALGORITHM_A192KW,
+        T_COSE_ALGORITHM_A192KW,
+        {"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17", 24},
+        {"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF\x00\x01\x02\x03\x04\x05\x06\x07", 24},
+        {"\x03\x1D\x33\x26\x4E\x15\xD3\x32\x68\xF2\x4E\xC2\x60\x74\x3E\xDC\xE1\xC6\xC7\xDD\xEE\x72\x5A\x93\x6B\xA8\x14\x91\x5C\x67\x62\xD2", 32},
+        T_COSE_SUCCESS,
+        T_COSE_SUCCESS
+    },
+    {
+        T_COSE_ALGORITHM_A256KW,
+        T_COSE_ALGORITHM_A256KW,
+        {"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F", 32},
+        {"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 32},
+        {"\x28\xC9\xF4\x04\xC4\xB8\x10\xF4\xCB\xCC\xB3\x5C\xFB\x87\xF8\x26\x3F\x57\x86\xE2\xD8\x0E\xD3\x26\xCB\xC7\xF0\xE7\x1A\x99\xF4\x3B\xFB\x98\x8B\x9B\x7A\x02\xDD\x21" , 40},
+        T_COSE_SUCCESS,
+        T_COSE_SUCCESS
+    },
+    { // wrap: to-be-wrapped is less than 16 bytes, unwrap: ciphertext is too short
+        T_COSE_ALGORITHM_A128KW,
+        T_COSE_ALGORITHM_A128KW,
+        {"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 16},
+        {"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE", 15},
+        {"\x1F\xA6\x8B\x0A\x81\x12\xB4\x47\xAE\xF3\x4B\xD8\xFB\x5A\x7B\x82\x9D\x3E\x86\x23\x71\xD2\xCF", 23},
+        T_COSE_ERR_KW_FAILED,
+        T_COSE_ERR_KW_FAILED
+    },
+    { // wrap: to-be-wrapped is not multiple of 8, unwrap: ciphertext is too long
+        T_COSE_ALGORITHM_A128KW,
+        T_COSE_ALGORITHM_A128KW,
+        {"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 16},
+        {"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF\x00", 17},
+        {"\x1F\xA6\x8B\x0A\x81\x12\xB4\x47\xAE\xF3\x4B\xD8\xFB\x5A\x7B\x82\x9D\x3E\x86\x23\x71\xD2\xCF\xE5\xDD", 25},
+        T_COSE_ERR_KW_FAILED,
+        T_COSE_ERR_KW_FAILED
+    },
+
+    {
+        T_COSE_ALGORITHM_NONE
+    }
+
+};
 
 
 
 int32_t kw_test(void)
 {
-    struct t_cose_key kek;
-    /* These are test vectors from RFC 3394 */
-    const struct q_useful_buf_c kek_x = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(((const uint8_t []){0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-        0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F}));
-
-    const struct q_useful_buf_c key_data = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(((const uint8_t []){0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-        0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}));
-
-    const struct q_useful_buf_c expected_wrap = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(((const uint8_t []){0x1F, 0xA6, 0x8B, 0x0A, 0x81, 0x12, 0xB4, 0x47,  0xAE, 0xF3, 0x4B, 0xD8, 0xFB, 0x5A, 0x7B, 0x82,  0x9D, 0x3E, 0x86, 0x23, 0x71, 0xD2, 0xCF, 0xE5}));
-
-
-    enum t_cose_err_t e;
+    struct t_cose_key      kek;
+    enum t_cose_err_t      e;
+    struct q_useful_buf_c  ciphertext;
+    struct q_useful_buf_c  plaintext;
     Q_USEFUL_BUF_MAKE_STACK_UB (ciphertext_buffer, 9 * 8); /* sized for 256-bit key with authentication tag */
-    Q_USEFUL_BUF_MAKE_STACK_UB (plaintext_buffer, 8 * 8); /* sized for 256-bit key */
+    Q_USEFUL_BUF_MAKE_STACK_UB (plaintext_buffer, 8 * 8);  /* sized for 256-bit key */
 
-    struct q_useful_buf_c ciphertext;
-    struct q_useful_buf_c plaintext;
 
-    e = t_cose_private_tcrypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128KW,
-                                                kek_x,
-                                               &kek);
-    if(e != T_COSE_SUCCESS) {
-        return 1;
-    }
+    for(int i = 0; ; i++) {
+        const struct kw_test_case *tc = &s_kw_test_cases[i];
+        if(tc->cose_kw_algorithm_id == T_COSE_ALGORITHM_NONE) {
+            break;
+        }
 
-    // TODO: test more sizes and algorithms
+        if(i == 5) {
+            e = 0; // for break point
+        }
 
-    e = t_cose_private_tcrypto_kw_wrap(T_COSE_ALGORITHM_A128KW,
-                              kek,
-                              key_data,
-                              ciphertext_buffer,
-                             &ciphertext);
-    if(e != T_COSE_SUCCESS) {
-        return 1;
-    }
+        e = t_cose_private_tcrypto_make_symmetric_key_handle(tc->cose_key_algorithm_id,
+                                                             tc->kek,
+                                                             &kek);
+        if(e != T_COSE_SUCCESS) {
+            return 1;
+        }
 
-    /* TODO: proper define to know about test crypto */
+        e = t_cose_private_tcrypto_kw_wrap(tc->cose_kw_algorithm_id,
+                                           kek,
+                                           tc->to_be_wrapped,
+                                           ciphertext_buffer,
+                                           &ciphertext);
+        if(e != tc->expected_wrap_result) {
+            return 2;
+        }
+
+        if(e == T_COSE_SUCCESS) {
+
+            /* TODO: proper define to know about test crypto */
 #ifndef T_COSE_USE_B_CON_SHA256
-    if(q_useful_buf_compare(ciphertext, expected_wrap)) {
-        return 5;
-    }
+            if(q_useful_buf_compare(ciphertext, tc->expected_wrap)) {
+                return 3;
+            }
 #else
-    (void)expected_wrap;
-    /* It's not really necessary to test the test crypto, but it is
-     * helpful to validate it some. But the above is disabled as it
-     * doesn't produce real key wra results even though it can
-     * fake wrap and unwrap. */
+            (void)expected_wrap;
+            /* It's not really necessary to test the test crypto, but it is
+             * helpful to validate it some. But the above is disabled as it
+             * doesn't produce real key wra results even though it can
+             * fake wrap and unwrap. */
 #endif
+        }
 
-    e = t_cose_private_tcrypto_kw_unwrap(T_COSE_ALGORITHM_A128KW,
-                                kek,
-                                ciphertext,
-                                plaintext_buffer,
-                                &plaintext);
-    if(e != T_COSE_SUCCESS) {
-        return 9;
+        e = t_cose_private_tcrypto_kw_unwrap(tc->cose_kw_algorithm_id,
+                                             kek,
+                                             tc->expected_wrap,
+                                             plaintext_buffer,
+                                             &plaintext);
+        if(e != tc->expected_wrap_result) {
+            return 4;
+        }
+
+        if(e == T_COSE_SUCCESS) {
+            if(q_useful_buf_compare(tc->to_be_wrapped, plaintext)) {
+                return 5;
+            }
+
+            /* Now modify the cipher text so the integrity check will fail.  */
+            /* It's only a test case so cheating by casting away const is not too big of a crime. */
+            ((uint8_t *)(uintptr_t)ciphertext.ptr)[ciphertext.len-1] += 1;
+
+            e = t_cose_private_tcrypto_kw_unwrap(tc->cose_kw_algorithm_id,
+                                                 kek,
+                                                 ciphertext,
+                                                 plaintext_buffer,
+                                                 &plaintext);
+
+            if(e != T_COSE_ERR_DATA_AUTH_FAILED) {
+                return 6;
+            }
+        }
+
+        t_cose_key_free_symmetric(kek);
     }
-
-    if(q_useful_buf_compare(key_data, plaintext)) {
-        return 15;
-    }
-
-
-    /* Now modify the cipher text so the integrity check will fail.  */
-    /* It's only a test case so cheating a bit here by casting away const is not too big of a crime. */
-    ((uint8_t *)(uintptr_t)ciphertext.ptr)[ciphertext.len-1] += 1;
-
-    e = t_cose_private_tcrypto_kw_unwrap(T_COSE_ALGORITHM_A128KW,
-                                kek,
-                                ciphertext,
-                                plaintext_buffer,
-                                &plaintext);
-    if(e != T_COSE_ERR_DATA_AUTH_FAILED) {
-        return 27;
-    }
-
-    t_cose_key_free_symmetric(kek);
-
 
     return 0;
 }

@@ -184,7 +184,7 @@ cose_hmac_alg_to_ossl(int32_t cose_hmac_alg_id)
 
 
 /* OpenSSL archaically uses int for lengths in some APIs. t_cose
- * properly use size_t for lengths. While it is unlikely that this
+ * properly uses size_t for lengths. While it is unlikely that this
  * will ever be an issue because lengths are unlikely to be near
  * SIZE_MAX or INT_MAX, this code is written for full correctness and
  * to fully pass static analyzers. This requires checks before casting
@@ -2252,37 +2252,6 @@ Done3:
 
 
 
-static int
-bits_in_kw_key(int32_t cose_algorithm_id)
-{
-    switch(cose_algorithm_id) {
-        case T_COSE_ALGORITHM_A128KW: return 128;
-        case T_COSE_ALGORITHM_A192KW: return 192;
-        case T_COSE_ALGORITHM_A256KW: return 256;
-        default: return INT_MAX;
-    }
-}
-
-
-/* This computes the length of the output of a key wrap algorithm
- * based on the plaintext size. It is only dependent on the
- * plaintext size, not on the key size.
- */
-static size_t
-key_wrap_length(size_t plaintext_size)
-{
-    if(plaintext_size % 8) {
-        return 0;
-    }
-
-    if(plaintext_size > SIZE_MAX - 8) {
-        return 0;
-    }
-
-    return plaintext_size + 8;
-}
-
-
 /* The IV for all key wraps sizes in RFC 3394 */
 static const uint8_t rfc_3394_key_wrap_iv[] = {0xa6, 0xa6, 0xa6, 0xa6,
                                                0xa6, 0xa6, 0xa6, 0xa6};
@@ -2291,7 +2260,7 @@ static const uint8_t rfc_3394_key_wrap_iv[] = {0xa6, 0xa6, 0xa6, 0xa6,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_kw_wrap(int32_t                 algorithm_id,
+t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
                       struct t_cose_key       kek,
                       struct q_useful_buf_c   plaintext,
                       struct q_useful_buf     ciphertext_buffer,
@@ -2301,55 +2270,46 @@ t_cose_crypto_kw_wrap(int32_t                 algorithm_id,
     int      ossl_result;
     AES_KEY  kek_ossl;
     size_t   wrapped_size;
-    int      key_size_in_bits;
-    int      expected_kek_bits;
+    size_t   kek_len_in_bits;
     struct q_useful_buf_c   kek_bytes;
     Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
 
     /* Export the actual key bytes from t_cose_key (which might be a handle) */
-    err = t_cose_crypto_export_symmetric_key(kek,
-                                             kek_bytes_buf,
-                                            &kek_bytes);
+    err = t_cose_crypto_export_symmetric_key(kek, kek_bytes_buf, &kek_bytes);
+    if(err != T_COSE_SUCCESS) {
+        return err;
+    }
+    kek_len_in_bits = kek_bytes.len * 8; /* If this overflows, it won't cause a security problem ; TODO: really? */
+
+
+    err = t_cose_kw_kek_check(cose_algorithm_id, kek_len_in_bits);
     if(err != T_COSE_SUCCESS) {
         return err;
     }
 
-
-    /* Check the algorithm ID and get expected bits in KEK. */
-    expected_kek_bits = bits_in_kw_key(algorithm_id);
-    if(expected_kek_bits == INT_MAX) {
-        return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
-    }
-
-    /* Safely calculate bits in the KEK and check it */
-    if(kek_bytes.len > INT_MAX / 8) {
-        /* Cast to int isn't safe */
-        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
-    }
-    key_size_in_bits = (int)kek_bytes.len * 8;
-    if(key_size_in_bits != expected_kek_bits){
-        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
-    }
+    /* ((int)kek_len_in_bits is OK, because of kek_check() limits to know key wrap sizes */
 
     /* Set up the kek as an OpenSSL AES_KEY */
-    ossl_result = AES_set_encrypt_key(kek_bytes.ptr, key_size_in_bits, &kek_ossl);
+    ossl_result = AES_set_encrypt_key(kek_bytes.ptr, (int)kek_len_in_bits, &kek_ossl);
     if(ossl_result != 0) {
         /* An OpenSSL API unlike others for which 0 is success. */
         return T_COSE_ERR_KW_FAILED;
     }
 
-    /* Check for space in the output buffer */
-    wrapped_size = key_wrap_length(plaintext.len);
-    if(ciphertext_buffer.len <= wrapped_size) {
-        return T_COSE_ERR_TOO_SMALL;
-    }
+    err = t_cose_kw_wrap_len_check(plaintext.len, ciphertext_buffer.len, &wrapped_size);
+    if(err != T_COSE_SUCCESS) {
+        return err;
+    };
 
     /* Do the wrap */
     if(!is_size_t_to_uint_cast_ok(plaintext.len)){
         return T_COSE_ERR_KW_FAILED;
     }
-    // TODO: be sure OpenSSL won't run off the end of
-    // any buffers in this call by reading docs, testing and thinking...
+
+    /* AES_wrap_key() isn't passed the size of ciphertext_buffer. This
+     * code relies on it being a correct implementation that will never
+     * write more than wrapped_size bytes.
+     */
     ossl_result = AES_wrap_key(&kek_ossl,
                                rfc_3394_key_wrap_iv,
                                ciphertext_buffer.ptr,
@@ -2371,7 +2331,7 @@ t_cose_crypto_kw_wrap(int32_t                 algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
+t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
                         struct t_cose_key       kek,
                         struct q_useful_buf_c   ciphertext,
                         struct q_useful_buf     plaintext_buffer,
@@ -2381,48 +2341,37 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
     enum t_cose_err_t err;
     AES_KEY kek_ossl;
     size_t  expected_unwrapped_size;
-    int     kek_size_in_bits;
-    int      expected_kek_bits;
+    size_t      kek_len_in_bits;
     struct q_useful_buf_c   kek_bytes;
     Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
 
     /* Export the actual key bytes from t_cose_key (which might be a handle) */
-    err = t_cose_crypto_export_symmetric_key(kek,
-                                             kek_bytes_buf,
-                                            &kek_bytes);
+    err = t_cose_crypto_export_symmetric_key(kek, kek_bytes_buf, &kek_bytes);
+    if(err != T_COSE_SUCCESS) {
+        return err;
+    };
+    kek_len_in_bits = kek_bytes.len * 8; /* If this overflows, it won't cause a security problem ; TODO: really? */
+
+
+    err = t_cose_kw_kek_check(cose_algorithm_id, kek_len_in_bits);
     if(err != T_COSE_SUCCESS) {
         return err;
     };
 
 
-    /* Check the algorithm ID and get expected bits in KEK. */
-    expected_kek_bits = bits_in_kw_key(algorithm_id);
-    if(expected_kek_bits == INT_MAX) {
-        return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
-    }
-
-    /* Safely calculate bits in the KEK and check it */
-    if(kek_bytes.len > INT_MAX / 8) {
-        /* Cast to int isn't safe */
-        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
-    }
-    kek_size_in_bits = (int)kek_bytes.len * 8;
-    if(kek_size_in_bits != expected_kek_bits){
-        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
-    }
+    /* ((int)kek_len_in_bits is OK, because of kek_check() limits to know key wrap sizes */
 
     /* Set up the kek as an OpenSSL AES_KEY */
-    unwrapped_size = AES_set_decrypt_key(kek_bytes.ptr, kek_size_in_bits, &kek_ossl);
+    unwrapped_size = AES_set_decrypt_key(kek_bytes.ptr, (int)kek_len_in_bits, &kek_ossl);
     if(unwrapped_size != 0) {
         /* An OpenSSL API unlike others for which 0 is success. */
         return T_COSE_ERR_KW_FAILED;
     }
 
-    /* Check for space in the output buffer */
-    expected_unwrapped_size = ciphertext.len - 8;
-    if(plaintext_buffer.len < expected_unwrapped_size) {
-        return T_COSE_ERR_TOO_SMALL;
-    }
+    err = t_cose_kw_unwrap_len_check(ciphertext.len, plaintext_buffer.len, &expected_unwrapped_size);
+    if(err != T_COSE_SUCCESS) {
+        return err;
+    };
 
     /* Do the unwrap */
     if(!is_size_t_to_uint_cast_ok(ciphertext.len)) {

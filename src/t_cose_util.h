@@ -417,6 +417,98 @@ t_cose_int16_map(const int16_t map[][2], int16_t query);
 bool
 t_cose_alg_is_non_aead(int32_t cose_algorithm_id);
 
+
+static enum t_cose_err_t
+t_cose_kw_kek_check(const int32_t  cose_algorithm_id,
+                    const size_t    kek_len_in_bits);
+
+static enum t_cose_err_t
+t_cose_kw_wrap_len_check(const size_t  plaintext_len,
+                         const size_t  ciphertext_buffer_len,
+                         size_t       *wrapped_len);
+
+static enum t_cose_err_t
+t_cose_kw_unwrap_len_check(const size_t  ciphertext_len,
+                           const size_t  plantext_buffer_len,
+                           size_t       *unwrapped_len);
+
+
+
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ * ========================================================================= */
+
+#include "t_cose/t_cose_standard_constants.h"
+
+static inline enum t_cose_err_t
+t_cose_kw_kek_check(const int32_t  cose_algorithm_id,
+                    const size_t    kek_len_in_bits)
+{
+    size_t  expected_kek_len_in_bits;
+
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128KW: expected_kek_len_in_bits = 128; break;
+        case T_COSE_ALGORITHM_A192KW: expected_kek_len_in_bits = 192; break;
+        case T_COSE_ALGORITHM_A256KW: expected_kek_len_in_bits = 256; break;
+        default: return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+
+    if(expected_kek_len_in_bits != kek_len_in_bits) {
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+static inline enum t_cose_err_t
+t_cose_kw_wrap_len_check(const size_t  plaintext_len,
+                         const size_t  ciphertext_buffer_len,
+                         size_t       *wrapped_len)
+{
+    /* Plaintext size required by RFC 3394  */
+    if(plaintext_len < 16 || plaintext_len % 8 != 0) {
+        return T_COSE_ERR_KW_FAILED;
+    }
+
+    /* per the way the alg works, the wrapped size is always 8 bytes larger */
+    if(plaintext_len > SIZE_MAX - 8) {
+        return T_COSE_ERR_KW_FAILED;
+    }
+    *wrapped_len = plaintext_len + 8;
+
+    if(ciphertext_buffer_len <= *wrapped_len) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+static inline enum t_cose_err_t
+t_cose_kw_unwrap_len_check(const size_t  ciphertext_len,
+                           const size_t  plantext_buffer_len,
+                           size_t       *unwrapped_len)
+{
+    /* Cipher text length rules per RFC 3394 */
+    if(ciphertext_len < 24 || ciphertext_len % 8 != 0) {
+        return T_COSE_ERR_KW_FAILED;
+    }
+    *unwrapped_len = ciphertext_len - 8;
+
+    if(plantext_buffer_len < *unwrapped_len) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
+
+
 #ifdef __cplusplus
 }
 #endif
