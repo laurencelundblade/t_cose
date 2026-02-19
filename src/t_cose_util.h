@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.h
  *
- * Copyright 2019-2025, Laurence Lundblade
+ * Copyright 2019-2026, Laurence Lundblade
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -418,15 +418,55 @@ bool
 t_cose_alg_is_non_aead(int32_t cose_algorithm_id);
 
 
+/**
+ * \brief Check the key and alg ID for AES Key Wrap.
+ *
+ * \param[in] cose_algorithm_id     The COSE algorithm id.
+ *
+ * \returns t_cose_err
+ *
+ * This is used by both the PSA and OpenSSL key wrap crypto adaptors.
+ */
 static enum t_cose_err_t
 t_cose_kw_kek_check(const int32_t  cose_algorithm_id,
-                    const size_t    kek_len_in_bits);
+                    const size_t   kek_len_in_bits);
 
+
+/**
+ * \brief Check lengths for AES Key Wrap when wrapping.
+ *
+ * \param[in] plaintext_len          The length of the to-be-wrapped data.
+ * \param[in] ciphertext_buffer_len  Output buffer size.
+ * \param[out] wrapped_len           The size of the wrapped output.
+ *
+ * \returns t_cose_err
+ *
+ * AES key wrap has some size constraints, such as the input must
+ * be greater than 16 and a multiple of 8. This checks them.
+ *
+ * This is used by both the PSA and OpenSSL key wrap crypto adaptors
+ * because they need the help. Their key wrap APIs aren't that great.
+ */
 static enum t_cose_err_t
 t_cose_kw_wrap_len_check(const size_t  plaintext_len,
                          const size_t  ciphertext_buffer_len,
                          size_t       *wrapped_len);
 
+
+/**
+ * \brief Check lengths for AES Key Wrap when unwrapping.
+ *
+ * \param[in] ciphertext_len             Length of input.
+ * \param[in] plantext_buffer_len  Length of buffer to output to.
+ * \param[out] unwrapped_len             Length of the unwrapped output.
+ *
+ * \returns t_cose_err
+ *
+ * See t_cose_kw_wrap_len_check().
+ *
+ * This is used by both the PSA and OpenSSL key wrap adaptors
+ * because they need the help. Their key wrap APIs aren't that great.
+ */
 static enum t_cose_err_t
 t_cose_kw_unwrap_len_check(const size_t  ciphertext_len,
                            const size_t  plantext_buffer_len,

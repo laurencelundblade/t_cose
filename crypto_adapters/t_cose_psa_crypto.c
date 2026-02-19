@@ -1,7 +1,7 @@
 /*
  * t_cose_psa_crypto.c
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2026, Laurence Lundblade
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause

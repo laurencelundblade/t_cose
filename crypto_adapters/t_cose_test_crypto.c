@@ -676,15 +676,27 @@ static const uint8_t rfc_3394_key_wrap_iv[] = {0xa6, 0xa6, 0xa6, 0xa6, 0xa6, 0xa
 
 enum t_cose_err_t
 t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
-                      struct t_cose_key   kek,
+                      struct t_cose_key       kek,
                       struct q_useful_buf_c   plaintext,
                       struct q_useful_buf     ciphertext_buffer,
                       struct q_useful_buf_c  *ciphertext_result)
 {
-    UsefulOutBuf UOB;
+    UsefulOutBuf       UOB;
+    enum t_cose_err_t  err;
+    size_t             wrapped_len;
 
     (void)cose_algorithm_id;
     (void)kek;
+
+    err = t_cose_kw_kek_check(cose_algorithm_id, kek.key.buffer.len * 8);
+    if(err) {
+        return err;
+    }
+
+    err = t_cose_kw_wrap_len_check(plaintext.len, ciphertext_buffer.len, &wrapped_len);
+    if(err) {
+        return err;
+    }
 
     UsefulOutBuf_Init(&UOB, ciphertext_buffer);
     UsefulOutBuf_AppendUsefulBuf(&UOB, plaintext);
@@ -709,6 +721,18 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
     UsefulBufC                  tag;
     struct q_useful_buf_c       plain_text;
     const struct q_useful_buf_c expected_tag = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc_3394_key_wrap_iv);
+    enum t_cose_err_t err;
+    size_t unwrapped_len;
+
+    err = t_cose_kw_kek_check(cose_algorithm_id, kek.key.buffer.len * 8);
+    if(err) {
+        return err;
+    }
+
+    err = t_cose_kw_unwrap_len_check(ciphertext.len, plaintext_buffer.len, &unwrapped_len);
+    if(err) {
+        return err;
+    }
 
     (void)cose_algorithm_id;
     (void)kek;

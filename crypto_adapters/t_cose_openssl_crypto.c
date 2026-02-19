@@ -1,7 +1,7 @@
 /*
  *  t_cose_openssl_crypto.c
  *
- * Copyright 2019-2025, Laurence Lundblade
+ * Copyright 2019-2026, Laurence Lundblade
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -2259,12 +2259,20 @@ static const uint8_t rfc_3394_key_wrap_iv[] = {0xa6, 0xa6, 0xa6, 0xa6,
 /*
  * See documentation in t_cose_crypto.h
  */
+/* It is tempting to not use the OpenSSL key wrap API at all, instead
+ * using our own implementation like the PSA adaptor does. The
+ * problem is, OpenSSL's AES ECB interface is complex and inefficient.
+ * (PSA's is not).
+ * It requires setting up a context and uses malloc. It would need to called
+ * in loop resulting in lots of mallocs. So, sticking with the key wrap
+ * API...
+ */
 enum t_cose_err_t
-t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
-                      struct t_cose_key       kek,
-                      struct q_useful_buf_c   plaintext,
-                      struct q_useful_buf     ciphertext_buffer,
-                      struct q_useful_buf_c  *ciphertext_result)
+t_cose_crypto_kw_wrap(const int32_t                cose_algorithm_id,
+                      struct t_cose_key            kek,
+                      const struct q_useful_buf_c  plaintext,
+                      const struct q_useful_buf    ciphertext_buffer,
+                      struct q_useful_buf_c       *ciphertext_result)
 {
     enum t_cose_err_t  err;
     int      ossl_result;
@@ -2281,14 +2289,12 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
     }
     kek_len_in_bits = kek_bytes.len * 8; /* If this overflows, it won't cause a security problem ; TODO: really? */
 
-
     err = t_cose_kw_kek_check(cose_algorithm_id, kek_len_in_bits);
     if(err != T_COSE_SUCCESS) {
         return err;
     }
 
     /* ((int)kek_len_in_bits is OK, because of kek_check() limits to know key wrap sizes */
-
     /* Set up the kek as an OpenSSL AES_KEY */
     ossl_result = AES_set_encrypt_key(kek_bytes.ptr, (int)kek_len_in_bits, &kek_ossl);
     if(ossl_result != 0) {
@@ -2331,17 +2337,17 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
-                        struct t_cose_key       kek,
-                        struct q_useful_buf_c   ciphertext,
-                        struct q_useful_buf     plaintext_buffer,
-                        struct q_useful_buf_c  *plaintext_result)
+t_cose_crypto_kw_unwrap(const int32_t                cose_algorithm_id,
+                        struct t_cose_key            kek,
+                        const struct q_useful_buf_c  ciphertext,
+                        const struct q_useful_buf    plaintext_buffer,
+                        struct q_useful_buf_c       *plaintext_result)
 {
-    int     unwrapped_size;
+    int               unwrapped_size;
     enum t_cose_err_t err;
-    AES_KEY kek_ossl;
-    size_t  expected_unwrapped_size;
-    size_t      kek_len_in_bits;
+    AES_KEY           kek_ossl;
+    size_t            expected_unwrapped_size;
+    size_t            kek_len_in_bits;
     struct q_useful_buf_c   kek_bytes;
     Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
 
@@ -2351,7 +2357,6 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
         return err;
     };
     kek_len_in_bits = kek_bytes.len * 8; /* If this overflows, it won't cause a security problem ; TODO: really? */
-
 
     err = t_cose_kw_kek_check(cose_algorithm_id, kek_len_in_bits);
     if(err != T_COSE_SUCCESS) {

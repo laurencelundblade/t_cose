@@ -257,7 +257,7 @@ int32_t kw_test(void)
             break;
         }
 
-        if(i == 5) {
+        if(i == 1) {
             e = 0; // for break point
         }
 
@@ -285,17 +285,18 @@ int32_t kw_test(void)
                 return 3;
             }
 #else
-            (void)expected_wrap;
             /* It's not really necessary to test the test crypto, but it is
              * helpful to validate it some. But the above is disabled as it
              * doesn't produce real key wra results even though it can
              * fake wrap and unwrap. */
 #endif
+        } else {
+            ciphertext = UsefulBuf_Copy(ciphertext_buffer, tc->expected_wrap);
         }
 
         e = t_cose_private_tcrypto_kw_unwrap(tc->cose_kw_algorithm_id,
                                              kek,
-                                             tc->expected_wrap,
+                                             ciphertext,
                                              plaintext_buffer,
                                              &plaintext);
         if(e != tc->expected_wrap_result) {
