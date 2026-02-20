@@ -244,12 +244,11 @@ static const struct kw_test_case s_kw_test_cases[] = {
 int32_t kw_test(void)
 {
     struct t_cose_key      kek;
-    enum t_cose_err_t      e;
+    enum t_cose_err_t      err;
     struct q_useful_buf_c  ciphertext;
     struct q_useful_buf_c  plaintext;
     Q_USEFUL_BUF_MAKE_STACK_UB (ciphertext_buffer, 9 * 8); /* sized for 256-bit key with authentication tag */
     Q_USEFUL_BUF_MAKE_STACK_UB (plaintext_buffer, 8 * 8);  /* sized for 256-bit key */
-
 
     for(int i = 0; ; i++) {
         const struct kw_test_case *tc = &s_kw_test_cases[i];
@@ -258,27 +257,26 @@ int32_t kw_test(void)
         }
 
         if(i == 1) {
-            e = 0; // for break point
+            err = 0; // for break point
         }
 
-        e = t_cose_private_tcrypto_make_symmetric_key_handle(tc->cose_key_algorithm_id,
-                                                             tc->kek,
-                                                             &kek);
-        if(e != T_COSE_SUCCESS) {
+        err = t_cose_private_tcrypto_make_symmetric_key_handle(tc->cose_key_algorithm_id,
+                                                               tc->kek,
+                                                              &kek);
+        if(err != T_COSE_SUCCESS) {
             return 1;
         }
 
-        e = t_cose_private_tcrypto_kw_wrap(tc->cose_kw_algorithm_id,
-                                           kek,
-                                           tc->to_be_wrapped,
-                                           ciphertext_buffer,
-                                           &ciphertext);
-        if(e != tc->expected_wrap_result) {
+        err = t_cose_private_tcrypto_kw_wrap(tc->cose_kw_algorithm_id,
+                                             kek,
+                                             tc->to_be_wrapped,
+                                             ciphertext_buffer,
+                                             &ciphertext);
+        if(err != tc->expected_wrap_result) {
             return 2;
         }
 
-        if(e == T_COSE_SUCCESS) {
-
+        if(err == T_COSE_SUCCESS) {
             /* TODO: proper define to know about test crypto */
 #ifndef T_COSE_USE_B_CON_SHA256
             if(q_useful_buf_compare(ciphertext, tc->expected_wrap)) {
@@ -294,31 +292,31 @@ int32_t kw_test(void)
             ciphertext = UsefulBuf_Copy(ciphertext_buffer, tc->expected_wrap);
         }
 
-        e = t_cose_private_tcrypto_kw_unwrap(tc->cose_kw_algorithm_id,
-                                             kek,
-                                             ciphertext,
-                                             plaintext_buffer,
-                                             &plaintext);
-        if(e != tc->expected_wrap_result) {
+        err = t_cose_private_tcrypto_kw_unwrap(tc->cose_kw_algorithm_id,
+                                               kek,
+                                               ciphertext,
+                                               plaintext_buffer,
+                                              &plaintext);
+        if(err != tc->expected_wrap_result) {
             return 4;
         }
 
-        if(e == T_COSE_SUCCESS) {
+        if(err == T_COSE_SUCCESS) {
             if(q_useful_buf_compare(tc->to_be_wrapped, plaintext)) {
                 return 5;
             }
 
-            /* Now modify the cipher text so the integrity check will fail.  */
-            /* It's only a test case so cheating by casting away const is not too big of a crime. */
+            /* Now modify the cipher text so the integrity check will fail.
+             * It's only a test case so cheating by casting away const is not
+             * too big of a crime. */
             ((uint8_t *)(uintptr_t)ciphertext.ptr)[ciphertext.len-1] += 1;
 
-            e = t_cose_private_tcrypto_kw_unwrap(tc->cose_kw_algorithm_id,
-                                                 kek,
-                                                 ciphertext,
-                                                 plaintext_buffer,
-                                                 &plaintext);
-
-            if(e != T_COSE_ERR_DATA_AUTH_FAILED) {
+            err = t_cose_private_tcrypto_kw_unwrap(tc->cose_kw_algorithm_id,
+                                                   kek,
+                                                   ciphertext,
+                                                   plaintext_buffer,
+                                                  &plaintext);
+            if(err != T_COSE_ERR_DATA_AUTH_FAILED) {
                 return 6;
             }
         }
@@ -328,7 +326,6 @@ int32_t kw_test(void)
 
     return 0;
 }
-
 
 
 

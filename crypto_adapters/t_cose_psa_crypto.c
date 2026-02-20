@@ -750,16 +750,6 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 
 
 
-static unsigned int
-bits_in_kw_key(int32_t cose_algorithm_id)
-{
-    switch(cose_algorithm_id) {
-        case T_COSE_ALGORITHM_A128KW: return 128;
-        case T_COSE_ALGORITHM_A192KW: return 192;
-        case T_COSE_ALGORITHM_A256KW: return 256;
-        default: return UINT_MAX;
-    }
-}
 
 /* Default Initial Value for AES Key Wrap (RFC 3394) */
 static const uint8_t AES_KW_DEFAULT_IV[8] = {
@@ -767,46 +757,51 @@ static const uint8_t AES_KW_DEFAULT_IV[8] = {
 };
 
 
-
-/*
- * See documentation in t_cose_crypto.h
+/* The PSA API doesn't support key wrap, so we have our own
+ * implementation here. The MbedTLS API does support key wrap, but 1)
+ * our goal to depend only on PSA, 2) the MbedTLS API is not a very
+ * good, 3) our implementation seems to be smaller. Claude.ai wrote
+ * this implementation. TODO: review the pointer math it does.
  */
+
+/* See documentation in t_cose_crypto.h */
 enum t_cose_err_t
-t_cose_crypto_kw_wrap(
-    int32_t                 cose_algorithm_id,
-    struct t_cose_key       kek,
-    struct q_useful_buf_c   plaintext,
-    struct q_useful_buf     ciphertext_buffer,
-    struct q_useful_buf_c  *ciphertext_result)
+t_cose_crypto_kw_wrap(const int32_t                cose_algorithm_id,
+                      const struct t_cose_key      kek,
+                      const struct q_useful_buf_c  plaintext,
+                      const struct q_useful_buf    ciphertext_buffer,
+                      struct q_useful_buf_c       *ciphertext_result)
 {
-    psa_status_t status;
-    uint8_t A[8];  /* Integrity Check Register */
-    uint8_t B[16]; /* AES input/output block */
-    uint8_t *R;    /* Pointer to ciphertext register array */
-    size_t n;      /* Number of 64-bit blocks */
-    size_t i, j;
-    uint64_t t;
+    psa_status_t        status;
+    uint8_t             A[8];  /* Integrity Check Register */
+    uint8_t             B[16]; /* AES input/output block */
+    uint8_t             *R;    /* Pointer to ciphertext register array */
+    size_t               n;    /* Number of 64-bit blocks */
+    size_t               i, j;
+    uint64_t             t;
     size_t               kek_bits;
-    psa_key_attributes_t kek_attributes;
+    psa_key_attributes_t kek_attrbt;
     size_t               outlen;
     size_t               wrapped_size;
     enum t_cose_err_t    err;
 
-    psa_crypto_init();
+    psa_crypto_init(); // TODO: move this to a library init function
 
-    kek_attributes = psa_key_attributes_init();
-    status = psa_get_key_attributes((psa_key_id_t)kek.key.handle, &kek_attributes);
+    kek_attrbt = psa_key_attributes_init();
+    status = psa_get_key_attributes((psa_key_id_t)kek.key.handle, &kek_attrbt);
     if(status) {
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
-    kek_bits = psa_get_key_bits(&kek_attributes);
+    kek_bits = psa_get_key_bits(&kek_attrbt);
 
     err = t_cose_kw_kek_check(cose_algorithm_id, kek_bits);
     if(err) {
         return err;
     }
 
-    err = t_cose_kw_wrap_len_check(plaintext.len, ciphertext_buffer.len, &wrapped_size);
+    err = t_cose_kw_wrap_len_check(plaintext.len,
+                                   ciphertext_buffer.len,
+                                   &wrapped_size);
     if(err) {
         return err;
     }
@@ -826,11 +821,12 @@ t_cose_crypto_kw_wrap(
             memcpy(B + 8, R + (i * 8), 8);
 
             /* B = AES(K, B) */
-            status = psa_cipher_encrypt((psa_key_id_t)kek.key.handle,
-                                        PSA_ALG_ECB_NO_PADDING,
-                                        B, 16,
-                                        B, 16,
+            status = psa_cipher_encrypt((psa_key_id_t)kek.key.handle, /* key */
+                                        PSA_ALG_ECB_NO_PADDING,   /* padding */
+                                        B, 16,                      /* input */
+                                        B, 16,              /* output buffer */
                                         &outlen);
+            (void)outlen; /* output is always 16 bytes */
             if(status != PSA_SUCCESS) {
                 return T_COSE_ERR_KW_FAILED;
             }
@@ -858,47 +854,44 @@ t_cose_crypto_kw_wrap(
 }
 
 
-/*
- * See documentation in t_cose_crypto.h
- */
+/* See documentation in t_cose_crypto.h */
 enum t_cose_err_t
-t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
-                        struct t_cose_key       kek,
-                        struct q_useful_buf_c   ciphertext,
-                        struct q_useful_buf     plaintext_buffer,
-                        struct q_useful_buf_c  *plaintext_result)
+t_cose_crypto_kw_unwrap(const int32_t                cose_algorithm_id,
+                        const struct t_cose_key      kek,
+                        const struct q_useful_buf_c  ciphertext,
+                        const struct q_useful_buf    plaintext_buffer,
+                        struct q_useful_buf_c       *plaintext_result)
 {
-    psa_status_t status;
-    uint8_t A[8];  /* Integrity Check Register */
-    uint8_t B[16]; /* AES input/output block */
-    uint8_t *R;    /* Working register array */
-    size_t n;      /* Number of 64-bit blocks */
-    int i, j;
-    uint64_t t;
-    psa_key_id_t          kek_id;
-    psa_key_attributes_t  kek_attributes;
+    psa_status_t          status;
+    enum t_cose_err_t     err;
+    uint8_t              A[8];  /* Integrity Check Register */
+    uint8_t              B[16]; /* AES input/output block */
+    uint8_t              *R;    /* Working register array */
+    size_t                n;    /* Number of 64-bit blocks */
+    int                   i, j;
+    uint64_t              t;
+    psa_key_attributes_t  kek_attrbt;
     size_t                kek_bits;
     size_t                output_len;
     size_t                wrapped_len;
-    enum t_cose_err_t     err;
 
     psa_crypto_init();
 
-    kek_id = (psa_key_id_t)kek.key.handle;
-
-    kek_attributes = psa_key_attributes_init();
-    status = psa_get_key_attributes(kek_id, &kek_attributes );
+    kek_attrbt = psa_key_attributes_init();
+    status = psa_get_key_attributes((psa_key_id_t)kek.key.handle, &kek_attrbt);
     if (status) {
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
-    kek_bits = psa_get_key_bits(&kek_attributes);
+    kek_bits = psa_get_key_bits(&kek_attrbt);
 
     err = t_cose_kw_kek_check(cose_algorithm_id, kek_bits);
     if(err) {
         return err;
     }
 
-    err = t_cose_kw_unwrap_len_check(ciphertext.len, plaintext_buffer.len, &wrapped_len);
+    err = t_cose_kw_unwrap_len_check(ciphertext.len,
+                                     plaintext_buffer.len,
+                                     &wrapped_len);
     if(err) {
         return err;
     }
@@ -907,7 +900,9 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
 
     /* Initialize - copy ciphertext to working buffer */
     memcpy(A, ciphertext.ptr, 8);
-    memcpy(plaintext_buffer.ptr, (const uint8_t *)ciphertext.ptr + 8, ciphertext.len - 8);
+    memcpy(plaintext_buffer.ptr,
+           (const uint8_t *)ciphertext.ptr + 8,
+           ciphertext.len - 8);
     R = plaintext_buffer.ptr;
 
     /* Unwrapping process - RFC 3394 Section 2.2.2 */
@@ -926,14 +921,12 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
             memcpy(B + 8, R + (i * 8), 8);
 
             /* B = AES-1(K, B) - use decrypt */
-            status = psa_cipher_decrypt(
-                kek_id,
-                PSA_ALG_ECB_NO_PADDING,
-                B, 16,
-                B, 16,
-                &output_len
-            );
-
+            status = psa_cipher_decrypt((psa_key_id_t)kek.key.handle, /* key */
+                                        PSA_ALG_ECB_NO_PADDING,       /* alg */
+                                        B, 16,                      /* input */
+                                        B, 16,                     /* output */
+                                        &output_len);
+            (void)output_len; /* output is always 16 bytes */
             if (status != PSA_SUCCESS) {
                 /* Clear sensitive data on error */
                 return T_COSE_ERR_KW_FAILED;
@@ -947,7 +940,6 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
         }
     }
 
-
     /* Verify integrity check value */
     if (memcmp(A, AES_KW_DEFAULT_IV, 8) != 0) {
         return T_COSE_ERR_DATA_AUTH_FAILED;
@@ -958,6 +950,7 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
 
     return T_COSE_SUCCESS;
 }
+
 
 
 
