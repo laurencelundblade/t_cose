@@ -761,7 +761,7 @@ static const uint8_t AES_KW_DEFAULT_IV[8] = {
  * implementation here. The MbedTLS API does support key wrap, but 1)
  * our goal to depend only on PSA, 2) the MbedTLS API is not a very
  * good, 3) our implementation seems to be smaller. Claude.ai wrote
- * this implementation. TODO: review the pointer math it does.
+ * this implementation.
  */
 
 /* See documentation in t_cose_crypto.h */

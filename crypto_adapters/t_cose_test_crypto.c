@@ -722,7 +722,6 @@ t_cose_crypto_kw_unwrap(const int32_t                cose_algorithm_id,
     enum t_cose_err_t           err;
     size_t                      unwrapped_len;
     const struct q_useful_buf_c expected_tag = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc_3394_key_wrap_iv);
- 
     err = t_cose_kw_kek_check(cose_algorithm_id, kek.key.buffer.len * 8);
     if(err) {
         return err;
