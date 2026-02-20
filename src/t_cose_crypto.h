@@ -892,6 +892,15 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
  * Implementations of this must error out on incorrect algorithm IDs. They
  * can't just assume AES and go off the key size. This is so callers of this
  * can rely on this to check the algorithm ID and not have to check it.
+ *
+ * Implementations should check that the plaintext is at least 16 and
+ * a multiple of 8. There is no max.
+ *
+ * Implementatins should check that the kek size matches the
+ * size implied by \c cose_algorithm_id.
+ *
+ * The ciphertext_buffer size must always be 8 bytes larger than
+ * the plaintext.
  */
 enum t_cose_err_t
 t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,

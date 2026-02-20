@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.h
  *
- * Copyright 2019-2025, Laurence Lundblade
+ * Copyright 2019-2026, Laurence Lundblade
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -416,6 +416,138 @@ t_cose_int16_map(const int16_t map[][2], int16_t query);
  */
 bool
 t_cose_alg_is_non_aead(int32_t cose_algorithm_id);
+
+
+/**
+ * \brief Check the key and alg ID for AES Key Wrap.
+ *
+ * \param[in] cose_algorithm_id     The COSE algorithm id.
+ *
+ * \returns t_cose_err
+ *
+ * This is used by both the PSA and OpenSSL key wrap crypto adaptors.
+ */
+static enum t_cose_err_t
+t_cose_kw_kek_check(const int32_t  cose_algorithm_id,
+                    const size_t   kek_len_in_bits);
+
+
+/**
+ * \brief Check lengths for AES Key Wrap when wrapping.
+ *
+ * \param[in] plaintext_len          The length of the to-be-wrapped data.
+ * \param[in] ciphertext_buffer_len  Output buffer size.
+ * \param[out] wrapped_len           The size of the wrapped output.
+ *
+ * \returns t_cose_err
+ *
+ * AES key wrap has some size constraints, such as the input must
+ * be greater than 16 and a multiple of 8. This checks them.
+ *
+ * This is used by both the PSA and OpenSSL key wrap crypto adaptors
+ * because they need the help. Their key wrap APIs aren't that great.
+ */
+static enum t_cose_err_t
+t_cose_kw_wrap_len_check(const size_t  plaintext_len,
+                         const size_t  ciphertext_buffer_len,
+                         size_t       *wrapped_len);
+
+
+/**
+ * \brief Check lengths for AES Key Wrap when unwrapping.
+ *
+ * \param[in] ciphertext_len             Length of input.
+ * \param[in] plantext_buffer_len  Length of buffer to output to.
+ * \param[out] unwrapped_len             Length of the unwrapped output.
+ *
+ * \returns t_cose_err
+ *
+ * See t_cose_kw_wrap_len_check().
+ *
+ * This is used by both the PSA and OpenSSL key wrap adaptors
+ * because they need the help. Their key wrap APIs aren't that great.
+ */
+static enum t_cose_err_t
+t_cose_kw_unwrap_len_check(const size_t  ciphertext_len,
+                           const size_t  plantext_buffer_len,
+                           size_t       *unwrapped_len);
+
+
+
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ * ========================================================================= */
+
+#include "t_cose/t_cose_standard_constants.h"
+
+static inline enum t_cose_err_t
+t_cose_kw_kek_check(const int32_t  cose_algorithm_id,
+                    const size_t    kek_len_in_bits)
+{
+    size_t  expected_kek_len_in_bits;
+
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128KW: expected_kek_len_in_bits = 128; break;
+        case T_COSE_ALGORITHM_A192KW: expected_kek_len_in_bits = 192; break;
+        case T_COSE_ALGORITHM_A256KW: expected_kek_len_in_bits = 256; break;
+        default: return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+
+    if(expected_kek_len_in_bits != kek_len_in_bits) {
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+static inline enum t_cose_err_t
+t_cose_kw_wrap_len_check(const size_t  plaintext_len,
+                         const size_t  ciphertext_buffer_len,
+                         size_t       *wrapped_len)
+{
+    /* Plaintext size required by RFC 3394  */
+    if(plaintext_len < 16 || plaintext_len % 8 != 0) {
+        return T_COSE_ERR_KW_FAILED;
+    }
+
+    /* per the way the alg works, the wrapped size is always 8 bytes larger */
+    if(plaintext_len > SIZE_MAX - 8) {
+        return T_COSE_ERR_KW_FAILED;
+    }
+    *wrapped_len = plaintext_len + 8;
+
+    if(ciphertext_buffer_len <= *wrapped_len) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+static inline enum t_cose_err_t
+t_cose_kw_unwrap_len_check(const size_t  ciphertext_len,
+                           const size_t  plantext_buffer_len,
+                           size_t       *unwrapped_len)
+{
+    /* Cipher text length rules per RFC 3394 */
+    if(ciphertext_len < 24 || ciphertext_len % 8 != 0) {
+        return T_COSE_ERR_KW_FAILED;
+    }
+    *unwrapped_len = ciphertext_len - 8;
+
+    if(plantext_buffer_len < *unwrapped_len) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
+
 
 #ifdef __cplusplus
 }

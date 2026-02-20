@@ -30,7 +30,7 @@ void
 t_cose_private_tcrypto_hash_update(struct t_cose_private_tcrypto_hash *hash_ctx,
                                    const struct q_useful_buf_c      data_to_hash)
 {
-    return t_cose_crypto_hash_update((struct t_cose_crypto_hash *)hash_ctx, data_to_hash);
+    t_cose_crypto_hash_update((struct t_cose_crypto_hash *)hash_ctx, data_to_hash);
 }
 
 

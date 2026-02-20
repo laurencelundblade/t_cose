@@ -17,8 +17,6 @@
 #include "t_cose_crypto.h"
 
 
-#ifndef T_COSE_DISABLE_KEYWRAP
-
 
 enum t_cose_err_t
 t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
@@ -79,10 +77,3 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
 Done:
     return return_value;
 }
-
-#else /* T_COSE_DISABLE_KEYWRAP */
-
-/* Place holder for compiler tools that don't like files with no functions */
-void t_cose_recipient_enc_keywrap_placeholder(void) {}
-
-#endif /* T_COSE_DISABLE_KEYWRAP */
