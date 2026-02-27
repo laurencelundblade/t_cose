@@ -1577,7 +1577,7 @@ int32_t restart_test_2_step(void)
     expected_finish_error = T_COSE_SUCCESS;
 #else /* MBEDTLS_ECP_RESTARTABLE */
     uint8_t crypto_context; /* So the code below compiles. */
-    expected_finish_error = T_COSE_ERR_UNSUPPORTED;
+    expected_finish_error = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 #endif  /* MBEDTLS_ECP_RESTARTABLE */
 
 #else
