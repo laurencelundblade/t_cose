@@ -1569,12 +1569,10 @@ int32_t restart_test_2_step(void)
 
 #elif defined(T_COSE_USE_PSA_CRYPTO)
     /* --- PSA-specific set up --- */
+#ifdef MBEDTLS_ECP_RESTARTABLE
     psa_sign_hash_interruptible_operation_t crypto_context = {0};
-
     cose_algorithm_id = T_COSE_ALGORITHM_ES256;
     psa_interruptible_set_max_ops(0); // TODO: is this right?
-
-#ifdef MBEDTLS_ECP_RESTARTABLE
     expected_finish_error = T_COSE_SUCCESS;
 #else /* MBEDTLS_ECP_RESTARTABLE */
     expected_finish_error = T_COSE_ERR_UNSUPPORTED;
@@ -1582,6 +1580,7 @@ int32_t restart_test_2_step(void)
 
 #else
     /* --- All others, indicate no tests were run --- */
+    uint8_t crypto_context; /* So the code below compiles. */
     return INT32_MIN; /* Means no testing was performed */
 #endif
 
