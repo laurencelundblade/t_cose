@@ -16,11 +16,12 @@
 #include "t_cose/q_useful_buf.h"
 #include "init_keys.h"
 #include "t_cose_sign_verify_test.h"
+#include "t_cose/t_cose_private.h"
 
 #include "t_cose/t_cose_signature_verify_eddsa.h"
 #include "t_cose/t_cose_signature_verify_main.h"
 
-#include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
+//#include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
 /* These are complete known-good COSE messages for a verification
  * test. The key used to verify them is made by make_key_pair().
@@ -591,7 +592,7 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
-    result = t_cose_crypto_sig_size(cose_algorithm_id, key_pair, &sig_size);
+    result = t_cose_private_tcrypto_sig_size(cose_algorithm_id, key_pair, &sig_size);
     if(result) {
         return_value = 2000 + (int32_t)result;
         goto Done;
@@ -1575,6 +1576,7 @@ int32_t restart_test_2_step(void)
     psa_interruptible_set_max_ops(0); // TODO: is this right?
     expected_finish_error = T_COSE_SUCCESS;
 #else /* MBEDTLS_ECP_RESTARTABLE */
+    uint8_t crypto_context; /* So the code below compiles. */
     expected_finish_error = T_COSE_ERR_UNSUPPORTED;
 #endif  /* MBEDTLS_ECP_RESTARTABLE */
 

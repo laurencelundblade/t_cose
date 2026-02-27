@@ -304,12 +304,9 @@ if (BUILD_TESTS)
         test/t_cose_encrypt_decrypt_test.c
         test/data/test_messages.c
         test/t_cose_param_test.c
+        test/t_cose_sign_verify_test.c
         examples/example_keys.c
     )
-
-    if (NOT CRYPTO_PROVIDER STREQUAL "Test")
-        list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c)
-    endif()
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
         set(TEST_SRC_EXTRA examples/init_keys_psa.c)
