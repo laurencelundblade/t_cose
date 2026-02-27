@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_sign_restart.c
  *
- * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023,2026 Laurence Lundblade. All rights reserved.
  * Copyright (c) 2023, Arm Limited. All rights reserved.
  * Created by Laurence Lundblade on 5/23/22.
  *
@@ -133,6 +133,7 @@ t_cose_signature_sign_restart_cb(struct t_cose_signature_sign  *me_x,
 }
 
 
+/** Public function. See t_cose_signature_sign_restart.h */
 void
 t_cose_signature_sign_restart_init(struct t_cose_signature_sign_restart *me,
                                    const int32_t            cose_algorithm_id)

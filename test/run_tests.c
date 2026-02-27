@@ -86,13 +86,12 @@ static test_entry s_tests[] = {
 #ifndef T_COSE_DISABLE_COSE_SIGN
     TEST_ENTRY(verify_multi_test),
     TEST_ENTRY(decode_only_multi_test),
-    // TODO: reenable this after figuring out why it is failing
-    //TEST_ENTRY(restart_test_2_step),
 #endif /* T_COSE_DISABLE_SIGN1 */
 
     // TODO: should these really be conditional on T_COSE_DISABLE_SIGN_VERIFY_TESTS
 
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
+    TEST_ENTRY(restart_test_2_step),
 
     TEST_ENTRY(compute_validate_mac_basic_test),
     TEST_ENTRY(compute_validate_mac_fail_test),

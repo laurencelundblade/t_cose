@@ -1494,33 +1494,39 @@ int32_t decode_only_multi_test(void)
 
  */
 
-#if defined(T_COSE_USE_PSA_CRYPTO)
-/* Include the PSA crypto adapter header so that PSA_CRYPTO_HAS_RESTARTABLE_SIGNING
- * is defined for the next condition
+
+
+
+/* Restart has to be tested with test crypto because it's
+ * rare that a real crypto library supports it. MbedTLS
+ * has to be compiled specially. Restart is an officially
+ * supported feature, so it has to be a regular part of
+ * the test fan out.
+ *
+ * Previously, this test was reaching into the t_cose
+ * implementation for headers. This isn't good and
+ * causes trouble with cmake-based builds and CI.
+ * This was for the crypto context which is used
+ * by PSA restartable crypto and by test crypto
+ * to test restart.
+ *
+ * For test crypto the structure definition used
+ * by the adaptor is just replicated here.
+ *
+ * For PSA, the structure is defined in the PSA
+ * headers, so they are referenced here and
+ * in the PSA crypto adaptor.
  */
-#include "../crypto_adapters/t_cose_psa_crypto.h"
-#endif
 
-
-
-
-#if (defined(T_COSE_USE_PSA_CRYPTO) && PSA_CRYPTO_HAS_RESTARTABLE_SIGNING) || \
-     defined(T_COSE_USE_B_CON_SHA256)
 
 #if defined(T_COSE_USE_PSA_CRYPTO)
-    #define DECLARE_DEFAULT_ALGORITHM_ID(alg_id) \
-        int32_t alg_id = T_COSE_ALGORITHM_ES256
-    #define DECLARE_RESTARTABLE_CONTEXT(crypto_ctx) \
-        psa_interruptible_set_max_ops(0); \
-        struct t_cose_psa_crypto_context crypto_ctx = {0}
-#else
-    /* Assume test crypto adapter */
-    #include "../crypto_adapters/t_cose_test_crypto.h"
-    #define DECLARE_DEFAULT_ALGORITHM_ID(alg_id) \
-        int32_t alg_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256
-    #define DECLARE_RESTARTABLE_CONTEXT(crypto_ctx) \
-        struct t_cose_test_crypto_context crypto_ctx = {0}
+/* PSA-specific headers has to be included structure passed
+ * as the crypto context. This PSA-specific thing is not
+ * part of the t_cose public API.
+ */
+#include <psa/crypto.h> /* For psa_sign_hash_interruptible_operation_s */
 #endif
+
 
 int32_t restart_test_2_step(void)
 {
@@ -1528,6 +1534,7 @@ int32_t restart_test_2_step(void)
     QCBORError                      qcbor_result;
     struct t_cose_sign_sign_ctx     sign_ctx;
     enum t_cose_err_t               result;
+    enum t_cose_err_t               expected_finish_error;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -1535,10 +1542,48 @@ int32_t restart_test_2_step(void)
         Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE PAYLOAD");
     int                             counter;
     struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
     struct t_cose_signature_sign_restart signer;
 
-    DECLARE_RESTARTABLE_CONTEXT(crypto_context);
-    DECLARE_DEFAULT_ALGORITHM_ID(cose_algorithm_id);
+    /* TODO: add a length to the crypto context for safety */
+
+#if defined(T_COSE_USE_B_CON_SHA256)
+    /* --- Test crypto-specific set up --- */
+
+    /* This definition is replicated from xxxx. */
+    struct t_cose_test_crypto_context {
+        /* This is used to test the crypto_context feature. If its
+         * value is SUCCESS, then operation is as normal. If it's
+         * value is something else, then that error is returned.
+         */
+        enum t_cose_err_t test_error;
+        /* This is used to test the restartable behaviour of t_cose. If its value
+         * is greater than 1 when operating in restartable mode, then
+         * T_COSE_ERR_SIG_IN_PROGRESS is returned instead of T_COSE_SUCCESS.
+         */
+        size_t sign_iterations_left;
+    } crypto_context = {0};
+
+    cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    expected_finish_error = T_COSE_SUCCESS;
+
+#elif defined(T_COSE_USE_PSA_CRYPTO)
+    /* --- PSA-specific set up --- */
+    psa_sign_hash_interruptible_operation_t crypto_context = {0};
+
+    cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    psa_interruptible_set_max_ops(0); // TODO: is this right?
+
+#ifdef MBEDTLS_ECP_RESTARTABLE
+    expected_finish_error = T_COSE_SUCCESS;
+#else /* MBEDTLS_ECP_RESTARTABLE */
+    expected_finish_error = T_COSE_ERR_UNSUPPORTED;
+#endif  /* MBEDTLS_ECP_RESTARTABLE */
+
+#else
+    /* --- All others, indicate no tests were run --- */
+    return INT32_MIN; /* Means no testing was performed */
+#endif
 
     init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
@@ -1565,7 +1610,13 @@ int32_t restart_test_2_step(void)
                                            payload,
                                            &cbor_encode);
         if(result != T_COSE_ERR_SIG_IN_PROGRESS) {
-            return 2000 + (int32_t)result;
+            if(result != expected_finish_error) {
+                return 2000 + (int32_t)result;
+            } else {
+                if(result != T_COSE_SUCCESS) {
+                    return 0; /* Error was expected */
+                }
+            }
         }
     }
 
@@ -1600,8 +1651,12 @@ int32_t restart_test_2_step(void)
         counter++;
     } while(result == T_COSE_ERR_SIG_IN_PROGRESS);
 
-    if(result) {
-        return 4000 + (int32_t)result;
+    if(result != T_COSE_SUCCESS) {
+        if(result != expected_finish_error) {
+            return 4000 + (int32_t)result;
+        } else {
+            return 0; /* Error was expected */
+        }
     }
     if(counter <= 1) {
         return 5000;
@@ -1631,12 +1686,7 @@ int32_t restart_test_2_step(void)
         return 7000 + (int32_t)result;
     }
 
+    return 0;
+}
 
-    return 0;
-}
-#else
-int32_t restart_test_2_step(void)
-{
-    return 0;
-}
-#endif
+
