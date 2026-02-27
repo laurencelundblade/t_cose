@@ -1529,6 +1529,8 @@ int32_t decode_only_multi_test(void)
 #endif
 
 
+#include <stdio.h>
+
 int32_t restart_test_2_step(void)
 {
     QCBOREncodeContext              cbor_encode;
@@ -1566,7 +1568,12 @@ int32_t restart_test_2_step(void)
     } crypto_context = {0};
 
     cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     expected_finish_error = T_COSE_SUCCESS;
+#else
+    expected_finish_error = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+#endif
+
 
 #elif defined(T_COSE_USE_PSA_CRYPTO)
     /* --- PSA-specific set up --- */
@@ -1585,6 +1592,8 @@ int32_t restart_test_2_step(void)
     uint8_t crypto_context; /* So the code below compiles. */
     return INT32_MIN; /* Means no testing was performed */
 #endif
+
+    printf("starting\n");
 
     init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
@@ -1621,6 +1630,9 @@ int32_t restart_test_2_step(void)
         }
     }
 
+    printf("Finished first loop of three\n");
+
+
     /*
      * Abandon the previous calculation, and call init on all the contexts to
      * see that everything is initialised properly.
@@ -1642,6 +1654,8 @@ int32_t restart_test_2_step(void)
     }
 
     QCBOREncode_AddBytes(&cbor_encode, payload);
+
+    printf("Starting loop until finished\n");
 
     counter = 0;
     do {
