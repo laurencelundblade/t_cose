@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign_verify_test.c
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2026, Laurence Lundblade
  * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -20,8 +20,6 @@
 
 #include "t_cose/t_cose_signature_verify_eddsa.h"
 #include "t_cose/t_cose_signature_verify_main.h"
-
-//#include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
 /* These are complete known-good COSE messages for a verification
  * test. The key used to verify them is made by make_key_pair().
