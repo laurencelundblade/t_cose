@@ -857,6 +857,14 @@ t_cose_crypto_sign_restart(bool                         started,
                            const struct q_useful_buf    signature_buffer,
                            struct q_useful_buf_c       *signature)
 {
+    (void)started;
+    (void)cose_algorithm_id;
+    (void)signing_key;
+    (void)crypto_context;
+    (void)hash_to_sign;
+    (void)signature_buffer;
+    (void)signature;
+
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 

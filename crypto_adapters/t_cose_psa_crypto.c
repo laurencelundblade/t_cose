@@ -269,7 +269,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_sign_restart(bool                         started,
+t_cose_crypto_sign_restart(const bool                   started,
                            const int32_t                cose_algorithm_id,
                            const struct t_cose_key      signing_key,
                            void                        *crypto_context,
@@ -329,6 +329,14 @@ t_cose_crypto_sign_restart(bool                         started,
 Done:
      return return_value;
 #else
+    (void)started;
+    (void)cose_algorithm_id;
+    (void)signing_key;
+    (void)crypto_context;
+    (void)hash_to_sign;
+    (void)signature_buffer;
+    (void)signature;
+
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 #endif /* MBEDTLS_ECP_RESTARTABLE */
 }

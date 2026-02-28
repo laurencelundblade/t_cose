@@ -233,7 +233,6 @@
 		E7088A022A38604A00F1B2DE /* example_keys.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = example_keys.c; sourceTree = "<group>"; };
 		E7088A0B2A50B75800F1B2DE /* t_cose_recipient_dec_esdh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_recipient_dec_esdh.h; path = t_cose/t_cose_recipient_dec_esdh.h; sourceTree = "<group>"; };
 		E7088A0C2A50B75800F1B2DE /* t_cose_recipient_enc_esdh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_recipient_enc_esdh.h; path = t_cose/t_cose_recipient_enc_esdh.h; sourceTree = "<group>"; };
-		E7088A0D2A50B75900F1B2DE /* t_cose_signature_sign_restart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_signature_sign_restart.h; path = t_cose/t_cose_signature_sign_restart.h; sourceTree = "<group>"; };
 		E7088A0E2A50B78100F1B2DE /* t_cose_signature_sign_restart.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_signature_sign_restart.c; sourceTree = "<group>"; };
 		E7088A0F2A50B78100F1B2DE /* t_cose_recipient_dec_esdh.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_recipient_dec_esdh.c; sourceTree = "<group>"; };
 		E7088A102A50B78100F1B2DE /* t_cose_recipient_enc_esdh.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_recipient_enc_esdh.c; sourceTree = "<group>"; };
@@ -626,10 +625,10 @@
 			isa = PBXGroup;
 			children = (
 				E7F17325293B09E400E5ADF3 /* t_cose_signature_sign_main.c */,
+				E7088A0E2A50B78100F1B2DE /* t_cose_signature_sign_restart.c */,
 				E7F17326293B09E400E5ADF3 /* t_cose_signature_verify_main.c */,
 				E7F173012923E09100E5ADF3 /* t_cose_signature_sign_eddsa.c */,
 				E7F173072928557A00E5ADF3 /* t_cose_signature_verify_eddsa.c */,
-				E7088A0E2A50B78100F1B2DE /* t_cose_signature_sign_restart.c */,
 			);
 			name = COSE_SIgnature;
 			sourceTree = "<group>";
@@ -711,7 +710,6 @@
 			children = (
 				E7088A0C2A50B75800F1B2DE /* t_cose_recipient_enc_esdh.h */,
 				E7088A0B2A50B75800F1B2DE /* t_cose_recipient_dec_esdh.h */,
-				E7088A0D2A50B75900F1B2DE /* t_cose_signature_sign_restart.h */,
 				E7AE8859299BCD6E0093B326 /* t_cose_recipient_enc.h */,
 				E7AE885B299BCD6E0093B326 /* t_cose_recipient_enc_keywrap.h */,
 				E7AE8856299BCD6D0093B326 /* t_cose_recipient_dec.h */,

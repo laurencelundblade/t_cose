@@ -1497,42 +1497,32 @@ int32_t decode_only_multi_test(void)
 
 
 
+#if defined(T_COSE_USE_B_CON_SHA256) || defined(T_COSE_USE_PSA_CRYPTO)
 
-/* Restart has to be tested with test crypto because it's
- * rare that a real crypto library supports it. MbedTLS
- * has to be compiled specially. Restart is an officially
- * supported feature, so it has to be a regular part of
- * the test fan out.
+/* Restart has to be tested with test crypto because it's rare that a
+ * real crypto library supports it. MbedTLS has to be compiled
+ * specially. Restart is an officially supported feature, so it has to
+ * be a regular part of the test fan out.
  *
- * Previously, this test was reaching into the t_cose
- * implementation for headers. This isn't good and
- * causes trouble with cmake-based builds and CI.
- * This was for the crypto context which is used
- * by PSA restartable crypto and by test crypto
- * to test restart.
+ * Previously, this test was reaching into the t_cose implementation
+ * for headers. This isn't good and causes trouble with cmake-based
+ * builds and CI.  This was for the crypto context which is used by
+ * PSA restartable crypto and by test crypto to test restart.
  *
- * For test crypto the structure definition used
- * by the adaptor is just replicated here.
+ * For test crypto the structure definition used by the adaptor is
+ * just replicated here.
  *
- * For PSA, the structure is defined in the PSA
- * headers, so they are referenced here and
- * in the PSA crypto adaptor.
+ * For PSA, the structure is defined in the PSA headers, so they are
+ * referenced here and in the PSA crypto adaptor.
  */
 
 
-
-#if defined(T_COSE_USE_PSA_CRYPTO)
+#ifdef T_COSE_USE_PSA_CRYPTO
 /* PSA-specific headers has to be included structure passed
  * as the crypto context. This PSA-specific thing is not
- * part of the t_cose public API.
- */
+ * part of the t_cose public API. */
 #include <psa/crypto.h> /* For psa_sign_hash_interruptible_operation_s */
-#endif
-
-
-#include <stdio.h>
-
-
+#endif /* T_COSE_USE_PSA_CRYPTO */
 
 
 static int32_t
@@ -1552,8 +1542,6 @@ run_restart_test(const int32_t           cose_algorithm_id,
     int                             counter;
     struct t_cose_key               key_pair;
     struct t_cose_signature_sign_restart signer;
-
-    printf("starting\n");
 
     init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
@@ -1590,9 +1578,6 @@ run_restart_test(const int32_t           cose_algorithm_id,
         }
     }
 
-    printf("Finished first loop of three\n");
-
-
     /*
      * Abandon the previous calculation, and call init on all the contexts to
      * see that everything is initialised properly.
@@ -1614,8 +1599,6 @@ run_restart_test(const int32_t           cose_algorithm_id,
     }
 
     QCBOREncode_AddBytes(&cbor_encode, payload);
-
-    printf("Starting loop until finished\n");
 
     counter = 0;
     do {
@@ -1663,7 +1646,7 @@ run_restart_test(const int32_t           cose_algorithm_id,
 
     return 0;
 }
-
+#endif /* defined(T_COSE_USE_B_CON_SHA256) || defined(T_COSE_USE_PSA) */
 
 int32_t restart_test_2_step(void)
 {
