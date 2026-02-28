@@ -329,7 +329,7 @@ t_cose_crypto_sign_restart(bool                         started,
 Done:
      return return_value;
 #else
-    return T_COSE_ERR_UNSUPPORTED;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 #endif /* MBEDTLS_ECP_RESTARTABLE */
 }
 
