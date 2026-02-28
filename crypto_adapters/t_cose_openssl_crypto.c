@@ -848,6 +848,19 @@ Done2:
 }
 
 
+enum t_cose_err_t
+t_cose_crypto_sign_restart(bool                         started,
+                           const int32_t                cose_algorithm_id,
+                           const struct t_cose_key      signing_key,
+                           void                        *crypto_context,
+                           const struct q_useful_buf_c  hash_to_sign,
+                           const struct q_useful_buf    signature_buffer,
+                           struct q_useful_buf_c       *signature)
+{
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+
 /*
  * See documentation in t_cose_crypto.h
  */
