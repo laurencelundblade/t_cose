@@ -1520,6 +1520,7 @@ int32_t decode_only_multi_test(void)
  */
 
 
+
 #if defined(T_COSE_USE_PSA_CRYPTO)
 /* PSA-specific headers has to be included structure passed
  * as the crypto context. This PSA-specific thing is not
@@ -1531,13 +1532,18 @@ int32_t decode_only_multi_test(void)
 
 #include <stdio.h>
 
-int32_t restart_test_2_step(void)
+
+
+
+static int32_t
+run_restart_test(const int32_t           cose_algorithm_id,
+                 void                   *crypto_context,
+                 const enum t_cose_err_t expected_finish_error)
 {
     QCBOREncodeContext              cbor_encode;
     QCBORError                      qcbor_result;
     struct t_cose_sign_sign_ctx     sign_ctx;
     enum t_cose_err_t               result;
-    enum t_cose_err_t               expected_finish_error;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -1545,53 +1551,7 @@ int32_t restart_test_2_step(void)
         Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE PAYLOAD");
     int                             counter;
     struct t_cose_key               key_pair;
-    int32_t                         cose_algorithm_id;
     struct t_cose_signature_sign_restart signer;
-
-    /* TODO: add a length to the crypto context for safety */
-
-#if defined(T_COSE_USE_B_CON_SHA256)
-    /* --- Test crypto-specific set up --- */
-
-    /* This definition is replicated from xxxx. */
-    struct t_cose_test_crypto_context {
-        /* This is used to test the crypto_context feature. If its
-         * value is SUCCESS, then operation is as normal. If it's
-         * value is something else, then that error is returned.
-         */
-        enum t_cose_err_t test_error;
-        /* This is used to test the restartable behaviour of t_cose. If its value
-         * is greater than 1 when operating in restartable mode, then
-         * T_COSE_ERR_SIG_IN_PROGRESS is returned instead of T_COSE_SUCCESS.
-         */
-        size_t sign_iterations_left;
-    } crypto_context = {0};
-
-    cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    expected_finish_error = T_COSE_SUCCESS;
-#else
-    expected_finish_error = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-#endif
-
-
-#elif defined(T_COSE_USE_PSA_CRYPTO)
-    /* --- PSA-specific set up --- */
-#ifdef MBEDTLS_ECP_RESTARTABLE
-    psa_sign_hash_interruptible_operation_t crypto_context = {0};
-    cose_algorithm_id = T_COSE_ALGORITHM_ES256;
-    psa_interruptible_set_max_ops(0); // TODO: is this right?
-    expected_finish_error = T_COSE_SUCCESS;
-#else /* MBEDTLS_ECP_RESTARTABLE */
-    uint8_t crypto_context; /* So the code below compiles. */
-    expected_finish_error = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-#endif  /* MBEDTLS_ECP_RESTARTABLE */
-
-#else
-    /* --- All others, indicate no tests were run --- */
-    uint8_t crypto_context; /* So the code below compiles. */
-    return INT32_MIN; /* Means no testing was performed */
-#endif
 
     printf("starting\n");
 
@@ -1599,7 +1559,7 @@ int32_t restart_test_2_step(void)
 
     t_cose_signature_sign_restart_init(&signer, cose_algorithm_id);
     t_cose_signature_sign_restart_set_crypto_context(&signer,
-                                                     &crypto_context);
+                                                     crypto_context);
     t_cose_signature_sign_restart_set_signing_key(&signer, key_pair);
 
     t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
@@ -1640,7 +1600,7 @@ int32_t restart_test_2_step(void)
 
     t_cose_signature_sign_restart_init(&signer, cose_algorithm_id);
     t_cose_signature_sign_restart_set_crypto_context(&signer,
-                                                     &crypto_context);
+                                                     crypto_context);
     t_cose_signature_sign_restart_set_signing_key(&signer, key_pair);
 
     t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
@@ -1703,5 +1663,66 @@ int32_t restart_test_2_step(void)
 
     return 0;
 }
+
+
+int32_t restart_test_2_step(void)
+{
+    enum t_cose_err_t               expected_finish_error;
+
+    /* TODO: add a length to the crypto context for safety */
+
+#if defined(T_COSE_USE_B_CON_SHA256)
+    /* --- Test crypto-specific set up --- */
+
+    /* This definition is replicated from xxxx. */
+    struct t_cose_test_crypto_context {
+        /* This is used to test the crypto_context feature. If its
+         * value is SUCCESS, then operation is as normal. If it's
+         * value is something else, then that error is returned.
+         */
+        enum t_cose_err_t test_error;
+        /* This is used to test the restartable behaviour of t_cose. If its value
+         * is greater than 1 when operating in restartable mode, then
+         * T_COSE_ERR_SIG_IN_PROGRESS is returned instead of T_COSE_SUCCESS.
+         */
+        size_t sign_iterations_left;
+    } crypto_context = {0};
+
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    expected_finish_error = T_COSE_SUCCESS;
+#else
+    expected_finish_error = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+#endif
+
+    return run_restart_test(T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
+                            &crypto_context,
+                            expected_finish_error);
+
+
+#elif defined(T_COSE_USE_PSA_CRYPTO)
+    /* --- PSA-specific set up --- */
+
+#ifdef MBEDTLS_ECP_RESTARTABLE
+    psa_sign_hash_interruptible_operation_t crypto_context = {0};
+    psa_interruptible_set_max_ops(0);
+    expected_finish_error = T_COSE_SUCCESS;
+#else /* MBEDTLS_ECP_RESTARTABLE */
+    uint8_t crypto_context;
+    expected_finish_error = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+#endif  /* MBEDTLS_ECP_RESTARTABLE */
+
+    return run_restart_test(T_COSE_ALGORITHM_ES256,
+                            &crypto_context,
+                            expected_finish_error);
+
+#else
+    /* --- All others, indicate no tests were run --- */
+
+    (void)expected_finish_error;
+    return INT32_MIN; /* Means no testing was performed */
+#endif
+}
+
+
 
 
