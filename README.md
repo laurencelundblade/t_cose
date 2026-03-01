@@ -202,6 +202,27 @@ MbedTLS, an implementation of the PSA crypto API.
 Confidence in the adaptor code is high and reasonably well tested
 because it is simple.
 
+#### Restartable ECDSA
+
+MbedTLS and PSA unofficially support restartable public key crypto for
+ECDSA signing. t_cose supports it with t_cose_signature_sign_restart.
+
+MbedTLS must be compiled specially to enable restart. Define
+MBEDTLS_ECP_RESTARTABLE in configuration file
+mbedtls_user_config.h. Then compile t_cose with the PSA crypto adaptor
+against the MbedTLS library.  t_cose will notice the definition of
+MBEDTLS_ECP_RESTARTABLE and enable restart. Otherwise attempts to use
+restart will return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG.
+
+Note that using cmake -DMBEDTLS_ECP_RESTARTABLE will not work because
+it won't result in MbedTLS having a #define for
+MBEDTLS_ECP_RESTARTABLE and t_cose won't enable it.
+
+A psa_sign_hash_interruptible_operation_t must be created and passed
+to t_cose_signature_sign_restart_set_crypto_context() for restart to
+work.
+
+
 #### Test Crypto
 
 While not useful for anything real, a stub "Test" crypto

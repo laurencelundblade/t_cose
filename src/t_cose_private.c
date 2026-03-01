@@ -200,3 +200,12 @@ t_cose_private_tcrypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
                                            y_bool,
                                            key_handle);
 }
+
+
+enum t_cose_err_t
+t_cose_private_tcrypto_sig_size(int32_t           cose_algorithm_id,
+                                struct t_cose_key signing_key,
+                                size_t           *sig_size)
+{
+    return t_cose_crypto_sig_size(cose_algorithm_id, signing_key, sig_size);
+}

@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_sign_restart.h
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022, 2026, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2023, Arm Limited. All rights reserved.
  * Created by Laurence Lundblade on 5/23/22.
  *
@@ -25,6 +25,24 @@
 extern "C" {
 #endif
 
+/*
+ * This signer is restartable -- the long-running public key
+ * crypto runs in increments rather than to completion all at once.
+ * This is needed in environments with slower CPUs and/or that
+ * run in an interrupt handler or other non-interruptable contexts.
+ *
+ * For this to function, it must be used with a crypto provider
+ * that supports restartable crypto. So far, that is only
+ * recent version of MbedTLS that have been compiled with
+ * MBEDTLS_ECP_RESTARTABLE defined. Attempts to use this
+ * with crypto providers that don't support restart
+ * result in an UNSUPPORTED error.
+ *
+ * This generally is the same as @ref t_cose_signature_sign_main, though
+ * it may support fewer algorithms. For example, MbedTLS only supports
+ * restart for ECDSA.
+ */
+
 
 struct t_cose_signature_sign_restart {
     /* Private data structure */
@@ -42,7 +60,7 @@ struct t_cose_signature_sign_restart {
     struct t_cose_parameter      local_params[2];
     struct t_cose_parameter     *added_signer_params;
 
-    /*Context for restartable signing. */
+    /* Context for restartable signing. */
     bool                  started;
     struct q_useful_buf_c tbs_hash;
     uint8_t               c_buffer_for_tbs_hash[T_COSE_MAIN_MAX_HASH_SIZE];
