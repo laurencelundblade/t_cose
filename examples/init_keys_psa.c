@@ -41,16 +41,19 @@ init_signing_key_from_xx(int32_t               cose_algorithm_id,
 
     switch(cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
+    case T_COSE_ALGORITHM_ESP256:
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_256);
         break;
 
     case T_COSE_ALGORITHM_ES384:
+    case T_COSE_ALGORITHM_ESP384:
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_384);
         break;
 
     case T_COSE_ALGORITHM_ES512:
+    case T_COSE_ALGORITHM_ESP512:
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_512);
         break;
@@ -146,14 +149,17 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
 
     switch(cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
+    case T_COSE_ALGORITHM_ESP256:
         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_sec1);
         break;
 
     case T_COSE_ALGORITHM_ES384:
+    case T_COSE_ALGORITHM_ESP384:
         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_sec1);
         break;
 
     case T_COSE_ALGORITHM_ES512:
+    case T_COSE_ALGORITHM_ESP512:
         key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_sec1);
         break;
 
