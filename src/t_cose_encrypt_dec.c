@@ -21,6 +21,43 @@
 #include "hpke.h"
 #include "psa/crypto.h"
 
+static enum t_cose_err_t
+hpke_integrated_mode_from_message_psk(struct q_useful_buf_c message_psk_id,
+                                      struct q_useful_buf_c configured_psk,
+                                      struct q_useful_buf_c configured_psk_id,
+                                      unsigned int         *mode,
+                                      const uint8_t       **pskid_ptr,
+                                      size_t               *pskid_len,
+                                      unsigned char       **psk_ptr,
+                                      size_t               *psk_len)
+{
+    if(q_useful_buf_c_is_null(message_psk_id)) {
+        *mode = HPKE_MODE_BASE;
+        *pskid_ptr = NULL;
+        *pskid_len = 0;
+        *psk_ptr = NULL;
+        *psk_len = 0;
+        return T_COSE_SUCCESS;
+    }
+
+    if(q_useful_buf_c_is_null(configured_psk) || configured_psk.len == 0) {
+        return T_COSE_ERR_INVALID_ARGUMENT;
+    }
+
+    if(!q_useful_buf_c_is_null(configured_psk_id) &&
+       q_useful_buf_compare(configured_psk_id, message_psk_id)) {
+        return T_COSE_ERR_INVALID_ARGUMENT;
+    }
+
+    *mode = HPKE_MODE_PSK;
+    *pskid_ptr = (const uint8_t *)message_psk_id.ptr;
+    *pskid_len = message_psk_id.len;
+    *psk_ptr = (unsigned char *)configured_psk.ptr;
+    *psk_len = configured_psk.len;
+
+    return T_COSE_SUCCESS;
+}
+
 
 /* These errors do not stop the calling of further verifiers for
  * a given COSE_Recipient.
@@ -310,12 +347,15 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         struct q_useful_buf_c enc_param = t_cose_param_find_enc(body_params_list);
         hpke_suite_t          suite;
         struct q_useful_buf_c info = me->hpke_info;
+        struct q_useful_buf_c psk_id;
+        const struct t_cose_parameter *psk_id_param;
         size_t                pt_len;
         int                   hpke_ret;
-        char                  pskid_buf[64];
-        char                 *pskid_cstr = NULL;
-        uint8_t               dummy_psk = 0;
+        unsigned int          mode;
+        const uint8_t        *pskid_ptr;
+        size_t                pskid_len;
         unsigned char        *psk_ptr;
+        size_t                psk_len;
 
         if(q_useful_buf_c_is_null(enc_param)) {
             return_value = T_COSE_ERR_FAIL;
@@ -334,16 +374,30 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
             goto Done;
         }
 
-        if(me->hpke_psk_id.len > 0 && me->hpke_psk_id.len < sizeof(pskid_buf)) {
-            memcpy(pskid_buf, me->hpke_psk_id.ptr, me->hpke_psk_id.len);
-            pskid_buf[me->hpke_psk_id.len] = '\0';
-            pskid_cstr = pskid_buf;
+        psk_id = NULL_Q_USEFUL_BUF_C;
+        psk_id_param = t_cose_param_find(body_params_list, T_COSE_HEADER_PARAM_HPKE_PSK_ID);
+        if(psk_id_param != NULL) {
+            if(psk_id_param->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+                return_value = T_COSE_ERR_PARAMETER_CBOR;
+                goto Done;
+            }
+            if(!psk_id_param->in_protected) {
+                return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
+                goto Done;
+            }
+            psk_id = psk_id_param->value.string;
         }
-        if(pskid_cstr == NULL) {
-            pskid_cstr = "";
+        return_value = hpke_integrated_mode_from_message_psk(psk_id,
+                                                             me->hpke_psk,
+                                                             me->hpke_psk_id,
+                                                             &mode,
+                                                             &pskid_ptr,
+                                                             &pskid_len,
+                                                             &psk_ptr,
+                                                             &psk_len);
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
         }
-        psk_ptr = (me->hpke_psk.len > 0 && me->hpke_psk.ptr != NULL) ?
-                    (unsigned char *)me->hpke_psk.ptr : &dummy_psk;
 
         /* Build Enc_structure as AAD */
         if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
@@ -367,6 +421,9 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         }
 
         all_params_list = body_params_list;
+        if(returned_parameters != NULL) {
+            *returned_parameters = all_params_list;
+        }
         if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
             return_value = t_cose_params_check(all_params_list);
             if(return_value != T_COSE_SUCCESS) {
@@ -376,9 +433,10 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
 
         pt_len = plaintext_buffer.len;
         hpke_ret = mbedtls_hpke_decrypt(
-            HPKE_MODE_BASE,                /* HPKE mode */
+            mode,                          /* HPKE mode */
             suite,                         /* ciphersuite */
-            pskid_cstr, me->hpke_psk.len, psk_ptr, /* PSK/psk_id (mode still base in current backend) */
+            pskid_len, pskid_ptr,          /* psk id */
+            psk_len, psk_ptr,              /* PSK */
             0, NULL,                       /* pkS */
             (psa_key_handle_t)me->hpke_recipient_key.key.handle, /* skR */
             enc_param.len,

@@ -21,6 +21,8 @@ int32_t esdh_enc_dec_test(void);
 
 #ifndef T_COSE_DISABLE_HPKE
 int32_t hpke_enc_dec_test(void);
+int32_t hpke_psk_recipient_enc_dec_test(void);
+int32_t hpke_psk_encrypt0_enc_dec_test(void);
 #endif /* T_COSE_DISABLE_HPKE */
 
 int32_t decrypt_known_good(void);

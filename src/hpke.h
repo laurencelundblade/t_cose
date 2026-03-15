@@ -128,7 +128,8 @@ typedef struct {
  *
  * \param mode is the HPKE mode
  * \param suite is the ciphersuite to use
- * \param pskid is the pskid string fpr a PSK mode (can be NULL)
+ * \param pskidlen is the length of the psk id
+ * \param pskid is the psk id bytes for a PSK mode (can be NULL)
  * \param psklen is the psk length
  * \param psk is the psk 
  * \param publen is the length of the public key
@@ -151,7 +152,8 @@ typedef struct {
  * smaller than a 64 bit pointer, so that's grand, if odd:-)
  */
 int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
-                          char *pskid, size_t psklen, uint8_t *psk,
+                          size_t pskidlen, const uint8_t *pskid,
+                          size_t psklen, uint8_t *psk,
                           size_t pkR_len, const uint8_t *pkR,
                           psa_key_handle_t skI_handle,
                           size_t clearlen, const uint8_t *clear,
@@ -181,7 +183,8 @@ int hpke_pbuf(FILE *fout, char *msg,unsigned char *buf,size_t blen);
  * \brief HPKE single-shot decryption function
  * \param mode is the HPKE mode
  * \param suite is the ciphersuite to use
- * \param pskid is the pskid string fpr a PSK mode (can be NULL)
+ * \param pskidlen is the length of the psk id
+ * \param pskid is the psk id bytes for a PSK mode (can be NULL)
  * \param psklen is the psk length
  * \param psk is the psk 
  * \param publen is the length of the public (authentication) key
@@ -203,7 +206,8 @@ int hpke_pbuf(FILE *fout, char *msg,unsigned char *buf,size_t blen);
  */
 
 int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
-                          char *pskid, size_t psklen, unsigned char *psk,
+                          size_t pskidlen, const unsigned char *pskid,
+                          size_t psklen, unsigned char *psk,
                           size_t pkS_len, unsigned char *pkS,
                           psa_key_handle_t skR_handle,
                           size_t pkE_len, const unsigned char *pkE,

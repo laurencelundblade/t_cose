@@ -63,6 +63,8 @@ static test_entry s_tests[] = {
 
 #ifndef T_COSE_DISABLE_HPKE
     TEST_ENTRY(hpke_enc_dec_test),
+    TEST_ENTRY(hpke_psk_recipient_enc_dec_test),
+    TEST_ENTRY(hpke_psk_encrypt0_enc_dec_test),
 #endif /* T_COSE_DISABLE_HPKE */
 
     TEST_ENTRY(kdf_context_test),

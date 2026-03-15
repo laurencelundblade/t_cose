@@ -135,7 +135,7 @@ static int run_vector(const struct hpke_rfc9180_vector *v)
         fprintf(stderr, "  enc start (enc %zu)\n", i);
         ret = mbedtls_hpke_encrypt(
             v->mode, suite,
-            (char *)(v->psk_id_len ? (const char *)v->psk_id : NULL),
+            v->psk_id_len, v->psk_id_len ? v->psk_id : NULL,
             v->psk_len, (uint8_t *)v->psk,
             v->pkRm_len, (uint8_t *)v->pkRm,
             skS,
@@ -178,7 +178,7 @@ static int run_vector(const struct hpke_rfc9180_vector *v)
         fprintf(stderr, "  dec start (enc %zu)\n", i);
         ret = mbedtls_hpke_decrypt(
             v->mode, suite,
-            (char *)(v->psk_id_len ? (const char *)v->psk_id : NULL),
+            v->psk_id_len, v->psk_id_len ? v->psk_id : NULL,
             v->psk_len, (uint8_t *)v->psk,
             v->pkSm_len, (uint8_t *)v->pkSm,
             skR,

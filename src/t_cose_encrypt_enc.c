@@ -24,48 +24,77 @@
 // For debugging purposes only
 #include <stdio.h>
 
-/* Local helper: minimal parameter encoding for HPKE integrated path
- * to avoid calling internal-only t_cose_params_encode().
- */
 static enum t_cose_err_t
-encode_param_entries_simple(QCBOREncodeContext            *cbor_encoder,
-                            const struct t_cose_parameter *parameters,
-                            bool                           is_protected_bucket)
+hpke_sender_mode_from_psk(struct q_useful_buf_c psk,
+                          struct q_useful_buf_c psk_id,
+                          bool                 *use_psk)
 {
-    const struct t_cose_parameter *p_param;
+    const bool have_psk_id = !q_useful_buf_c_is_null(psk_id);
+    const bool have_psk = !q_useful_buf_c_is_null(psk) && psk.len != 0;
 
-    for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
-        if(is_protected_bucket && !p_param->in_protected) {
-            continue;
-        }
-        if(!is_protected_bucket && p_param->in_protected) {
-            continue;
-        }
-
-        switch(p_param->value_type) {
-            case T_COSE_PARAMETER_TYPE_INT64:
-                QCBOREncode_AddInt64ToMapN(cbor_encoder, p_param->label, p_param->value.int64);
-                break;
-            case T_COSE_PARAMETER_TYPE_TEXT_STRING:
-                QCBOREncode_AddTextToMapN(cbor_encoder, p_param->label, p_param->value.string);
-                break;
-            case T_COSE_PARAMETER_TYPE_BYTE_STRING:
-                QCBOREncode_AddBytesToMapN(cbor_encoder, p_param->label, p_param->value.string);
-                break;
-            case T_COSE_PARAMETER_TYPE_SPECIAL:
-                if(p_param->value.special_encode.encode_cb) {
-                    enum t_cose_err_t rv =
-                        p_param->value.special_encode.encode_cb(p_param, cbor_encoder);
-                    if(rv != T_COSE_SUCCESS) {
-                        return rv;
-                    }
-                }
-                break;
-            default:
-                return T_COSE_ERR_INVALID_PARAMETER_TYPE;
-        }
+    if(have_psk_id && !have_psk) {
+        return T_COSE_ERR_INVALID_ARGUMENT;
     }
+    if(have_psk && !have_psk_id) {
+        return T_COSE_ERR_INVALID_ARGUMENT;
+    }
+
+    *use_psk = have_psk_id;
     return T_COSE_SUCCESS;
+}
+
+static struct t_cose_parameter
+t_cose_param_make_hpke_psk_id_protected(struct q_useful_buf_c psk_id)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = true;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = T_COSE_HEADER_PARAM_HPKE_PSK_ID;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value.string     = psk_id;
+    parameter.next             = NULL;
+
+    return parameter;
+}
+
+static struct t_cose_parameter *
+build_hpke_encrypt0_header_params(struct t_cose_parameter       *local_params,
+                                  int32_t                        payload_alg_id,
+                                  struct q_useful_buf_c          psk_id,
+                                  struct q_useful_buf_c          kid,
+                                  struct q_useful_buf_c          ek,
+                                  struct t_cose_parameter       *added_params)
+{
+    struct t_cose_parameter *params_list = NULL;
+    size_t                   param_index = 0;
+
+    local_params[param_index] = t_cose_param_make_alg_id(payload_alg_id);
+    t_cose_params_append(&params_list, &local_params[param_index]);
+    param_index++;
+
+    if(!q_useful_buf_c_is_null(psk_id)) {
+        local_params[param_index] = t_cose_param_make_hpke_psk_id_protected(psk_id);
+        t_cose_params_append(&params_list, &local_params[param_index]);
+        param_index++;
+    }
+
+    if(!q_useful_buf_c_is_null(kid)) {
+        local_params[param_index] = t_cose_param_make_kid(kid);
+        t_cose_params_append(&params_list, &local_params[param_index]);
+        param_index++;
+    }
+
+    if(!q_useful_buf_c_is_null(ek)) {
+        local_params[param_index] = t_cose_param_make_encapsulated_key(ek);
+        t_cose_params_append(&params_list, &local_params[param_index]);
+    }
+
+    t_cose_params_append(&params_list, added_params);
+
+    return params_list;
 }
 
 
@@ -79,10 +108,13 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
     QCBOREncodeContext           cbor_encoder;
+    QCBOREncodeContext           header_encoder;
     unsigned                     message_type;
 
-    struct t_cose_parameter      params_alg_only[1];
+    struct t_cose_parameter      header_params[4];
+    struct t_cose_parameter     *header_params_list;
     struct q_useful_buf_c        body_prot_headers;
+    struct q_useful_buf_c        encoded_headers;
     struct q_useful_buf_c        enc_structure;
     Q_USEFUL_BUF_MAKE_STACK_UB(  enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
     const char                  *enc_struct_string;
@@ -99,6 +131,11 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
     struct q_useful_buf          encrypt_buffer;
     uint8_t                     *ciphertext_mem = NULL;
     size_t                       ciphertext_len = 0;
+    bool                         use_psk = false;
+    struct q_useful_buf_c        info;
+    struct q_useful_buf_c        aad;
+    size_t                       ct_capacity;
+    struct t_cose_recipient_enc_hpke *hpke_recipient = NULL;
 
     /* ---- Figure out message type (must be Encrypt0 for Integrated Mode) ---- */
     message_type = T_COSE_OPT_MESSAGE_TYPE_MASK & me->option_flags;
@@ -123,28 +160,44 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
         return T_COSE_ERR_BAD_OPT;
     }
 
-    /* ---- Protected header: alg only (must be protected if present) ---- */
-    params_alg_only[0] = t_cose_param_make_alg_id(me->payload_cose_algorithm_id);
-    params_alg_only[0].next = me->added_body_parameters;
-
-    /* ---- Start CBOR encoding: COSE_Encrypt0 = [ protected, unprotected, ciphertext ] ---- */
-    QCBOREncode_Init(&cbor_encoder, buffer_for_message);
-    if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
-        QCBOREncode_AddTag(&cbor_encoder, message_type);
+    /* ---- Get the first HPKE recipient from the recipients_list ---- */
+    if(me->recipients_list != NULL) {
+        /* Cast the base recipient_enc to HPKE recipient
+         * (assumes the recipients_list contains t_cose_recipient_enc_hpke items)
+         */
+        hpke_recipient = (struct t_cose_recipient_enc_hpke *)me->recipients_list;
+    } else {
+        /* No recipients configured */
+        return T_COSE_ERR_BAD_OPT;
     }
-    QCBOREncode_OpenArray(&cbor_encoder);
 
-    /* ---- Encode protected headers (bstr), unprotected will follow later ---- */
-    QCBOREncode_BstrWrap(&cbor_encoder);
-    QCBOREncode_OpenMap(&cbor_encoder);
-    return_value = encode_param_entries_simple(&cbor_encoder,
-                                               &params_alg_only[0],
-                                               true);
-    QCBOREncode_CloseMap(&cbor_encoder);
+    return_value = hpke_sender_mode_from_psk(hpke_recipient->psk,
+                                             hpke_recipient->psk_id,
+                                             &use_psk);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    QCBOREncode_CloseBstrWrap2(&cbor_encoder, false, &body_prot_headers);
+
+    header_params_list = build_hpke_encrypt0_header_params(header_params,
+                                                           me->payload_cose_algorithm_id,
+                                                           use_psk ? hpke_recipient->psk_id : NULL_Q_USEFUL_BUF_C,
+                                                           hpke_recipient->kid,
+                                                           NULL_Q_USEFUL_BUF_C,
+                                                           me->added_body_parameters);
+
+    /* Pre-encode the headers to obtain the exact protected header bstr for HPKE AAD. */
+    QCBOREncode_Init(&header_encoder, buffer_for_message);
+    return_value = t_cose_headers_encode(&header_encoder,
+                                         header_params_list,
+                                         &body_prot_headers);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+    cbor_err = QCBOREncode_Finish(&header_encoder, &encoded_headers);
+    if(cbor_err != QCBOR_SUCCESS) {
+        return_value = qcbor_encode_error_to_t_cose_error(&header_encoder);
+        goto Done;
+    }
 
     /* ---- Build Enc_structure for AAD with context "Encrypt0" ---- */
     if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
@@ -163,16 +216,16 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
     }
 
     /* ---- Prepare info (default empty) ---- */
-    struct q_useful_buf_c info = me->hpke_info;
+    info = me->hpke_info;
     if(q_useful_buf_c_is_null(info)) {
         info = (struct q_useful_buf_c){ "", 0 };
     }
     /* Draft-19 requires HPKE AAD to be the Enc_structure (with external_aad) */
-    struct q_useful_buf_c aad = enc_structure;
+    aad = enc_structure;
 
     /* ---- Prepare ciphertext buffer for HPKE output ---- */
     /* Ciphertext is plaintext + tag; add margin for tag and potential padding */
-    size_t ct_capacity = payload.len + 32; /* AEAD tags are small; 32 bytes is ample */
+    ct_capacity = payload.len + 32; /* AEAD tags are small; 32 bytes is ample */
     ciphertext_mem = (uint8_t *)malloc(ct_capacity);
     if(ciphertext_mem == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
@@ -180,18 +233,6 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
     }
     encrypt_buffer = (struct q_useful_buf){ ciphertext_mem, ct_capacity };
     ciphertext_len = ct_capacity;
-
-    /* ---- Get the first HPKE recipient from the recipients_list ---- */
-    struct t_cose_recipient_enc_hpke *hpke_recipient = NULL;
-    if(me->recipients_list != NULL) {
-        /* Cast the base recipient_enc to HPKE recipient
-         * (assumes the recipients_list contains t_cose_recipient_enc_hpke items)
-         */
-        hpke_recipient = (struct t_cose_recipient_enc_hpke *)me->recipients_list;
-    } else {
-        /* No recipients configured */
-        return T_COSE_ERR_BAD_OPT;
-    }
 
     /*
      * Call HPKE wrapper:
@@ -227,24 +268,26 @@ t_cose_encrypt_enc_hpke_integrated(struct t_cose_encrypt_enc *me,
         goto Done;
     }
 
-    QCBOREncode_OpenMap(&cbor_encoder);
-    /* Any caller-supplied unprotected headers */
-    return_value = encode_param_entries_simple(&cbor_encoder,
-                                                &params_alg_only[0],
-                                                false);
+    header_params_list = build_hpke_encrypt0_header_params(header_params,
+                                                           me->payload_cose_algorithm_id,
+                                                           use_psk ? hpke_recipient->psk_id : NULL_Q_USEFUL_BUF_C,
+                                                           hpke_recipient->kid,
+                                                           ek,
+                                                           me->added_body_parameters);
+
+    /* ---- Start CBOR encoding: COSE_Encrypt0 = [ protected, unprotected, ciphertext ] ---- */
+    QCBOREncode_Init(&cbor_encoder, buffer_for_message);
+    if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
+        QCBOREncode_AddTag(&cbor_encoder, message_type);
+    }
+    QCBOREncode_OpenArray(&cbor_encoder);
+
+    return_value = t_cose_headers_encode(&cbor_encoder,
+                                         header_params_list,
+                                         &body_prot_headers);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    /* Add kid to unprotected header for Encrypt0 if provided */
-    if(!q_useful_buf_c_is_null(hpke_recipient->kid)) {
-        QCBOREncode_AddBytesToMapN(&cbor_encoder,
-                                  T_COSE_HEADER_PARAM_KID,
-                                  hpke_recipient->kid);
-    }
-    QCBOREncode_AddBytesToMapN(&cbor_encoder,
-                                T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY,
-                                ek);
-    QCBOREncode_CloseMap(&cbor_encoder);
 
     /* ---- Ciphertext (3rd array item) ---- */
     QCBOREncode_AddBytes(&cbor_encoder,

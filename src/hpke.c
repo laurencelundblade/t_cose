@@ -29,6 +29,7 @@
 #ifndef T_COSE_DISABLE_HPKE
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <string.h>
 #include "mbedtls/error.h"
 
@@ -884,7 +885,8 @@ error:
 }
 
 int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
-                          char *pskid, size_t psklen, unsigned char *psk,
+                          size_t pskidlen, const unsigned char *pskid,
+                          size_t psklen, unsigned char *psk,
                           size_t pkS_len, unsigned char *pkS,
                           psa_key_handle_t skR_handle,
                           size_t pkE_len, const unsigned char *pkE,
@@ -929,7 +931,10 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
     int ret;
     psa_status_t status;
     size_t halflen;
-    size_t pskidlen;
+    const unsigned char *pskid_input;
+    unsigned char *psk_input;
+    bool got_psk;
+    bool got_psk_id;
 
 
     // Input check: mode
@@ -944,9 +949,17 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
             return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
-    // Input check: psk
-    if( (mode == HPKE_MODE_PSK || mode == HPKE_MODE_PSKAUTH )
-        && ( pskid == NULL || psklen == 0 || psk == NULL ) )
+    got_psk = ( psk != NULL && psklen != 0 );
+    got_psk_id = ( pskid != NULL );
+    if( got_psk != got_psk_id )
+    {
+        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+    }
+    if( got_psk && ( mode == HPKE_MODE_BASE || mode == HPKE_MODE_AUTH ) )
+    {
+        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+    }
+    if( !got_psk && ( mode == HPKE_MODE_PSK || mode == HPKE_MODE_PSKAUTH ) )
     {
         return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
@@ -981,13 +994,10 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
         return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
-    // Input check: For PSK mode is PSK provided
-    if( ( mode == HPKE_MODE_PSK || mode == HPKE_MODE_PSKAUTH ) &&
-        ( psk == NULL || psklen == 0 || pskid == NULL ) )
-    {
-        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
-    }
-    
+    pskid_input = got_psk_id ? pskid : (const unsigned char *)"";
+    pskidlen = got_psk_id ? pskidlen : 0;
+    psk_input = got_psk ? psk : (unsigned char *)"";
+
     /* Export own public key if provided (AUTH/PSK-AUTH); skip when skR_handle is 0 */
     if( skR_handle != 0 )
     {
@@ -1024,14 +1034,11 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
     ks_context[0] = ( unsigned char ) ( mode % 256 );
     ks_contextlen--;
     halflen = ks_contextlen;
-    pskidlen = 0;
-    pskidlen = ( psk == NULL ? 0 : strlen( pskid ) );
-
     ret = mbedtls_hpke_extract( suite,                                        // ciphersuite
                                 HPKE_5869_MODE_FULL,                          // mode
                                 (unsigned char *) "", 0,                      // salt
                                 MBEDTLS_SSL_HPKE_LBL_WITH_LEN( psk_id_hash ), // label
-                                (unsigned char *) pskid, pskidlen,            // psk id
+                                (unsigned char *) pskid_input, pskidlen,      // psk id
                                 ks_context + 1, &halflen );
 
     if( ret != 0 )
@@ -1061,7 +1068,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
                                 HPKE_5869_MODE_FULL,
                                 (unsigned char *) "", 0,
                                 MBEDTLS_SSL_HPKE_LBL_WITH_LEN( psk_hash ),
-                                psk, psklen,
+                                psk_input, psklen,
                                 psk_hash, &psk_hashlen );
     
     if( ret != 0)
@@ -1075,7 +1082,7 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
                                 HPKE_5869_MODE_FULL,
                                 shared_secret, shared_secretlen,
                                 MBEDTLS_SSL_HPKE_LBL_WITH_LEN( secret ),
-                                psk, psklen,
+                                psk_input, psklen,
                                 secret, &secretlen );
     
     if( ret != 0 )
@@ -1246,7 +1253,8 @@ int hpke_suite_check( hpke_suite_t suite )
  * \return 1 for good (OpenSSL style), not-1 for error
  */
 static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
-                         char *pskid, size_t psklen, unsigned char *psk,
+                         size_t pskidlen, const unsigned char *pskid,
+                         size_t psklen, unsigned char *psk,
                          size_t pkR_len, const unsigned char *pkR,
                          psa_key_handle_t skS_handle,
                          size_t clearlen, const unsigned char *clear,
@@ -1295,7 +1303,10 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
     size_t shared_secretlen = MBEDTLS_MD_MAX_SIZE;
     uint8_t *shared_secret = buffer;
     size_t halflen=0;
-    size_t pskidlen=0;
+    const unsigned char *pskid_input;
+    unsigned char *psk_input;
+    bool got_psk;
+    bool got_psk_id;
 
     psa_status_t status;
     psa_key_attributes_t skE_attributes = PSA_KEY_ATTRIBUTES_INIT;
@@ -1323,9 +1334,17 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
 */            return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
 
-    // Input check: psk
-    if( (mode == HPKE_MODE_PSK || mode == HPKE_MODE_PSKAUTH )
-        && ( pskid == NULL || psklen == 0 || psk == NULL ) )
+    got_psk = ( psk != NULL && psklen != 0 );
+    got_psk_id = ( pskid != NULL );
+    if( got_psk != got_psk_id )
+    {
+        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+    }
+    if( got_psk && ( mode == HPKE_MODE_BASE || mode == HPKE_MODE_AUTH ) )
+    {
+        return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
+    }
+    if( !got_psk && ( mode == HPKE_MODE_PSK || mode == HPKE_MODE_PSKAUTH ) )
     {
         return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
     }
@@ -1467,13 +1486,15 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
     ks_context[0] = (unsigned char) ( mode % 256 );
     ks_contextlen--;
     halflen = ks_contextlen;
-    pskidlen = ( psk == NULL ? 0 : strlen( pskid ) );
+    pskid_input = got_psk_id ? pskid : (const unsigned char *)"";
+    pskidlen = got_psk_id ? pskidlen : 0;
+    psk_input = got_psk ? psk : (unsigned char *)"";
 
     ret = mbedtls_hpke_extract( suite,                                        // ciphersuite
                                 HPKE_5869_MODE_FULL,                          // mode
                                 (unsigned char *) "", 0,                      // salt
                                 MBEDTLS_SSL_HPKE_LBL_WITH_LEN( psk_id_hash ), // label
-                                (unsigned char*) pskid, pskidlen,             // psk id
+                                (unsigned char *) pskid_input, pskidlen,      // psk id
                                 ks_context + 1, &halflen );
 
     if( ret != 0 )
@@ -1503,7 +1524,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
                                 HPKE_5869_MODE_FULL,
                                 (unsigned char *) "", 0,
                                 MBEDTLS_SSL_HPKE_LBL_WITH_LEN( psk_hash ),
-                                psk, psklen,
+                                psk_input, psklen,
                                 psk_hash, &psk_hashlen );
 
     if( ret != 0)
@@ -1517,7 +1538,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
                                 HPKE_5869_MODE_FULL,
                                 shared_secret, shared_secretlen,
                                 MBEDTLS_SSL_HPKE_LBL_WITH_LEN( secret ),
-                                psk, psklen,
+                                psk_input, psklen,
                                 secret, &secretlen );
 
     if( ret != 0 )
@@ -1623,7 +1644,8 @@ error:
 
 
 int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
-                          char *pskid, size_t psklen, uint8_t *psk,
+                          size_t pskidlen, const uint8_t *pskid,
+                          size_t psklen, uint8_t *psk,
                           size_t pkR_len, const uint8_t *pkR,
                           psa_key_handle_t skI_handle,
                           size_t clearlen, const uint8_t *clear,
@@ -1635,7 +1657,8 @@ int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
 {
     return hpke_enc_int( mode,                // HPKE mode
                          suite,               // ciphersuite
-                         pskid, psklen, psk,  // PSK for authentication
+                         pskidlen, pskid,     // psk id
+                         psklen, psk,         // PSK for authentication
                          pkR_len, pkR,        // pkR
                          skI_handle,          // skI handle
                          clearlen, clear,     // plaintext

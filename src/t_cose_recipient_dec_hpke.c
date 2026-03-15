@@ -34,6 +34,43 @@ struct hpke_sender_info {
     struct q_useful_buf_c  enc;
 };
 
+static enum t_cose_err_t
+hpke_recipient_mode_from_message_psk(struct q_useful_buf_c message_psk_id,
+                                     struct q_useful_buf_c configured_psk,
+                                     struct q_useful_buf_c configured_psk_id,
+                                     unsigned int         *mode,
+                                     const uint8_t       **pskid_ptr,
+                                     size_t               *pskid_len,
+                                     unsigned char       **psk_ptr,
+                                     size_t               *psk_len)
+{
+    if(q_useful_buf_c_is_null(message_psk_id)) {
+        *mode = HPKE_MODE_BASE;
+        *pskid_ptr = NULL;
+        *pskid_len = 0;
+        *psk_ptr = NULL;
+        *psk_len = 0;
+        return T_COSE_SUCCESS;
+    }
+
+    if(q_useful_buf_c_is_null(configured_psk) || configured_psk.len == 0) {
+        return T_COSE_ERR_DECLINE;
+    }
+
+    if(!q_useful_buf_c_is_null(configured_psk_id) &&
+       q_useful_buf_compare(configured_psk_id, message_psk_id)) {
+        return T_COSE_ERR_DECLINE;
+    }
+
+    *mode = HPKE_MODE_PSK;
+    *pskid_ptr = (const uint8_t *)message_psk_id.ptr;
+    *pskid_len = message_psk_id.len;
+    *psk_ptr = (unsigned char *)configured_psk.ptr;
+    *psk_len = configured_psk.len;
+
+    return T_COSE_SUCCESS;
+}
+
 /* This is an implementation of t_cose_recipient_dec_cb */
 enum t_cose_err_t
 t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
@@ -53,8 +90,17 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     enum t_cose_err_t      cose_result;
     struct hpke_sender_info  sender_info;
     int                    psa_ret;
+    hpke_suite_t           suite;
+    size_t                 cek_len_in_out;
+    unsigned int           mode;
+    const uint8_t         *pskid_ptr;
+    size_t                 pskid_len;
+    unsigned char         *psk_ptr;
+    size_t                 psk_len;
     UsefulBufC   kid;
     UsefulBufC   enc;
+    const struct t_cose_parameter *psk_id_param;
+    struct q_useful_buf_c  psk_id;
     // TODO: allow this to be supplied externally
      Q_USEFUL_BUF_MAKE_STACK_UB( recipient_struct_buf, T_COSE_RECIPIENT_STRUCT_DEFAULT_SIZE);
 
@@ -182,6 +228,26 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         }
     }
 
+    psk_id = NULL_Q_USEFUL_BUF_C;
+    psk_id_param = t_cose_param_find(*params, T_COSE_HEADER_PARAM_HPKE_PSK_ID);
+    if(psk_id_param != NULL) {
+        if(psk_id_param->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+            cose_result = T_COSE_ERR_PARAMETER_CBOR;
+            goto Done;
+        }
+        if(!psk_id_param->in_protected) {
+            cose_result = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
+            goto Done;
+        }
+        psk_id = psk_id_param->value.string;
+    }
+    cose_result = hpke_recipient_mode_from_message_psk(psk_id, me->psk, me->psk_id,
+                                                       &mode, &pskid_ptr, &pskid_len,
+                                                       &psk_ptr, &psk_len);
+    if(cose_result != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
     /* -- Make the Recipient_structure ---- */
     cose_result =
         create_recipient_structure("HPKE Recipient",/* in: context string */
@@ -195,15 +261,6 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         goto Done;
     }
 
-    // TODO: There is a big rearrangement necessary when the crypto adaptation
-    // layer calls for HPKE are sorted out. Lots of work to complete that...
-    hpke_suite_t     suite;
-    size_t           cek_len_in_out;
-    char             pskid_buf[64];
-    char            *pskid_cstr = NULL;
-    uint8_t          dummy_psk = 0;
-    unsigned char   *psk_ptr;
-
     // TODO: check that the sender_info decode happened correctly
     // before proceeding
     suite.aead_id = (uint16_t)sender_info.aead_id;
@@ -212,25 +269,16 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
 
     cek_len_in_out = cek_buffer.len;
 
-    if(me->psk_id.len > 0 && me->psk_id.len < sizeof(pskid_buf)) {
-        memcpy(pskid_buf, me->psk_id.ptr, me->psk_id.len);
-        pskid_buf[me->psk_id.len] = '\0';
-        pskid_cstr = pskid_buf;
-    }
-    if(pskid_cstr == NULL) {
-        pskid_cstr = "";
-    }
-    psk_ptr = (me->psk.len > 0 && me->psk.ptr != NULL) ? (unsigned char *)me->psk.ptr : &dummy_psk;
-
     aad = me->aad;
     if(q_useful_buf_c_is_null(aad)) {
         aad = (struct q_useful_buf_c){ "", 0 };
     }
 
     psa_ret = mbedtls_hpke_decrypt(
-             HPKE_MODE_BASE,                  // HPKE mode
+             mode,                            // HPKE mode
              suite,                           // ciphersuite
-             pskid_cstr, me->psk.len, psk_ptr, // PSK for authentication
+             pskid_len, pskid_ptr,            // psk id
+             psk_len, psk_ptr,                // PSK for authentication
              0, NULL,                         // pkS
              (psa_key_handle_t)me->skr.key.handle, // skR handle
              sender_info.enc.len,                         // pkE_len

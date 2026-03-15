@@ -3,13 +3,20 @@
     "configurations": [
 
         {
-            "name": "Debug t_cose",
+            "name": "HPKE Encrypt0",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/t_cose_examples",
-            "args": [],
+            "program": "${workspaceFolder}/build/hpke_cli",
+            "args": [
+                "encrypt",
+                "--mode", "encrypt0",
+                "--recipient-key", "${workspaceFolder}/bob_pub.cbor",
+                "--payload", "${workspaceFolder}/payload.txt",
+                "--aad", "${workspaceFolder}/aad.bin",
+                "--out", "${workspaceFolder}/msg_encrypt0.cbor"
+            ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
+            "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

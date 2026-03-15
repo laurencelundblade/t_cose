@@ -163,7 +163,7 @@ int main(void)
         size_t pt_len = sizeof(pt);
         int res = mbedtls_hpke_decrypt(
             in.mode, in.suite,
-            (char *)(in.psk_id_len ? (char *)in.psk_id : NULL),
+            in.psk_id_len, in.psk_id_len ? in.psk_id : NULL,
             in.psk_len, in.psk,
             in.pkS_len, in.pkS,
             skR,

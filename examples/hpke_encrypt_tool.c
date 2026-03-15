@@ -169,7 +169,7 @@ int main(void)
         size_t ct_len = sizeof(ct);
         int res = mbedtls_hpke_encrypt(
             in.mode, in.suite,
-            (char *)(in.psk_id_len ? (char *)in.psk_id : NULL),
+            in.psk_id_len, in.psk_id_len ? in.psk_id : NULL,
             in.psk_len, in.psk,
             in.pkR_len, in.pkR,
             skS,
@@ -210,4 +210,3 @@ cleanup:
     free(in.pt);
     return ret;
 }
-

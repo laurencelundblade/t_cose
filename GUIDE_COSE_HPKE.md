@@ -1,7 +1,13 @@
 # COSE HPKE
 
-This code implements version -19 of the COSE HPKE implementation. The draft is available at:
-https://www.ietf.org/archive/id/draft-ietf-cose-hpke-19.txt
+This code implements version -23 of the COSE HPKE implementation. The draft is available at:
+https://www.ietf.org/archive/id/draft-ietf-cose-hpke-23.txt
+
+## Relevant Repositories
+
+- `t_cose` (this project): https://github.com/hannestschofenig/t_cose
+- `python-cwt` (Daisuke implementation): https://github.com/dajiaji/python-cwt
+- COSE HPKE draft: https://github.com/cose-wg/draft-ietf-cose-hpke
 
 ## Build Code
 
@@ -33,12 +39,17 @@ t_cose depends on QCBOR and hence QCBOR needs to be available on the system.
 Adjust the paths as necessary.
 
 ```
-CCACHE_DISABLE=1 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug \
+CCACHE_DISABLE=1 cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Debug \
   -DBUILD_COSE_KEY_GEN=ON -DBUILD_CLI=ON -DBUILD_TESTS=ON \
   -DBUILD_EXAMPLES=ON -DBUILD_OPENSSL_INTEROP_TOOLS=ON \
   -DOPENSSL_INTEROP_ROOT=./openssl \
   -DCRYPTO_PROVIDER=MbedTLS \
-  -DMbedTLS_DIR=../mbedtls/build/cmake \
+  -DMbedTLS_DIR=/tmp/mbedtls-fixed-cmake \
+  -DQCBOR_INCLUDE_DIR=../QCBOR/inc \
+  -DQCBOR_LIBRARY=../QCBOR/build/libqcbor.a \
+  -DCMAKE_C_FLAGS='-fno-pie' \
+  -DCMAKE_EXE_LINKER_FLAGS='-no-pie' \
   -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER=
 
 CCACHE_DISABLE=1 cmake --build build -j$(nproc)
@@ -228,3 +239,189 @@ The interop script uses helper binaries and OpenSSL helper tools:
   - `openssl_hpke_open_dump`
 
 OpenSSL must be available and loadable via `LD_LIBRARY_PATH`.
+
+## Python-Cwt Interoperability Tests
+
+This section describes how to set up `python-cwt` and run interoperability
+tests between `t_cose` and `python-cwt` for all HPKE ciphersuites.
+
+### 1) Build and configure python-cwt
+
+Create and activate a Python virtual environment (from repository root):
+
+```sh
+python3 -m venv .venv-python-cwt
+source .venv-python-cwt/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ./python-cwt
+```
+
+This installs `python-cwt` in editable mode together with required
+dependencies (`cbor2`, `cryptography`, `pyhpke`).
+
+Optional quick self-check:
+
+```sh
+pytest -q python-cwt/tests/test_cose_hpke.py
+```
+
+### 2) Run t_cose <-> python-cwt interoperability tests
+
+Build `t_cose` first so that `build/hpke_cli` exists, then run:
+
+```sh
+python3 tools/interop_t_cose.py
+```
+
+If `hpke_cli` is in a non-default location, set:
+
+```sh
+HPKE_CLI=/path/to/hpke_cli python3 tools/interop_t_cose.py
+```
+
+### 3) What is covered
+
+The interop script performs bidirectional tests:
+- `python-cwt -> t_cose`
+- `t_cose -> python-cwt`
+
+for:
+- Integrated mode (`COSE_Encrypt0`): `HPKE-0 .. HPKE-7`
+- Key Encryption mode (`COSE_Encrypt`): `HPKE-0-KE .. HPKE-7-KE`
+- AAD variants: default AAD and external AAD
+
+## COSE-HPKE Interoperability Tests
+
+This section covers interoperability tests between `t_cose` and Orie's
+implementation.
+
+Repository:
+- https://github.com/tradeverifyd/cose-hpke
+
+### 1) Recommended: run the interop script
+
+Use the provided script:
+
+```sh
+bash tools/interop_orie_t_cose.sh
+```
+
+Useful options:
+
+```sh
+# Keep known limitations as non-fatal (default behavior)
+bash tools/interop_orie_t_cose.sh --timeout-sec 5
+
+# Skip dependency installation if already done
+bash tools/interop_orie_t_cose.sh --skip-install
+
+# Treat known limitations as hard failures
+bash tools/interop_orie_t_cose.sh --strict
+```
+
+The script currently executes:
+- HPKE-7 Encrypt0: Orie -> t_cose (pass expected)
+- HPKE-7 Encrypt0: t_cose -> Orie (pass expected)
+- HPKE-7-KE Encrypt: t_cose -> Orie (pass expected)
+- HPKE-7-KE Encrypt: Orie -> t_cose (currently timeout/known issue)
+- HPKE-4 runtime check (currently unsupported in this runtime)
+
+### 2) Manual setup (if running steps by hand)
+
+From repository root:
+
+```sh
+cd cose-hpke-orie
+BUN_TMPDIR=/tmp BUN_INSTALL=/tmp/bun bun install
+cd ..
+```
+
+### 3) Manual interop test: HPKE-7 (COSE_Encrypt0, integrated mode)
+
+Orie -> t_cose:
+
+```sh
+W=/tmp/interop_orie_tcose
+rm -rf "$W" && mkdir -p "$W"
+
+cd cose-hpke-orie
+bun run src/cli/index.ts keygen --suite HPKE-7 \
+  --output-public "$W/orie7_pub.cbor" \
+  --output-private "$W/orie7_priv.cbor"
+bun run src/cli/index.ts encrypt "hello-orie7-e0" \
+  -r "$W/orie7_pub.cbor" \
+  -o "$W/orie7_e0_from_orie.cbor" \
+  --suite HPKE-7
+cd ..
+
+./build/hpke_cli decrypt --mode encrypt0 \
+  --my-key "$W/orie7_priv.cbor" \
+  --in "$W/orie7_e0_from_orie.cbor" \
+  --out "$W/orie7_e0_to_tcose.txt"
+cat "$W/orie7_e0_to_tcose.txt"
+```
+
+t_cose -> Orie:
+
+```sh
+./build/cose_key_gen --alg HPKE-7 --kid bob7 \
+  --pub-out "$W/t7_pub.cbor" \
+  --full-out "$W/t7_priv.cbor"
+printf 'hello-tcose7-e0' > "$W/payload7.txt"
+
+./build/hpke_cli encrypt --mode encrypt0 \
+  --recipient-key "$W/t7_pub.cbor" \
+  --payload "$W/payload7.txt" \
+  --out "$W/t7_e0_from_tcose.cbor" \
+  --attach
+
+cd cose-hpke-orie
+bun run src/cli/index.ts decrypt "$W/t7_e0_from_tcose.cbor" \
+  -k "$W/t7_priv.cbor" > "$W/t7_e0_to_orie.txt"
+cd ..
+cat "$W/t7_e0_to_orie.txt"
+```
+
+Expected:
+- Orie -> t_cose: `hello-orie7-e0`
+- t_cose -> Orie: `hello-tcose7-e0`
+
+### 4) Manual interop test: HPKE-7-KE (COSE_Encrypt, key encryption mode)
+
+t_cose -> Orie:
+
+```sh
+./build/cose_key_gen --alg HPKE-7-KE --kid orieke \
+  --pub-out "$W/orie7ke_pub.cbor" \
+  --full-out "$W/orie7ke_priv.cbor"
+
+printf 'hello-tcose7-ke' > "$W/payload7ke.txt"
+./build/hpke_cli encrypt --mode encrypt \
+  --recipient-key "$W/orie7ke_pub.cbor" \
+  --payload "$W/payload7ke.txt" \
+  --out "$W/t7_ke_from_tcose.cbor" \
+  --attach
+
+cd cose-hpke-orie
+bun run src/cli/index.ts decrypt "$W/t7_ke_from_tcose.cbor" \
+  -k "$W/orie7ke_priv.cbor" > "$W/t7_ke_to_orie.txt"
+cd ..
+cat "$W/t7_ke_to_orie.txt"
+```
+
+Expected:
+- t_cose -> Orie: `hello-tcose7-ke`
+
+Orie -> t_cose currently hangs in `hpke_cli decrypt --mode encrypt`
+(timeout observed), so this direction is currently not passing.
+
+### 5) Current limitation
+
+`HPKE-4` (X25519) tests with Orie's CLI currently fail in this environment with:
+
+```text
+DHKEM(X25519, HKDF-SHA256) is unsupported in this runtime
+```
+
+So practical interop coverage with Orie's implementation in this setup is
+currently HPKE-7 based flows.

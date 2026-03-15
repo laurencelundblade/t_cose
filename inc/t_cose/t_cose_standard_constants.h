@@ -145,6 +145,13 @@
  */
 #define T_COSE_HEADER_ALG_PARAM_HPKE_ENCAPSULATED_KEY -4
 
+/**
+ * \def T_COSE_HEADER_PARAM_HPKE_PSK_ID
+ *
+ * \brief CBOR label of the COSE HPKE psk_id header parameter.
+ */
+#define T_COSE_HEADER_PARAM_HPKE_PSK_ID -5
+
 
 /**
  * \def T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY

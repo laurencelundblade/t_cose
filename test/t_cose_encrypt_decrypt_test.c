@@ -12,6 +12,7 @@
 #include "t_cose_encrypt_decrypt_test.h"
 #include "t_cose/t_cose_encrypt_dec.h"
 #include "t_cose/t_cose_encrypt_enc.h"
+#include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_recipient_dec_esdh.h"
 #include "t_cose/t_cose_recipient_enc_esdh.h"
 #include "t_cose/t_cose_recipient_dec_keywrap.h"
@@ -53,6 +54,35 @@ locations_equal(struct t_cose_header_location l1,
     }
     return true;
 }
+
+#ifndef T_COSE_DISABLE_HPKE
+static int32_t
+check_hpke_psk_id_param(const struct t_cose_parameter *params,
+                        struct q_useful_buf_c          expected_psk_id,
+                        int32_t                        missing_error,
+                        int32_t                        type_error,
+                        int32_t                        protection_error,
+                        int32_t                        mismatch_error)
+{
+    const struct t_cose_parameter *psk_id_param;
+
+    psk_id_param = t_cose_param_find(params, T_COSE_HEADER_PARAM_HPKE_PSK_ID);
+    if(psk_id_param == NULL) {
+        return missing_error;
+    }
+    if(psk_id_param->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+        return type_error;
+    }
+    if(!psk_id_param->in_protected) {
+        return protection_error;
+    }
+    if(q_useful_buf_compare(psk_id_param->value.string, expected_psk_id)) {
+        return mismatch_error;
+    }
+
+    return 0;
+}
+#endif /* T_COSE_DISABLE_HPKE */
 
 
 
@@ -881,6 +911,172 @@ hpke_enc_dec_test(void)
     free_fixed_test_ec_encryption_key(skR);
     free_fixed_test_ec_encryption_key(pkR);
 
+    return 0;
+}
+
+int32_t
+hpke_psk_recipient_enc_dec_test(void)
+{
+    enum t_cose_err_t                result;
+    int32_t                          return_value;
+    struct t_cose_key                skR;
+    struct t_cose_key                pkR;
+    struct t_cose_encrypt_enc        enc_ctx;
+    struct t_cose_recipient_enc_hpke recipient;
+    struct t_cose_encrypt_dec_ctx    dec_ctx;
+    struct t_cose_recipient_dec_hpke dec_recipient;
+    struct t_cose_parameter         *params;
+    struct q_useful_buf_c            decrypted_payload;
+    struct q_useful_buf_c            cose_encrypted_message;
+    struct q_useful_buf_c            psk = Q_USEFUL_BUF_FROM_SZ_LITERAL("01234567890123456789012345678901");
+    struct q_useful_buf_c            psk_id = Q_USEFUL_BUF_FROM_SZ_LITERAL("psk-01");
+    Q_USEFUL_BUF_MAKE_STACK_UB(      cose_encrypt_message_buffer, 256);
+    Q_USEFUL_BUF_MAKE_STACK_UB(      decrypted_plaintext_buffer, 128);
+
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256, &pkR, &skR);
+    if(result != T_COSE_SUCCESS) {
+        return 1000 + (int32_t)result;
+    }
+
+    t_cose_encrypt_enc_init(&enc_ctx,
+                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
+                            T_COSE_ALGORITHM_A128GCM);
+    t_cose_recipient_enc_hpke_init(&recipient,
+                                   T_COSE_HPKE_KE_P256_SHA256_AES128GCM);
+    t_cose_recipient_enc_hpke_set_key(&recipient,
+                                      pkR,
+                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
+    t_cose_recipient_enc_hpke_set_psk(&recipient, psk, psk_id);
+    t_cose_encrypt_add_recipient(&enc_ctx,
+                                 (struct t_cose_recipient_enc *)&recipient);
+
+    result = t_cose_encrypt_enc(&enc_ctx,
+                                Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD),
+                                NULL_Q_USEFUL_BUF_C,
+                                cose_encrypt_message_buffer,
+                                &cose_encrypted_message);
+    if(result != T_COSE_SUCCESS) {
+        free_fixed_test_ec_encryption_key(skR);
+        free_fixed_test_ec_encryption_key(pkR);
+        return 2000 + (int32_t)result;
+    }
+
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+    t_cose_recipient_dec_hpke_init(&dec_recipient);
+    t_cose_recipient_dec_hpke_set_skr(&dec_recipient,
+                                      skR,
+                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
+    t_cose_recipient_dec_hpke_set_psk(&dec_recipient, psk, psk_id);
+    t_cose_encrypt_dec_add_recipient(&dec_ctx,
+                                     (struct t_cose_recipient_dec *)&dec_recipient);
+
+    result = t_cose_encrypt_dec(&dec_ctx,
+                                cose_encrypted_message,
+                                NULL_Q_USEFUL_BUF_C,
+                                decrypted_plaintext_buffer,
+                                &decrypted_payload,
+                                &params);
+    if(result != T_COSE_SUCCESS) {
+        free_fixed_test_ec_encryption_key(skR);
+        free_fixed_test_ec_encryption_key(pkR);
+        return 3000 + (int32_t)result;
+    }
+
+    if(q_useful_buf_compare(decrypted_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD))) {
+        free_fixed_test_ec_encryption_key(skR);
+        free_fixed_test_ec_encryption_key(pkR);
+        return 4000;
+    }
+
+    return_value = check_hpke_psk_id_param(params, psk_id, 5000, 5001, 5002, 5003);
+    if(return_value != 0) {
+        free_fixed_test_ec_encryption_key(skR);
+        free_fixed_test_ec_encryption_key(pkR);
+        return return_value;
+    }
+
+    free_fixed_test_ec_encryption_key(skR);
+    free_fixed_test_ec_encryption_key(pkR);
+    return 0;
+}
+
+int32_t
+hpke_psk_encrypt0_enc_dec_test(void)
+{
+    enum t_cose_err_t             result;
+    int32_t                       return_value;
+    struct t_cose_key             skR;
+    struct t_cose_key             pkR;
+    struct t_cose_encrypt_enc     enc_ctx;
+    struct t_cose_recipient_enc_hpke recipient;
+    struct t_cose_encrypt_dec_ctx dec_ctx;
+    struct t_cose_parameter      *params;
+    struct q_useful_buf_c         decrypted_payload;
+    struct q_useful_buf_c         cose_encrypted_message;
+    struct q_useful_buf_c         psk = Q_USEFUL_BUF_FROM_SZ_LITERAL("01234567890123456789012345678901");
+    struct q_useful_buf_c         psk_id = Q_USEFUL_BUF_FROM_SZ_LITERAL("psk-01");
+    Q_USEFUL_BUF_MAKE_STACK_UB(   cose_encrypt0_message_buffer, 256);
+    Q_USEFUL_BUF_MAKE_STACK_UB(   decrypted_plaintext_buffer, 128);
+
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256, &pkR, &skR);
+    if(result != T_COSE_SUCCESS) {
+        return 6000 + (int32_t)result;
+    }
+
+    t_cose_encrypt_enc_init(&enc_ctx,
+                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0,
+                            T_COSE_HPKE_Base_P256_SHA256_AES128GCM);
+    t_cose_recipient_enc_hpke_init(&recipient,
+                                   T_COSE_HPKE_Base_P256_SHA256_AES128GCM);
+    t_cose_recipient_enc_hpke_set_key(&recipient,
+                                      pkR,
+                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
+    t_cose_recipient_enc_hpke_set_psk(&recipient, psk, psk_id);
+    t_cose_encrypt_add_recipient(&enc_ctx,
+                                 (struct t_cose_recipient_enc *)&recipient);
+
+    result = t_cose_encrypt_enc(&enc_ctx,
+                                Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD),
+                                NULL_Q_USEFUL_BUF_C,
+                                cose_encrypt0_message_buffer,
+                                &cose_encrypted_message);
+    if(result != T_COSE_SUCCESS) {
+        free_fixed_test_ec_encryption_key(skR);
+        free_fixed_test_ec_encryption_key(pkR);
+        return 7000 + (int32_t)result;
+    }
+
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
+    t_cose_encrypt_dec_set_hpke_recipient_key(&dec_ctx, skR, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_dec_set_hpke_psk(&dec_ctx, psk, psk_id);
+
+    result = t_cose_encrypt_dec(&dec_ctx,
+                                cose_encrypted_message,
+                                NULL_Q_USEFUL_BUF_C,
+                                decrypted_plaintext_buffer,
+                                &decrypted_payload,
+                                &params);
+    if(result != T_COSE_SUCCESS) {
+        free_fixed_test_ec_encryption_key(skR);
+        free_fixed_test_ec_encryption_key(pkR);
+        return 8000 + (int32_t)result;
+    }
+
+    if(q_useful_buf_compare(decrypted_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD))) {
+        free_fixed_test_ec_encryption_key(skR);
+        free_fixed_test_ec_encryption_key(pkR);
+        return 9000;
+    }
+
+    return_value = check_hpke_psk_id_param(params, psk_id, 10000, 10001, 10002, 10003);
+    if(return_value != 0) {
+        free_fixed_test_ec_encryption_key(skR);
+        free_fixed_test_ec_encryption_key(pkR);
+        return return_value;
+    }
+
+    free_fixed_test_ec_encryption_key(skR);
+    free_fixed_test_ec_encryption_key(pkR);
     return 0;
 }
 
