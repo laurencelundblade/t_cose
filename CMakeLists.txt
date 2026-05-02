@@ -12,7 +12,7 @@ cmake_minimum_required(VERSION 3.15)
 project(t_cose
     DESCRIPTION "t_cose"
     LANGUAGES C
-    VERSION 1.1.3)
+    VERSION 1.2.0)
 
 
 # =========================================================================
