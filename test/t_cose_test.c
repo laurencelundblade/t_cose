@@ -1187,7 +1187,7 @@ int_fast32_t short_circuit_hash_fail_test()
 /*
  * Public function, see t_cose_test.h
  */
-int_fast32_t tags_test()
+int32_t tags_test(void )
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -1316,6 +1316,12 @@ int_fast32_t tags_test()
     tag = t_cose_sign1_get_nth_tag(&verify_ctx, 2);
     if(tag != CBOR_TAG_INVALID64) {
         return -4;
+    }
+
+    /* Tag off the end of the list */
+    tag = t_cose_sign1_get_nth_tag(&verify_ctx, T_COSE_MAX_TAGS_TO_RETURN);
+    if(tag != CBOR_TAG_INVALID64) {
+        return -5;
     }
 
     /* compare payload output to the one expected */

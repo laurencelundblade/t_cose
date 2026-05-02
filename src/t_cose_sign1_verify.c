@@ -109,7 +109,7 @@ process_tags(struct t_cose_sign1_verify_ctx *me, QCBORDecodeContext *decode_cont
         if(uTag == CBOR_TAG_INVALID64) {
             break;
         }
-        if(returned_tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
+        if(returned_tag_index >= T_COSE_MAX_TAGS_TO_RETURN) {
             return T_COSE_ERR_TOO_MANY_TAGS;
         }
         me->auTags[returned_tag_index] = uTag;
