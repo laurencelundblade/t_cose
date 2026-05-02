@@ -390,7 +390,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     clear_cose_parameters(&parameters);
 
 #if QCBOR_VERSION_MAJOR >= 2
-    const int decode_config = QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
+    const int decode_config = QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
 #else
     const int decode_config = QCBOR_DECODE_MODE_NORMAL;
 #endif
