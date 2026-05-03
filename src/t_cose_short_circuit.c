@@ -122,7 +122,7 @@ Done:
 #else /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 /* So some of the build checks don't get confused by an empty object file */
-void t_cose_short_circuit_placeholder()
+void t_cose_short_circuit_placeholder(void)
 {}
 
 
