@@ -178,7 +178,7 @@ void free_key_pair(struct t_cose_key key_pair)
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-int check_for_key_pair_leaks()
+int check_for_key_pair_leaks(void)
 {
     /* So far no good way to do this for OpenSSL or malloc() in general
        in a nice portable way. The PSA version does check so there is
