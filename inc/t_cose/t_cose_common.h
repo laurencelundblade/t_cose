@@ -411,6 +411,10 @@ enum t_cose_err_t {
 
     /** The auxiliary buffer is too small */
     T_COSE_ERR_AUXILIARY_BUFFER_SIZE = 39,
+
+    /** The size or length is larger than can be handled. */
+    T_COSE_ERR_TOO_LONG = 40
+
 };
 
 
