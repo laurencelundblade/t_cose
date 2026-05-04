@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign_verify_test.h
  *
- * Copyright 2019, 2022, Laurence Lundblade
+ * Copyright 2019, 2022, 2026, Laurence Lundblade
  * Copyright (c) 2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -35,6 +35,9 @@ int32_t sign_verify_basic_test(void);
  */
 int32_t sign_verify_sig_fail_test(void);
 
+
+int32_t
+wrong_key_sign_test(void);
 
 /*
  * Make a CWT and compare it to the one in the CWT RFC
