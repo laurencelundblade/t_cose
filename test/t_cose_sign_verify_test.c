@@ -479,8 +479,7 @@ wrong_key_sign_test(void)
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
     struct t_cose_key              key_pair;
-    struct q_useful_buf_c          payload;
-    struct t_cose_sign1_verify_ctx verify_ctx;
+
 
     /* Make an ES 384 key pair */
     result = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES384, &key_pair);
@@ -500,6 +499,10 @@ wrong_key_sign_test(void)
         return_value = 2000 + (int32_t)result;
         goto Done;
     }
+
+#ifndef T_COSE_DISABLE_ES384
+    struct q_useful_buf_c          payload;
+    struct t_cose_sign1_verify_ctx verify_ctx;
 
     /* -- Make an ESP384 sig for the verify test -- */
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ESP384);
@@ -521,7 +524,9 @@ wrong_key_sign_test(void)
         return 4000 + (int32_t)result;
     }
 
-    /* Try to verify an ESP384 sign with an ES512 key and fail */
+#ifndef T_COSE_DISABLE_ES3521
+
+    /* Try to verify an ESP384 sign with an ES521 key and fail */
     t_cose_sign1_verify_init(&verify_ctx, 0);
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
@@ -533,6 +538,8 @@ wrong_key_sign_test(void)
         return_value = 5000 + (int32_t)result;
         goto Done;
     }
+#endif
+#endif
 
     return_value = 0;
 
