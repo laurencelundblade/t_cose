@@ -78,6 +78,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_basic_test),
     TEST_ENTRY(sign_verify_make_cwt_test),
     TEST_ENTRY(sign_verify_sig_fail_test),
+    TEST_ENTRY(wrong_key_sign_test),
     TEST_ENTRY(sign_verify_get_size_test),
     TEST_ENTRY(sign_verify_known_good_test),
     TEST_ENTRY(sign_verify_unsupported_test),
