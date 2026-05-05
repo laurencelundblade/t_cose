@@ -193,6 +193,32 @@ enum t_cose_err_t create_tbs(struct q_useful_buf_c  protected_parameters,
 struct q_useful_buf_c get_short_circuit_kid(void);
 #endif
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+
+/**
+ * \brief validate and normalize a content type string
+ *
+ * Ensures the input is non-empty, has exactly one '/', and no leading,
+ * trailing, or surrounding whitespace. Both <type> and <subtype> must be
+ * present. Follows the syntax rules from RFC 6838 and CoAP Content-Formats.
+ */
+enum t_cose_err_t vaildate_content_type(const char *str);
+
+/**
+ * \brief Check if a character is a space.
+ *
+ * This function is used as a helper for \ref vaildate_content_type.
+ *
+ * \param c Character to check
+ * \return Non-zero if the character is a space.
+ */
+inline int is_space(char c)
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
 #ifdef __cplusplus
 }
 #endif
