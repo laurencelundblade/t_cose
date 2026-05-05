@@ -1792,6 +1792,12 @@ int32_t tags_test(void)
         return -4;
     }
 
+    tag = t_cose_sign1_get_nth_tag(&verify_ctx, T_COSE_MAX_TAGS_TO_RETURN);
+    if(tag != CBOR_TAG_INVALID64) {
+        return -4;
+    }
+
+
     /* compare payload output to the one expected */
     if(q_useful_buf_compare(payload, q_useful_buf_tail(fp2, 2))) {
         return 5000;
