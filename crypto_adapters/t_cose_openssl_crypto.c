@@ -566,7 +566,6 @@ key_convert(struct t_cose_key t_cose_key,
             EVP_PKEY        **return_ossl_ec_key)
 {
     enum t_cose_err_t  return_value;
-    int                key_len_bits;
     int                key_type;
 
     /* Check the signing key and get it out of the union */
@@ -577,7 +576,6 @@ key_convert(struct t_cose_key t_cose_key,
     *return_ossl_ec_key = (EVP_PKEY *)t_cose_key.key.ptr;
 
     /* For fully-specified algorithms, fully check the key */
-    key_len_bits = EVP_PKEY_bits(*return_ossl_ec_key);
     key_type = EVP_PKEY_base_id(*return_ossl_ec_key);
 
     switch(cose_algorithm_id) {
