@@ -213,9 +213,9 @@ t_cose_process_tag_numbers_qcbor1_t_cose1(uint32_t             option_flags,
      *   local vars                                    20          16
      *   TOTAL                                         20          16
      */
-    uint64_t uTag;
-    uint32_t item_tag_index = 0;
-    int returned_tag_index;
+    uint64_t  uTag;
+    uint32_t  item_tag_index = 0;
+    int       returned_tag_index;
 
     /* The 0th tag is the only one that might identify the type of the
      * CBOR we are trying to decode so it is handled special.
@@ -262,12 +262,12 @@ t_cose_process_tag_numbers_qcbor1_t_cose1(uint32_t             option_flags,
     }
 
     while(1) {
-        uTag = QCBORDecode_GetNthTagOfLast(cbor_decoder, item_tag_index);
+        uTag = QCBORDecode_GetNthTag(cbor_decoder, item, item_tag_index);
         item_tag_index++;
         if(uTag == CBOR_TAG_INVALID64) {
             break;
         }
-        if(returned_tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
+        if(returned_tag_index >= T_COSE_MAX_TAGS_TO_RETURN) {
             return T_COSE_ERR_TOO_MANY_TAGS;
         }
         return_tag_numbers[returned_tag_index] = uTag;

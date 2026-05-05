@@ -431,7 +431,7 @@ static inline uint64_t
 t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *me,
                          const size_t                          tag_index)
 {
-    if(tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
+    if(tag_index >= T_COSE_MAX_TAGS_TO_RETURN) {
         return CBOR_TAG_INVALID64;
     }
     return me->tag_numbers[tag_index];
