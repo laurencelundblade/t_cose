@@ -542,7 +542,7 @@ static inline uint64_t
 t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
                          size_t                                n)
 {
-    if(n > T_COSE_MAX_TAGS_TO_RETURN) {
+    if(n >= T_COSE_MAX_TAGS_TO_RETURN) {
         return CBOR_TAG_INVALID64;
     }
     return context->auTags[n];
