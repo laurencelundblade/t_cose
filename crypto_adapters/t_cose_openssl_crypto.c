@@ -510,6 +510,46 @@ Done:
 }
 
 
+static enum t_cose_err_t
+check_ecc_key(const int32_t  cose_algorithm_id,
+              EVP_PKEY      *ec_key)
+{
+    const EC_KEY    *ec;
+    const EC_GROUP  *group;
+    int              nid ;
+
+    /* This method of getting the nid is slated for deprecation
+     * in OpenSSL because of new architecture in OpenSSL 3.x. However,
+     * it's unlikely this will be removed soon. The correct impementation
+     * would require an #ifdef on OpenSSL version. We haven't started
+     * doing that yet (in 2026). */
+    ec = EVP_PKEY_get0_EC_KEY(ec_key);
+    if(ec == NULL) {
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+    group = EC_KEY_get0_group(ec);
+    if(group == NULL) {
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+    nid = EC_GROUP_get_curve_name(group);
+
+    // TODO: generic mapping from nid to standard COSE EC2 curve ID
+    // TODO: fully-specify checking is not adaptor specific
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_ESP256:
+            if(nid != NID_X9_62_prime256v1) return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            break;
+        case T_COSE_ALGORITHM_ESP384:
+            if(nid != NID_secp384r1) return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            break;
+        case T_COSE_ALGORITHM_ESP512:
+            if(nid != NID_secp521r1) return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            break;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
 /**
  * \brief Common checks and conversions for signing and verification key.
  *
@@ -521,9 +561,13 @@ Done:
  * It pulls the OpenSSL key out of \c t_cose_key and checks it.
  */
 static enum t_cose_err_t
-key_convert(struct t_cose_key  t_cose_key, EVP_PKEY **return_ossl_ec_key)
+key_convert(struct t_cose_key t_cose_key,
+            const int32_t     cose_algorithm_id,
+            EVP_PKEY        **return_ossl_ec_key)
 {
     enum t_cose_err_t  return_value;
+    int                key_len_bits;
+    int                key_type;
 
     /* Check the signing key and get it out of the union */
     if(t_cose_key.key.ptr == NULL) {
@@ -532,7 +576,41 @@ key_convert(struct t_cose_key  t_cose_key, EVP_PKEY **return_ossl_ec_key)
     }
     *return_ossl_ec_key = (EVP_PKEY *)t_cose_key.key.ptr;
 
-    return_value = T_COSE_SUCCESS;
+    /* For fully-specified algorithms, fully check the key */
+    key_len_bits = EVP_PKEY_bits(*return_ossl_ec_key);
+    key_type = EVP_PKEY_base_id(*return_ossl_ec_key);
+
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_ESP256:
+            if(key_type != EVP_PKEY_EC) {
+                return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                goto Done;
+            }
+            return_value = check_ecc_key(cose_algorithm_id, *return_ossl_ec_key);
+            break;
+
+        case T_COSE_ALGORITHM_ESP384:
+            if(key_type != EVP_PKEY_EC) {
+                return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                goto Done;
+            }
+            return_value = check_ecc_key(cose_algorithm_id, *return_ossl_ec_key);
+            break;
+
+        case T_COSE_ALGORITHM_ESP512:
+            if(key_type != EVP_PKEY_EC) {
+                return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                goto Done;
+            }
+            return_value = check_ecc_key(cose_algorithm_id, *return_ossl_ec_key);
+            break;
+
+        default:
+            /* Assuming the PSA internals error out on an EC key
+             * used with the RSA alg and such. This just checks
+             * for fully-specified COSE algorithms */
+            return_value = T_COSE_SUCCESS;
+    }
 
 Done:
     return return_value;
@@ -589,7 +667,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
     enum t_cose_err_t return_value;
     EVP_PKEY         *signing_key_evp;
 
-    return_value = key_convert(signing_key, &signing_key_evp);
+    return_value = key_convert(signing_key, cose_algorithm_id, &signing_key_evp);
     if(return_value != T_COSE_SUCCESS) {
         return return_value;
     }
@@ -771,7 +849,7 @@ t_cose_crypto_sign(const int32_t                cose_algorithm_id,
 
     /* Pull the pointer to the OpenSSL-format EVP_PKEY out of the
      * t_cose key structure. */
-    return_value = key_convert(signing_key, &signing_key_evp);
+    return_value = key_convert(signing_key, cose_algorithm_id, &signing_key_evp);
     if(return_value != T_COSE_SUCCESS) {
         goto Done2;
     }
@@ -912,7 +990,7 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
 
     /* Get the verification key in an EVP_PKEY structure which is what
      * is needed for sig verification. */
-    return_value = key_convert(verification_key, &verification_key_evp);
+    return_value = key_convert(verification_key, cose_algorithm_id, &verification_key_evp);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -1201,7 +1279,7 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
 
     (void)crypto_context; /* This crypto adaptor doesn't use this */
 
-    return_value = key_convert(signing_key, &signing_key_evp);
+    return_value = key_convert(signing_key, T_COSE_ALGORITHM_EDDSA, &signing_key_evp);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -1264,7 +1342,7 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
 
     (void)crypto_context; /* This crypto adaptor doesn't use this */
 
-    return_value = key_convert(verification_key, &verification_key_evp);
+    return_value = key_convert(verification_key, T_COSE_ALGORITHM_EDDSA, &verification_key_evp);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

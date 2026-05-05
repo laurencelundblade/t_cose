@@ -27,6 +27,8 @@ and [COSE, RFC 9053](https://tools.ietf.org/html/rfc9053):
 * COSE_Encrypt (multiple recipients) with ECDH + AES key wrap or just with AES key wrap
 * AES CBC and CTR modes per [AES-CTR and AES-CBC, RFC 9459](https://tools.ietf.org/html/rfc9459)
 
+[Fully-specified algorithm IDs, RFC 9864](https://tools.ietf.org/html/rfc9864) is also supported.
+
 **Implemented in C with minimal dependency** – There are three main
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
 2) A cryptographic library, 3) C99, <stdint.h>,

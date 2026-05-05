@@ -473,6 +473,88 @@ int32_t sign_verify_sig_fail_test(void)
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
+int32_t
+wrong_key_sign_test(void)
+{
+    int32_t                        return_value;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    enum t_cose_err_t              result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
+    struct q_useful_buf_c          signed_cose;
+    struct t_cose_key              key_pair;
+    struct q_useful_buf_c          payload;
+    struct t_cose_sign1_verify_ctx verify_ctx;
+
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256) ||
+        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES384) ||
+        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES512)) {
+        return INT32_MIN; /* Means no testing was actually done */
+    }
+
+    /* Make an ES 384 key pair */
+    result = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES384, &key_pair);
+    if(result != T_COSE_SUCCESS) {
+        return 1000 + (int32_t)result;
+    }
+
+    /* -- Try to sign for ESP256 and fail -- */
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ESP256);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
+    result = t_cose_sign1_sign(&sign_ctx,
+                                Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                signed_cose_buffer,
+                               &signed_cose);
+    if(result != T_COSE_ERR_WRONG_TYPE_OF_KEY) {
+        return_value = 2000 + (int32_t)result;
+        goto Done;
+    }
+
+    /* -- Make an ESP384 sig for the verify test -- */
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_ESP384);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
+    result = t_cose_sign1_sign(&sign_ctx,
+                                Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                signed_cose_buffer,
+                               &signed_cose);
+    if(result != T_COSE_SUCCESS) {
+        return_value = 3000 + (int32_t)result;
+        goto Done;
+    }
+
+    /* Switch to an ES512 key */
+    free_fixed_signing_key(key_pair);
+    result = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES512, &key_pair);
+    if(result) {
+        return 4000 + (int32_t)result;
+    }
+
+    /* Try to verify an ESP384 sign with an ES521 key and fail */
+    t_cose_sign1_verify_init(&verify_ctx, 0);
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 signed_cose,         /* COSE to verify */
+                                 &payload,  /* Payload from signed_cose */
+                                 NULL);      /* Don't return parameters */
+    if(result != T_COSE_ERR_WRONG_TYPE_OF_KEY) {
+        return_value = 5000 + (int32_t)result;
+        goto Done;
+    }
+
+    return_value = 0;
+
+Done:
+    free_fixed_signing_key(key_pair);
+
+    return return_value;
+}
+
+
+/*
+ * Public function, see t_cose_sign_verify_test.h
+ */
 int32_t sign_verify_make_cwt_test(void)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;

@@ -144,6 +144,79 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 }
 
 
+/* Enforcement for fully-specified algorithm IDs */
+static enum t_cose_err_t
+check_key_against_algorithm(const int32_t       cose_algorithm_id,
+                            const psa_key_id_t  signing_key_psa)
+{
+    psa_status_t          status;
+    psa_key_attributes_t  attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_key_type_t        key_type;
+    psa_ecc_family_t      curve_family;
+    size_t                key_len_bits;
+
+    status = psa_get_key_attributes(signing_key_psa, &attributes);
+    if (status != PSA_SUCCESS) {
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+
+    key_type = psa_get_key_type(&attributes);
+
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_ESP256:
+            if(!PSA_KEY_TYPE_IS_ECC(key_type)) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+            curve_family = PSA_KEY_TYPE_ECC_GET_FAMILY(key_type);
+            if(curve_family != PSA_ECC_FAMILY_SECP_R1) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+
+            key_len_bits = psa_get_key_bits(&attributes);
+            if(key_len_bits != 256) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+            return T_COSE_SUCCESS;
+
+        case T_COSE_ALGORITHM_ESP384:
+            if(!PSA_KEY_TYPE_IS_ECC(key_type)) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+            curve_family = PSA_KEY_TYPE_ECC_GET_FAMILY(key_type);
+            if(curve_family != PSA_ECC_FAMILY_SECP_R1) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+
+            key_len_bits = psa_get_key_bits(&attributes);
+            if(key_len_bits != 384) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+            return T_COSE_SUCCESS;
+
+        case T_COSE_ALGORITHM_ESP512:
+            if(!PSA_KEY_TYPE_IS_ECC(key_type)) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+            curve_family = PSA_KEY_TYPE_ECC_GET_FAMILY(key_type);
+            if(curve_family != PSA_ECC_FAMILY_SECP_R1) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+
+            key_len_bits = psa_get_key_bits(&attributes);
+            if(key_len_bits != 521) {
+                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+            }
+            return T_COSE_SUCCESS;
+
+        default:
+            /* Assuming the PSA internals error out on an EC key
+             * used with the RSA alg and such. This just checks
+             * for fully-specified COSE algorithms */
+            return T_COSE_SUCCESS;
+    }
+}
+
+
 /**
  * \brief Map a PSA error into a t_cose error for signing.
  *
@@ -198,6 +271,11 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
 
     verification_key_psa = (psa_key_handle_t)verification_key.key.handle;
 
+    return_value = check_key_against_algorithm(cose_algorithm_id, verification_key_psa);
+    if (return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
     psa_result = psa_verify_hash(verification_key_psa,
                                  psa_alg_id,
                                  hash_to_verify.ptr,
@@ -238,6 +316,11 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     }
 
     signing_key_psa = (psa_key_handle_t)signing_key.key.handle;
+
+    return_value = check_key_against_algorithm(cose_algorithm_id,signing_key_psa );
+    if (return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     /* Determine signature size and validate against buffer size */
     return_value = t_cose_crypto_sig_size(cose_algorithm_id, signing_key, &signature_len);
@@ -301,6 +384,11 @@ t_cose_crypto_sign_restart(const bool                   started,
     }
 
     signing_key_psa = (psa_key_handle_t)signing_key.key.handle;
+
+    return_value = check_key_against_algorithm(cose_algorithm_id,signing_key_psa );
+    if (return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     if(crypto_context == NULL) {
         return_value = T_COSE_ERR_FAIL;
@@ -1553,6 +1641,10 @@ t_cose_crypto_ecdh(struct t_cose_key      private_key,
     psa_status_t         psa_status;
     MakeUsefulBufOnStack(public_key_buf, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE);
     size_t               pub_key_len;
+
+    /* TODO: check key for fully specified algorithms. Some one needs
+     * to define fully specified ecdh algorithms first though. It's not
+     * in RFC 9864, which is unfortunate. */
 
     /* Export public key */
     psa_status = psa_export_public_key((mbedtls_svc_key_id_t)public_key.key.handle, /* in: Key handle     */
