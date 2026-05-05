@@ -1187,7 +1187,7 @@ int_fast32_t short_circuit_hash_fail_test(void)
 /*
  * Public function, see t_cose_test.h
  */
-int32_t tags_test(void )
+int_fast32_t tags_test(void )
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
