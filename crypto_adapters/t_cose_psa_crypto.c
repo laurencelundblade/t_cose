@@ -144,6 +144,7 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 }
 
 
+/* Enforcement for fully-specified algorithm IDs */
 static enum t_cose_err_t
 check_key_against_algorithm(const int32_t       cose_algorithm_id,
                             const psa_key_id_t  signing_key_psa)
@@ -163,7 +164,6 @@ check_key_against_algorithm(const int32_t       cose_algorithm_id,
 
     switch(cose_algorithm_id) {
         case T_COSE_ALGORITHM_ESP256:
-            // P-256
             if(!PSA_KEY_TYPE_IS_ECC(key_type)) {
                 return T_COSE_ERR_WRONG_TYPE_OF_KEY;
             }
@@ -179,7 +179,6 @@ check_key_against_algorithm(const int32_t       cose_algorithm_id,
             return T_COSE_SUCCESS;
 
         case T_COSE_ALGORITHM_ESP384:
-            // P-384
             if(!PSA_KEY_TYPE_IS_ECC(key_type)) {
                 return T_COSE_ERR_WRONG_TYPE_OF_KEY;
             }
@@ -195,7 +194,6 @@ check_key_against_algorithm(const int32_t       cose_algorithm_id,
             return T_COSE_SUCCESS;
 
         case T_COSE_ALGORITHM_ESP512:
-            // P-521
             if(!PSA_KEY_TYPE_IS_ECC(key_type)) {
                 return T_COSE_ERR_WRONG_TYPE_OF_KEY;
             }

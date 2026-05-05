@@ -36,6 +36,7 @@ int32_t sign_verify_basic_test(void);
 int32_t sign_verify_sig_fail_test(void);
 
 
+/* Make sure fully-specified alg ID error out on the wrong key/curve */
 int32_t
 wrong_key_sign_test(void);
 

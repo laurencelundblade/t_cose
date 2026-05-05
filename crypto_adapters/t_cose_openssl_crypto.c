@@ -514,7 +514,7 @@ static enum t_cose_err_t
 check_ecc_key(const int32_t  cose_algorithm_id,
               EVP_PKEY      *ec_key)
 {
-    EC_KEY          *ec;
+    const EC_KEY    *ec;
     const EC_GROUP  *group;
     int              nid ;
 
@@ -582,48 +582,35 @@ key_convert(struct t_cose_key t_cose_key,
 
     switch(cose_algorithm_id) {
         case T_COSE_ALGORITHM_ESP256:
-            // P-256
             if(key_type != EVP_PKEY_EC) {
-                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                goto Done;
             }
             return_value = check_ecc_key(cose_algorithm_id, *return_ossl_ec_key);
-            if(return_value != T_COSE_SUCCESS) {
-                return return_value;
-            }
-            return T_COSE_SUCCESS;
+            break;
 
         case T_COSE_ALGORITHM_ESP384:
-            // P-384
             if(key_type != EVP_PKEY_EC) {
-                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                goto Done;
             }
             return_value = check_ecc_key(cose_algorithm_id, *return_ossl_ec_key);
-            if(return_value != T_COSE_SUCCESS) {
-                return return_value;
-            }
-            return T_COSE_SUCCESS;
+            break;
 
         case T_COSE_ALGORITHM_ESP512:
-            // P-521
             if(key_type != EVP_PKEY_EC) {
-                return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+                goto Done;
             }
             return_value = check_ecc_key(cose_algorithm_id, *return_ossl_ec_key);
-            if(return_value != T_COSE_SUCCESS) {
-                return return_value;
-            }
-            return T_COSE_SUCCESS;
+            break;
 
         default:
             /* Assuming the PSA internals error out on an EC key
              * used with the RSA alg and such. This just checks
              * for fully-specified COSE algorithms */
-            return T_COSE_SUCCESS;
+            return_value = T_COSE_SUCCESS;
     }
-
-
-
-    return_value = T_COSE_SUCCESS;
 
 Done:
     return return_value;
